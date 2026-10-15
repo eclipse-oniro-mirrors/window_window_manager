@@ -285,6 +285,40 @@ HWTEST_F(MockSessionManagerServiceTest, AcquireKeyId01, TestSize.Level1)
     EXPECT_FALSE(isSuccess);
 }
 
+namespace {
+class MockSessionManagerServiceForSceneBoard : public MockSessionManagerService {
+public:
+    MockSessionManagerServiceForSceneBoard() = default;
+    ~MockSessionManagerServiceForSceneBoard() override = default;
+
+private:
+    int32_t GetUserIdByCallingUid() override
+    {
+        return 5001; // pretend the calling user matches the requested userId
+    }
+};
+}
+
+/**
+ * @tc.name: AcquireKeyId02
+ * @tc.desc: The IPC entry is restricted to the sceneboard process: even when the
+ *           calling user matches, a non-sceneboard caller is denied. On the host
+ *           there is no bundle manager, so the sceneboard identity check fails.
+ * @tc.type: FUNC
+ */
+HWTEST_F(MockSessionManagerServiceTest, AcquireKeyId02, TestSize.Level1)
+{
+    MockSessionManagerServiceForSceneBoard sms;
+    int32_t keyId = INVALID_KEY_ID;
+    ErrCode ret = sms.AcquireKeyId(5001, keyId);
+    EXPECT_EQ(ret, ERR_PERMISSION_DENIED);
+    EXPECT_EQ(keyId, INVALID_KEY_ID);
+    bool isSuccess = true;
+    ret = sms.SyncKeyId(5001, 1, isSuccess);
+    EXPECT_EQ(ret, ERR_PERMISSION_DENIED);
+    EXPECT_FALSE(isSuccess);
+}
+
 /*
  * Tests for PersistentIdManager. The manager is a singleton, so its occupation map
  * grows across the cases below (they run in declaration order, like the rest of

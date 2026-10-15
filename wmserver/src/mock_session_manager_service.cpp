@@ -1449,8 +1449,8 @@ ErrCode MockSessionManagerService::AcquireKeyId(int32_t userId, int32_t& keyId)
             userId, callingUserId);
         return ERR_INVALID_VALUE;
     }
-    if (!SessionPermission::IsSystemCalling()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "permission denied");
+    if (!SessionPermission::IsSameBundleNameAsCalling(SCENE_BOARD_BUNDLE_NAME)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "caller is not sceneboard, permission denied");
         return ERR_PERMISSION_DENIED;
     }
     keyId = PersistentIdManager::GetInstance().AcquireKeyId(userId);
@@ -1469,8 +1469,8 @@ ErrCode MockSessionManagerService::SyncKeyId(int32_t userId, int32_t keyId, bool
             userId, callingUserId);
         return ERR_INVALID_VALUE;
     }
-    if (!SessionPermission::IsSystemCalling()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "permission denied");
+    if (!SessionPermission::IsSameBundleNameAsCalling(SCENE_BOARD_BUNDLE_NAME)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "caller is not sceneboard, permission denied");
         return ERR_PERMISSION_DENIED;
     }
     isSuccess = PersistentIdManager::GetInstance().SyncKeyId(userId, keyId);
