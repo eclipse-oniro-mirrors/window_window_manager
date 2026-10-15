@@ -111,7 +111,8 @@ private:
     static napi_value OnMoveMainWindowToTargetDisplay(napi_env env, napi_callback_info info);
     static napi_value OnSetWindowPosition(napi_env env, napi_callback_info info);
     static bool ParseWindowInfoOptions(napi_env env, napi_value jsObject, WindowInfoOptions& option);
-    static bool ParseWindowPositionInfo(napi_env env, napi_value jsObject, WindowPositionInfo& windowPositionInfo);
+    static bool ParseWindowPositionInfo(napi_env env, napi_value jsObject, WindowPositionInfo& windowPositionInfo,
+        WmErrorCode& errorCode);
     static bool ParseRequiredConfigOption(
         napi_env env, napi_value jsObject, WindowOption& option);
     static bool ParseConfigOption(

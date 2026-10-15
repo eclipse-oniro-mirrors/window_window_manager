@@ -438,7 +438,7 @@ HWTEST_F(SceneSessionManagerTest14, SetWindowPositionInsertAfterVirtualScreen, T
     // 2. Call the function to be tested
     WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
     // 3. Verify the result
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_DISPLAY);
     ssm_->sceneSessionMap_.clear();
     ClearScreenSessions();
 }
@@ -682,7 +682,7 @@ HWTEST_F(SceneSessionManagerTest14, SetWindowPositionNoScreen, TestSize.Level1)
     // 2. Call the function to be tested
     WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
     // 3. Verify the result
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_DISPLAY);
     ssm_->sceneSessionMap_.clear();
     ClearScreenSessions();
 }
@@ -715,7 +715,7 @@ HWTEST_F(SceneSessionManagerTest14, SetWindowPositionVirtualScreen, TestSize.Lev
     // 2. Call the function to be tested
     WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
     // 3. Verify the result
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_DISPLAY);
     ssm_->sceneSessionMap_.clear();
     ClearScreenSessions();
 }

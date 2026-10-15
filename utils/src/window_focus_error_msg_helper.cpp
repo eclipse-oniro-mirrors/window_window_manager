@@ -69,8 +69,12 @@ namespace {
         "The window to be adjusted or the target main window specified by insertAfter cannot be found: "
         "it is not created, has been destroyed, or does not belong to the current process.";
     constexpr const char* const ERROR_POSITION_PARAM_INVALID =
-        "The windowPositions list is empty or exceeds the maximum size, "
-        "the windowId is invalid, or the insertAfter value is invalid.";
+        "The windowPositions list is empty, the windowId is invalid, "
+        "or the insertAfter value is invalid.";
+    constexpr const char* const ERROR_POSITION_LIST_TOO_LONG =
+        "The windowPositions list exceeds the maximum size of 50.";
+    constexpr const char* const ERROR_POSITION_VIRTUAL_SCREEN =
+        "The window to be adjusted or the target main window specified by insertAfter is on a virtual screen.";
     constexpr const char* const ERROR_SERVICE_ABNORMAL = "The IPC to the window manager service failed.";
 
     using ErrorMsgFunc = const char* (*)(WMError);
@@ -304,6 +308,12 @@ const char* WindowFocusErrorMsgHelper::GetWindowPositionErrorMsg(WMError error)
     }
     if (error == WMError::WM_ERROR_INVALID_PARAM) {
         return ERROR_POSITION_PARAM_INVALID;
+    }
+    if (error == WMError::WM_ERROR_ILLEGAL_PARAM) {
+        return ERROR_POSITION_LIST_TOO_LONG;
+    }
+    if (error == WMError::WM_ERROR_INVALID_DISPLAY) {
+        return ERROR_POSITION_VIRTUAL_SCREEN;
     }
     if (error == WMError::WM_ERROR_IPC_FAILED) {
         return ERROR_SERVICE_ABNORMAL;
