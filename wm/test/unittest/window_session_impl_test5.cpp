@@ -995,21 +995,26 @@ HWTEST_F(WindowSessionImplTest5, ConvertOrientationAndRotation, Function | Small
     RotationInfoType from = RotationInfoType::DISPLAY_ORIENTATION;
     RotationInfoType to = RotationInfoType::DISPLAY_ORIENTATION;
     int32_t value = -1;
-    int32_t convertedValue = 0;
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_WINDOW,
+    int32_t convertedValue = -1;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW,
         window->ConvertOrientationAndRotation(from, to, value, convertedValue));
     window->property_->SetPersistentId(1);
     window->state_ = WindowState::STATE_CREATED;
-    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
-    value = -1;
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM,
+    const auto deviceType = window->GetDeviceType();
+    if (deviceType != "phone" && deviceType != "tablet") {
+        EXPECT_EQ(WMError::WM_ERROR_DEVICE_NOT_SUPPORT,
+            window->ConvertOrientationAndRotation(from, to, value, convertedValue));
+        return;
+    }
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM,
         window->ConvertOrientationAndRotation(from, to, value, convertedValue));
     value = 8;
-    ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->ConvertOrientationAndRotation(from, to, value, convertedValue));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->ConvertOrientationAndRotation(from, to, value, convertedValue));
     value = 0;
-    ASSERT_EQ(WMError::WM_OK, window->ConvertOrientationAndRotation(from, to, value, convertedValue));
+    EXPECT_EQ(WMError::WM_OK, window->ConvertOrientationAndRotation(from, to, value, convertedValue));
+    EXPECT_EQ(value, convertedValue);
     to = RotationInfoType::DISPLAY_ROTATION;
-    ASSERT_EQ(WMError::WM_OK, window->ConvertOrientationAndRotation(from, to, value, convertedValue));
+    EXPECT_EQ(WMError::WM_OK, window->ConvertOrientationAndRotation(from, to, value, convertedValue));
     GTEST_LOG_(INFO) << "WindowSessionImplTest5: ConvertOrientationAndRotation end";
 }
 
