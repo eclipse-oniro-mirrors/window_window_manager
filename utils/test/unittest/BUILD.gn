@@ -26,6 +26,7 @@ group("unittest") {
     ":utils_dm_rs_surface_node_test",
     ":utils_dm_virtual_screen_option_test",
     ":utils_dms_reporter_test",
+    ":utils_ffrt_queue_helper_test",
     ":utils_perform_reporter_test",
     ":utils_persistent_storage_test",
     ":utils_rate_limited_logger_test",
@@ -79,6 +80,16 @@ ohos_unittest("utils_task_sequence_process_test") {
   module_out_path = module_out_path
 
   sources = [ "task_sequence_process_test.cpp" ]
+
+  deps = [ ":utils_unittest_common" ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("utils_ffrt_queue_helper_test") {
+  module_out_path = module_out_path
+
+  sources = [ "ffrt_queue_helper_test.cpp" ]
 
   deps = [ ":utils_unittest_common" ]
 

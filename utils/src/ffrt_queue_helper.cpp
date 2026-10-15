@@ -32,6 +32,7 @@ struct TaskStatAggregation {
     uint64_t totalTime = 0;
     uint64_t callCount = 0;
 };
+} // namespace
 
 std::string StripGid(std::string label)
 {
@@ -45,7 +46,6 @@ std::string StripGid(std::string label)
     }
     return label;
 }
-} // namespace
 
 constexpr int32_t FFRT_USER_INTERACTIVE_MAX_THREAD_NUM = 5;
 
