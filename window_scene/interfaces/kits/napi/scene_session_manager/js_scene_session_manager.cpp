@@ -2163,6 +2163,8 @@ static napi_value CreateApplicationInfo(napi_env env, const AppExecFwk::AbilityI
         return NapiGetUndefined(env);
     }
     napi_set_named_property(env, objValue, "startMode", CreateJsValue(env, abilityInfo.applicationInfo.startMode));
+    napi_set_named_property(env, objValue, "appIndex", CreateJsValue(env, abilityInfo.applicationInfo.appIndex));
+    napi_set_named_property(env, objValue, "uid", CreateJsValue(env, abilityInfo.applicationInfo.uid));
     return objValue;
 }
 

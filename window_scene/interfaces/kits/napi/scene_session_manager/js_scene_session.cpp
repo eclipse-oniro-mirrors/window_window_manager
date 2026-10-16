@@ -748,6 +748,8 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
         JsSceneSession::UpdateSceneLastUsedPosition);
     BindNativeFunction(env, objValue, "updateCallerPersistentId", moduleName,
         JsSceneSession::UpdateCallerPersistentId);
+    BindNativeFunction(env, objValue, "updateDensity", moduleName,
+        JsSceneSession::UpdateDensity);
 }
 
 void JsSceneSession::BindNativeMethodForKeyboard(napi_env env, napi_value objValue, const char* moduleName)
@@ -10226,6 +10228,30 @@ napi_value JsSceneSession::OnUpdateCallerPersistentId(napi_env env, napi_callbac
 
     TLOGD(WmsLogTag::WMS_LIFE, "id:%{public}d, callerPersistentId:%{public}d", persistentId_, callerPersistentId);
     session->UpdateCallerPersistentId(callerPersistentId);
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::UpdateDensity(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnUpdateDensity(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::OnUpdateDensity(napi_env env, napi_callback_info info)
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr, id:%{public}d", persistentId_);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
+    if (session->UpdateDensity() != WSError::WS_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "update density failed, id:%{public}d", persistentId_);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_STATE_ABNORMALLY)));
+        return NapiGetUndefined(env);
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "update density success, id:%{public}d", persistentId_);
     return NapiGetUndefined(env);
 }
 
