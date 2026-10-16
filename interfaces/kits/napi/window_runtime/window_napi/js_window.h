@@ -40,6 +40,13 @@ napi_valuetype GetType(napi_env env, napi_value value);
 bool NapiIsCallable(napi_env env, napi_value value);
 napi_value NapiThrowError(napi_env env, WmErrorCode errCode);
 napi_value NapiThrowError(napi_env env, WmErrorCode errCode, const std::string& msg);
+struct DestroyWindowContext {
+    std::shared_ptr<AbilityRuntime::NapiAsyncTask> task;
+    wptr<Window> weakToken;
+    std::shared_ptr<NativeReference> jsWindowRef;
+    const char* where;
+    WMError errCode = WMError::WM_OK;
+};
 class JsWindow final {
 public:
     explicit JsWindow(const sptr<Window>& window, napi_env env);
@@ -302,6 +309,9 @@ private:
     napi_value OnShowWithAnimation(napi_env env, napi_callback_info info);
     napi_value OnDestroy(napi_env env, napi_callback_info info);
     napi_value OnDestroyWindow(napi_env env, napi_callback_info info);
+    void DestroyAsyncTask(napi_env env, const DestroyWindowContext& context);
+    void DestroyWindowAsyncTask(napi_env env, const DestroyWindowContext& context);
+    void ResolveDestroyedWindow(napi_env env, const DestroyWindowContext& context);
     napi_value OnHide(napi_env env, napi_callback_info info);
     napi_value OnHideWithAnimation(napi_env env, napi_callback_info info);
 
