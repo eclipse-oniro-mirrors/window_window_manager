@@ -1112,6 +1112,52 @@ void SceneSessionManagerProxy::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Di
     }
 }
 
+void SceneSessionManagerProxy::GetAllGroupInfo(
+    std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+    std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "request on proxy");
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "WriteInterfaceToken failed");
+        return;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "remote is null");
+        return;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_ALL_GROUP_INFO),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "SendRequest failed");
+        return;
+    }
+    if (!MarshallingHelper::UnmarshallingVectorParcelableObj<FocusChangeInfo>(reply, allFocusInfoList)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "read window info failed");
+        return;
+    }
+    int32_t mapSize = 0;
+    if (!reply.ReadInt32(mapSize)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Failed to read mapSize");
+        return;
+    }
+    for (int32_t i = 0; i < mapSize; i++) {
+        DisplayId displayId = DISPLAY_ID_INVALID;
+        if (!reply.ReadUint64(displayId)) {
+            TLOGE(WmsLogTag::WMS_FOCUS, "Failed to read displayId");
+            return;
+        }
+        DisplayGroupId displayGroupId = DISPLAY_GROUP_ID_INVALID;
+        if (!reply.ReadUint64(displayGroupId)) {
+            TLOGE(WmsLogTag::WMS_FOCUS, "Failed to read displayGroupId");
+            return;
+        }
+        displayId2GroupIdMap[displayId] = displayGroupId;
+    }
+}
+
 void SceneSessionManagerProxy::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
     const sptr<IRemoteObject>& abilityToken)
 {

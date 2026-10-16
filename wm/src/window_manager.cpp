@@ -2040,6 +2040,13 @@ void WindowManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId dis
     WindowAdapter::GetInstance(userId_).GetFocusWindowInfo(focusInfo, displayId);
 }
 
+void WindowManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+    std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "In");
+    WindowAdapter::GetInstance(userId_).GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
+}
+
 void WindowManager::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
     const sptr<IRemoteObject>& abilityToken)
 {
