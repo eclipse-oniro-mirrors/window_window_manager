@@ -666,6 +666,7 @@ void FoldScreenBasePolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode,
     if (!CheckDisplayModeChange(displayMode, reason, isForce)) {
         return;
     }
+    ScreenSessionManager::GetInstance().PauseMirrorByRecordPolicy();
     TLOGI(WmsLogTag::DMS, "start change displaymode: %{public}d, reason: %{public}d}", displayMode, reason);
     ChangeScreenDisplayModeInner(displayMode, reason);
     UpdateDeviceStatus(displayMode);

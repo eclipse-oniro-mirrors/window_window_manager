@@ -627,6 +627,14 @@ enum class VirtualScreenType: uint32_t {
 };
 
 /**
+ * @brief Enumerates the record policy of the virtual screen.
+ */
+enum class RecordPolicy: uint32_t {
+    NONE = 0,
+    AUTO_PAUSE = 1,
+};
+
+/**
  * @brief Enumerates the screen mode change events.
  */
 enum class ScreenModeChangeEvent: uint32_t {

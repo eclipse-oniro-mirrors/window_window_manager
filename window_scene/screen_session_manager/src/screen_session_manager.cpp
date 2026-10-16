@@ -8952,6 +8952,9 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
             rsInterface_.SetVirtualScreenHDRMode(rsId, option.hdrMode_);
         }
         TLOGNFI(WmsLogTag::DMS, "hdrMode: %{public}d", option.hdrMode_);
+        screenSession->SetRecordPolicies(option.recordPolicies_);
+        TLOGNFI(WmsLogTag::DMS, "recordPolicies size: %{public}d",
+            static_cast<uint32_t>(option.recordPolicies_.size()));
         NotifyScreenConnected(screenSession->ConvertToScreenInfo());
         TLOGNFW(WmsLogTag::DMS, "create success. ScreenId: %{public}" PRIu64", rsId: %{public}" PRIu64"",
             smsScreenId, rsId);
@@ -15671,6 +15674,29 @@ bool ScreenSessionManager::SetVirtualScreenStatus(ScreenId screenId, VirtualScre
 
     DmsXcollie dmsXcollie("DMS:SetVirtualScreenStatus", XCOLLIE_TIMEOUT_10S);
     return rsInterface_.SetVirtualScreenStatus(rsScreenId, screenStatus);
+}
+
+void ScreenSessionManager::PauseMirrorByRecordPolicy()
+{
+    std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
+    for (auto sessionIt : screenSessionMap_) {
+        const auto& screenSession = sessionIt.second;
+        if (screenSession == nullptr) {
+            continue;
+        }
+        if (screenSession->GetScreenProperty().GetScreenType() != ScreenType::VIRTUAL ||
+            screenSession->GetScreenCombination() != ScreenCombination::SCREEN_MIRROR) {
+            continue;
+        }
+        auto recordPolicies = screenSession->GetRecordPolicies();
+        if (std::find(recordPolicies.begin(), recordPolicies.end(),
+            RecordPolicy::AUTO_PAUSE) == recordPolicies.end()) {
+            continue;
+        }
+        TLOGNFI(WmsLogTag::DMS, "pause mirror virtual screen by record policy, screenId: %{public}" PRIu64,
+            screenSession->GetScreenId());
+        SetVirtualScreenStatus(screenSession->GetScreenId(), VirtualScreenStatus::VIRTUAL_SCREEN_PAUSE);
+    }
 }
 
 sptr<ScreenSession> ScreenSessionManager::GetOrCreateFakeScreenSession(sptr<ScreenSession> screenSession,

@@ -197,6 +197,7 @@ void SingleDisplayPocketFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode disp
         SetDeviceStatus(deviceStatus);
         system::SetParameter("persist.dms.device.status", std::to_string(deviceStatus));
     }
+    ScreenSessionManager::GetInstance().PauseMirrorByRecordPolicy();
     ChangeScreenDisplayModeProc(screenSession, displayMode, reason);
     {
         std::lock_guard<std::recursive_mutex> lock_mode(displayModeMutex_);

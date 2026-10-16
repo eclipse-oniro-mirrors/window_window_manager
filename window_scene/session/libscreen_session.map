@@ -201,6 +201,7 @@
             OHOS::Rosen::ScreenSession::GetVirtualPixelRatio*;
             OHOS::Rosen::ScreenSession::GetVirtualScreenFlag*;
             OHOS::Rosen::ScreenSession::GetVirtualScreenType*;
+            OHOS::Rosen::ScreenSession::GetRecordPolicies*;
             OHOS::Rosen::ScreenSession::GetVprScaleRatio*;
             OHOS::Rosen::ScreenSession::HandleCameraBackSelfieChange*;
             OHOS::Rosen::ScreenSession::HandleHoverStatusChange*;
@@ -322,6 +323,7 @@
             OHOS::Rosen::ScreenSession::SetVirtualPixelRatio*;
             OHOS::Rosen::ScreenSession::SetVirtualScreenFlag*;
             OHOS::Rosen::ScreenSession::SetVirtualScreenType*;
+            OHOS::Rosen::ScreenSession::SetRecordPolicies*;
             OHOS::Rosen::ScreenSession::SetVprScaleRatio*;
             OHOS::Rosen::ScreenSession::SetXYPosition*;
             OHOS::Rosen::ScreenSession::SetPropertyNeedNotified*;
