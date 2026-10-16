@@ -3456,13 +3456,13 @@ void AniWindow::DestroyWindow(ani_env* env, ani_object obj, ani_long nativeObj)
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
-        aniWindow->OnDestroyWindow(env);
+        aniWindow->OnDestroyWindow(env, obj);
     } else {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] aniWindow is nullptr");
     }
 }
 
-void AniWindow::OnDestroyWindow(ani_env* env)
+void AniWindow::OnDestroyWindow(ani_env* env, ani_object obj)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     auto window = GetWindow();
@@ -3483,6 +3483,10 @@ void AniWindow::OnDestroyWindow(ani_env* env)
     if (ret != WmErrorCode::WM_OK) {
         AniWindowUtils::AniThrowError(env, ret, "Window destroy failed");
         return;
+    }
+    ani_status status = env->Object_SetFieldByName_Boolean(obj, "isDestroyed", ani_boolean(true));
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] set isDestroyed true failed, status: %{public}u", status);
     }
     windowToken_ = nullptr;
 }
