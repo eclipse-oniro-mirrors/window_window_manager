@@ -2586,6 +2586,7 @@ __attribute__((no_sanitize("cfi")))
         return nullptr;
     }
     env->Object_CallMethod_Void(obj, setObjFunc, reinterpret_cast<ani_long>(aniWindow.get()));
+    env->Object_SetFieldByName_Boolean(obj, "isDestroyed", ani_boolean(false));
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(obj, &ref) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] create global ref fail");
@@ -6078,7 +6079,6 @@ __attribute__((no_sanitize("cfi")))
         return nullptr;
     }
     TLOGD(WmsLogTag::DEFAULT, "[ANI] create wstage");
-
     ani_status ret;
     ani_class cls = nullptr;
     if ((ret = env->FindClass("@ohos.window.window.WindowInternal", &cls)) != ANI_OK) {
@@ -6095,7 +6095,6 @@ __attribute__((no_sanitize("cfi")))
         TLOGD(WmsLogTag::DEFAULT, "[ANI] get field fail %{public}u", ret);
         return nullptr;
     }
-
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGD(WmsLogTag::DEFAULT, "[ANI] get ctor fail %{public}u", ret);
