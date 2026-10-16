@@ -22795,11 +22795,12 @@ void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
     }
 }
 
-void SceneSessionManager::OnMotionSmartRotationChanged(float sensorRotation)
+void SceneSessionManager::OnMotionSmartRotationChanged(float sensorRotation, int16_t reason)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionSmartRotationChanged sensorRotation: %{public}f, reason: %{public}d",
+         sensorRotation, reason);
     if (smartSensorRotationChangeListener_) {
-        smartSensorRotationChangeListener_(sensorRotation);
+        smartSensorRotationChangeListener_(sensorRotation, reason);
     }
 }
 

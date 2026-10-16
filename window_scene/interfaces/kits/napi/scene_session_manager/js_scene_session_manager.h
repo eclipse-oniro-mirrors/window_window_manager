@@ -501,7 +501,7 @@ private:
     void ProcessSensorRotationRegister();
     void OnSensorRotationChange(float sensorRotation);
     void ProcessSmartSensorRotationRegister();
-    void OnSmartSensorRotationChange(float sensorRotation);
+    void OnSmartSensorRotationChange(float sensorRotation, bool isSwitchUser, int16_t reason);
 
     /*
      * Window Pattern
