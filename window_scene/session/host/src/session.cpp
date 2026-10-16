@@ -1541,7 +1541,7 @@ bool Session::SessionIsSingleHandMode()
 WSError Session::UpdateRect(const WSRect& rect, SizeChangeReason reason,
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction)
 {
-    return UpdateRectWithLayoutInfo(rect, reason, updateReason, rsTransaction, {});
+    return UpdateRectWithLayoutInfoInner(rect, reason, updateReason, rsTransaction, {});
 }
 
 void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
@@ -1555,6 +1555,28 @@ void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
 }
 
 WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+    const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
+    const std::map<AvoidAreaType, AvoidArea>& avoidAreas, bool onlyUpdateAvoidArea)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_IMMS, "sessionStage_ is nullptr, id: %{public}d", GetPersistentId());
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (onlyUpdateAvoidArea) {
+        for (const auto& [type, avoidArea] : avoidAreas) {
+            auto ret = sessionStage_->UpdateAvoidArea(new AvoidArea(avoidArea), type);
+            if (ret != WSError::WS_OK) {
+                TLOGE(WmsLogTag::WMS_IMMS, "UpdateAvoidArea failed, type: %{public}u, ret: %{public}u",
+                    static_cast<uint32_t>(type), static_cast<uint32_t>(ret));
+            }
+        }
+    } else {
+        return UpdateRectWithLayoutInfoInner(rect, reason, updateReason, rsTransaction, avoidAreas);
+    }
+    return WSError::WS_OK;
+}
+
+WSError Session::UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeReason reason,
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
