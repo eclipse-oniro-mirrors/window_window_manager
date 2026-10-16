@@ -17778,7 +17778,15 @@ void ScreenSessionManager::AddOrUpdateUserDisplayNode(int32_t userId, ScreenId s
         }
     }
     std::lock_guard<std::recursive_mutex> lock(userDisplayNodeMapMutex_);
-    userDisplayNodeMap_[userId].insert_or_assign(screenId, displayNode);
+    auto& nodeMap = userDisplayNodeMap_[userId];
+    auto it = nodeMap.find(screenId);
+    if (it != nodeMap.end() && it->second != nullptr && it->second != displayNode) {
+        TLOGW(WmsLogTag::DMS, "Remove stale displayNode: %{public}" PRIu64 " from tree.", it->second->GetId());
+        it->second->RemoveDisplayNodeFromTree();
+        displayNodePidMap_.erase(it->second->GetId());
+        RSTransactionAdapter::FlushImplicitTransaction(it->second);
+    }
+    nodeMap.insert_or_assign(screenId, displayNode);
     TLOGNFI(WmsLogTag::DMS, "success");
 }
 
