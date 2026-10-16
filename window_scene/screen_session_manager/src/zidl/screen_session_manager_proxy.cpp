@@ -1196,7 +1196,8 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
         data.WriteString(virtualOption.bundleName_) &&
         data.WriteUint32(virtualOption.phyWidth_) && data.WriteUint32(virtualOption.phyHeight_) &&
         data.WriteUint32(virtualOption.renderWidth_) && data.WriteUint32(virtualOption.renderHeight_) &&
-        data.WriteInt32(virtualOption.screenId_) && data.WriteUint32(static_cast<uint32_t>(virtualOption.caller_));
+        data.WriteInt32(virtualOption.screenId_) && data.WriteUint32(static_cast<uint32_t>(virtualOption.caller_)) &&
+        data.WriteUint32(static_cast<uint32_t>(virtualOption.hdrMode_));
     if (virtualOption.surface_ != nullptr && virtualOption.surface_->GetProducer() != nullptr) {
         res = res &&
             data.WriteBool(true) &&

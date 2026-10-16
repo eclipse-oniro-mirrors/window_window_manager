@@ -228,6 +228,13 @@ typedef enum : uint32_t {
     VIRTUAL_SCREEN_INVALID_STATUS,
 } VirtualScreenStatus;
 
+enum class HDRMode : uint32_t {
+    NONE = 0,
+    HDR_DYNAMIC,
+    HDR_STATIC,
+    HDR_MODE_BUTT,
+};
+
 enum class DualScreenStatus : uint64_t {
     DUAL_SCREEN_EXIT = 0,
     DUAL_SCREEN_ENTER,

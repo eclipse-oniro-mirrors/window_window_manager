@@ -168,6 +168,7 @@ public:
     ScreenId GetMainScreenId();
     int32_t SetAsMainScreen(ScreenId id, bool isMainScreen);
     int32_t UnRegisterExposedEventCallback(const RSExposedEventType type);
+    int32_t SetVirtualScreenHDRMode(ScreenId id, HDRMode mode);
 };
 }  // namespace Rosen
 }  // namespace OHOS

@@ -390,6 +390,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             uint32_t renderHeight = data.ReadUint32();
             int32_t screenIdParam = data.ReadInt32();
             VirtualScreenCaller caller = static_cast<VirtualScreenCaller>(data.ReadUint32());
+            HDRMode hdrMode = static_cast<HDRMode>(data.ReadUint32());
             bool isSurfaceValid = data.ReadBool();
             sptr<Surface> surface = nullptr;
             if (isSurfaceValid) {
@@ -419,7 +420,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .renderWidth_ = renderWidth,
                 .renderHeight_ = renderHeight,
                 .screenId_ = screenIdParam,
-                .caller_ = caller
+                .caller_ = caller,
+                .hdrMode_ = hdrMode
             };
             ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
             reply.WriteUint64(static_cast<uint64_t>(screenId));

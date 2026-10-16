@@ -60,6 +60,7 @@ struct VirtualScreenOption {
     uint32_t renderWidth_ { 0 };
     uint32_t renderHeight_ { 0 };
     VirtualScreenCaller caller_ {VirtualScreenCaller::UNKNOWN};
+    HDRMode hdrMode_ {HDRMode::NONE};
 };
 
 struct ScreenCapability {
