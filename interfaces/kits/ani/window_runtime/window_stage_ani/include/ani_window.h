@@ -336,7 +336,7 @@ private:
     void OnShowWindow(ani_env* env);
     void OnShowWindowWithOptions(ani_env* env, ani_object aniShowWindowOptions);
     void OnBindDialogTarget(ani_env* env, ani_object argv, ani_ref deathCallback);
-    void OnDestroyWindow(ani_env* env);
+    void OnDestroyWindow(ani_env* env, ani_object obj);
     void OnCloseDirectly(ani_env* env);
     ani_boolean OnIsWindowShowing(ani_env* env);
     ani_boolean OnIsWindowHighlighted(ani_env* env);
