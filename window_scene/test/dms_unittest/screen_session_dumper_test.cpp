@@ -862,9 +862,9 @@ HWTEST_F(ScreenSessionDumperTest, SetHoverStatusChange, TestSize.Level1)
     dumper ->SetHoverStatusChange("-hoverStatus,1");
     dumper ->SetHoverStatusChange("-hoverStatus,4");
     EXPECT_TRUE(g_errLog.find("screenSession is nullptr") != std::string::npos ||
-        g_errLog.find("the value is too long") ！= std::string::npos ||
-        g_errLog.find("the value is not a number") ！= std::string::npos ||
-        g_errLog.find("params is invalid") ！= std::string::npos)
+        g_errLog.find("the value is too long") != std::string::npos ||
+        g_errLog.find("value is not a number") != std::string::npos ||
+        g_errLog.find("params is invalid") != std::string::npos)
     g_errLog.clear();
     LOG_SetCallback(nullptr);
 }
@@ -2254,6 +2254,224 @@ HWTEST_F(ScreenSessionDumperTest, SetDuringCallState, TestSize.Level1)
     dumper->SetDuringCallState("-duringcallstate,3");
     EXPECT_TRUE(g_errLog.find("param is invalid") != std::string::npos);
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSuperDisplayFoldStatus01
+ * @tc.desc: test function : SetSuperDisplayFoldStatus with empty input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperDisplayFoldStatus01, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int errCode = 0;
+    dumper->SetSuperDisplayFoldStatus("", errCode);
+    EXPECT_EQ(errCode, -1);
+}
+
+/**
+ * @tc.name: SetSuperDisplayFoldStatus02
+ * @tc.desc: test function : SetSuperDisplayFoldStatus with STATUS_FOLD_HALF
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperDisplayFoldStatus02, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int errCode = 0;
+    dumper->SetSuperDisplayFoldStatus("-z", errCode);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperDisplayFoldStatus03
+ * @tc.desc: test function : SetSuperDisplayFoldStatus with STATUS_EXPAND
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperDisplayFoldStatus03, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int errCode = 0;
+    dumper->SetSuperDisplayFoldStatus("-y", errCode);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperDisplayFoldStatus04
+ * @tc.desc: test function : SetSuperDisplayFoldStatus with STATUS_FOLD
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperDisplayFoldStatus04, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int errCode = 0;
+    dumper->SetSuperDisplayFoldStatus("-p", errCode);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperDisplayFoldStatus05
+ * @tc.desc: test function : SetSuperDisplayFoldStatus with invalid input
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperDisplayFoldStatus05, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    int errCode = 0;
+    dumper->SetSuperDisplayFoldStatus("-invalid", errCode);
+    EXPECT_EQ(errCode, -1);
+}
+
+/**
+ * @tc.name: SetSuperFoldHallValue01
+ * @tc.desc: test function : SetSuperFoldHallValue
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldHallValue01, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldHallValue(0);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldHallValue02
+ * @tc.desc: test function : SetSuperFoldHallValue with keyboard threshold
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldHallValue02, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldHallValue(4);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureValue01
+ * @tc.desc: test function : SetSuperFoldPostureValue
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureValue01, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureValue(0);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureValue02
+ * @tc.desc: test function : SetSuperFoldPostureValue with expanded angle
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureValue02, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureValue(180);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureValue03
+ * @tc.desc: test function : SetSuperFoldPostureValue with half fold angle
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureValue03, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureValue(90);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureAndPower01
+ * @tc.desc: test function : SetSuperFoldPostureAndPower with expanded angle
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureAndPower01, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureAndPower(180);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureAndPower02
+ * @tc.desc: test function : SetSuperFoldPostureAndPower with folded angle
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureAndPower02, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureAndPower(0);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureAndPower03
+ * @tc.desc: test function : SetSuperFoldPostureAndPower with half fold angle
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureAndPower03, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureAndPower(90);
+    ASSERT_EQ(dumper->fd_, 1);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureAndPower04
+ * @tc.desc: test function : SetSuperFoldPostureAndPower with invalid angle
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureAndPower04, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureAndPower(200);
+    EXPECT_TRUE(g_errLog.find("postureVal is invalid") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSuperFoldPostureAndPower05
+ * @tc.desc: test function : SetSuperFoldPostureAndPower with angle in fold begin range
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionDumperTest, SetSuperFoldPostureAndPower05, TestSize.Level1)
+{
+    int fd = 1;
+    std::vector<std::u16string> args = {u"-h"};
+    sptr<ScreenSessionDumper> dumper = new ScreenSessionDumper(fd, args);
+    dumper->SetSuperFoldPostureAndPower(15);
+    ASSERT_EQ(dumper->fd_, 1);
 }
 
 #endif // FOLD_ABILITY_ENABLE
