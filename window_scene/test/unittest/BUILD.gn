@@ -352,7 +352,14 @@ ohos_unittest("ws_persistent_id_allocator_test") {
 
   sources = [ "persistent_id_allocator_test.cpp" ]
 
-  deps = [ ":ws_unittest_common" ]
+  include_dirs = [
+    get_label_info("${window_base_path}/wmserver:mock_session_manager_service_interface", "target_gen_dir"),
+  ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/wmserver:mock_session_manager_service_proxy",
+  ]
 
   external_deps = test_external_deps
   external_deps += [
