@@ -2558,7 +2558,6 @@ __attribute__((no_sanitize("cfi")))
         return aniWindowObj;
     }
     TLOGI(WmsLogTag::DEFAULT, "[ANI] create window obj");
- 
     ani_status ret;
     ani_class cls = nullptr;
     if ((ret = env->FindClass("@ohos.window.window.WindowInternal", &cls)) != ANI_OK) {
@@ -2568,7 +2567,6 @@ __attribute__((no_sanitize("cfi")))
     ani_vm* vm = nullptr;
     env->GetVM(&vm);
     std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, vm);
- 
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] get ctor fail %{public}u", ret);
@@ -6078,6 +6076,7 @@ __attribute__((no_sanitize("cfi")))
         return nullptr;
     }
     TLOGD(WmsLogTag::DEFAULT, "[ANI] create wstage");
+
     ani_status ret;
     ani_class cls = nullptr;
     if ((ret = env->FindClass("@ohos.window.window.WindowInternal", &cls)) != ANI_OK) {
@@ -6094,6 +6093,7 @@ __attribute__((no_sanitize("cfi")))
         TLOGD(WmsLogTag::DEFAULT, "[ANI] get field fail %{public}u", ret);
         return nullptr;
     }
+
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGD(WmsLogTag::DEFAULT, "[ANI] get ctor fail %{public}u", ret);
