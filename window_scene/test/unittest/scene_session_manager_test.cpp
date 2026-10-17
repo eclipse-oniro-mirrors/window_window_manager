@@ -2684,23 +2684,6 @@ HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfig, TestSize.
 }
 
 /**
- * @tc.name: UpdateRogWindowConfig_InvalidConfigEmptyList
- * @tc.desc: Test UpdateRogWindowConfig with empty app list
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfigEmptyList, TestSize.Level1)
-{
-    RogWindowConfig invalidConfig;
-    invalidConfig.width = 1920;
-    invalidConfig.height = 1080;
-    invalidConfig.dpi = 480;
-    invalidConfig.scale = 1.5f;
-    invalidConfig.xhdpiAppList.clear();
-    auto ret = ssm_->UpdateRogWindowConfig(invalidConfig);
-    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
-}
-
-/**
  * @tc.name: UpdateRogWindowConfig_InvalidConfigZeroDpi
  * @tc.desc: Test UpdateRogWindowConfig with zero dpi
  * @tc.type: FUNC

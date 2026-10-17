@@ -1841,7 +1841,7 @@ struct RogWindowConfig {
 
     bool IsValid() const
     {
-        return width > 0 && height > 0 && dpi > 0 && scale > 0 && !xhdpiAppList.empty();
+        return width > 0 && height > 0 && dpi > 0 && scale > 0;
     }
 
     std::string ToString() const
