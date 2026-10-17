@@ -1800,8 +1800,7 @@ napi_value JsWindow::OnDestroy(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
         context.errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
-    wptr<Window> weakToken(windowToken_);
-    const char* const where = __func__;
+
     napi_value lastParam = (argc == 0) ? nullptr : (GetType(env, argv[0]) == napi_function ? argv[0] : nullptr);
     napi_value result = nullptr;
     context.task = CreateEmptyAsyncTask(env, lastParam, &result);
