@@ -34,6 +34,8 @@ namespace OHOS {
 namespace Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "MockSessionManagerServiceTest"};
+constexpr int32_t PINNED_CALLING_USER_ID = 5001;
+constexpr int32_t UNRELATED_USER_ID = 5002;
 
     std::string g_errLog;
     void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
@@ -276,28 +278,35 @@ HWTEST_F(MockSessionManagerServiceTest, GetProcessSurfaceNodeIdByPersistentId, T
 HWTEST_F(MockSessionManagerServiceTest, AcquireKeyId01, TestSize.Level1)
 {
     int32_t keyId = INVALID_KEY_ID;
-    ErrCode ret = MockSessionManagerService::GetInstance().AcquireKeyId(5001, keyId);
+    ErrCode ret = MockSessionManagerService::GetInstance().AcquireKeyId(UNRELATED_USER_ID, keyId);
     EXPECT_EQ(ret, ERR_INVALID_VALUE);
     EXPECT_EQ(keyId, INVALID_KEY_ID);
     bool isSuccess = true;
-    ret = MockSessionManagerService::GetInstance().SyncKeyId(5001, 1, isSuccess);
+    ret = MockSessionManagerService::GetInstance().SyncKeyId(UNRELATED_USER_ID, 1, isSuccess);
     EXPECT_EQ(ret, ERR_INVALID_VALUE);
     EXPECT_FALSE(isSuccess);
 }
 
 namespace {
-// Deriving only to pin the calling user to a known value: the sceneboard identity
-// gate sits behind the user gate, so the user check must pass deterministically.
-class MockSessionManagerServiceWithMatchedUser : public MockSessionManagerService {
+// Pins the calling user to an id injected by the case: the sceneboard identity
+// gate sits behind the user gate, so the user check must pass deterministically
+// before the identity gate can be reached. The id itself is decided by the case
+// (PINNED_CALLING_USER_ID), not hardcoded in the override.
+class MockSessionManagerServiceWithCallingUser : public MockSessionManagerService {
 public:
-    MockSessionManagerServiceWithMatchedUser() = default;
-    ~MockSessionManagerServiceWithMatchedUser() override = default;
+    explicit MockSessionManagerServiceWithCallingUser(int32_t callingUserId)
+        : callingUserId_(callingUserId)
+    {
+    }
+    ~MockSessionManagerServiceWithCallingUser() override = default;
 
 private:
     int32_t GetUserIdByCallingUid() override
     {
-        return 5001; // pretend the calling user matches the requested userId
+        return callingUserId_; // the calling user pinned by the case
     }
+
+    int32_t callingUserId_;
 };
 }
 
@@ -312,19 +321,19 @@ private:
  */
 HWTEST_F(MockSessionManagerServiceTest, AcquireKeyId02, TestSize.Level1)
 {
-    MockSessionManagerServiceWithMatchedUser sms;
+    MockSessionManagerServiceWithCallingUser sms(PINNED_CALLING_USER_ID);
     int32_t keyId = INVALID_KEY_ID;
-    ErrCode ret = sms.AcquireKeyId(5001, keyId);
+    ErrCode ret = sms.AcquireKeyId(PINNED_CALLING_USER_ID, keyId);
     EXPECT_EQ(ret, ERR_PERMISSION_DENIED);
     EXPECT_EQ(keyId, INVALID_KEY_ID);
     bool isSuccess = true;
-    ret = sms.SyncKeyId(5001, 1, isSuccess);
+    ret = sms.SyncKeyId(PINNED_CALLING_USER_ID, 1, isSuccess);
     EXPECT_EQ(ret, ERR_PERMISSION_DENIED);
     EXPECT_FALSE(isSuccess);
     // the user gate precedes the sceneboard identity gate
-    ret = sms.AcquireKeyId(5002, keyId);
+    ret = sms.AcquireKeyId(UNRELATED_USER_ID, keyId);
     EXPECT_EQ(ret, ERR_INVALID_VALUE);
-    ret = sms.SyncKeyId(5002, 1, isSuccess);
+    ret = sms.SyncKeyId(UNRELATED_USER_ID, 1, isSuccess);
     EXPECT_EQ(ret, ERR_INVALID_VALUE);
 }
 

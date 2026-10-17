@@ -352,6 +352,11 @@ ohos_unittest("ws_persistent_id_allocator_test") {
 
   sources = [ "persistent_id_allocator_test.cpp" ]
 
+  cflags_cc = [
+    "-Dprivate=public",
+    "-Dprotected=public",
+  ]
+
   include_dirs = [
     get_label_info("${window_base_path}/wmserver:mock_session_manager_service_interface", "target_gen_dir"),
   ]

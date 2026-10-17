@@ -13,7 +13,9 @@
  * limitations under the License.
  */
 
-#define private public
+// Private and protected members are opened by -Dprivate=public/-Dprotected=public
+// in the target's cflags (ws_persistent_id_allocator_test in BUILD.gn): an
+// in-source "#define private public" trips the UPPER_CASE macro-name lint.
 
 #include <cstdint>
 #include <filesystem>
