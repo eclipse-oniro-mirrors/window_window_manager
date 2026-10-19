@@ -227,7 +227,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
         patchData = std::make_unique<int16_t[]>(dataLen);
         errno_t ret = memcpy_s(patchData.get(), dataLen * sizeof(int16_t),
             motionData.data, dataLen * sizeof(int16_t));
-        if (ret != EOK ) {
+        if (ret != EOK) {
             TLOGE(WmsLogTag::WMS_ROTATION, "memcpy_s failed, ret: %{public}d", ret);
             std:fill(patchData.get(), patchData.get() + dataLen, -1);
         }
