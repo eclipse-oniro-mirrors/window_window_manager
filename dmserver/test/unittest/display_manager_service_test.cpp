@@ -766,12 +766,24 @@ HWTEST_F(DisplayManagerServiceTest, GetAllDisplayPhysicalResolution03, TestSize.
 
 /**
  * @tc.name: SetVirtualScreenAsDefault
- * @tc.desc: Test GetAllDisplayPhysicalResolution function when default display info is null.
+ * @tc.desc: Test SetVirtualScreenAsDefault with invalid screenId.
  * @tc.type: FUNC
  */
 HWTEST_F(DisplayManagerServiceTest, SetVirtualScreenAsDefault, TestSize.Level1)
 {
     ScreenId screenId = 0;
+    auto res = dms_->SetVirtualScreenAsDefault(screenId);
+    EXPECT_FALSE(res);
+}
+
+/**
+ * @tc.name: SetVirtualScreenAsDefaultPermissionDenied
+ * @tc.desc: Test SetVirtualScreenAsDefault is denied without ACCESS_VIRTUAL_SCREEN permission.
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerServiceTest, SetVirtualScreenAsDefaultPermissionDenied, TestSize.Level1)
+{
+    ScreenId screenId = 1;
     auto res = dms_->SetVirtualScreenAsDefault(screenId);
     EXPECT_FALSE(res);
 }
