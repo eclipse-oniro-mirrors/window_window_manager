@@ -31,6 +31,7 @@ constexpr uint32_t FFRT_STAT_MAX_COUNT = 5000;
 constexpr uint64_t FFRT_STAT_INTERVAL_MS = 5 * 60 * 1000;
 constexpr const char* DIGITS = "0123456789";
 constexpr char XPOWER_HISYSEVENT_DOMAIN[] = "POWERTHERMAL";
+constexpr uint64_t US_PER_MS = 1000;
 
 struct TaskStatAggregation {
     uint64_t totalTime = 0;
@@ -62,16 +63,16 @@ void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& ag
     pids.reserve(aggregated.size());
     for (const auto& [name, stat] : aggregated) {
         taskNames.push_back(name);
-        durations.push_back(static_cast<int64_t>(ConvertCntvctToUs(stat.totalTime) / 1000));
+        durations.push_back(static_cast<int64_t>(ConvertCntvctToUs(stat.totalTime) / US_PER_MS));
         counts.push_back(static_cast<int64_t>(stat.callCount));
         pids.push_back(pid);
-        TLOGND(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower task = %{public}s, 
-            count=%{public}llu, totalTimeTicks=%{public}llu, 
-            totalTimeUs=%{public}llu durationMs=%{public}lld",
+        TLOGND(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower task = %{public}s, "
+            "count=%{public}llu, totalTimeTicks=%{public}llu, "
+            "totalTimeUs=%{public}llu durationMs=%{public}lld",
             name.c_str(), static_cast<unsigned long long>(stat.callCount),
             static_cast<unsigned long long>(stat.totalTime),
             static_cast<unsigned long long>(ConvertCntvctToUs(stat.totalTime)),
-            static_cast<unsigned long long>(ConvertCntvctToUs(stat.totalTime) / 1000));
+            static_cast<long long>(ConvertCntvctToUs(stat.totalTime) / US_PER_MS));
     }
     int32_t ret = HiSysEventWrite(XPOWER_HISYSEVENT_DOMAIN, "FFRT_TASK_INFO",
         HiviewDFX::HiSysEvent::EventType::STATISTIC,
@@ -182,7 +183,8 @@ void FfrtQueueHelper::StartStatCollection()
     statBufferSize_ = FFRT_STAT_MAX_COUNT * static_cast<uint32_t>(sizeof(ffrt_stat));
     statBuffer_ = std::make_unique<char[]>(statBufferSize_);
     if (statBuffer_ == nullptr) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: StartStatCollection: alloc buffer failed, size=%{public}u", statBufferSize_);
+        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: StartStatCollection: alloc buffer failed, size=%{public}u",
+            statBufferSize_);
         statEnabled_ = false;
         statBufferSize_ = 0;
         return;
