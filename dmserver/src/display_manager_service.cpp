@@ -247,7 +247,7 @@ DMError DisplayManagerService::DestroyVirtualScreen(ScreenId screenId)
         TLOGE(WmsLogTag::DMS, "destroy virtual screen permission denied!");
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
-    if (!accessTokenIdMaps_.isExistAndRemove(screenId, IPCSkeleton::GetCallingTokenID())) {
+    if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
         if (isCallingByThirdParty) {
             return DMError::DM_ERROR_NULLPTR;
         }
@@ -258,7 +258,11 @@ DMError DisplayManagerService::DestroyVirtualScreen(ScreenId screenId)
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
 
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "dms:DestroyVirtualScreen(%" PRIu64 ")", screenId);
-    return abstractScreenController_->DestroyVirtualScreen(screenId);
+    DMError ret = abstractScreenController_->DestroyVirtualScreen(screenId);
+    if (ret == DMError::DM_OK) {
+        accessTokenIdMaps_.erase(screenId);
+    }
+    return ret;
 }
 
 DMError DisplayManagerService::SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
