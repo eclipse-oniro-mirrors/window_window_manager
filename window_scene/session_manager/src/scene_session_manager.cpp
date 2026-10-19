@@ -6714,7 +6714,7 @@ WSErrorResult SceneSessionManager::FinalizeSessionDestruction(const int32_t pers
     }
     ClearSpecificSessionRemoteObjectMap(persistentId);
     TLOGI(WmsLogTag::WMS_LIFE, "Destroy specific session end, id: %{public}d", persistentId);
-    return WSErrorResult{WSError::WS_OK, "Destroy specific session end"};
+    return WSErrorResult{ret, "Destroy specific session end"};
 }
 
 
@@ -6732,7 +6732,7 @@ void SceneSessionManager::ReportMainWindowStateChange(const sptr<SceneSession>& 
         };
         OHOS::ResourceSchedule::ResSchedClient::GetInstance().ReportData(
             OHOS::ResourceSchedule::ResType::RES_TYPE_REPORT_WINDOW_STATE, value, payload);
-    }, __func__);
+    });
 }
 
 WSErrorResult SceneSessionManager::DestroyAndDisconnectSpecificSessionInner(const int32_t persistentId)
