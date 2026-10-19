@@ -19,6 +19,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "timeout_future.h"
 
@@ -32,8 +33,11 @@ public:
     FfrtQueueHelper();
     ~FfrtQueueHelper();
     bool SubmitTaskAndWait(std::function<void()>&& task, uint64_t timeout);
+    bool SubmitTaskAndWait(std::function<void()>&& task, uint64_t timeout, const std::string& name);
     void SubmitTask(std::function<void()>&& task);
+    void SubmitTask(std::function<void()>&& task, const std::string& name);
     void SubmitTaskToHead(std::function<void()>&& task);
+    void SubmitTaskToHead(std::function<void()>&& task, const std::string& name);
 
     void StartStatCollection();
     void StopStatCollection();

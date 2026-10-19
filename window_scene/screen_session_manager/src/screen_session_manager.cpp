@@ -9464,7 +9464,7 @@ DMError ScreenSessionManager::DoMakeMirror(ScreenId mainScreenId, std::vector<Sc
         }
     };
     if (ffrtQueueHelper_ != nullptr) {
-        ffrtQueueHelper_->SubmitTaskToHead(task);
+        ffrtQueueHelper_->SubmitTaskToHead(task, __func__);
     }
     DMError makeResult = MultiScreenManager::GetInstance().MirrorSwitch(mainScreenId,
         allMirrorScreenIds, mainScreenRegion, screenGroupId, rotationOption, forceMirror);

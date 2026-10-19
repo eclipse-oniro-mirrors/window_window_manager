@@ -146,6 +146,5 @@ HWTEST_F(FfrtQueueHelperTest, StartStopStartStatCollection, TestSize.Level1)
     helper.StartStatCollection();
     helper.StopStatCollection();
 }
-} // namespace
 } // namespace Rosen
 } // namespace OHOS

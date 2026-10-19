@@ -231,7 +231,7 @@ void ScreenSessionManager::CallRsSetScreenPowerStatusForConcurrent(DisplayId dis
     }
     constexpr uint64_t SET_SCREEN_POWER_TIMEOUT_MS = 10000;
     bool isTimeOut = ffrtQueueHelper_->SubmitTaskAndWait(std::move(rsSetScreenPowerStatusTask),
-        SET_SCREEN_POWER_TIMEOUT_MS);
+        SET_SCREEN_POWER_TIMEOUT_MS, __func__);
     if (isTimeOut) {
         TLOGNFE(WmsLogTag::DMS, "[UL_POWER_IVI]CallRsSetScreenPowerStatus timeout, ScreenId: %{public}" PRIu64"",
             displayId);

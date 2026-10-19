@@ -16,8 +16,11 @@
 #include "ffrt_queue_helper.h"
 
 #include <cstdint>
+#include <hisysevent.h>
 #include <string>
+#include <unistd.h>
 #include <unordered_map>
+#include <vector>
 
 #include "ffrt_inner.h"
 #include "window_manager_hilog.h"
@@ -32,6 +35,17 @@ struct TaskStatAggregation {
     uint64_t totalTime = 0;
     uint64_t callCount = 0;
 };
+
+inline uint64_t ConvertCntvctToUs(uint64_t ticks)
+{
+#if defined(__aarch64__)
+    uint64_t freq = 1;
+    asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
+    return (ticks * 1000000) / freq;
+#else
+    return ticks;
+#endif
+}
 } // namespace
 
 std::string StripGid(std::string label)
@@ -79,6 +93,22 @@ bool FfrtQueueHelper::SubmitTaskAndWait(std::function<void()>&& task, uint64_t t
     return isTimeout;
 }
 
+bool FfrtQueueHelper::SubmitTaskAndWait(std::function<void()>&& task, uint64_t timeout, const std::string& name)
+{
+    auto timeoutFuture = std::make_shared<TimeoutFuture<bool>>();
+    ffrtQueue_->submit([localTask = std::move(task), timeoutFuture, where = __func__] {
+        if (localTask) {
+            localTask();
+        } else {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s: task function is empty", where);
+        }
+        timeoutFuture->FutureCall(true);
+    }, name.c_str());
+    bool isTimeout = false;
+    timeoutFuture->GetResult(timeout, isTimeout);
+    return isTimeout;
+}
+
 void FfrtQueueHelper::SubmitTask(std::function<void()>&& task)
 {
     ffrtQueue_->submit(task);
@@ -87,6 +117,16 @@ void FfrtQueueHelper::SubmitTask(std::function<void()>&& task)
 void FfrtQueueHelper::SubmitTaskToHead(std::function<void()>&& task)
 {
     ffrtQueue_->submit_head(task);
+}
+
+void FfrtQueueHelper::SubmitTask(std::function<void()>&& task, const std::string& name)
+{
+    ffrtQueue_->submit(task, name.c_str());
+}
+
+void FfrtQueueHelper::SubmitTaskToHead(std::function<void()>&& task, const std::string& name)
+{
+    ffrtQueue_->submit_head(task, name.c_str());
 }
 // LCOV_EXCL_STOP
 
@@ -153,6 +193,9 @@ void FfrtQueueHelper::ParseAndReportStat()
         while (!raw.empty() && raw.back() == ' ') {
             raw.pop_back();
         }
+        if (raw.find("OS_TaskWorker") != std::string::npos) {
+            continue;
+        }
         std::string name = StripGid(std::move(raw));
         auto& entry = aggregated[name];
         entry.totalTime += (s.endTime - s.startTime);
@@ -164,20 +207,43 @@ void FfrtQueueHelper::ParseAndReportStat()
             maxEndTime = s.endTime;
         }
     }
-    // 上报xpower
     if (minStartTime != UINT64_MAX) {
+        std::vector<std::string> taskNames;
+        std::vector<int64_t> durations;
+        std::vector<int64_t> counts;
+        std::vector<int32_t> pids;
+        int32_t pid = static_cast<int32_t>(getpid());
+        taskNames.reserve(aggregated.size());
+        durations.reserve(aggregated.size());
+        counts.reserve(aggregated.size());
+        pids.reserve(aggregated.size());
+        for (const auto& [name, stat] : aggregated) {
+            taskNames.push_back(name);
+            durations.push_back(static_cast<int64_t>(ConvertCntvctToUs(stat.totalTime) / 1000));
+            counts.push_back(static_cast<int64_t>(stat.callCount));
+            pids.push_back(pid);
+        }
+        int32_t ret = HiSysEventWrite("POWERTHERMAL", "FFRT_TASK_INFO",
+            HiviewDFX::HiSysEvent::EventType::STATISTIC,
+            "START_TIME", static_cast<int64_t>(ConvertCntvctToUs(minStartTime)),
+            "END_TIME", static_cast<int64_t>(ConvertCntvctToUs(maxEndTime)),
+            "TASKNAME", taskNames,
+            "DURATION", durations,
+            "COUNT", counts,
+            "PID", pids);
+        if (ret != 0) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "ParseAndReportStat: HiSysEventWrite failed, ret=%{public}d", ret);
+        }
         TLOGNI(WmsLogTag::WMS_LIFE,
             "ffrt stat window: %{public}u unique tasks, start=%{public}llu end=%{public}llu",
             static_cast<uint32_t>(aggregated.size()),
             static_cast<unsigned long long>(minStartTime),
             static_cast<unsigned long long>(maxEndTime));
-    } else {
-        TLOGNI(WmsLogTag::WMS_LIFE, "ffrt stat window: 0 tasks");
-    }
-    for (const auto& [name, stat] : aggregated) {
-        TLOGNI(WmsLogTag::WMS_LIFE, "ffrt stat: task=%{public}s count=%{public}llu total=%{public}llu",
-            name.c_str(), static_cast<unsigned long long>(stat.callCount),
-            static_cast<unsigned long long>(stat.totalTime));
+        for (const auto& [name, stat] : aggregated) {
+            TLOGND(WmsLogTag::WMS_LIFE, "ffrt stat: task=%{public}s count=%{public}llu total=%{public}llu",
+                name.c_str(), static_cast<unsigned long long>(stat.callCount),
+                static_cast<unsigned long long>(stat.totalTime));
+        }
     }
     if (ffrt_dump(DUMP_START_STAT, statBuffer_.get(), statBufferSize_) != 0) {
         TLOGNE(WmsLogTag::WMS_LIFE, "ParseAndReportStat: ffrt_dump restart failed");
