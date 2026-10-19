@@ -483,6 +483,10 @@ bool DisplayManagerService::SetScreenPowerForAll(ScreenPowerState state, PowerSt
 
 ScreenPowerState DisplayManagerService::GetScreenPower(ScreenId dmsScreenId)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::DMS, "GetScreenPower permission denied!");
+        return ScreenPowerState::INVALID_STATE;
+    }
     return abstractScreenController_->GetScreenPower(dmsScreenId);
 }
 
