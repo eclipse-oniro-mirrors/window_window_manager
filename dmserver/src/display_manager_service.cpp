@@ -392,7 +392,14 @@ DMError DisplayManagerService::SetScreenColorTransform(ScreenId screenId)
 DMError DisplayManagerService::RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     DisplayManagerAgentType type)
 {
-    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+    if (type < DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER ||
+        type >= DisplayManagerAgentType::DISPLAY_MANAGER_MAX_AGENT_TYPE) {
+        TLOGE(WmsLogTag::DMS, "RegisterDisplayManagerAgent invalid type: %{public}u", static_cast<uint32_t>(type));
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
+        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) && !Permission::IsSystemCalling()
+        && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::DMS, "register display manager agent permission denied!");
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
@@ -406,7 +413,14 @@ DMError DisplayManagerService::RegisterDisplayManagerAgent(const sptr<IDisplayMa
 DMError DisplayManagerService::UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     DisplayManagerAgentType type)
 {
-    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+    if (type < DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER ||
+        type >= DisplayManagerAgentType::DISPLAY_MANAGER_MAX_AGENT_TYPE) {
+        TLOGE(WmsLogTag::DMS, "UnregisterDisplayManagerAgent invalid type: %{public}u", static_cast<uint32_t>(type));
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
+        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) && !Permission::IsSystemCalling()
+        && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::DMS, "unregister display manager agent permission denied!");
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
