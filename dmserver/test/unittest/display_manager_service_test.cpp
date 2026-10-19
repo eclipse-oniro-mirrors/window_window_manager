@@ -349,6 +349,19 @@ HWTEST_F(DisplayManagerServiceTest, RegisterDisplayManagerAgent, TestSize.Level1
 }
 
 /**
+ * @tc.name: RegisterDisplayManagerAgentScreenshotType
+ * @tc.desc: Test RegisterDisplayManagerAgent with SCREENSHOT_EVENT_LISTENER type (previously ungated).
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerServiceTest, RegisterDisplayManagerAgentScreenshotType, TestSize.Level1)
+{
+    DisplayManagerAgentType type = DisplayManagerAgentType::SCREENSHOT_EVENT_LISTENER;
+
+    ASSERT_EQ(DMError::DM_ERROR_NULLPTR, dms_->RegisterDisplayManagerAgent(nullptr, type));
+    ASSERT_EQ(DMError::DM_ERROR_NULLPTR, dms_->UnregisterDisplayManagerAgent(nullptr, type));
+}
+
+/**
  * @tc.name: ScreenPower
  * @tc.desc: DMS screen power
  * @tc.type: FUNC

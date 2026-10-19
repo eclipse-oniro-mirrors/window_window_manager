@@ -1114,9 +1114,7 @@ DMError ScreenSessionManager::RegisterDisplayManagerAgent(
 {
     TLOGNFI(WmsLogTag::DMS, "type: %{public}u, pid: %{public}d", type, IPCSkeleton::GetCallingPid());
     DmsXcollie dmsXcollie("DMS:RegisterDisplayManagerAgent", XCOLLIE_TIMEOUT_10S);
-    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
-        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) &&
-        !SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
@@ -1223,9 +1221,7 @@ DMError ScreenSessionManager::UnregisterDisplayManagerAgent(
     const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type)
 {
     TLOGNFI(WmsLogTag::DMS, "type: %{public}u, pid: %{public}d", type, IPCSkeleton::GetCallingPid());
-    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
-        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) &&
-        !SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "unregister display manager agent permission denied!");
         TLOGNFE(WmsLogTag::DMS, "calling clientName: %{public}s, calling pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
