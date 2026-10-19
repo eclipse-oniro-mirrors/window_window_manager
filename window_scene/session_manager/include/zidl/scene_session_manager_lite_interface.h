@@ -363,7 +363,7 @@ public:
      * @return Successful call returns WSError: WS-OK, otherwise it indicates failure
      */
     virtual WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-        bool shouldBackToCaller = true) { return WSError::WS_OK; }
+        bool shouldBackToCaller = true, uint32_t reason = 0) { return WSError::WS_OK; }
 
     /**
      * @brief restore session to foreground

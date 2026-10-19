@@ -236,6 +236,7 @@ public:
     void ResetSessionConnectState() REQUIRES(SCENE_GUARD);
     void ResetIsActive();
     void SetIsGamePrelaunch(bool isGamePrelaunch);
+    void SetIsGameBackgroundRunning(bool isGameBackgroundRunning);
     WSError PendingSessionToForeground(SessionInfo& info);
     WSError PendingSessionToBackground(const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(bool shouldBackToCaller,
@@ -1032,6 +1033,12 @@ public:
      */
     WSError UpdateLSStateInfo(bool isLSState);
 
+    /**
+     * Background Running display hook
+     */
+    bool HandleGameBackgroundRunningDisplayHook();
+    bool ClearGameBackgroundRunningDisplayHook();
+
 protected:
     void GeneratePersistentId(bool isExtension, int32_t persistentId);
     virtual void UpdateSessionState(SessionState state);
@@ -1375,6 +1382,8 @@ private:
     // Indicates whether the game prelaunch display hook has been successfully set
     // for this session and has not yet been cleared.
     bool prelaunchDisplayHookEnabled_ = false;
+
+    bool gameBackgroundRunningDisplayHookEnabled_ = false;
 
     int32_t appIndex_ = { 0 };
     std::string callingBundleName_ { "unknown" };

@@ -4839,10 +4839,14 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
             auto focusedSessionId = windowFocusController_->GetFocusedSessionId(displayId);
             UpdateBrightness(focusedSessionId);
         }
-        if (IsPcSceneSessionLifecycle(sceneSession)) {
+        if (IsPcSceneSessionLifecycle(sceneSession) || reason == LifeCycleChangeReason::GAME_BACKGROUND_RUNNING) {
             TLOGNI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] Notify session background",
                 persistentId, scbRequestId);
-            sceneSession->NotifySessionBackground(1, true, true);
+            if (reason == LifeCycleChangeReason::GAME_BACKGROUND_RUNNING) {
+                sceneSession->NotifySessionBackground(static_cast<uint32_t>(reason), true, true);
+            } else {
+                sceneSession->NotifySessionBackground(1, true, true);
+            }
         } else {
             TLOGNI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] begin MinimizeUIAbility, "
                 "system: %{public}u",
@@ -19940,7 +19944,7 @@ WMError SceneSessionManager::TerminateSessionByPersistentId(int32_t persistentId
 }
 
 WSError SceneSessionManager::PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-    bool shouldBackToCaller)
+    bool shouldBackToCaller, uint32_t reason)
 {
     if (!SessionPermission::IsSystemAppCall() && !SessionPermission::IsSACalling()) {
         TLOGE(WmsLogTag::WMS_LIFE, "The caller is neither a system app nor an SA.");
@@ -19952,7 +19956,7 @@ WSError SceneSessionManager::PendingSessionToBackgroundByPersistentId(const int3
         TLOGE(WmsLogTag::WMS_LIFE, "Permission denied, no manage misson permission");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
-    return taskScheduler_->PostSyncTask([this, persistentId, shouldBackToCaller] {
+    return taskScheduler_->PostSyncTask([this, persistentId, shouldBackToCaller, reason] {
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "Session id:%{public}d is not found.", persistentId);
@@ -19962,7 +19966,12 @@ WSError SceneSessionManager::PendingSessionToBackgroundByPersistentId(const int3
             TLOGE(WmsLogTag::WMS_MAIN, "Session id:%{public}d is not mainWindow.", persistentId);
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
-        return sceneSession->PendingSessionToBackgroundForDelegator(shouldBackToCaller);
+        LifeCycleChangeReason lifeCycleChangeReason = static_cast<LifeCycleChangeReason>(reason);
+        if (lifeCycleChangeReason == LifeCycleChangeReason::GAME_BACKGROUND_RUNNING) {
+            sceneSession->HandleGameBackgroundRunningDisplayHook();
+            sceneSession->SetIsGameBackgroundRunning(true);
+        }
+        return sceneSession->PendingSessionToBackgroundForDelegator(shouldBackToCaller, lifeCycleChangeReason);
     }, __func__);
 }
 

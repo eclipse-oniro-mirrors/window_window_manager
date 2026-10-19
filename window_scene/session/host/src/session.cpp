@@ -2029,6 +2029,28 @@ void Session::SetIsGamePrelaunch(bool isGamePrelaunch)
     }, __func__);
 }
 
+void Session::SetIsGameBackgroundRunning(bool isGameBackgroundRunning)
+{
+    PostTask([weakThis = wptr(this), isGameBackgroundRunning, where = __func__]() {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s: session is null", where);
+            return;
+        }
+
+        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id: %{public}d, isGameBackgroundRunning: %{public}d",
+               where, session->GetPersistentId(), isGameBackgroundRunning);
+        {
+            std::lock_guard<std::recursive_mutex> lock(session->sessionInfoMutex_);
+            session->sessionInfo_.isGameBackgroundRunning_ = isGameBackgroundRunning;
+        }
+
+        if (!isGameBackgroundRunning) {
+            session->ClearGameBackgroundRunningDisplayHook();
+        }
+    }, __func__);
+}
+
 WSError Session::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     auto state = GetSessionState();
@@ -6564,6 +6586,48 @@ bool Session::HandlePrelaunchDisplayHook(const PrelayoutContext& ctx)
     return true;
 }
 
+bool Session::HandleGameBackgroundRunningDisplayHook()
+{
+    const auto windowId = GetWindowId();
+
+    if (!updateAppHookDisplayInfoFunc_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Failed to set prelaunch display hook: func is null. id: %{public}d, uid: %{public}d",
+              windowId, callingUid_);
+        return false;
+    }
+    auto sessionProperty = GetSessionProperty();
+    if (sessionProperty == nullptr) {
+        return false;
+    }
+    const auto displayId = sessionProperty->GetDisplayId();
+    auto screenSession = ScreenSessionManagerClient::GetInstance()
+        .GetScreenSession(displayId);
+    const float density = screenSession ?
+        screenSession->GetScreenProperty().GetDensity() : 1.0f; // 1.0: default density
+
+    const auto preCalc = PreCalcWindowProperty();
+    const HookInfo hookInfo = {
+        .width_ = preCalc.width,
+        .height_ = preCalc.height,
+        .density_ = density,
+        .rotation_ = preCalc.rotation,
+        .enableHookRotation_ = true
+    };
+
+    const auto ret = updateAppHookDisplayInfoFunc_(callingUid_, hookInfo, true);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+              "Failed to update app hook display info. id: %{public}d, uid: %{public}d, ret: %{public}d",
+              windowId, callingUid_, ret);
+        return false;
+    }
+    gameBackgroundRunningDisplayHookEnabled_ = true;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Update prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
+          windowId, callingUid_);
+    return true;
+}
+
 bool Session::ClearPrelaunchDisplayHook()
 {
     auto windowId = GetWindowId();
@@ -6586,6 +6650,34 @@ bool Session::ClearPrelaunchDisplayHook()
         return false;
     }
     prelaunchDisplayHookEnabled_ = false;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Clear prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
+          windowId, callingUid_);
+    return true;
+}
+
+
+bool Session::ClearGameBackgroundRunningDisplayHook()
+{
+    auto windowId = GetWindowId();
+    if (!gameBackgroundRunningDisplayHookEnabled_) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Prelaunch display hook is not enabled. id: %{public}d", windowId);
+        return false;
+    }
+    if (!updateAppHookDisplayInfoFunc_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Failed to clear prelaunch display hook: func is null. id: %{public}d, uid: %{public}d",
+              windowId, callingUid_);
+        return false;
+    }
+
+    const auto ret = updateAppHookDisplayInfoFunc_(callingUid_, HookInfo {}, false);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+              "Failed to clear prelaunch display hook. id: %{public}d, uid: %{public}d, ret: %{public}d",
+              windowId, callingUid_, ret);
+        return false;
+    }
+    gameBackgroundRunningDisplayHookEnabled_ = false;
     TLOGI(WmsLogTag::WMS_LAYOUT, "Clear prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
           windowId, callingUid_);
     return true;

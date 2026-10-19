@@ -122,7 +122,7 @@ public:
     WSError GetRecentMainSessionInfoList(std::vector<RecentSessionInfo>& recentSessionInfoList) override;
     WMError GetRouterStackInfo(int32_t persistentId, const sptr<ISessionRouterStackListener>& listener) override;
     WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-        bool shouldBackToCaller = true) override;
+        bool shouldBackToCaller = true, uint32_t reason = 0) override;
     WSErrorResult RestoreSessionToForeground(int32_t persistentId) override;
     WMError CreateNewInstanceKey(const std::string& bundleName, std::string& instanceKey) override;
     WMError RemoveInstanceKey(const std::string& bundleName, const std::string& instanceKey) override;

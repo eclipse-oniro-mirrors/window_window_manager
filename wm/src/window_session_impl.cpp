@@ -3116,7 +3116,8 @@ WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, voi
     }
 
     UpdateDecorEnable(true);
-    if (state_ == WindowState::STATE_SHOWN) {
+    if (state_ == WindowState::STATE_SHOWN || (state_ == WindowState::STATE_HIDDEN &&
+        backgroundReason_ == static_cast<uint32_t>(LifeCycleChangeReason::GAME_BACKGROUND_RUNNING))) {
         // UIContent may be nullptr when show window, need to notify again when window is shown
         if (auto uiContent = GetUIContentSharedPtr()) {
             uiContent->Foreground();
@@ -6515,12 +6516,16 @@ void WindowSessionImpl::NotifyAfterBackground(bool needNotifyListeners, bool nee
         {
             std::lock_guard<std::recursive_mutex> lockListener(lifeCycleListenerMutex_);
             auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
-            CALL_LIFECYCLE_LISTENER(AfterBackground, lifecycleListeners, false);
+            if (backgroundReason_ != static_cast<uint32_t>(LifeCycleChangeReason::GAME_BACKGROUND_RUNNING)) {
+                CALL_LIFECYCLE_LISTENER(AfterBackground, lifecycleListeners, false);
+            }
         }
         NotifyAfterLifecycleBackground();
     }
 
-    if (needNotifyUiContent) {
+    TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d, needNotifyUIContent: %{public}u, reason: %{public}u",
+        GetPersistentId(), needNotifyUiContent, backgroundReason_);
+    if (needNotifyUiContent && backgroundReason_ != static_cast<uint32_t>(LifeCycleChangeReason::GAME_BACKGROUND_RUNNING)) {
         CALL_UI_CONTENT(Background);
     }
 
@@ -6758,6 +6763,9 @@ void WindowSessionImpl::NotifyAfterPaused()
 {
     std::lock_guard<std::recursive_mutex> lockListener(lifeCycleListenerMutex_);
     auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
+    if (backgroundReason_ == static_cast<uint32_t>(LifeCycleChangeReason::GAME_BACKGROUND_RUNNING)) {
+        return;
+    }
     CALL_LIFECYCLE_LISTENER(AfterPaused, lifecycleListeners, false);
 }
 
@@ -6775,6 +6783,9 @@ void WindowSessionImpl::NotifyAfterLifecycleBackground()
 {
     std::lock_guard<std::recursive_mutex> lockListener(windowStageLifeCycleListenerMutex_);
     auto lifecycleListeners = GetListeners<IWindowStageLifeCycle>();
+    if (backgroundReason_ == static_cast<uint32_t>(LifeCycleChangeReason::GAME_BACKGROUND_RUNNING)) {
+        return;
+    }
     CALL_WINDOW_STAGE_LIFECYCLE_LISTENER(AfterLifecycleBackground, lifecycleListeners);
 }
 
@@ -6815,6 +6826,9 @@ void WindowSessionImpl::NotifyAfterLifecyclePaused()
     }
     isInteractiveStateFlag_ = false;
     auto lifecycleListeners = GetListeners<IWindowStageLifeCycle>();
+    if (backgroundReason_ == static_cast<uint32_t>(LifeCycleChangeReason::GAME_BACKGROUND_RUNNING)) {
+        return;
+    }
     CALL_WINDOW_STAGE_LIFECYCLE_LISTENER(AfterLifecyclePaused, lifecycleListeners);
 }
 

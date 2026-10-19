@@ -606,6 +606,11 @@ struct SessionInfo {
     bool isGamePrelaunch_ = false;
     bool reuseSessionInGamePreLaunch_ = false;
 
+    /**
+     * Game Background Running
+     */
+    bool isGameBackgroundRunning_ = false;
+
     AAFwk::Want GetWantSafely() const
     {
         std::lock_guard<std::mutex> lock(*wantMutex_);
@@ -1668,6 +1673,21 @@ enum class LifeCycleChangeReason {
     QUICK_BATCH_BACKGROUND,
 
     GAME_PRELAUNCH_BACKGROUND,
+
+    /**
+     * active reason
+     */
+    EXIT_SPLIT,
+    RECOVER,
+    EXIT_MIDSCENE,
+    SCREEN_UNLOCK,
+    SWITCH_FREE_WINDOWS_MODE,
+    SESSION_STATE_CHANGE,
+
+    SCREEN_OFF,
+    SCREEN_ON,
+
+    GAME_BACKGROUND_RUNNING,
 
     REASON_END,
 };
