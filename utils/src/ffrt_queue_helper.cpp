@@ -46,6 +46,37 @@ inline uint64_t ConvertCntvctToUs(uint64_t ticks)
     return ticks;
 #endif
 }
+
+void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& aggregated,
+    uint64_t minStartTime, uint64_t maxEndTime)
+{
+    std::vector<std::string> taskNames;
+    std::vector<int64_t> durations;
+    std::vector<int64_t> counts;
+    std::vector<int32_t> pids;
+    int32_t pid = static_cast<int32_t>(getpid());
+    taskNames.reserve(aggregated.size());
+    durations.reserve(aggregated.size());
+    counts.reserve(aggregated.size());
+    pids.reserve(aggregated.size());
+    for (const auto& [name, stat] : aggregated) {
+        taskNames.push_back(name);
+        durations.push_back(static_cast<int64_t>(ConvertCntvctToUs(stat.totalTime) / 1000));
+        counts.push_back(static_cast<int64_t>(stat.callCount));
+        pids.push_back(pid);
+    }
+    int32_t ret = HiSysEventWrite("POWERTHERMAL", "FFRT_TASK_INFO",
+        HiviewDFX::HiSysEvent::EventType::STATISTIC,
+        "START_TIME", static_cast<int64_t>(ConvertCntvctToUs(minStartTime)),
+        "END_TIME", static_cast<int64_t>(ConvertCntvctToUs(maxEndTime)),
+        "TASKNAME", taskNames,
+        "DURATION", durations,
+        "COUNT", counts,
+        "PID", pids);
+    if (ret != 0) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "ReportXpower: HiSysEventWrite failed, ret=%{public}d", ret);
+    }
+}
 } // namespace
 
 std::string StripGid(std::string label)
@@ -208,32 +239,7 @@ void FfrtQueueHelper::ParseAndReportStat()
         }
     }
     if (minStartTime != UINT64_MAX) {
-        std::vector<std::string> taskNames;
-        std::vector<int64_t> durations;
-        std::vector<int64_t> counts;
-        std::vector<int32_t> pids;
-        int32_t pid = static_cast<int32_t>(getpid());
-        taskNames.reserve(aggregated.size());
-        durations.reserve(aggregated.size());
-        counts.reserve(aggregated.size());
-        pids.reserve(aggregated.size());
-        for (const auto& [name, stat] : aggregated) {
-            taskNames.push_back(name);
-            durations.push_back(static_cast<int64_t>(ConvertCntvctToUs(stat.totalTime) / 1000));
-            counts.push_back(static_cast<int64_t>(stat.callCount));
-            pids.push_back(pid);
-        }
-        int32_t ret = HiSysEventWrite("POWERTHERMAL", "FFRT_TASK_INFO",
-            HiviewDFX::HiSysEvent::EventType::STATISTIC,
-            "START_TIME", static_cast<int64_t>(ConvertCntvctToUs(minStartTime)),
-            "END_TIME", static_cast<int64_t>(ConvertCntvctToUs(maxEndTime)),
-            "TASKNAME", taskNames,
-            "DURATION", durations,
-            "COUNT", counts,
-            "PID", pids);
-        if (ret != 0) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "ParseAndReportStat: HiSysEventWrite failed, ret=%{public}d", ret);
-        }
+        ReportXpower(aggregated, minStartTime, maxEndTime);
         TLOGNI(WmsLogTag::WMS_LIFE,
             "ffrt stat window: %{public}u unique tasks, start=%{public}llu end=%{public}llu",
             static_cast<uint32_t>(aggregated.size()),
