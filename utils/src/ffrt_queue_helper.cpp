@@ -65,6 +65,13 @@ void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& ag
         durations.push_back(static_cast<int64_t>(ConvertCntvctToUs(stat.totalTime) / 1000));
         counts.push_back(static_cast<int64_t>(stat.callCount));
         pids.push_back(pid);
+        TLOGND(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower task = %{public}s, 
+            count=%{public}llu, totalTimeTicks=%{public}llu, 
+            totalTimeUs=%{public}llu durationMs=%{public}lld",
+            name.c_str(), static_cast<unsigned long long>(stat.callCount),
+            static_cast<unsigned long long>(stat.totalTime),
+            static_cast<unsigned long long>(ConvertCntvctToUs(stat.totalTime)),
+            static_cast<unsigned long long>(ConvertCntvctToUs(stat.totalTime) / 1000));
     }
     int32_t ret = HiSysEventWrite(XPOWER_HISYSEVENT_DOMAIN, "FFRT_TASK_INFO",
         HiviewDFX::HiSysEvent::EventType::STATISTIC,
@@ -76,6 +83,9 @@ void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& ag
         "PID", pids);
     if (ret != 0) {
         TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower: HiSysEventWrite failed, ret=%{public}d", ret);
+    } else {
+        TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower: HiSysEventWrite success,
+            events=%{public}zu, ret=%{public}d", aggregated.size(), ret);
     }
 }
 } // namespace
