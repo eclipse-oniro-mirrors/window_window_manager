@@ -222,6 +222,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
         TLOGE(WmsLogTag::WMS_ROTATION, "Invalid motion data, dataLen: %{public}d", dataLen);
         patchData = std::make_unique<int16_t[]>(1);
         patchData[0] = -1;
+        dataLen = 1;
     } else {
         patchData = std::make_unique<int16_t[]>(dataLen);
         errno_t ret = memcpy_s(patchData.get(), dataLen * sizeof(int16_t),
@@ -232,19 +233,19 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
         }
     }
     if (motionData.type == MotionType::SMART_MOTION_TYPE && 
-        (motionData.status == 4 || motionData.status == 5)) {
+        (motionData.status == 4 || motionData.status == 5)) { // 4,5: invalid data
         TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, motionData: %{public}d", patchData[0]);
         motionRotation = ConvertMotionActionToDeviceRotation(patchData[0]);
-        if (dataLen >= 2) {
+        if (dataLen >= 2) { // 2 : Length of Data
             return = patchData[1];
         }
     } else {
         motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
-        if (dataLen >= 4) {
+        if (dataLen >= 4) { // 4 : FULL Length of Data
             TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback enhance, face_direction: %{public}d,"
                 "handhold_direction:%{public}d, sensor_direction: %{public}d, data_source: %{public}d",
-                patchData[0], patchData[1], patchData[2], patchData[3]);
-            reason = patchData[3];
+                patchData[0], patchData[1], patchData[2], patchData[3]);// 0: FACE 1: HAND 2: gravity 3: reason
+            reason = patchData[3];// 3: reason
         } else {
             TLOGE(WmsLogTag::WMS_ROTATION， "Invalid data with motion callback enhance, dataLen: %{public}d", dataLen)；
         }
