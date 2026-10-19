@@ -788,14 +788,14 @@ void JsSceneSessionManager::OnSensorRotationChange(float sensorRotation)
 void JsSceneSessionManager::OnSmartSensorRotationChange(float sensorRotation, bool isSwitchUser, int16_t reason)
 {
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI] sensorRotation: %{public}f, isSwitchUser: %{public}d, reason: %{public}d",
-         sensorRotation, isSwitchUser, reason);
+          sensorRotation, isSwitchUser, reason);
     auto task = [jsCallBack = GetJSCallback(SMART_SENSOR_ROTATION_CHANGE_CB), env = env_, sensorRotation] {
         if (jsCallBack == nullptr) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "jsCallBack is nullptr");
             return;
         }
         napi_value argv[] = { CreateJsValue(env, sensorRotation), CreateJsValue(env, isSwitchUser),
-             CreateJsValue(env, reason) };
+            CreateJsValue(env, reason) };
         napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
     };
     taskScheduler_->PostMainThreadTask(task, __func__);
@@ -1079,8 +1079,8 @@ void JsSceneSessionManager::ProcessSmartSensorRotationRegister()
     SceneSessionManager::GetInstance().SetSmartSensorRotationChangeListener(
         [this](float sensorRotation, int16_t reason) {
         TLOGNI(WmsLogTag::WMS_ROTATION,
-             "SmartSensorRotationChangeFunc sensorRotation: %{public}f, reason: %{public}d",
-              sensorRotation, reason);
+               "SmartSensorRotationChangeFunc sensorRotation: %{public}f, reason: %{public}d",
+               sensorRotation, reason);
         this->OnSmartSensorRotationChange(sensorRotation, false, reason);
     });
 }
