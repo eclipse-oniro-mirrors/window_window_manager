@@ -1114,7 +1114,9 @@ DMError ScreenSessionManager::RegisterDisplayManagerAgent(
 {
     TLOGNFI(WmsLogTag::DMS, "type: %{public}u, pid: %{public}d", type, IPCSkeleton::GetCallingPid());
     DmsXcollie dmsXcollie("DMS:RegisterDisplayManagerAgent", XCOLLIE_TIMEOUT_10S);
-    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
+        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) &&
+        !SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "Permission Denied! calling: %{public}s, pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
@@ -1221,7 +1223,9 @@ DMError ScreenSessionManager::UnregisterDisplayManagerAgent(
     const sptr<IDisplayManagerAgent>& displayManagerAgent, DisplayManagerAgentType type)
 {
     TLOGNFI(WmsLogTag::DMS, "type: %{public}u, pid: %{public}d", type, IPCSkeleton::GetCallingPid());
-    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
+        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) &&
+        !SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
         TLOGNFE(WmsLogTag::DMS, "unregister display manager agent permission denied!");
         TLOGNFE(WmsLogTag::DMS, "calling clientName: %{public}s, calling pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
@@ -11372,14 +11376,6 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetSnapshotByPicker(Media
     if (system::GetBoolParameter("persist.edm.disallow_screenshot", false)) {
         *errorCode = DmErrorCode::DM_ERROR_NO_PERMISSION;
         TLOGNFI(WmsLogTag::DMS, "snapshot was disabled by edm!");
-        return nullptr;
-    }
-    if (!Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION) &&
-        !Permission::CheckCallingPermission(CUSTOM_SCREEN_RECORDING_PERMISSION) &&
-        !SessionPermission::IsShellCall()) {
-        TLOGNFE(WmsLogTag::DMS, "Permission Denied! clientName: %{public}s, pid: %{public}d.",
-            SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingRealPid());
-        *errorCode = DmErrorCode::DM_ERROR_NO_PERMISSION;
         return nullptr;
     }
     ScreenId screenId = SCREEN_ID_INVALID;
