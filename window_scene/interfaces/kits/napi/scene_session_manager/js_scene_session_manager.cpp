@@ -789,7 +789,8 @@ void JsSceneSessionManager::OnSmartSensorRotationChange(float sensorRotation, bo
 {
     TLOGD(WmsLogTag::WMS_ROTATION, "[NAPI] sensorRotation: %{public}f, isSwitchUser: %{public}d, reason: %{public}d",
           sensorRotation, isSwitchUser, reason);
-    auto task = [jsCallBack = GetJSCallback(SMART_SENSOR_ROTATION_CHANGE_CB), env = env_, sensorRotation] {
+    auto task = [jsCallBack = GetJSCallback(SMART_SENSOR_ROTATION_CHANGE_CB),
+                                            env = env_, sensorRotation, isSwitchUser, reason] {
         if (jsCallBack == nullptr) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "jsCallBack is nullptr");
             return;
