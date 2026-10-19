@@ -1000,7 +1000,7 @@ WMError WindowManagerService::AddWindow(sptr<WindowProperty>& property)
     }
     if (!accessTokenIdMaps_.isExist(property->GetWindowId(), IPCSkeleton::GetCallingTokenID()) &&
         !Permission::IsSystemCalling()) {
-        WLOGI("AddWindow operation rejected, windowId: %{public}u", property->GetWindowId());
+        WLOGFE("AddWindow operation rejected, windowId: %{public}u", property->GetWindowId());
         return WMError::WM_ERROR_INVALID_OPERATION;
     }
     return AddWindowInner(property);
