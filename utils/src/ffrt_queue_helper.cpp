@@ -30,6 +30,7 @@ namespace {
 constexpr uint32_t FFRT_STAT_MAX_COUNT = 5000;
 constexpr uint64_t FFRT_STAT_INTERVAL_MS = 5 * 60 * 1000;
 constexpr const char* DIGITS = "0123456789";
+constexpr char XPOWER_HISYSEVENT_DOMAIN[] = "POWERTHERMAL";
 
 struct TaskStatAggregation {
     uint64_t totalTime = 0;
@@ -65,7 +66,7 @@ void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& ag
         counts.push_back(static_cast<int64_t>(stat.callCount));
         pids.push_back(pid);
     }
-    int32_t ret = HiSysEventWrite("POWERTHERMAL", "FFRT_TASK_INFO",
+    int32_t ret = HiSysEventWrite(XPOWER_HISYSEVENT_DOMAIN, "FFRT_TASK_INFO",
         HiviewDFX::HiSysEvent::EventType::STATISTIC,
         "START_TIME", static_cast<int64_t>(ConvertCntvctToUs(minStartTime)),
         "END_TIME", static_cast<int64_t>(ConvertCntvctToUs(maxEndTime)),
