@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2335,12 +2335,26 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEvent, TestSize.Level
 }
 
 /**
- * @tc.name: TestUpdateTargetRectOnMoveEnd
- * @tc.desc: Verify move end uses raw offset or last resampled offset
+ * @tc.name: TestUpdateTargetRectOnMoveEndWithoutSample
+ * @tc.desc: Verify move end uses actual pointer offset when no sample exists
  * @tc.type: FUNC
  */
-HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEnd, TestSize.Level1)
+HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEndWithoutSample, TestSize.Level1)
 {
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    auto screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenProperty prop;
+    prop.SetStartX(0);
+    prop.SetStartY(0);
+    screenSession->SetScreenProperty(prop);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[0] = screenSession;
+    moveDragController->supportCrossDisplay_ = true;
+    moveDragController->moveDragProperty_.originalPointerPosX_ = 50;
+    moveDragController->moveDragProperty_.originalPointerPosY_ = 80;
+    moveDragController->moveDragProperty_.scaleX_ = 1.0f;
+    moveDragController->moveDragProperty_.scaleY_ = 1.0f;
+    moveDragController->moveDragProperty_.originalRect_ = { 100, 200, 300, 400 };
+    moveDragController->moveResampler_.Reset();
     auto pointerEvent = MMI::PointerEvent::Create();
     MMI::PointerEvent::PointerItem pointerItem;
     pointerItem.SetPointerId(1);
@@ -2351,6 +2365,19 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEnd, TestSize.Level1)
     pointerEvent->AddPointerItem(pointerItem);
     pointerEvent->SetTargetDisplayId(0);
 
+    const auto state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
+    EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 150);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 320);
+}
+
+/**
+ * @tc.name: TestUpdateTargetRectOnMoveEndAtThreshold
+ * @tc.desc: Verify touch move end uses actual position when deviation is at threshold
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEndAtThreshold, TestSize.Level1)
+{
     ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
     auto screenSession = sptr<ScreenSession>::MakeSptr();
     ScreenProperty prop;
@@ -2358,31 +2385,133 @@ HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEnd, TestSize.Level1)
     prop.SetStartY(0);
     screenSession->SetScreenProperty(prop);
     ScreenSessionManagerClient::GetInstance().screenSessionMap_[0] = screenSession;
-
     moveDragController->supportCrossDisplay_ = true;
-    moveDragController->startDisplayOffsetX_ = 0;
-    moveDragController->startDisplayOffsetY_ = 0;
     moveDragController->moveDragProperty_.originalPointerPosX_ = 50;
     moveDragController->moveDragProperty_.originalPointerPosY_ = 80;
     moveDragController->moveDragProperty_.scaleX_ = 1.0f;
     moveDragController->moveDragProperty_.scaleY_ = 1.0f;
     moveDragController->moveDragProperty_.originalRect_ = { 100, 200, 300, 400 };
     moveDragController->moveResampler_.Reset();
-
-    auto state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
-    EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
-    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 150);
-    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 320);
-
     moveDragController->moveResampler_.startupInitialized_ = true;
+    moveDragController->moveDragProperty_.pointerType_ = MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
     moveDragController->moveResampler_.startupPhase_ = false;
     moveDragController->moveResampler_.PushEvent(1000, 10, 20);
     moveDragController->moveResampler_.ResampleAt(2000);
+    auto pointerEvent = MMI::PointerEvent::Create();
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(1);
+    pointerItem.SetOriginPointerId(1);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(200);
+    pointerEvent->SetPointerId(1);
+    pointerEvent->AddPointerItem(pointerItem);
+    pointerEvent->SetTargetDisplayId(0);
+    const auto sample = moveDragController->moveResampler_.GetLastResampledEvent();
+    ASSERT_TRUE(sample.has_value());
 
-    state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
+    pointerItem.SetDisplayX(50 + sample->posX + 10);
+    pointerItem.SetDisplayY(80 + sample->posY - 10);
+    pointerEvent->UpdatePointerItem(1, pointerItem);
+    const auto state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
     EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
-    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 110);
-    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 220);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 100 + sample->posX + 10);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 200 + sample->posY - 10);
+}
+
+/**
+ * @tc.name: TestUpdateTargetRectOnMoveEndBeyondThreshold
+ * @tc.desc: Verify touch move end uses resampled position when either deviation exceeds threshold
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEndBeyondThreshold, TestSize.Level1)
+{
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    auto screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenProperty prop;
+    prop.SetStartX(0);
+    prop.SetStartY(0);
+    screenSession->SetScreenProperty(prop);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[0] = screenSession;
+    moveDragController->supportCrossDisplay_ = true;
+    moveDragController->moveDragProperty_.originalPointerPosX_ = 50;
+    moveDragController->moveDragProperty_.originalPointerPosY_ = 80;
+    moveDragController->moveDragProperty_.scaleX_ = 1.0f;
+    moveDragController->moveDragProperty_.scaleY_ = 1.0f;
+    moveDragController->moveDragProperty_.originalRect_ = { 100, 200, 300, 400 };
+    moveDragController->moveResampler_.Reset();
+    moveDragController->moveResampler_.startupInitialized_ = true;
+    moveDragController->moveDragProperty_.pointerType_ = MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
+    moveDragController->moveResampler_.startupPhase_ = false;
+    moveDragController->moveResampler_.PushEvent(1000, 10, 20);
+    moveDragController->moveResampler_.ResampleAt(2000);
+    auto pointerEvent = MMI::PointerEvent::Create();
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(1);
+    pointerItem.SetOriginPointerId(1);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(200);
+    pointerEvent->SetPointerId(1);
+    pointerEvent->AddPointerItem(pointerItem);
+    pointerEvent->SetTargetDisplayId(0);
+    const auto sample = moveDragController->moveResampler_.GetLastResampledEvent();
+    ASSERT_TRUE(sample.has_value());
+
+    pointerItem.SetDisplayX(50 + sample->posX + 11);
+    pointerItem.SetDisplayY(80 + sample->posY);
+    pointerEvent->UpdatePointerItem(1, pointerItem);
+    const auto state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
+    EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 100 + sample->posX);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 200 + sample->posY);
+}
+
+/**
+ * @tc.name: TestUpdateTargetRectOnMoveEndForNonTouch
+ * @tc.desc: Verify non-touch move end uses resampled position
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, TestUpdateTargetRectOnMoveEndForNonTouch, TestSize.Level1)
+{
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    auto screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenProperty prop;
+    prop.SetStartX(0);
+    prop.SetStartY(0);
+    screenSession->SetScreenProperty(prop);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_[0] = screenSession;
+    moveDragController->supportCrossDisplay_ = true;
+    moveDragController->moveDragProperty_.originalPointerPosX_ = 50;
+    moveDragController->moveDragProperty_.originalPointerPosY_ = 80;
+    moveDragController->moveDragProperty_.scaleX_ = 1.0f;
+    moveDragController->moveDragProperty_.scaleY_ = 1.0f;
+    moveDragController->moveDragProperty_.originalRect_ = { 100, 200, 300, 400 };
+    moveDragController->moveResampler_.Reset();
+    moveDragController->moveResampler_.startupInitialized_ = true;
+    moveDragController->moveDragProperty_.pointerType_ = MMI::PointerEvent::SOURCE_TYPE_TOUCHSCREEN;
+    moveDragController->moveResampler_.startupPhase_ = false;
+    moveDragController->moveResampler_.PushEvent(1000, 10, 20);
+    moveDragController->moveResampler_.ResampleAt(2000);
+    auto pointerEvent = MMI::PointerEvent::Create();
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(1);
+    pointerItem.SetOriginPointerId(1);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(200);
+    pointerEvent->SetPointerId(1);
+    pointerEvent->AddPointerItem(pointerItem);
+    pointerEvent->SetTargetDisplayId(0);
+    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    const auto sample = moveDragController->moveResampler_.GetLastResampledEvent();
+    ASSERT_TRUE(sample.has_value());
+    moveDragController->moveDragProperty_.pointerType_ = MMI::PointerEvent::SOURCE_TYPE_MOUSE;
+    pointerItem.SetDisplayX(100 + sample->posX + 11);
+    pointerItem.SetDisplayY(200 + sample->posY + 11);
+    pointerEvent->UpdatePointerItem(1, pointerItem);
+
+    const auto state = moveDragController->UpdateTargetRectOnMoveEnd(pointerEvent);
+    EXPECT_EQ(state, TargetRectUpdateMode::UPDATED_IMMEDIATELY);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posX_, 100 + sample->posX);
+    EXPECT_EQ(moveDragController->moveDragProperty_.targetRect_.posY_, 200 + sample->posY);
 }
 
 /**
