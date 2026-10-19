@@ -74,7 +74,7 @@ void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& ag
         "COUNT", counts,
         "PID", pids);
     if (ret != 0) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "ReportXpower: HiSysEventWrite failed, ret=%{public}d", ret);
+        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower: HiSysEventWrite failed, ret=%{public}d", ret);
     }
 }
 } // namespace
@@ -163,20 +163,21 @@ void FfrtQueueHelper::SubmitTaskToHead(std::function<void()>&& task, const std::
 
 void FfrtQueueHelper::StartStatCollection()
 {
+    TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: StartStatCollection enter");
     if (statEnabled_.exchange(true)) {
-        TLOGNW(WmsLogTag::WMS_LIFE, "StartStatCollection: already started");
+        TLOGNW(WmsLogTag::WMS_LIFE, "ffrt statistics: StartStatCollection: already started");
         return;
     }
     statBufferSize_ = FFRT_STAT_MAX_COUNT * static_cast<uint32_t>(sizeof(ffrt_stat));
     statBuffer_ = std::make_unique<char[]>(statBufferSize_);
     if (statBuffer_ == nullptr) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "StartStatCollection: alloc buffer failed, size=%{public}u", statBufferSize_);
+        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: StartStatCollection: alloc buffer failed, size=%{public}u", statBufferSize_);
         statEnabled_ = false;
         statBufferSize_ = 0;
         return;
     }
     if (ffrt_dump(DUMP_START_STAT, statBuffer_.get(), statBufferSize_) != 0) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "StartStatCollection: ffrt_dump start failed");
+        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: StartStatCollection: ffrt_dump start failed");
         statBuffer_.reset();
         statEnabled_ = false;
         statBufferSize_ = 0;
@@ -190,7 +191,7 @@ void FfrtQueueHelper::StartStatTimer()
     statTimer_ = ffrt_timer_start(ffrt_qos_default, FFRT_STAT_INTERVAL_MS, this,
         &FfrtQueueHelper::OnStatTimer, true);
     if (statTimer_ == ffrt_error) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "StartStatTimer: ffrt_timer_start failed");
+        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: StartStatTimer: ffrt_timer_start failed");
     }
 }
 
@@ -204,22 +205,25 @@ void FfrtQueueHelper::OnStatTimer(void* data)
 
 void FfrtQueueHelper::ParseAndReportStat()
 {
+    TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: ParseAndReportStat enter");
     if (!statEnabled_ || statBuffer_ == nullptr || statBufferSize_ == 0) {
         return;
     }
     if (ffrt_dump(DUMP_STOP_STAT, statBuffer_.get(), statBufferSize_) != 0) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "ParseAndReportStat: ffrt_dump stop failed");
+        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: ParseAndReportStat: ffrt_dump stop failed");
     }
     std::unordered_map<std::string, TaskStatAggregation> aggregated;
     uint64_t minStartTime = UINT64_MAX;
     uint64_t maxEndTime = 0;
     const auto* stats = reinterpret_cast<const ffrt_stat*>(statBuffer_.get());
     const uint32_t statCount = statBufferSize_ / static_cast<uint32_t>(sizeof(ffrt_stat));
+    uint32_t validCount = 0;
     for (uint32_t i = 0; i < statCount; ++i) {
         const auto& s = stats[i];
         if (s.startTime == 0 || s.endTime == 0 || s.endTime < s.startTime) {
             continue;
         }
+        ++validCount;
         std::string raw(s.taskName);
         while (!raw.empty() && raw.back() == ' ') {
             raw.pop_back();
@@ -238,27 +242,30 @@ void FfrtQueueHelper::ParseAndReportStat()
             maxEndTime = s.endTime;
         }
     }
+    TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: %{public}u/%{public}u records parsed",
+        validCount, statCount);
     if (minStartTime != UINT64_MAX) {
         ReportXpower(aggregated, minStartTime, maxEndTime);
         TLOGNI(WmsLogTag::WMS_LIFE,
-            "ffrt stat window: %{public}u unique tasks, start=%{public}llu end=%{public}llu",
+            "ffrt statistics window: %{public}u unique tasks, start=%{public}llu end=%{public}llu",
             static_cast<uint32_t>(aggregated.size()),
             static_cast<unsigned long long>(minStartTime),
             static_cast<unsigned long long>(maxEndTime));
         for (const auto& [name, stat] : aggregated) {
-            TLOGND(WmsLogTag::WMS_LIFE, "ffrt stat: task=%{public}s count=%{public}llu total=%{public}llu",
+            TLOGND(WmsLogTag::WMS_LIFE, "ffrt statistics: task=%{public}s count=%{public}llu total=%{public}llu",
                 name.c_str(), static_cast<unsigned long long>(stat.callCount),
                 static_cast<unsigned long long>(stat.totalTime));
         }
     }
     if (ffrt_dump(DUMP_START_STAT, statBuffer_.get(), statBufferSize_) != 0) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "ParseAndReportStat: ffrt_dump restart failed");
+        TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: ParseAndReportStat: ffrt_dump restart failed");
         statEnabled_ = false;
     }
 }
 
 void FfrtQueueHelper::StopStatCollection()
 {
+    TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: StopStatCollection enter");
     if (statTimer_ != ffrt_error) {
         ffrt_timer_stop(ffrt_qos_default, statTimer_);
         statTimer_ = ffrt_error;
