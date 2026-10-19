@@ -19,22 +19,22 @@
 #include <fstream>
 #include <transaction/rs_interfaces.h>
 
-#include "unique_fd.h"
-#include "screen_session_manager.h"
-#include "session_permission.h"
+#include "fold_screen_common.h"
+#include "fold_screen_controller/fold_screen_sensor_manager.h"
+#include "fold_screen_controller/secondary_fold_sensor_manager.h"
+#include "fold_screen_controller/super_fold_sensor_manager.h"
+#include "fold_screen_controller/super_fold_state_manager.h"
+#include "fold_screen_state_internel.h"
+#include "parameters.h"
+#include "power_mgr_client.h"
 #include "screen_rotation_property.h"
 #include "screen_scene_config.h"
 #include "screen_sensor_connector.h"
-#include "parameters.h"
-#include "fold_screen_controller/super_fold_state_manager.h"
-#include "fold_screen_controller/super_fold_sensor_manager.h"
-#include "fold_screen_controller/fold_screen_sensor_manager.h"
-#include "fold_screen_state_internel.h"
-#include "window_helper.h"
-#include "fold_screen_controller/secondary_fold_sensor_manager.h"
-
-#include "fold_screen_common.h"
 #include "screen_sensor_mgr.h"
+#include "screen_session_manager.h"
+#include "session_permission.h"
+#include "unique_fd.h"
+#include "window_helper.h"
 
 namespace OHOS {
 namespace Rosen {
