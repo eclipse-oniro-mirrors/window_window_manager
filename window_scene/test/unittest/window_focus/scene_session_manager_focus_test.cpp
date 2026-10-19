@@ -69,7 +69,7 @@ HWTEST_F(SceneSessionManagerFocusTest, RemoveFocusGroup_Invalid, Function | Smal
 HWTEST_F(SceneSessionManagerFocusTest, AddFocusGroup, Function | SmallTest | Level2)
 {
     ASSERT_NE(nullptr, ssm_);
-    WSError ret = ssm_->AddFocusGroup(0, 0);
+    WSError ret = ssm_->AddFocusGroup(0, 0, DisplayGroupType::DEFAULT);
     EXPECT_EQ(ret, WSError::WS_OK);
 }
 
@@ -531,7 +531,7 @@ HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus11, TestSize.Level1)
     ssm_->sceneSessionMap_.clear();
     DisplayGroupId testGroupId = 100;
     DisplayId testDisplayId = 100;
-    ssm_->windowFocusController_->AddFocusGroup(testGroupId, testDisplayId);
+    ssm_->windowFocusController_->AddFocusGroup(testGroupId, testDisplayId,  DisplayGroupType::SPECIAL);
 
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(testDisplayId);
     focusGroup->SetFocusedSessionId(0);
@@ -567,8 +567,8 @@ HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus12, TestSize.Level1)
     DisplayId testDisplayId1 = 100;
     DisplayGroupId testGroupId2 = 200;
     DisplayId testDisplayId2 = 200;
-    ssm_->windowFocusController_->AddFocusGroup(testGroupId1, testDisplayId1);
-    ssm_->windowFocusController_->AddFocusGroup(testGroupId2, testDisplayId2);
+    ssm_->windowFocusController_->AddFocusGroup(testGroupId1, testDisplayId1, DisplayGroupType::SPECIAL);
+    ssm_->windowFocusController_->AddFocusGroup(testGroupId2, testDisplayId2, DisplayGroupType::SPECIAL);
 
     auto focusGroup1 = ssm_->windowFocusController_->GetFocusGroup(testDisplayId1);
     focusGroup1->SetFocusedSessionId(0);

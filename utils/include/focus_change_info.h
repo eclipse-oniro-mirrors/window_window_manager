@@ -34,9 +34,10 @@ public:
      * @brief Construct of FocusChangeInfo
      */
     FocusChangeInfo(uint32_t winId, DisplayId displayId, DisplayId realDisplayId, DisplayGroupId displayGroupId,
-        int32_t pid, int32_t uid, WindowType type, const sptr<IRemoteObject>& abilityToken): windowId_(winId),
-        displayId_(displayId), realDisplayId_(realDisplayId), displayGroupId_(displayGroupId), pid_(pid), uid_(uid),
-        windowType_(type),  abilityToken_(abilityToken) {};
+        DisplayGroupType displayGroupType, int32_t pid, int32_t uid, WindowType type,
+        const sptr<IRemoteObject>& abilityToken): windowId_(winId), displayId_(displayId),
+        realDisplayId_(realDisplayId), displayGroupId_(displayGroupId), displayGroupType_(displayGroupType),
+        pid_(pid), uid_(uid), windowType_(type),  abilityToken_(abilityToken) {};
 
     /**
      * @brief Deconstruct of FocusChangeInfo
@@ -66,29 +67,40 @@ public:
     {
         bool ret = parcel.WriteInt32(windowId_) && parcel.WriteUint64(displayId_) &&
             parcel.WriteUint64(realDisplayId_) && parcel.WriteUint64(displayGroupId_) &&
-            parcel.WriteInt32(pid_) && parcel.WriteInt32(uid_) &&
-            parcel.WriteUint32(static_cast<uint32_t>(windowType_));
+            parcel.WriteUint32(static_cast<uint32_t>(displayGroupType_)) && parcel.WriteInt32(pid_) &&
+            parcel.WriteInt32(uid_) && parcel.WriteUint32(static_cast<uint32_t>(windowType_));
         if (!ret) {
             return false;
         }
 
         if (abilityToken_) {
-            return parcel.WriteBool(true) && (static_cast<MessageParcel*>(&parcel))->WriteRemoteObject(abilityToken_);
+            ret = parcel.WriteBool(true) && (static_cast<MessageParcel*>(&parcel))->WriteRemoteObject(abilityToken_);
         } else {
-            return parcel.WriteBool(false);
+            ret = parcel.WriteBool(false);
         }
+        if (!ret) {
+            return false;
+        }
+        ret = parcel.WriteInt32(otherWindowId_) && parcel.WriteInt32(otherUid_) && parcel.WriteInt32(otherPid_);
+        if (!ret) {
+            return false;
+        }
+        return true;
     }
 
     static FocusChangeInfo* Unmarshalling(Parcel& parcel)
     {
         auto focusChangeInfo = new FocusChangeInfo();
+        uint32_t displayGroupType;
         bool res = parcel.ReadInt32(focusChangeInfo->windowId_) && parcel.ReadUint64(focusChangeInfo->displayId_) &&
             parcel.ReadUint64(focusChangeInfo->realDisplayId_) && parcel.ReadUint64(focusChangeInfo->displayGroupId_) &&
+            parcel.ReadUint32(displayGroupType) &&
             parcel.ReadInt32(focusChangeInfo->pid_) && parcel.ReadInt32(focusChangeInfo->uid_);
         if (!res) {
             delete focusChangeInfo;
             return nullptr;
         }
+        focusChangeInfo->displayGroupType_ = static_cast<DisplayGroupType>(displayGroupType);
         focusChangeInfo->windowType_ = static_cast<WindowType>(parcel.ReadUint32());
         if (parcel.ReadBool()) {
             focusChangeInfo->abilityToken_ = (static_cast<MessageParcel*>(&parcel))->ReadRemoteObject();
@@ -106,6 +118,7 @@ public:
     DisplayId displayId_ = 0;
     DisplayId realDisplayId_ = 0;
     DisplayGroupId displayGroupId_ = 0;
+    DisplayGroupType displayGroupType_ = DisplayGroupType::INVALID;
     int32_t pid_ = -1;
     int32_t otherPid_ = -1;
     int32_t uid_ = -1;

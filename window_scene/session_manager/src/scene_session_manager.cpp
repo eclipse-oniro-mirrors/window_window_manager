@@ -8634,8 +8634,8 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
             auto focusInfo = sptr<FocusChangeInfo>::MakeSptr(
                 focusedSession->GetWindowId(), curFocusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID ?
                 DEFAULT_DISPLAY_ID : focusedSession->GetDisplayId(), focusedSession->GetDisplayId(),
-                curFocusGroup->GetDisplayGroupId(), focusedSession->GetCallingPid(), focusedSession->GetCallingUid(),
-                focusedSession->GetWindowType(), focusedSession->GetAbilityToken());
+                curFocusGroup->GetDisplayGroupId(), curFocusGroup->GetDisplayGroupType(), focusedSession->GetCallingPid(),
+                focusedSession->GetCallingUid(), focusedSession->GetWindowType(), focusedSession->GetAbilityToken());
             allFocusInfoList.emplace_back(focusInfo);
         }
         if (allFocusInfoList.empty()) {
@@ -8647,12 +8647,13 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
     }, __func__);
 }
 
-WSError SceneSessionManager::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
+WSError SceneSessionManager::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId, DisplayGroupType displayGroupType)
 {
-    return taskScheduler_->PostSyncTask([this, displayGroupId, displayId, where = __func__]() {
+    return taskScheduler_->PostSyncTask(
+        [this, displayGroupId, displayId, displayGroupType, where = __func__]() {
         TLOGNI(WmsLogTag::WMS_FOCUS, "%{public}s: displayGroupId=%{public}" PRIu64
             ", displayId=%{public}" PRIu64, where, displayGroupId, displayId);
-        return windowFocusController_->AddFocusGroup(displayGroupId, displayId);
+        return windowFocusController_->AddFocusGroup(displayGroupId, displayId, displayGroupType);
     }, __func__);
 }
 
@@ -10565,11 +10566,13 @@ void SceneSessionManager::NotifyFocusStatus(const sptr<SceneSession>& sceneSessi
         focusGroupId,
         sceneSession->GetDisplayId(),
         focusGroup->GetDisplayGroupId(),
+        focusGroup->GetDisplayGroupType(),
         sceneSession->GetCallingPid(),
         sceneSession->GetCallingUid(),
         sceneSession->GetWindowType(),
         sceneSession->GetAbilityToken()
     );
+    focusChangeInfo->SetOtherWindowInfo(otherWindowId, otherUid, otherPid);
     SceneSessionManager::NotifyRssThawApp(focusChangeInfo->uid_, "", "THAW_BY_FOCUS_CHANGED");
     SessionManagerAgentController::GetInstance().UpdateFocusChangeInfo(focusChangeInfo, isFocused);
     sceneSession->NotifyFocusStatus(focusNotifyInfo, isFocused);
@@ -11539,7 +11542,7 @@ void SceneSessionManager::ProcessFocusWhenForeground(sptr<SceneSession>& sceneSe
             }
             NotifyFocusStatus(sceneSession, true, focusGroup, focusNotifyInfo,
                 lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
-                    lastFocusedSession->GetWindowId() : INVALID_WINDOW_ID,
+                    lastFocusedSession->GetPersistentId() : INVALID_WINDOW_ID,
                 lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
                     lastFocusedSession->GetCallingUid() : -1,
                 lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
@@ -11713,7 +11716,7 @@ void SceneSessionManager::ProcessModalFocusNotify(
     if (isValidLast) {
         focusNotifyInfo->isSameCallingPid_ = lastFocusedSession->GetCallingPid() == modalSession->GetCallingPid();
     }
-    int32_t lastWindowId  = isValidLast ? lastFocusedSession->GetWindowId()  : INVALID_WINDOW_ID;
+    int32_t lastWindowId  = isValidLast ? lastFocusedSession->GetPersistentId()  : INVALID_WINDOW_ID;
     int32_t lastUid       = isValidLast ? lastFocusedSession->GetCallingUid() : -1;
     int32_t lastPid       = isValidLast ? lastFocusedSession->GetCallingPid() : -1;
     NotifyFocusStatus(modalSession, true, focusGroup, focusNotifyInfo, lastWindowId, lastUid, lastPid);
@@ -15884,12 +15887,14 @@ void ScreenConnectionChangeListener::OnScreenConnected(const sptr<ScreenSession>
     }
     TLOGI(WmsLogTag::WMS_FOCUS,
           "name: %{public}s, screenId: %{public}" PRIu64 ", displayGroupId: %{public}" PRIu64
-          " ,screenType: %{public}u",
+          " ,screenType: %{public}u, groupType: %{public}u",
           screenSession->GetName().c_str(),
           screenSession->GetScreenId(),
           screenSession->GetDisplayGroupId(),
-          screenSession->GetScreenProperty().GetScreenType());
-    SceneSessionManager::GetInstance().AddFocusGroup(screenSession->GetDisplayGroupId(), screenSession->GetScreenId());
+          screenSession->GetScreenProperty().GetScreenType(),
+          static_cast<uint32_t>(screenSession->GetGroupType()));
+    SceneSessionManager::GetInstance().AddFocusGroup(screenSession->GetDisplayGroupId(), screenSession->GetScreenId(),
+    screenSession->GetGroupType());
 
     // Window Layout Global Coordinate System: monitors screen position changes in the global coordinate system
     screenSession->RegisterScreenChangeListener(&SceneScreenChangeListener::GetInstance());
