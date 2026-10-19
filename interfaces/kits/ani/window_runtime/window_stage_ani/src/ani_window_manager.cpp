@@ -220,21 +220,24 @@ void AniWindowManager::OnSetWindowPosition(ani_env* env, ani_object list)
     for (auto& element : elements) {
         ani_object elementObj = static_cast<ani_object>(element);
         WindowPositionParams windowPosition;
-        if (AniWindowUtils::GetPropertyIntObject(env, "windowId", elementObj, windowPosition.windowId) != ANI_OK ||
-            windowPosition.windowId <= 0) {
+        ani_int aniWindowId = 0;
+        if (env->Object_GetPropertyByName_Int(elementObj, "windowId", &aniWindowId) != ANI_OK ||
+            static_cast<int32_t>(aniWindowId) <= 0) {
             TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] failed to convert windowId");
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
                 "[window][setWindowPosition]msg: failed to convert windowId");
             return;
         }
-        if (AniWindowUtils::GetPropertyIntObject(env, "insertAfter", elementObj,
-            windowPosition.insertAfter) != ANI_OK ||
-            windowPosition.insertAfter < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+        ani_int aniInsertAfter = 0;
+        if (env->Object_GetPropertyByName_Int(elementObj, "insertAfter", &aniInsertAfter) != ANI_OK ||
+            static_cast<int32_t>(aniInsertAfter) < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
             TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] failed to convert insertAfter");
             AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
                 "[window][setWindowPosition]msg: failed to convert insertAfter");
             return;
         }
+        windowPosition.windowId = static_cast<int32_t>(aniWindowId);
+        windowPosition.insertAfter = static_cast<int32_t>(aniInsertAfter);
         windowPositionInfo.windowPositions.emplace_back(windowPosition);
     }
     WMError wmError = SingletonContainer::Get<WindowManager>().SetWindowPosition(windowPositionInfo);

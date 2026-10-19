@@ -12290,9 +12290,14 @@ napi_value JsWindow::OnRegisterWindowFocusStateChange(napi_env env, napi_callbac
 napi_value JsWindow::OnUnregisterWindowFocusStateChange(napi_env env, napi_callback_info info)
 {
     if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "Window is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                              "[window][offWindowFocusStateChange]msg: The window is not created or destroyed.");
+        if (isDestroyed_) {
+            TLOGI(WmsLogTag::WMS_LIFE, "window is already destroy, ignore.");
+            return NapiGetUndefined(env);
+        } else {
+            TLOGE(WmsLogTag::WMS_FOCUS, "Window is nullptr");
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                                  "[window][offWindowFocusStateChange]msg: The window is not created or destroyed.");
+        }
     }
     sptr<Window> windowToken = windowToken_;
     constexpr size_t argcMax = 1;
