@@ -11539,7 +11539,7 @@ void SceneSessionManager::ProcessFocusWhenForeground(sptr<SceneSession>& sceneSe
             }
             NotifyFocusStatus(sceneSession, true, focusGroup, focusNotifyInfo,
                 lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
-                    lastFocusedSession->GetWindowId() : INVALID_WINDOW_ID,
+                    lastFocusedSession->GetPersistentId() : INVALID_WINDOW_ID,
                 lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
                     lastFocusedSession->GetCallingUid() : -1,
                 lastFocusedSessionId != INVALID_SESSION_ID && lastFocusedSession != nullptr ?
@@ -11713,7 +11713,7 @@ void SceneSessionManager::ProcessModalFocusNotify(
     if (isValidLast) {
         focusNotifyInfo->isSameCallingPid_ = lastFocusedSession->GetCallingPid() == modalSession->GetCallingPid();
     }
-    int32_t lastWindowId  = isValidLast ? lastFocusedSession->GetWindowId()  : INVALID_WINDOW_ID;
+    int32_t lastWindowId  = isValidLast ? lastFocusedSession->GetPersistentId()  : INVALID_WINDOW_ID;
     int32_t lastUid       = isValidLast ? lastFocusedSession->GetCallingUid() : -1;
     int32_t lastPid       = isValidLast ? lastFocusedSession->GetCallingPid() : -1;
     NotifyFocusStatus(modalSession, true, focusGroup, focusNotifyInfo, lastWindowId, lastUid, lastPid);
