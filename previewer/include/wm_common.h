@@ -2536,6 +2536,14 @@ enum class FromWhom : uint8_t {
 };
 
 constexpr FromWhom DEFAULT_FROMWHOM = FromWhom::INNER;
+
+enum class DvsyncDisableReason : uint8_t {
+    API_DISABLE = 0,
+    BACKGROUND_DISABLE = 1,
+    UNFOCUS_DISABLE = 2,
+};
+
+constexpr DvsyncDisableReason DEFAULT_DVSYNCDISABLEREASON = DvsyncDisableReason::API_DISABLE;
 #endif
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

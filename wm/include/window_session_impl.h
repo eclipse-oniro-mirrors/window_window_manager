@@ -551,7 +551,8 @@ public:
         const sptr<IExtensionSecureLimitChangeListener>& listener) override;
     virtual WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) const override;
     virtual WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) const override;
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM,
+        DvsyncDisableReason disableReason = DEFAULT_DVSYNCDISABLEREASON) override;
     virtual void SetTouchEvent(int32_t touchType) override;
     WMError SetContinueState(int32_t continueState) override;
     virtual WMError CheckAndModifyWindowRect(uint32_t& width, uint32_t& height)
@@ -772,6 +773,7 @@ protected:
     void NotifyAfterInactive();
     void NotifyBeforeDestroy(std::string windowName);
     void NotifyAfterDestroy();
+    void DisableUiDvsyncSwitchApiIfNeeded(DvsyncDisableReason reason);
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
     template<typename T> WMError RegisterListener(std::vector<std::pair<sptr<T>, bool>>& holder,
         const std::pair<sptr<T>, bool>& listener)
@@ -1001,6 +1003,7 @@ protected:
     bool isIgnoreSafeAreaNeedNotify_ = false;
     bool isIgnoreSafeArea_ = false;
     std::atomic_bool isFocused_ = false;
+    std::atomic_bool isUiDvsyncSwitchApiEnabled_ = false;
     std::atomic_bool isHighlighted_ = false;
     std::atomic_bool shouldReNotifyHighlight_ = false;
     static std::atomic<int64_t> updateFocusTimeStamp_;

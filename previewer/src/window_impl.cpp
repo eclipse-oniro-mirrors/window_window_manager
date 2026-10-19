@@ -1365,7 +1365,7 @@ WMError WindowImpl::SetLandscapeMultiWindow(bool isLandscapeMultiWindow)
     return WMError::WM_OK;
 }
 
-void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
+void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom, DvsyncDisableReason disableReason)
 {
 }
 

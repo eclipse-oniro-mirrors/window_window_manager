@@ -5151,7 +5151,8 @@ public:
      * @param dvsyncSwitch bool.
      * @return * void
      */
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) {}
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM,
+        DvsyncDisableReason disableReason = DEFAULT_DVSYNCDISABLEREASON) {}
 
     /**
      * @brief Set touch event

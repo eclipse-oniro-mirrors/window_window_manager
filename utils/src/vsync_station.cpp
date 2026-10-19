@@ -334,12 +334,12 @@ void VsyncStation::SetDisplaySoloistFrameRateLinkerEnable(bool enabled)
     soloistManager.SetMainFrameRateLinkerEnable(enabled);
 }
 
-void VsyncStation::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
+void VsyncStation::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom, DvsyncDisableReason disableReason)
 {
     if (auto receiver = GetOrCreateVsyncReceiver()) {
-        receiver->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom);
-        TLOGI(WmsLogTag::WMS_MAIN, "SetUiDvsyncSwitch dvsyncSwitch: %{public}d, fromWhom: %{public}u",
-            dvsyncSwitch, static_cast<uint8_t>(fromWhom));
+        receiver->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom, disableReason);
+        TLOGD(WmsLogTag::WMS_MAIN, "dvsyncSwitch: %{public}d, fromWhom: %{public}u, reason: %{public}u",
+            dvsyncSwitch, static_cast<uint8_t>(fromWhom), static_cast<uint8_t>(disableReason));
     }
 }
 
