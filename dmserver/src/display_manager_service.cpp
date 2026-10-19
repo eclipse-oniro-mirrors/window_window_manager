@@ -361,6 +361,10 @@ DMError DisplayManagerService::GetScreenGamutMap(ScreenId screenId, ScreenGamutM
 
 DMError DisplayManagerService::SetScreenGamutMap(ScreenId screenId, ScreenGamutMap gamutMap)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::DMS, "permission denied!");
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
     TLOGI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64 ", ScreenGamutMap %{public}u",
         screenId, static_cast<uint32_t>(gamutMap));
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
@@ -609,6 +613,18 @@ DMError DisplayManagerService::StopMirror(const std::vector<ScreenId>& mirrorScr
 
 void DisplayManagerService::RemoveVirtualScreenFromGroup(std::vector<ScreenId> screens)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        if (!Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION)) {
+            TLOGE(WmsLogTag::DMS, "RemoveVirtualScreenFromGroup permission denied!");
+            return;
+        }
+        for (ScreenId screenId : screens) {
+            if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
+                TLOGE(WmsLogTag::DMS, "RemoveVirtualScreenFromGroup ownership denied!");
+                return;
+            }
+        }
+    }
     abstractScreenController_->RemoveVirtualScreenFromGroup(screens);
 }
 
@@ -896,6 +912,16 @@ std::vector<DisplayPhysicalResolution> DisplayManagerService::GetAllDisplayPhysi
 
 bool DisplayManagerService::SetVirtualScreenAsDefault(ScreenId screenId)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        if (!Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION)) {
+            TLOGE(WmsLogTag::DMS, "SetVirtualScreenAsDefault permission denied!");
+            return false;
+        }
+        if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
+            TLOGE(WmsLogTag::DMS, "SetVirtualScreenAsDefault ownership denied!");
+            return false;
+        }
+    }
     TLOGI(WmsLogTag::DMS, "Enter, screenId: %{public}" PRIu64, screenId);
     return abstractScreenController_->SetVirtualScreenAsDefault(screenId);
 }
