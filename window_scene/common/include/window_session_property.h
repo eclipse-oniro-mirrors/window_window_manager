@@ -1016,6 +1016,8 @@ struct SystemSessionConfig : public Parcelable {
     bool statusBarHeightMode_ = false;  // true: display height, false: component height
     PiPMultiConfig pipMultiConfig_ = GetDefaultPiPMultiConfig();
     std::set<ScreenId> supportMultiWindowScreenSet_;
+    bool limitsThresholdEnable_ = false;
+    int32_t limitsThresholdPercentage_ = 0;
 
     void ConvertSupportUIExtensionSubWindow(const std::string& itemValue);
     void ConvertSupportCreateFloatView(const std::string& itemValue);
@@ -1111,6 +1113,9 @@ struct SystemSessionConfig : public Parcelable {
                 return false;
             }
         }
+        if (!parcel.WriteBool(limitsThresholdEnable_) || !parcel.WriteInt32(limitsThresholdPercentage_)) {
+            return false;
+        }
         return true;
     }
 
@@ -1181,6 +1186,8 @@ struct SystemSessionConfig : public Parcelable {
         for (uint32_t i = 0; i < screenSetSize; ++i) {
             config->supportMultiWindowScreenSet_.insert(static_cast<ScreenId>(parcel.ReadUint64()));
         }
+        config->limitsThresholdEnable_ = parcel.ReadBool();
+        config->limitsThresholdPercentage_ = parcel.ReadInt32();
         return config;
     }
         
