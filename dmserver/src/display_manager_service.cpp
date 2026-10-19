@@ -272,6 +272,13 @@ DMError DisplayManagerService::SetVirtualScreenSurface(ScreenId screenId, sptr<I
     }
     if (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
         Permission::IsStartByHdcd() || isCallingByThirdParty) {
+        if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
+            TLOGE(WmsLogTag::DMS, "SetVirtualScreenSurface ownership denied!");
+            if (isCallingByThirdParty) {
+                return DMError::DM_ERROR_NULLPTR;
+            }
+            return DMError::DM_ERROR_INVALID_CALLING;
+        }
         sptr<Surface> pPurface = Surface::CreateSurfaceAsProducer(surface);
         return abstractScreenController_->SetVirtualScreenSurface(screenId, pPurface);
     }
