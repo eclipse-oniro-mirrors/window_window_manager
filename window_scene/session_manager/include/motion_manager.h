@@ -48,7 +48,7 @@ enum SmartRotationReason: int16_t {
     FACE = 0,
     HAND = 1,
     MOTION = 2,
-}
+};
 
 class IMotionEventListener {
 public:
