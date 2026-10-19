@@ -229,7 +229,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
             motionData.data, dataLen * sizeof(int16_t));
         if (ret != EOK) {
             TLOGE(WmsLogTag::WMS_ROTATION, "memcpy_s failed, ret: %{public}d", ret);
-            std:fill(patchData.get(), patchData.get() + dataLen, -1);
+            std::fill(patchData.get(), patchData.get() + dataLen, -1);
         }
     }
     if (motionData.type == MotionType::SMART_MOTION_TYPE &&
@@ -237,7 +237,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
         TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, motionData: %{public}d", patchData[0]);
         motionRotation = ConvertMotionActionToDeviceRotation(patchData[0]);
         if (dataLen >= 2) { // 2 : Length of Data
-            return = patchData[1];
+            reason = patchData[1];
         }
     } else {
         motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
@@ -247,7 +247,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
                 patchData[0], patchData[1], patchData[2], patchData[3]); // 0: FACE 1: HAND 2: gravity 3: reason
             reason = patchData[3]; // 3: reason
         } else {
-            TLOGE(WmsLogTag::WMS_ROTATION， "Invalid data with motion callback enhance, dataLen: %{public}d", dataLen)；
+            TLOGE(WmsLogTag::WMS_ROTATION, "Invalid data with motion callback enhance, dataLen: %{public}d", dataLen);
         }
     }
     float rotation = ConvertDeviceMotionToFloat(motionRotation);
