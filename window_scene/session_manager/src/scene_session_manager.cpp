@@ -542,6 +542,11 @@ void SceneSessionManager::Init()
     ScreenSessionManagerClient::GetInstance().RegisterScreenConnectionChangeListener(
         sptr<ScreenConnectionChangeListener>::MakeSptr());
 
+    bool screenOnOffSchedulingLifecycle = system::GetParameter("const.window.screen_onoff_scheduling_lifecycle", "false") == "true";
+    if (screenOnOffSchedulingLifecycle) {
+        DisplayManager::GetInstance().RegisterDisplayPowerEventListener(sptr<DisplayPowerEventListener>::MakeSptr());
+    }
+
     // create handler for inner command at server
     eventLoop_ = AppExecFwk::EventRunner::Create(WINDOW_INFO_REPORT_THREAD);
     eventHandler_ = std::make_shared<AppExecFwk::EventHandler>(eventLoop_);
@@ -15430,6 +15435,18 @@ void DisplayChangeListener::OnDisplayStateChange(DisplayId defaultDisplayId, spt
     }
 }
 
+void DisplayPowerEventListener::OnDisplayPowerEvent(DisplayPowerEvent event, EventStatus status)
+{
+    TLOGD(WmsLogTag::DMS, "event: %{public}u, status: %{public}u", static_cast<uint32_t>(event), static_cast<uint32_t>(status));
+}
+
+void DisplayPowerEventListener::OnSpecifiedDisplayPowerEvent(ScreenId screenId, DisplayPowerEvent event, EventStatus status)
+{
+    TLOGI(WmsLogTag::DMS, "screenId: %{public}u, event: %{public}u, status: %{public}u", 
+        static_cast<uint32_t>(screenId), static_cast<uint32_t>(event), static_cast<uint32_t>(status));
+    SceneSessionManager::GetInstance().NotifyDisplayPowerEventChanged(screenId, event, status);
+}
+
 void ScreenConnectionChangeListener::OnScreenConnected(const sptr<ScreenSession>& screenSession)
 {
     if (screenSession == nullptr) {
@@ -22107,6 +22124,24 @@ void SceneSessionManager::SetSmartSensorRotationChangeListener(NotifySmartSensor
 {
     taskScheduler_->PostAsyncTask([this, func] {
         smartSensorRotationChangeListener_ = std::move(func);
+    }, __func__);
+}
+
+void SceneSessionManager::SetDisplayPowerEventChangeListener(NotifyDisplayPowerEventChangeFunc&& func)
+{
+    taskScheduler_->PostAsyncTask([this, func] {
+        displayPowerEventChangeListener_ = std::move(func);
+    }, __func__);
+}
+
+void SceneSessionManager::NotifyDisplayPowerEventChanged(ScreenId screenId, DisplayPowerEvent event, EventStatus status)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "event: %{public}u, status: %{public}u",
+        static_cast<uint32_t>(event), static_cast<uint32_t>(status));
+    taskScheduler_->PostAsyncTask([this, screenId, event, status]() {
+        if (displayPowerEventChangeListener_) {
+            displayPowerEventChangeListener_(screenId, event, status);
+        }
     }, __func__);
 }
 
