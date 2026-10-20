@@ -16,6 +16,8 @@
 #ifndef OHOS_ROSEN_WINDOW_DUMPER_H
 #define OHOS_ROSEN_WINDOW_DUMPER_H
 
+#include <mutex>
+
 #include "dm_common.h"
 #include "future.h"
 #include "window_root.h"
@@ -33,8 +35,16 @@ public:
     WMError Dump(int fd, const std::vector<std::u16string>& args);
 
     RunnableFuture<std::vector<std::string>> dumpInfoFuture_;
+    void BeginDumpInfoRequest(int32_t pid, int32_t uid);
+    void CancelDumpInfoRequest();
+    void CompleteDumpInfoRequest(int32_t pid, int32_t uid, const std::vector<std::string>& info);
 
 private:
+    std::mutex dumpIdentityMutex_;
+    bool dumpRequestPending_ = false;
+    int32_t expectedDumpPid_ = -1;
+    int32_t expectedDumpUid_ = -1;
+
     WMError DumpWindowInfo(const std::vector<std::string>& args, std::string& dumpInfo);
     WMError DumpAllWindowInfo(std::string& dumpInfo);
     WMError DumpScreenGroupWindowInfo(ScreenId screenGroupId, const sptr<WindowNodeContainer>& windowNodeContainer,

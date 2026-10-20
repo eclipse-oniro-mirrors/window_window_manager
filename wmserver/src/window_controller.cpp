@@ -138,6 +138,10 @@ void WindowController::CancelStartingWindow(sptr<IRemoteObject> abilityToken)
 WMError WindowController::NotifyWindowTransition(sptr<WindowTransitionInfo>& srcInfo,
     sptr<WindowTransitionInfo>& dstInfo)
 {
+    if (srcInfo == nullptr || dstInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "transition info is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
     TLOGI(WmsLogTag::WMS_STARTUP_PAGE, "begin!");
     sptr<WindowNode> dstNode = nullptr;
     sptr<WindowNode> srcNode = nullptr;
