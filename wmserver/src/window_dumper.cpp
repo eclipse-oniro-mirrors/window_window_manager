@@ -285,13 +285,6 @@ WMError WindowDumper::DumpWindowInfo(const std::vector<std::string>& args, std::
     if (args.size() == 1 && args[0] == ARG_DUMP_ALL) { // 1: params num
         return DumpAllWindowInfo(dumpInfo);
     } else if (args.size() >= 2 && args[0] == ARG_DUMP_WINDOW && IsValidDigitString(args[1])) { // 2: params num
-        errno = 0;
-        unsigned long windowIdValue = std::strtoul(args[1].c_str(), nullptr, 10); // 10: decimal
-        if (errno == ERANGE || windowIdValue > UINT32_MAX) {
-            WLOGFE("invalid window id, out of range");
-            return WMError::WM_ERROR_INVALID_PARAM;
-        }
-        uint32_t windowId = static_cast<uint32_t>(windowIdValue);
         return DumpSpecifiedWindowInfo(windowId, args, dumpInfo);
     } else {
         return WMError::WM_ERROR_INVALID_PARAM;
