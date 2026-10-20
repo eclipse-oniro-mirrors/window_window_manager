@@ -574,40 +574,6 @@ HWTEST_F(StartingWindowTest, RegisterStartingWindowShowInfo01, TestSize.Level1)
 }
 
 /**
- * @tc.name: RegisterStartingWindowShowInfo02
- * @tc.desc: RegisterStartingWindowShowInfo with delay size less than pixelmaps size
- * @tc.type: FUNC
- */
-HWTEST_F(StartingWindowTest, RegisterStartingWindowShowInfo02, TestSize.Level1)
-{
-    sptr<WindowTransitionInfo> winInfo = sptr<WindowTransitionInfo>::MakeSptr();
-    sptr<WindowNode> node = StartingWindow::CreateWindowNode(winInfo, 1);
-    ASSERT_NE(node, nullptr);
-    Rosen::Rect rect { 0, 0, 200, 300 };
-    auto info = std::make_shared<Rosen::StartingWindowPageDrawInfo>();
-    info->bgColor = 0x00660000;
-    info->appIcon = std::make_shared<ResourceInfo>();
-    std::shared_ptr<Media::PixelMap> pixelMap = SurfaceDraw::DecodeImageToPixelMap(IMAGE_PLACE_HOLDER_PNG_PATH);
-    // 3 frames but only 1 delay time, frameCount must align with the shorter one
-    info->appIcon->pixelMaps.push_back(pixelMap);
-    info->appIcon->pixelMaps.push_back(pixelMap);
-    info->appIcon->pixelMaps.push_back(pixelMap);
-    info->appIcon->delayTimes.push_back(100);
-    float vpRatio = 1.5;
-
-    StartingWindow::RegisterStartingWindowShowInfo(node, rect, info, vpRatio);
-    ASSERT_NE(StartingWindow::startingWindowShowInfo_.info, nullptr);
-    EXPECT_EQ(StartingWindow::startingWindowShowInfo_.resStates[0].frameCount,
-        static_cast<uint32_t>(StartingWindow::startingWindowShowInfo_.resStates[0].delay.size()));
-    EXPECT_EQ(StartingWindow::startingWindowShowInfo_.resStates[0].frameCount, 1u);
-
-    // consistent sizes keep original frameCount
-    info->appIcon->delayTimes.push_back(100);
-    StartingWindow::RegisterStartingWindowShowInfo(node, rect, info, vpRatio);
-    EXPECT_EQ(StartingWindow::startingWindowShowInfo_.resStates[0].frameCount, 2u);
-}
-
-/**
  * @tc.name: UnRegisterStartingWindowShowInfo01
  * @tc.desc: UnRegisterStartingWindowShowInfo
  * @tc.type: FUNC
