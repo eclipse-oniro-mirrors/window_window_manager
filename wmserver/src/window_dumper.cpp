@@ -285,6 +285,7 @@ WMError WindowDumper::DumpWindowInfo(const std::vector<std::string>& args, std::
     if (args.size() == 1 && args[0] == ARG_DUMP_ALL) { // 1: params num
         return DumpAllWindowInfo(dumpInfo);
     } else if (args.size() >= 2 && args[0] == ARG_DUMP_WINDOW && IsValidDigitString(args[1])) { // 2: params num
+        uint32_t windowId = std::stoul(args[1]);
         return DumpSpecifiedWindowInfo(windowId, args, dumpInfo);
     } else {
         return WMError::WM_ERROR_INVALID_PARAM;
