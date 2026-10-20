@@ -8054,6 +8054,10 @@ void SceneSession::HandleSpecificSystemBarProperty(WindowType type, const sptr<W
 
 void SceneSession::SetWindowFlags(const sptr<WindowSessionProperty>& property)
 {
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "property is nullptr");
+        return;
+    }
     auto sessionProperty = GetSessionProperty();
     if (sessionProperty == nullptr) {
         TLOGE(WmsLogTag::DEFAULT, "get session property failed");
@@ -8061,14 +8065,15 @@ void SceneSession::SetWindowFlags(const sptr<WindowSessionProperty>& property)
     }
     uint32_t flags = property->GetWindowFlags();
     uint32_t oldFlags = sessionProperty->GetWindowFlags();
-    if (((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED) ||
-         (oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK)) &&
+    uint32_t changedFlags = oldFlags ^ flags;
+    if (((changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) ||
+         (changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK))) &&
         !property->GetSystemCalling()) {
         TLOGE(WmsLogTag::DEFAULT, "Set window flags permission denied");
         return;
     }
     sessionProperty->SetWindowFlags(flags);
-    if ((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
+    if (changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
         OnShowWhenLocked(flags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED));
     }
     TLOGI(WmsLogTag::DEFAULT, "%{public}u", flags);

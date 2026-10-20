@@ -1058,7 +1058,7 @@ WMError WindowController::SetWindowFlags(uint32_t windowId, uint32_t flags, bool
     auto property = node->GetWindowProperty();
     uint32_t oldFlags = property->GetWindowFlags();
     if (property->GetApiCompatibleVersion() >= 9 && !isSystemCalling && // 9: api version.
-        (oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
+        (oldFlags ^ flags) & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
         WLOGFW("Only API 9- or system calling support showing when locked.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
