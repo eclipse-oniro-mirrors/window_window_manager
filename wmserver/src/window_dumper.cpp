@@ -194,13 +194,44 @@ WMError WindowDumper::DumpSpecifiedWindowInfo(uint32_t windowId, const std::vect
             return WMError::WM_OK;
         }
         dumpInfoFuture_.ResetLock({});
+        BeginDumpInfoRequest(node->GetCallingPid(), node->GetCallingUid());
         node->GetWindowToken()->DumpInfo(resetParams);
         auto infos = dumpInfoFuture_.GetResult(2000); // 2000: wait for 2000ms
+        CancelDumpInfoRequest();
         for (auto& info: infos) {
             dumpInfo.append(info).append("\n");
         }
     }
     return WMError::WM_OK;
+}
+
+void WindowDumper::BeginDumpInfoRequest(int32_t pid, int32_t uid)
+{
+    std::lock_guard<std::mutex> lock(dumpIdentityMutex_);
+    dumpRequestPending_ = true;
+    expectedDumpPid_ = pid;
+    expectedDumpUid_ = uid;
+}
+
+void WindowDumper::CancelDumpInfoRequest()
+{
+    std::lock_guard<std::mutex> lock(dumpIdentityMutex_);
+    dumpRequestPending_ = false;
+    expectedDumpPid_ = -1;
+    expectedDumpUid_ = -1;
+}
+
+void WindowDumper::CompleteDumpInfoRequest(int32_t pid, int32_t uid, const std::vector<std::string>& info)
+{
+    {
+        std::lock_guard<std::mutex> lock(dumpIdentityMutex_);
+        if (!dumpRequestPending_ || pid != expectedDumpPid_ || uid != expectedDumpUid_) {
+            WLOGFE("dump info result rejected, caller does not match pending dump request");
+            return;
+        }
+        dumpRequestPending_ = false;
+    }
+    dumpInfoFuture_.SetValue(info);
 }
 
 void WindowDumper::AppendSpecifiedWindowNodeInfo(const sptr<WindowNode>& node, std::ostringstream& oss)
@@ -305,8 +336,10 @@ void WindowDumper::ShowAceDumpHelp(std::string& dumpInfo)
         std::vector<std::string> params;
         params.emplace_back(ARG_DUMP_HELP);
         dumpInfoFuture_.ResetLock({});
+        BeginDumpInfoRequest(node->GetCallingPid(), node->GetCallingUid());
         node->GetWindowToken()->DumpInfo(params);
         auto infos = dumpInfoFuture_.GetResult(2000); // 2000: wait for 2000ms
+        CancelDumpInfoRequest();
         for (auto& info: infos) {
             dumpInfo.append(info).append("\n");
         }

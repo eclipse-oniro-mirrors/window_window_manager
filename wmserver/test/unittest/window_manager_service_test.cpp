@@ -453,6 +453,29 @@ HWTEST_F(WindowManagerServiceTest, DispatchKeyEvent03, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyDumpInfoResult01
+ * @tc.desc: NotifyDumpInfoResult without pending dump request or with mismatched caller identity
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerServiceTest, NotifyDumpInfoResult01, TestSize.Level1)
+{
+    wms = new WindowManagerService();
+    std::vector<std::string> info = { "forged dump info" };
+    // no pending dump request, result should be rejected
+    wms->NotifyDumpInfoResult(info);
+    auto result = wms->windowDumper_->dumpInfoFuture_.GetResult(0);
+    EXPECT_TRUE(result.empty());
+    // caller identity matches pending request, result should be accepted
+    wms->windowDumper_->BeginDumpInfoRequest(IPCSkeleton::GetCallingRealPid(),
+        IPCSkeleton::GetCallingUid());
+    wms->NotifyDumpInfoResult(info);
+    result = wms->windowDumper_->dumpInfoFuture_.GetResult(0);
+    EXPECT_EQ(result.size(), 1UL);
+    EXPECT_EQ(result[0], "forged dump info");
+    wms->windowDumper_->CancelDumpInfoRequest();
+}
+
+/**
  * @tc.name: SetWindowGravity
  * @tc.desc: SetWindowGravity test
  * @tc.type: FUNC

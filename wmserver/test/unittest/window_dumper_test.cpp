@@ -147,6 +147,29 @@ HWTEST_F(WindowDumperTest, Dump07, TestSize.Level1)
 }
 
 /**
+ * @tc.name: Dump08
+ * @tc.desc: Dump with out of range window id, should be rejected without crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowDumperTest, Dump08, TestSize.Level1)
+{
+    sptr<WindowDumper> windowDumper;
+    windowDumper = new WindowDumper(WindowManagerService::GetInstance().windowRoot_);
+    int fd = 2;
+    std::vector<std::u16string> args;
+    const std::u16string DUMP_WINDOW = u"-w";
+    const std::u16string DUMP_WINDOW_ID_OUT_OF_RANGE = u"99999999999"; // exceeds ULONG_MAX on 32-bit
+    const std::u16string DUMP_WINDOW_ID_OVERFLOW_U32 = u"4294967296"; // 2^32, exceeds UINT32_MAX
+    args.emplace_back(DUMP_WINDOW);
+    args.emplace_back(DUMP_WINDOW_ID_OUT_OF_RANGE);
+    WMError ret = windowDumper->Dump(fd, args);
+    ASSERT_EQ(ret, WMError::WM_OK);
+    args[1] = DUMP_WINDOW_ID_OVERFLOW_U32;
+    ret = windowDumper->Dump(fd, args);
+    ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+/**
  * @tc.name: ShowAceDumpHelp01
  * @tc.desc: ShowAceDumpHelp
  * @tc.type: FUNC
@@ -174,6 +197,32 @@ HWTEST_F(WindowDumperTest, ShowAceDumpHelp02, TestSize.Level1)
     windowDumper->ShowAceDumpHelp(dumpInfo);
     WindowManagerService::GetInstance().windowRoot_->windowNodeMap_.clear();
     ASSERT_TRUE(dumpInfo.empty());
+}
+
+/**
+ * @tc.name: CompleteDumpInfoRequest01
+ * @tc.desc: Complete dump info request with caller identity not matching pending request
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowDumperTest, CompleteDumpInfoRequest01, TestSize.Level1)
+{
+    sptr<WindowDumper> windowDumper;
+    windowDumper = new WindowDumper(WindowManagerService::GetInstance().windowRoot_);
+    std::vector<std::string> info = { "test dump info" };
+    // no pending dump request
+    windowDumper->CompleteDumpInfoRequest(1, 1, info);
+    // caller identity does not match pending request
+    windowDumper->BeginDumpInfoRequest(1, 1);
+    windowDumper->CompleteDumpInfoRequest(2, 1, info);
+    windowDumper->CompleteDumpInfoRequest(1, 2, info);
+    auto result = windowDumper->dumpInfoFuture_.GetResult(0);
+    ASSERT_TRUE(result.empty());
+    // caller identity matches pending request
+    windowDumper->CompleteDumpInfoRequest(1, 1, info);
+    result = windowDumper->dumpInfoFuture_.GetResult(0);
+    ASSERT_EQ(result.size(), 1UL);
+    ASSERT_EQ(result[0], "test dump info");
+    windowDumper->CancelDumpInfoRequest();
 }
 }
 }

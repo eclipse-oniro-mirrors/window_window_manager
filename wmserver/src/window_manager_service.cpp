@@ -975,6 +975,14 @@ WMError WindowManagerService::CreateWindow(sptr<IWindow>& window, sptr<WindowPro
         WLOGFE("create system window permission denied!");
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
+    if (WindowHelper::IsSubWindow(property->GetWindowType()) &&
+        property->GetParentId() != INVALID_WINDOW_ID &&
+        !Permission::IsSystemCalling() &&
+        !accessTokenIdMaps_.isExist(property->GetParentId(), IPCSkeleton::GetCallingTokenID())) {
+        WLOGFE("CreateWindow rejected, sub window parent not owned by caller, parentId: %{public}u",
+            property->GetParentId());
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
     int pid = IPCSkeleton::GetCallingRealPid();
     int uid = IPCSkeleton::GetCallingUid();
     property->isSystemCalling_ = Permission::IsSystemCalling();
@@ -1002,6 +1010,14 @@ WMError WindowManagerService::AddWindow(sptr<WindowProperty>& property)
         !Permission::IsSystemCalling()) {
         WLOGI("AddWindow operation rejected, windowId: %{public}u", property->GetWindowId());
         return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    if (WindowHelper::IsSubWindow(property->GetWindowType()) &&
+        property->GetParentId() != INVALID_WINDOW_ID &&
+        !Permission::IsSystemCalling() &&
+        !accessTokenIdMaps_.isExist(property->GetParentId(), IPCSkeleton::GetCallingTokenID())) {
+        WLOGFE("AddWindow rejected, sub window parent not owned by caller, parentId: %{public}u",
+            property->GetParentId());
+        return WMError::WM_ERROR_INVALID_PARENT;
     }
     return AddWindowInner(property);
 }
@@ -1337,6 +1353,11 @@ void WindowManagerService::ProcessPointDown(uint32_t windowId, bool isPointDown)
 
 void WindowManagerService::ProcessPointUp(uint32_t windowId)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        WLOGFE("ProcessPointUp operation rejected, windowId: %{public}u", windowId);
+        return;
+    }
     auto task = [this, windowId]() {
         WindowInnerManager::GetInstance().NotifyWindowEndUpMovingOrDragging(windowId);
         windowController_->RecoverInputEventToClient(windowId);
@@ -1584,6 +1605,11 @@ std::shared_ptr<Media::PixelMap> WindowManagerService::GetSnapshot(int32_t windo
 
 void WindowManagerService::DispatchKeyEvent(uint32_t windowId, std::shared_ptr<MMI::KeyEvent> event)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        WLOGFE("DispatchKeyEvent operation rejected, windowId: %{public}u", windowId);
+        return;
+    }
     auto task = [this, windowId, event]() {
         windowController_->DispatchKeyEvent(windowId, event);
     };
@@ -1593,7 +1619,8 @@ void WindowManagerService::DispatchKeyEvent(uint32_t windowId, std::shared_ptr<M
 void WindowManagerService::NotifyDumpInfoResult(const std::vector<std::string>& info)
 {
     if (windowDumper_) {
-        windowDumper_->dumpInfoFuture_.SetValue(info);
+        windowDumper_->CompleteDumpInfoRequest(IPCSkeleton::GetCallingRealPid(),
+            IPCSkeleton::GetCallingUid(), info);
     }
 }
 
