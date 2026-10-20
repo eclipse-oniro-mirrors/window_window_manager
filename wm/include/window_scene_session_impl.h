@@ -727,7 +727,7 @@ private:
      */
     WMError CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
-    void UpdateSubWindowDragEnabledByDecorVisible(bool decorVisible) override;
+    void UpdateSubWindowDragEnabled(bool freeMultiWindowEnable) override;
     WMError GetSelectMode(SelectMode& selectMode) override;
     bool ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode);
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);

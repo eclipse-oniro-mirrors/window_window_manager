@@ -616,7 +616,7 @@ public:
     {
         windowSystemConfig_.freeMultiWindowEnable_ = enable;
     }
-    virtual void UpdateSubWindowDragEnabledByDecorVisible(bool decorVisible) {}
+    virtual void UpdateSubWindowDragEnabled(bool freeMultiWindowEnable) {}
     void SwitchSubWindow(bool freeMultiWindowEnable, int32_t parentId);
     void SwitchSystemWindow(bool freeMultiWindowEnable, int32_t parentId);
     void UpdateSubWindowPropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property, int32_t parentId);
