@@ -37,6 +37,14 @@ using namespace testing;
 using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg += msg;
+    }
+}
 class SceneSessionLifecycleTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -322,6 +330,9 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground09, TestSize.Level1)
  */
 HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
 {
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
     SessionInfo info;
     info.abilityName_ = "Foreground10";
     info.bundleName_ = "Foreground10";
@@ -333,6 +344,10 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
     session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
     auto result = session->Foreground(property, false, "", false);
     EXPECT_EQ(result, WSError::WS_OK);
+    std::string resultLog = "Foreground state invalid! state:";
+    EXPECT_TRUE(g_logMsg.find(resultLog) != std::string::npos);
+ 
+    LOG_SetCallback(nullptr);
 }
 
 /**
