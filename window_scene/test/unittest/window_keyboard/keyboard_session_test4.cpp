@@ -658,6 +658,1162 @@ HWTEST_F(KeyboardSessionTest4, NotifyKeyboardAnimationWillBegin02, TestSize.Leve
     keyboardSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
     ASSERT_NE(keyboardSession->GetSceneSession(animationInfo.callingId), nullptr);
 }
+
+/**
+ * @tc.name: BindKeyboardPanelSession02
+ * @tc.desc: test function: BindKeyboardPanelSession with valid panel and verify getter
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, BindKeyboardPanelSession02, TestSize.Level0)
+{
+    std::string abilityName = "BindKeyboardPanelSession02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_EQ(keyboardSession->GetKeyboardPanelSession(), nullptr);
+    sptr<SceneSession> panelSession = GetSceneSession(abilityName, abilityName);
+    ASSERT_NE(panelSession, nullptr);
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    sptr<SceneSession> getPanelSession = keyboardSession->GetKeyboardPanelSession();
+    EXPECT_EQ(getPanelSession, panelSession);
+    keyboardSession->BindKeyboardPanelSession(nullptr);
+    EXPECT_NE(keyboardSession->GetKeyboardPanelSession(), nullptr);
+}
+
+/**
+ * @tc.name: BindKeyboardPanelSession03
+ * @tc.desc: test function: BindKeyboardPanelSession rebind different panel
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, BindKeyboardPanelSession03, TestSize.Level0)
+{
+    std::string abilityName = "BindKeyboardPanelSession03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> firstPanel = GetSceneSession("FirstPanel", "FirstPanel");
+    sptr<SceneSession> secondPanel = GetSceneSession("SecondPanel", "SecondPanel");
+    ASSERT_NE(firstPanel, nullptr);
+    ASSERT_NE(secondPanel, nullptr);
+    keyboardSession->BindKeyboardPanelSession(firstPanel);
+    EXPECT_EQ(keyboardSession->GetKeyboardPanelSession(), firstPanel);
+    keyboardSession->BindKeyboardPanelSession(secondPanel);
+    EXPECT_EQ(keyboardSession->GetKeyboardPanelSession(), secondPanel);
+    EXPECT_NE(keyboardSession->GetKeyboardPanelSession(), firstPanel);
+}
+
+/**
+ * @tc.name: GetKeyboardPanelSession01
+ * @tc.desc: test function: GetKeyboardPanelSession returns nullptr without binding
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetKeyboardPanelSession01, TestSize.Level0)
+{
+    std::string abilityName = "GetKeyboardPanelSession01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> panelSession = keyboardSession->GetKeyboardPanelSession();
+    EXPECT_EQ(panelSession, nullptr);
+}
+
+/**
+ * @tc.name: GetKeyboardPanelSession02
+ * @tc.desc: test function: GetKeyboardPanelSession returns bound session
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetKeyboardPanelSession02, TestSize.Level0)
+{
+    std::string abilityName = "GetKeyboardPanelSession02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> panelSession = GetSceneSession(abilityName, abilityName);
+    ASSERT_NE(panelSession, nullptr);
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    sptr<SceneSession> ret = keyboardSession->GetKeyboardPanelSession();
+    ASSERT_NE(ret, nullptr);
+    EXPECT_EQ(ret, panelSession);
+}
+
+/**
+ * @tc.name: GetKeyboardGravity02
+ * @tc.desc: test function: GetKeyboardGravity returns FLOAT gravity
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetKeyboardGravity02, TestSize.Level0)
+{
+    std::string abilityName = "GetKeyboardGravity02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_FLOAT;
+    auto ret = keyboardSession->GetKeyboardGravity();
+    EXPECT_EQ(SessionGravity::SESSION_GRAVITY_FLOAT, ret);
+}
+
+/**
+ * @tc.name: GetKeyboardGravity03
+ * @tc.desc: test function: GetKeyboardGravity returns DEFAULT gravity
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetKeyboardGravity03, TestSize.Level0)
+{
+    std::string abilityName = "GetKeyboardGravity03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_DEFAULT;
+    auto ret = keyboardSession->GetKeyboardGravity();
+    EXPECT_EQ(SessionGravity::SESSION_GRAVITY_DEFAULT, ret);
+}
+
+/**
+ * @tc.name: GetKeyboardGravity04
+ * @tc.desc: test function: GetKeyboardGravity default value is BOTTOM
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetKeyboardGravity04, TestSize.Level0)
+{
+    std::string abilityName = "GetKeyboardGravity04";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    auto ret = keyboardSession->GetKeyboardGravity();
+    EXPECT_EQ(SessionGravity::SESSION_GRAVITY_BOTTOM, ret);
+}
+
+/**
+ * @tc.name: GetKeyboardGravity05
+ * @tc.desc: test function: GetKeyboardGravity after switching gravity multiple times
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetKeyboardGravity05, TestSize.Level0)
+{
+    std::string abilityName = "GetKeyboardGravity05";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_FLOAT;
+    EXPECT_EQ(SessionGravity::SESSION_GRAVITY_FLOAT, keyboardSession->GetKeyboardGravity());
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
+    EXPECT_EQ(SessionGravity::SESSION_GRAVITY_BOTTOM, keyboardSession->GetKeyboardGravity());
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_DEFAULT;
+    EXPECT_EQ(SessionGravity::SESSION_GRAVITY_DEFAULT, keyboardSession->GetKeyboardGravity());
+}
+
+/**
+ * @tc.name: NotifyKeyboardPanelInfoChange01
+ * @tc.desc: test function: NotifyKeyboardPanelInfoChange when panel disabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifyKeyboardPanelInfoChange01, TestSize.Level1)
+{
+    std::string abilityName = "NotifyKeyboardPanelInfoChange01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardPanelEnabled_ = false;
+    WSRect rect = { 100, 100, 200, 200 };
+    keyboardSession->NotifyKeyboardPanelInfoChange(rect, true);
+    EXPECT_FALSE(keyboardSession->isKeyboardPanelEnabled_);
+}
+
+/**
+ * @tc.name: NotifyKeyboardPanelInfoChange02
+ * @tc.desc: test function: NotifyKeyboardPanelInfoChange when sessionStage is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifyKeyboardPanelInfoChange02, TestSize.Level1)
+{
+    std::string abilityName = "NotifyKeyboardPanelInfoChange02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardPanelEnabled_ = true;
+    keyboardSession->sessionStage_ = nullptr;
+    WSRect rect = { 50, 50, 100, 100 };
+    keyboardSession->NotifyKeyboardPanelInfoChange(rect, false);
+    EXPECT_EQ(keyboardSession->sessionStage_, nullptr);
+}
+
+/**
+ * @tc.name: NotifyKeyboardPanelInfoChange03
+ * @tc.desc: test function: NotifyKeyboardPanelInfoChange with valid sessionStage
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifyKeyboardPanelInfoChange03, TestSize.Level1)
+{
+    std::string abilityName = "NotifyKeyboardPanelInfoChange03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardPanelEnabled_ = true;
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    keyboardSession->sessionStage_ = mockSessionStage;
+    WSRect rect = { 0, 0, 800, 600 };
+    keyboardSession->NotifyKeyboardPanelInfoChange(rect, true);
+    keyboardSession->NotifyKeyboardPanelInfoChange(rect, false);
+    EXPECT_NE(keyboardSession->sessionStage_, nullptr);
+}
+
+/**
+ * @tc.name: Hide02
+ * @tc.desc: test function: Hide when state is disconnect returns ok
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, Hide02, TestSize.Level0)
+{
+    std::string abilityName = "Hide02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->state_ = SessionState::STATE_DISCONNECT;
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->Hide());
+}
+
+/**
+ * @tc.name: Hide03
+ * @tc.desc: test function: Hide on phone window with active session
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, Hide03, TestSize.Level0)
+{
+    std::string abilityName = "Hide03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->state_ = SessionState::STATE_CONNECT;
+    keyboardSession->isActive_ = true;
+    keyboardSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(keyboardSession->sessionStage_, nullptr);
+    keyboardSession->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->Hide());
+}
+
+/**
+ * @tc.name: Hide04
+ * @tc.desc: test function: Hide on pc window with system keyboard
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, Hide04, TestSize.Level0)
+{
+    std::string abilityName = "Hide04";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->state_ = SessionState::STATE_CONNECT;
+    keyboardSession->isActive_ = true;
+    keyboardSession->sessionStage_ = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(keyboardSession->sessionStage_, nullptr);
+    keyboardSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    EXPECT_EQ(false, keyboardSession->IsSystemKeyboard());
+    keyboardSession->SetIsSystemKeyboard(true);
+    EXPECT_EQ(true, keyboardSession->IsSystemKeyboard());
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->Hide());
+}
+
+/**
+ * @tc.name: OpenKeyboardSyncTransaction02
+ * @tc.desc: test function: OpenKeyboardSyncTransaction toggles flag multiple times
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, OpenKeyboardSyncTransaction02, TestSize.Level1)
+{
+    std::string abilityName = "OpenKeyboardSyncTransaction02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
+    keyboardSession->OpenKeyboardSyncTransaction();
+    keyboardSession->OpenKeyboardSyncTransaction();
+    EXPECT_TRUE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+    WSRect keyboardPanelRect = { 0, 0, 0, 0 };
+    WindowAnimationInfo animationInfo;
+    CallingWindowInfoData callingWindowInfoData;
+    keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, true, animationInfo, callingWindowInfoData);
+    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+}
+
+/**
+ * @tc.name: OpenKeyboardSyncTransaction03
+ * @tc.desc: test function: OpenKeyboardSyncTransaction when flag already open
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, OpenKeyboardSyncTransaction03, TestSize.Level1)
+{
+    std::string abilityName = "OpenKeyboardSyncTransaction03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
+    keyboardSession->OpenKeyboardSyncTransaction();
+    EXPECT_TRUE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+}
+
+/**
+ * @tc.name: CloseKeyboardSyncTransaction05
+ * @tc.desc: test function: CloseKeyboardSyncTransaction with isKeyboardShow true
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CloseKeyboardSyncTransaction05, TestSize.Level1)
+{
+    std::string abilityName = "CloseKeyboardSyncTransaction05";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    WSRect keyboardPanelRect = { 0, 0, 0, 0 };
+    WindowAnimationInfo animationInfo;
+    CallingWindowInfoData callingWindowInfoData;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
+    keyboardSession->keyboardCallback_->isLastFrameLayoutFinished = []() { return true; };
+    keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, true, animationInfo, callingWindowInfoData);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+}
+
+/**
+ * @tc.name: CloseKeyboardSyncTransaction06
+ * @tc.desc: test function: CloseKeyboardSyncTransaction with isKeyboardShow false
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CloseKeyboardSyncTransaction06, TestSize.Level1)
+{
+    std::string abilityName = "CloseKeyboardSyncTransaction06";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    WSRect keyboardPanelRect = { 0, 0, 0, 0 };
+    WindowAnimationInfo animationInfo;
+    CallingWindowInfoData callingWindowInfoData;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
+    keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, false, animationInfo, callingWindowInfoData);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+}
+
+/**
+ * @tc.name: CloseKeyboardSyncTransaction07
+ * @tc.desc: test function: CloseKeyboardSyncTransaction with gravity changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CloseKeyboardSyncTransaction07, TestSize.Level1)
+{
+    std::string abilityName = "CloseKeyboardSyncTransaction07";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    WSRect keyboardPanelRect = { 0, 0, 0, 0 };
+    WindowAnimationInfo animationInfo;
+    animationInfo.isGravityChanged = true;
+    animationInfo.callingId = 5;
+    CallingWindowInfoData callingWindowInfoData;
+    keyboardSession->keyboardCallback_->isLastFrameLayoutFinished = []() { return true; };
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
+    keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, true, animationInfo, callingWindowInfoData);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+    EXPECT_FALSE(keyboardSession->stateChanged_);
+}
+
+/**
+ * @tc.name: CloseKeyboardSyncTransaction08
+ * @tc.desc: test function: CloseKeyboardSyncTransaction with layout not finished
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CloseKeyboardSyncTransaction08, TestSize.Level1)
+{
+    std::string abilityName = "CloseKeyboardSyncTransaction08";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    WSRect keyboardPanelRect = { 0, 0, 0, 0 };
+    WindowAnimationInfo animationInfo;
+    CallingWindowInfoData callingWindowInfoData;
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
+    keyboardSession->keyboardCallback_->isLastFrameLayoutFinished = []() { return false; };
+    keyboardSession->CloseKeyboardSyncTransaction(keyboardPanelRect, true, animationInfo, callingWindowInfoData);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_TRUE(keyboardSession->stateChanged_);
+}
+
+/**
+ * @tc.name: CallingWindowStateChange01
+ * @tc.desc: test function: CallingWindowStateChange with normal state
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CallingWindowStateChange01, TestSize.Level1)
+{
+    std::string abilityName = "CallingWindowStateChange01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData callingWindowInfoData;
+    callingWindowInfoData.callingWindowState = CallingWindowState::WINDOW_IN_NORMAL;
+    keyboardSession->CallingWindowStateChange(callingWindowInfoData);
+    EXPECT_EQ(CallingWindowState::WINDOW_IN_NORMAL, keyboardSession->callingWindowInfoData_.callingWindowState);
+}
+
+/**
+ * @tc.name: CallingWindowStateChange02
+ * @tc.desc: test function: CallingWindowStateChange with AI state
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CallingWindowStateChange02, TestSize.Level1)
+{
+    std::string abilityName = "CallingWindowStateChange02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData callingWindowInfoData;
+    callingWindowInfoData.callingWindowState = CallingWindowState::WINDOW_IN_AI;
+    keyboardSession->CallingWindowStateChange(callingWindowInfoData);
+    EXPECT_EQ(CallingWindowState::WINDOW_IN_AI, keyboardSession->callingWindowInfoData_.callingWindowState);
+}
+
+/**
+ * @tc.name: CallingWindowStateChange03
+ * @tc.desc: test function: CallingWindowStateChange with scale values
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CallingWindowStateChange03, TestSize.Level1)
+{
+    std::string abilityName = "CallingWindowStateChange03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData callingWindowInfoData;
+    callingWindowInfoData.scaleX = 1.5;
+    callingWindowInfoData.scaleY = 0.5;
+    keyboardSession->CallingWindowStateChange(callingWindowInfoData);
+    EXPECT_TRUE(std::abs(keyboardSession->callingWindowInfoData_.scaleX - 1.5) < 0.001f);
+    EXPECT_TRUE(std::abs(keyboardSession->callingWindowInfoData_.scaleY - 0.5) < 0.001f);
+}
+
+/**
+ * @tc.name: EnableCallingSessionAvoidArea02
+ * @tc.desc: test function: EnableCallingSessionAvoidArea with null callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, EnableCallingSessionAvoidArea02, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    SessionInfo info;
+    info.abilityName_ = "EnableCallingSessionAvoidArea02";
+    info.bundleName_ = "EnableCallingSessionAvoidArea02";
+    sptr<KeyboardSession> keyboardSession = sptr<KeyboardSession>::MakeSptr(info, nullptr, nullptr);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->EnableCallingSessionAvoidArea();
+    EXPECT_TRUE(g_logMsg.find("Calling session is null") != std::string::npos);
+}
+
+/**
+ * @tc.name: EnableCallingSessionAvoidArea03
+ * @tc.desc: test function: EnableCallingSessionAvoidArea with valid calling session
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, EnableCallingSessionAvoidArea03, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    sptr<KeyboardSession::KeyboardSessionCallback> keyboardCallback =
+        sptr<KeyboardSession::KeyboardSessionCallback>::MakeSptr();
+    keyboardCallback->onGetSceneSession = [](uint32_t persistentId) {
+        SessionInfo callingSessionInfo;
+        callingSessionInfo.abilityName_ = "EnableCallingSessionAvoidArea03";
+        callingSessionInfo.bundleName_ = "EnableCallingSessionAvoidArea03";
+        auto callingSession = sptr<SceneSession>::MakeSptr(callingSessionInfo, nullptr);
+        callingSession->persistentId_ = persistentId;
+        return callingSession;
+    };
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    SessionInfo info;
+    info.abilityName_ = "EnableCallingSessionAvoidArea03";
+    info.bundleName_ = "EnableCallingSessionAvoidArea03";
+    sptr<KeyboardSession> keyboardSession = sptr<KeyboardSession>::MakeSptr(info, specificCallback, keyboardCallback);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->EnableCallingSessionAvoidArea();
+    EXPECT_TRUE(g_logMsg.find("Calling session is null") == std::string::npos);
+}
+
+/**
+ * @tc.name: HandleActionUpdateKeyboardTouchHotArea03
+ * @tc.desc: test function: HandleActionUpdateKeyboardTouchHotArea with invalid type
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, HandleActionUpdateKeyboardTouchHotArea03, TestSize.Level1)
+{
+    std::string abilityName = "HandleActionUpdateKeyboardTouchHotArea03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    sptr<SceneSession> keyboardPanelSession = GetSceneSession(abilityName, abilityName);
+    keyboardSession->BindKeyboardPanelSession(keyboardPanelSession);
+    keyboardSession->GetSessionProperty()->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    WSPropertyChangeAction action = WSPropertyChangeAction::ACTION_UPDATE_ASPECT_RATIO;
+    WMError ret = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property, action);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_TYPE, ret);
+}
+
+/**
+ * @tc.name: TestIsLandscapeNoScreenSession
+ * @tc.desc: test function: IsLandscape with empty screen map returns invalid display
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, TestIsLandscapeNoScreenSession, TestSize.Level1)
+{
+    std::string abilityName = "TestIsLandscapeNoScreenSession";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    bool isLandscape = false;
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    WMError ret = keyboardSession->IsLandscape(999, isLandscape);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_DISPLAY, ret);
+}
+
+/**
+ * @tc.name: TestIsLandscapePortrait
+ * @tc.desc: test function: IsLandscape with portrait screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, TestIsLandscapePortrait, TestSize.Level1)
+{
+    std::string abilityName = "TestIsLandscapePortrait";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    const ScreenId screenId = 31;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(screenId, ScreenProperty(), screenId);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    screenSessionManagerClient_->screenSessionMap_[screenId] = screenSession;
+    screenSession->property_.bounds_.rect_ = { 0, 0, 300, 400 };
+    bool isLandscape = true;
+    EXPECT_EQ(keyboardSession->IsLandscape(screenId, isLandscape), WMError::WM_OK);
+    EXPECT_FALSE(isLandscape);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: TestIsLandscapeLandscape
+ * @tc.desc: test function: IsLandscape with landscape screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, TestIsLandscapeLandscape, TestSize.Level1)
+{
+    std::string abilityName = "TestIsLandscapeLandscape";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    const ScreenId screenId = 41;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(screenId, ScreenProperty(), screenId);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    screenSessionManagerClient_->screenSessionMap_[screenId] = screenSession;
+    screenSession->property_.bounds_.rect_ = { 0, 0, 400, 300 };
+    bool isLandscape = false;
+    EXPECT_EQ(keyboardSession->IsLandscape(screenId, isLandscape), WMError::WM_OK);
+    EXPECT_TRUE(isLandscape);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: TestIsLandscapeSquareScreen
+ * @tc.desc: test function: IsLandscape with square screen returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, TestIsLandscapeSquareScreen, TestSize.Level1)
+{
+    std::string abilityName = "TestIsLandscapeSquareScreen";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    const ScreenId screenId = 51;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(screenId, ScreenProperty(), screenId);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    screenSessionManagerClient_->screenSessionMap_[screenId] = screenSession;
+    screenSession->property_.bounds_.rect_ = { 0, 0, 200, 200 };
+    bool isLandscape = true;
+    EXPECT_EQ(keyboardSession->IsLandscape(screenId, isLandscape), WMError::WM_OK);
+    EXPECT_FALSE(isLandscape);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+}
+
+/**
+ * @tc.name: NotifyKeyboardAnimationWillBegin03
+ * @tc.desc: test function: NotifyKeyboardAnimationWillBegin with calling session
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifyKeyboardAnimationWillBegin03, TestSize.Level1)
+{
+    std::string abilityName = "NotifyKeyboardAnimationWillBegin03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> sceneSession = GetSceneSession("CallingSession03", "CallingSession03");
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->persistentId_ = 200;
+    keyboardSession->keyboardCallback_->onGetSceneSession = [sceneSession](uint32_t persistentId) {
+        return sceneSession;
+    };
+    bool isKeyboardShow = true;
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 200;
+    keyboardSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    ASSERT_NE(keyboardSession->GetSceneSession(animationInfo.callingId), nullptr);
+}
+
+/**
+ * @tc.name: NotifyKeyboardAnimationWillBegin04
+ * @tc.desc: test function: NotifyKeyboardAnimationWillBegin with sync transaction open
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifyKeyboardAnimationWillBegin04, TestSize.Level1)
+{
+    std::string abilityName = "NotifyKeyboardAnimationWillBegin04";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->specificCallback_->onUpdateAvoidArea_ = [](uint32_t callingSessionId) {};
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
+    bool isKeyboardShow = false;
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 300;
+    keyboardSession->NotifyKeyboardAnimationWillBegin(isKeyboardShow, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_TRUE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+}
+
+/**
+ * @tc.name: GetCallingSessionId01
+ * @tc.desc: test function: GetCallingSessionId default invalid
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetCallingSessionId01, TestSize.Level0)
+{
+    std::string abilityName = "GetCallingSessionId01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    uint32_t callingId = keyboardSession->GetCallingSessionId();
+    EXPECT_EQ(callingId, INVALID_WINDOW_ID);
+}
+
+/**
+ * @tc.name: GetCallingSessionId02
+ * @tc.desc: test function: GetCallingSessionId after setting
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetCallingSessionId02, TestSize.Level0)
+{
+    std::string abilityName = "GetCallingSessionId02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    uint32_t expectedId = 12345;
+    keyboardSession->property_->SetCallingSessionId(expectedId);
+    uint32_t callingId = keyboardSession->GetCallingSessionId();
+    EXPECT_EQ(callingId, expectedId);
+}
+
+/**
+ * @tc.name: GetCallingSessionId03
+ * @tc.desc: test function: GetCallingSessionId after reset to invalid
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetCallingSessionId03, TestSize.Level0)
+{
+    std::string abilityName = "GetCallingSessionId03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    keyboardSession->property_->SetCallingSessionId(100);
+    keyboardSession->property_->SetCallingSessionId(INVALID_WINDOW_ID);
+    uint32_t callingId = keyboardSession->GetCallingSessionId();
+    EXPECT_EQ(callingId, INVALID_WINDOW_ID);
+}
+
+/**
+ * @tc.name: GetIsKeyboardSyncTransactionOpen01
+ * @tc.desc: test function: GetIsKeyboardSyncTransactionOpen default false
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetIsKeyboardSyncTransactionOpen01, TestSize.Level0)
+{
+    std::string abilityName = "GetIsKeyboardSyncTransactionOpen01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    EXPECT_FALSE(keyboardSession->GetIsKeyboardSyncTransactionOpen());
+}
+
+/**
+ * @tc.name: GetIsKeyboardSyncTransactionOpen02
+ * @tc.desc: test function: GetIsKeyboardSyncTransactionOpen after open
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetIsKeyboardSyncTransactionOpen02, TestSize.Level0)
+{
+    std::string abilityName = "GetIsKeyboardSyncTransactionOpen02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
+    EXPECT_TRUE(keyboardSession->GetIsKeyboardSyncTransactionOpen());
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
+    EXPECT_FALSE(keyboardSession->GetIsKeyboardSyncTransactionOpen());
+}
+
+/**
+ * @tc.name: SetSkipSelfWhenShowOnVirtualScreen01
+ * @tc.desc: test function: SetSkipSelfWhenShowOnVirtualScreen with true
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, SetSkipSelfWhenShowOnVirtualScreen01, TestSize.Level1)
+{
+    std::string abilityName = "SetSkipSelfWhenShowOnVirtualScreen01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->SetSkipSelfWhenShowOnVirtualScreen(true);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_FALSE(keyboardSession->isSkipSelfWhenShowOnVirtualScreen_.load());
+}
+
+/**
+ * @tc.name: SetSkipSelfWhenShowOnVirtualScreen02
+ * @tc.desc: test function: SetSkipSelfWhenShowOnVirtualScreen with callback set but no surface node
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, SetSkipSelfWhenShowOnVirtualScreen02, TestSize.Level1)
+{
+    std::string abilityName = "SetSkipSelfWhenShowOnVirtualScreen02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    bool capturedSkip = false;
+    keyboardSession->specificCallback_->onSetSkipSelfWhenShowOnVirtualScreen_ =
+        [&capturedSkip](uint64_t nodeId, bool isSkip) {
+            capturedSkip = isSkip;
+        };
+    keyboardSession->SetSkipSelfWhenShowOnVirtualScreen(true);
+    usleep(WAIT_ASYNC_US);
+    // SurfaceNode is null, callback is not invoked and flag remains default
+    EXPECT_FALSE(keyboardSession->isSkipSelfWhenShowOnVirtualScreen_.load());
+    EXPECT_FALSE(capturedSkip);
+}
+
+/**
+ * @tc.name: SetSkipEventOnCastPlus01
+ * @tc.desc: test function: SetSkipEventOnCastPlus with true
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, SetSkipEventOnCastPlus01, TestSize.Level1)
+{
+    std::string abilityName = "SetSkipEventOnCastPlus01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->SetSkipEventOnCastPlus(true);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->specificCallback_, nullptr);
+}
+
+/**
+ * @tc.name: SetSkipEventOnCastPlus02
+ * @tc.desc: test function: SetSkipEventOnCastPlus with callback set
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, SetSkipEventOnCastPlus02, TestSize.Level1)
+{
+    std::string abilityName = "SetSkipEventOnCastPlus02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    bool capturedSkip = false;
+    keyboardSession->specificCallback_->onSetSkipEventOnCastPlus_ =
+        [&capturedSkip](int32_t persistentId, bool isSkip) {
+            capturedSkip = isSkip;
+        };
+    keyboardSession->SetSkipEventOnCastPlus(true);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_TRUE(capturedSkip);
+    keyboardSession->SetSkipEventOnCastPlus(false);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_FALSE(capturedSkip);
+}
+
+/**
+ * @tc.name: UpdateSizeChangeReason01
+ * @tc.desc: test function: UpdateSizeChangeReason with undefined reason
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, UpdateSizeChangeReason01, TestSize.Level1)
+{
+    std::string abilityName = "UpdateSizeChangeReason01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->UpdateSizeChangeReason(SizeChangeReason::UNDEFINED));
+}
+
+/**
+ * @tc.name: UpdateSizeChangeReason02
+ * @tc.desc: test function: UpdateSizeChangeReason with drag reasons
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, UpdateSizeChangeReason02, TestSize.Level1)
+{
+    std::string abilityName = "UpdateSizeChangeReason02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_START));
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_MOVE));
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->UpdateSizeChangeReason(SizeChangeReason::DRAG_END));
+}
+
+/**
+ * @tc.name: UpdateSizeChangeReason03
+ * @tc.desc: test function: UpdateSizeChangeReason with move reason and panel
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, UpdateSizeChangeReason03, TestSize.Level1)
+{
+    std::string abilityName = "UpdateSizeChangeReason03";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> panelSession = GetSceneSession(abilityName, abilityName);
+    ASSERT_NE(panelSession, nullptr);
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->UpdateSizeChangeReason(SizeChangeReason::MOVE));
+}
+
+/**
+ * @tc.name: ChangeKeyboardEffectOption01
+ * @tc.desc: test function: ChangeKeyboardEffectOption with valid option
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, ChangeKeyboardEffectOption01, TestSize.Level1)
+{
+    std::string abilityName = "ChangeKeyboardEffectOption01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    KeyboardEffectOption effectOption;
+    effectOption.blurHeight_ = 100;
+    EXPECT_EQ(WSError::WS_OK, keyboardSession->ChangeKeyboardEffectOption(effectOption));
+    usleep(WAIT_ASYNC_US);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    EXPECT_EQ(keyboardSession->property_->GetKeyboardEffectOption().blurHeight_, effectOption.blurHeight_);
+}
+
+/**
+ * @tc.name: ChangeKeyboardEffectOption02
+ * @tc.desc: test function: ChangeKeyboardEffectOption with listener set
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, ChangeKeyboardEffectOption02, TestSize.Level1)
+{
+    std::string abilityName = "ChangeKeyboardEffectOption02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    KeyboardEffectOption capturedOption;
+    capturedOption.blurHeight_ = 0;
+    keyboardSession->SetKeyboardEffectOptionChangeListener(
+        [&capturedOption](const KeyboardEffectOption& option) {
+            capturedOption = option;
+        });
+    usleep(WAIT_ASYNC_US);
+    KeyboardEffectOption effectOption;
+    effectOption.blurHeight_ = 200;
+    keyboardSession->ChangeKeyboardEffectOption(effectOption);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_EQ(capturedOption.blurHeight_, effectOption.blurHeight_);
+}
+
+/**
+ * @tc.name: SetKeyboardEffectOptionChangeListener01
+ * @tc.desc: test function: SetKeyboardEffectOptionChangeListener registers func
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, SetKeyboardEffectOptionChangeListener01, TestSize.Level1)
+{
+    std::string abilityName = "SetKeyboardEffectOptionChangeListener01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    EXPECT_EQ(keyboardSession->changeKeyboardEffectOptionFunc_, nullptr);
+    bool called = false;
+    keyboardSession->SetKeyboardEffectOptionChangeListener(
+        [&called](const KeyboardEffectOption& option) { called = true; });
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->changeKeyboardEffectOptionFunc_, nullptr);
+}
+
+/**
+ * @tc.name: IsVisibleForeground01
+ * @tc.desc: test function: IsVisibleForeground default false
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, IsVisibleForeground01, TestSize.Level0)
+{
+    std::string abilityName = "IsVisibleForeground01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_.store(false);
+    EXPECT_FALSE(keyboardSession->IsVisibleForeground());
+}
+
+/**
+ * @tc.name: IsVisibleForeground02
+ * @tc.desc: test function: IsVisibleForeground after set true
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, IsVisibleForeground02, TestSize.Level0)
+{
+    std::string abilityName = "IsVisibleForeground02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_.store(true);
+    EXPECT_TRUE(keyboardSession->IsVisibleForeground());
+    keyboardSession->isVisible_.store(false);
+    EXPECT_FALSE(keyboardSession->IsVisibleForeground());
+}
+
+/**
+ * @tc.name: IsVisibleNotBackground01
+ * @tc.desc: test function: IsVisibleNotBackground default false
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, IsVisibleNotBackground01, TestSize.Level0)
+{
+    std::string abilityName = "IsVisibleNotBackground01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_.store(false);
+    EXPECT_FALSE(keyboardSession->IsVisibleNotBackground());
+}
+
+/**
+ * @tc.name: IsVisibleNotBackground02
+ * @tc.desc: test function: IsVisibleNotBackground after set true
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, IsVisibleNotBackground02, TestSize.Level0)
+{
+    std::string abilityName = "IsVisibleNotBackground02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_.store(true);
+    EXPECT_TRUE(keyboardSession->IsVisibleNotBackground());
+}
+
+/**
+ * @tc.name: RecalculatePanelRectForAvoidArea01
+ * @tc.desc: test function: RecalculatePanelRectForAvoidArea with default rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, RecalculatePanelRectForAvoidArea01, TestSize.Level1)
+{
+    std::string abilityName = "RecalculatePanelRectForAvoidArea01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    keyboardSession->property_->keyboardLayoutParams_.landscapeAvoidHeight_ = -1;
+    keyboardSession->property_->keyboardLayoutParams_.portraitAvoidHeight_ = -1;
+    WSRect panelRect = { 0, 0, 100, 200 };
+    keyboardSession->RecalculatePanelRectForAvoidArea(panelRect);
+    EXPECT_EQ(panelRect.width_, 100);
+    EXPECT_EQ(panelRect.height_, 200);
+}
+
+/**
+ * @tc.name: RecalculatePanelRectForAvoidArea02
+ * @tc.desc: test function: RecalculatePanelRectForAvoidArea with valid landscape avoid height
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, RecalculatePanelRectForAvoidArea02, TestSize.Level1)
+{
+    std::string abilityName = "RecalculatePanelRectForAvoidArea02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_NE(keyboardSession->property_, nullptr);
+    keyboardSession->property_->keyboardLayoutParams_.landscapeAvoidHeight_ = 50;
+    keyboardSession->property_->keyboardLayoutParams_.portraitAvoidHeight_ = 60;
+    keyboardSession->property_->keyboardLayoutParams_.LandscapePanelRect_.width_ = 100;
+    keyboardSession->property_->keyboardLayoutParams_.PortraitPanelRect_.width_ = 200;
+    WSRect panelRect = { 0, 0, 100, 200 };
+    keyboardSession->RecalculatePanelRectForAvoidArea(panelRect);
+    EXPECT_EQ(panelRect.height_, 50);
+}
+
+/**
+ * @tc.name: ForceProcessKeyboardOccupiedAreaInfo01
+ * @tc.desc: test function: ForceProcessKeyboardOccupiedAreaInfo runs without crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, ForceProcessKeyboardOccupiedAreaInfo01, TestSize.Level1)
+{
+    std::string abilityName = "ForceProcessKeyboardOccupiedAreaInfo01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_NE(keyboardSession->specificCallback_, nullptr);
+}
+
+/**
+ * @tc.name: GetPanelRect01
+ * @tc.desc: test function: GetPanelRect returns zero rect when panel is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetPanelRect01, TestSize.Level1)
+{
+    std::string abilityName = "GetPanelRect01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    ASSERT_EQ(keyboardSession->GetKeyboardPanelSession(), nullptr);
+    WSRect panelRect = keyboardSession->GetPanelRect();
+    EXPECT_EQ(panelRect.posX_, 0);
+    EXPECT_EQ(panelRect.posY_, 0);
+    EXPECT_EQ(panelRect.width_, 0);
+    EXPECT_EQ(panelRect.height_, 0);
+}
+
+/**
+ * @tc.name: GetPanelRect02
+ * @tc.desc: test function: GetPanelRect returns panel session rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, GetPanelRect02, TestSize.Level1)
+{
+    std::string abilityName = "GetPanelRect02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> panelSession = GetSceneSession(abilityName, abilityName);
+    ASSERT_NE(panelSession, nullptr);
+    WSRect rect = { 10, 20, 300, 400 };
+    panelSession->SetSessionRect(rect);
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    WSRect panelRect = keyboardSession->GetPanelRect();
+    EXPECT_EQ(panelRect.posX_, 10);
+    EXPECT_EQ(panelRect.posY_, 20);
+    EXPECT_EQ(panelRect.width_, 300);
+    EXPECT_EQ(panelRect.height_, 400);
+}
+
+/**
+ * @tc.name: CloseRSTransaction01
+ * @tc.desc: test function: CloseRSTransaction when flag closed
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CloseRSTransaction01, TestSize.Level1)
+{
+    std::string abilityName = "CloseRSTransaction01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(false);
+    keyboardSession->CloseRSTransaction();
+    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+}
+
+/**
+ * @tc.name: CloseRSTransaction02
+ * @tc.desc: test function: CloseRSTransaction when flag open
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CloseRSTransaction02, TestSize.Level1)
+{
+    std::string abilityName = "CloseRSTransaction02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardSyncTransactionOpen_.store(true);
+    keyboardSession->CloseRSTransaction();
+    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_.load());
+}
+
+/**
+ * @tc.name: NotifySystemKeyboardAvoidChange01
+ * @tc.desc: test function: NotifySystemKeyboardAvoidChange on non-pc window
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifySystemKeyboardAvoidChange01, TestSize.Level1)
+{
+    std::string abilityName = "NotifySystemKeyboardAvoidChange01";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    keyboardSession->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_SHOW);
+    EXPECT_FALSE(keyboardSession->systemConfig_.IsPcWindow());
+}
+
+/**
+ * @tc.name: NotifySystemKeyboardAvoidChange02
+ * @tc.desc: test function: NotifySystemKeyboardAvoidChange on pc without system keyboard
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifySystemKeyboardAvoidChange02, TestSize.Level1)
+{
+    std::string abilityName = "NotifySystemKeyboardAvoidChange02";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    keyboardSession->SetIsSystemKeyboard(false);
+    keyboardSession->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_HIDE);
+    EXPECT_FALSE(keyboardSession->IsSystemKeyboard());
+}
+
+/**
+ * @tc.name: NotifySystemKeyboardAvoidChange03
+ * @tc.desc: test function: NotifySystemKeyboardAvoidChange with null callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, NotifySystemKeyboardAvoidChange03, TestSize.Level1)
+{
+    std::string abilityName = "NotifySystemKeyboardAvoidChange03";
+    SessionInfo info;
+    info.abilityName_ = abilityName;
+    info.bundleName_ = abilityName;
+    sptr<KeyboardSession> keyboardSession = sptr<KeyboardSession>::MakeSptr(info, nullptr, nullptr);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    keyboardSession->SetIsSystemKeyboard(true);
+    keyboardSession->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_CREATED);
+    EXPECT_TRUE(keyboardSession->IsSystemKeyboard());
+    EXPECT_EQ(keyboardSession->keyboardCallback_, nullptr);
+}
+
+/**
+ * @tc.name: CallingWindowStateChange04
+ * @tc.desc: test function: CallingWindowStateChange default scale values
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, CallingWindowStateChange04, TestSize.Level1)
+{
+    std::string abilityName = "CallingWindowStateChange04";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData callingWindowInfoData;
+    keyboardSession->CallingWindowStateChange(callingWindowInfoData);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleX, 1);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleY, 1);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.callingWindowState, CallingWindowState::WINDOW_IN_NORMAL);
+}
+
+/**
+ * @tc.name: HandleActionUpdateKeyboardTouchHotArea05
+ * @tc.desc: test function: HandleActionUpdateKeyboardTouchHotArea with null panel
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, HandleActionUpdateKeyboardTouchHotArea05, TestSize.Level1)
+{
+    std::string abilityName = "HandleActionUpdateKeyboardTouchHotArea05";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    WSPropertyChangeAction action = WSPropertyChangeAction::ACTION_UPDATE_ASPECT_RATIO;
+    ASSERT_EQ(keyboardSession->GetKeyboardPanelSession(), nullptr);
+    WMError ret = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property, action);
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+}
+
+/**
+ * @tc.name: HandleActionUpdateKeyboardTouchHotArea06
+ * @tc.desc: test function: HandleActionUpdateKeyboardTouchHotArea with full hot areas
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest4, HandleActionUpdateKeyboardTouchHotArea06, TestSize.Level1)
+{
+    std::string abilityName = "HandleActionUpdateKeyboardTouchHotArea06";
+    sptr<KeyboardSession> keyboardSession = GetKeyboardSession(abilityName, abilityName);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    KeyboardTouchHotAreas keyboardTouchHotAreas;
+    Rect rect = { 0, 0, 100, 100 };
+    keyboardTouchHotAreas.landscapeKeyboardHotAreas_.push_back(rect);
+    keyboardTouchHotAreas.portraitKeyboardHotAreas_.push_back(rect);
+    keyboardTouchHotAreas.landscapePanelHotAreas_.push_back(rect);
+    keyboardTouchHotAreas.portraitPanelHotAreas_.push_back(rect);
+    property->SetKeyboardTouchHotAreas(keyboardTouchHotAreas);
+    sptr<SceneSession> keyboardPanelSession = GetSceneSession(abilityName, abilityName);
+    keyboardSession->BindKeyboardPanelSession(keyboardPanelSession);
+    keyboardSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    const ScreenId screenId = 61;
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr(screenId, ScreenProperty(), screenId);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+    screenSessionManagerClient_->screenSessionMap_[screenId] = screenSession;
+    screenSession->property_.bounds_.rect_ = { 0, 0, 400, 300 };
+    keyboardSession->property_->SetDisplayId(screenId);
+    WSPropertyChangeAction action = WSPropertyChangeAction::ACTION_UPDATE_ASPECT_RATIO;
+    WMError ret = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property, action);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    screenSessionManagerClient_->screenSessionMap_.clear();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
