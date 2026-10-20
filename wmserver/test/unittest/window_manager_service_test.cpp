@@ -468,6 +468,23 @@ HWTEST_F(WindowManagerServiceTest, SetWindowGravity01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetWindowGravity02
+ * @tc.desc: SetWindowGravity test with percent out of range
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerServiceTest, SetWindowGravity02, TestSize.Level1)
+{
+    uint32_t id = 0;
+    ASSERT_TRUE(wms != nullptr);
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM,
+        wms->SetWindowGravity(id, WindowGravity::WINDOW_GRAVITY_BOTTOM, 101));
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM,
+        wms->SetWindowGravity(id, WindowGravity::WINDOW_GRAVITY_BOTTOM, 200));
+    ASSERT_EQ(WMError::WM_ERROR_INVALID_PARAM,
+        wms->SetWindowGravity(id, WindowGravity::WINDOW_GRAVITY_BOTTOM, 0xffffffff));
+}
+
+/**
  * @tc.name: GetWindowAnimationTargets01
  * @tc.desc: get window animation targets
  * @tc.type: FUNC

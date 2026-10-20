@@ -1324,6 +1324,11 @@ void WindowManagerService::NotifyServerReadyToMoveOrDrag(uint32_t windowId, sptr
 
 void WindowManagerService::ProcessPointDown(uint32_t windowId, bool isPointDown)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        WLOGFE("ProcessPointDown operation rejected, windowId: %{public}u", windowId);
+        return;
+    }
     auto task = [this, windowId, isPointDown]() {
         windowController_->ProcessPointDown(windowId, isPointDown);
     };
@@ -1497,6 +1502,15 @@ WMError WindowManagerService::UpdateProperty(sptr<WindowProperty>& windowPropert
 
 WMError WindowManagerService::SetWindowGravity(uint32_t windowId, WindowGravity gravity, uint32_t percent)
 {
+    if (!Permission::IsStartByInputMethod() && !Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("SetWindowGravity permission denied!");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+    constexpr uint32_t MAX_GRAVITY_PERCENT = 100;
+    if (percent > MAX_GRAVITY_PERCENT) {
+        WLOGFE("SetWindowGravity invalid percent: %{public}u", percent);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
     auto task = [this, windowId, gravity, percent]() {
         WMError res = windowController_->SetWindowGravity(windowId, gravity, percent);
         return res;
@@ -1645,6 +1659,10 @@ WMError WindowManagerService::UpdateAvoidAreaListener(uint32_t windowId, bool ha
 
 void WindowManagerService::SetAnchorAndScale(int32_t x, int32_t y, float scale)
 {
+    if ((!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) || !std::isfinite(scale)) {
+        WLOGFE("SetAnchorAndScale permission denied or invalid scale");
+        return;
+    }
     auto task = [this, x, y, scale]() {
         windowController_->SetAnchorAndScale(x, y, scale);
     };
@@ -1653,6 +1671,10 @@ void WindowManagerService::SetAnchorAndScale(int32_t x, int32_t y, float scale)
 
 void WindowManagerService::SetAnchorOffset(int32_t deltaX, int32_t deltaY)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("SetAnchorOffset permission denied!");
+        return;
+    }
     auto task = [this, deltaX, deltaY]() {
         windowController_->SetAnchorOffset(deltaX, deltaY);
     };
@@ -1661,6 +1683,10 @@ void WindowManagerService::SetAnchorOffset(int32_t deltaX, int32_t deltaY)
 
 void WindowManagerService::OffWindowZoom()
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("OffWindowZoom permission denied!");
+        return;
+    }
     auto task = [this]() {
         windowController_->OffWindowZoom();
     };
@@ -1729,6 +1755,10 @@ void WindowInfoQueriedListener::HasPrivateWindow(DisplayId displayId, bool& hasP
 
 void WindowManagerService::SetMaximizeMode(MaximizeMode maximizeMode)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("SetMaximizeMode permission denied!");
+        return;
+    }
     maximizeMode_ = maximizeMode;
     int32_t storageMode = -1;
     if (PersistentStorage::HasKey("maximize_state", PersistentStorageType::MAXIMIZE_STATE)) {
