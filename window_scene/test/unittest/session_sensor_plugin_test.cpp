@@ -46,8 +46,9 @@ public:
         lastRotation_ = sensorRotation;
     }
 
-    void OnMotionSmartRotationChanged(float sensorRotation) override
+    void OnMotionSmartRotationChanged(float sensorRotation, int16_t reason) override
     {
+        (void)reason;
         smartRotationCalled_ = true;
         lastSmartRotation_ = sensorRotation;
     }

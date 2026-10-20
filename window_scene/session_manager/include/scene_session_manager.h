@@ -163,7 +163,7 @@ using NotifyRootSceneAvoidAreaChangeFunc = std::function<void(const sptr<AvoidAr
     const sptr<OccupiedAreaChangeInfo>& info)>;
 using NotifySupportRotationRegisteredFunc = std::function<void()>;
 using NotifySensorRotationChangeFunc = std::function<void(float sensorRotation)>;
-using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation)>;
+using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation, int16_t reason)>;
 using NotifyWatchGestureConsumeResultFunc = std::function<void(int32_t keyCode, bool isConsumed)>;
 using NotifyWatchFocusActiveChangeFunc = std::function<void(bool isActive)>;
 using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(const std::string& id)>;
@@ -1005,7 +1005,7 @@ public:
     bool RegisterMotionSensor(int32_t motionType);
     bool UnregisterMotionSensor(int32_t motionType);
     void OnMotionRotationChanged(float sensorRotation) override;
-    void OnMotionSmartRotationChanged(float sensorRotation) override;
+    void OnMotionSmartRotationChanged(float sensorRotation, int16_t reason) override;
 
     std::vector<sptr<SceneSession>> GetSceneSessions(ScreenId screenId);
     WMError UpdateScreenLockState(int32_t persistentId);

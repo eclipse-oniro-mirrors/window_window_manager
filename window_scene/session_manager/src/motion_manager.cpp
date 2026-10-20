@@ -14,6 +14,8 @@
  */
 
 #include "motion_manager.h"
+#include <algorithm>
+#include <memory>
 #include <parameters.h>
 #include <securec.h>
 #include "session_sensor_plugin.h"
@@ -211,18 +213,54 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
 {
     TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, status: %{public}d", motionData.status);
     DeviceRotation motionRotation = DeviceRotation::INVALID;
-    motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
+    // 智感旋转上报原因： 0-2（0：人脸；1：握姿； 2：重力），底层硬件通信数据为 int16_t
+    int16_t reason = -1;
+    int32_t dataLen = motionData.dataLen * 2; // 传入数据为int32_t,要转换为int16_t,因此对应的长度计算要*2
+
+    std::unique_ptr<int16_t[]> patchData;
+    if (dataLen < 1 || motionData.data == nullptr) {
+        TLOGE(WmsLogTag::WMS_ROTATION, "Invalid motion data, dataLen: %{public}d", dataLen);
+        patchData = std::make_unique<int16_t[]>(1);
+        patchData[0] = -1;
+        dataLen = 1;
+    } else {
+        patchData = std::make_unique<int16_t[]>(dataLen);
+        errno_t ret = memcpy_s(patchData.get(), dataLen * sizeof(int16_t),
+            motionData.data, dataLen * sizeof(int16_t));
+        if (ret != EOK) {
+            TLOGE(WmsLogTag::WMS_ROTATION, "memcpy_s failed, ret: %{public}d", ret);
+            std::fill(patchData.get(), patchData.get() + dataLen, -1);
+        }
+    }
+    if (motionData.type == MotionType::SMART_MOTION_TYPE &&
+        (motionData.status == 4 || motionData.status == 5)) { // 4,5: invalid data
+        TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, motionData: %{public}d", patchData[0]);
+        motionRotation = ConvertMotionActionToDeviceRotation(patchData[0]);
+        if (dataLen >= 2) { // 2 : Length of Data
+            reason = patchData[1];
+        }
+    } else {
+        motionRotation = ConvertMotionActionToDeviceRotation(motionData.status);
+        if (dataLen >= 4) { // 4 : FULL Length of Data
+            TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback enhance, face_direction: %{public}d,"
+                "handhold_direction:%{public}d, sensor_direction: %{public}d, data_source: %{public}d",
+                patchData[0], patchData[1], patchData[2], patchData[3]); // 0: FACE 1: HAND 2: gravity 3: reason
+            reason = patchData[3]; // 3: reason
+        } else {
+            TLOGE(WmsLogTag::WMS_ROTATION, "Invalid data with motion callback enhance, dataLen: %{public}d", dataLen);
+        }
+    }
     float rotation = ConvertDeviceMotionToFloat(motionRotation);
     
-    MotionManager::GetInstance().HandleMotionEvent(MotionType::SMART_MOTION_TYPE, rotation);
+    MotionManager::GetInstance().HandleMotionEvent(MotionType::SMART_MOTION_TYPE, rotation, reason);
 }
 
-void MotionManager::HandleMotionEvent(MotionType motionType, float rotation)
+void MotionManager::HandleMotionEvent(MotionType motionType, float rotation, int16_t reason)
 {
     if (motionType == MotionType::DEVICE_MOTION_TYPE) {
         HandleDeviceSensorRotation(rotation);
     } else if (motionType == MotionType::SMART_MOTION_TYPE || motionType == MotionType::SMART_MOTION_ENHANCE_TYPE) {
-        HandleSmartSensorRotation(rotation);
+        HandleSmartSensorRotation(rotation, reason);
     }
 }
 
@@ -239,12 +277,12 @@ void MotionManager::HandleDeviceSensorRotation(float rotation)
     }
 }
 
-void MotionManager::HandleSmartSensorRotation(float rotation)
+void MotionManager::HandleSmartSensorRotation(float rotation, int16_t reason)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "rotation: %{public}f", rotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "rotation: %{public}f, reason: %{public}d", rotation, reason);
     lastSmartMotionRotation_ = rotation;
     if (motionEventListener_ != nullptr) {
-        motionEventListener_->OnMotionSmartRotationChanged(rotation);
+        motionEventListener_->OnMotionSmartRotationChanged(rotation, reason);
     }
 }
 
@@ -282,9 +320,9 @@ void MotionManager::Reset()
     TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager reset");
 }
 
-void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation)
+void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation, int16_t reason)
 {
-    HandleMotionEvent(motionType, rotation);
+    HandleMotionEvent(motionType, rotation, reason);
 }
 
 WSError MotionManager::SetMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo)
