@@ -10313,18 +10313,23 @@ WSError SceneSessionManager::SetWindowFlags(const sptr<SceneSession>& sceneSessi
         TLOGD(WmsLogTag::DEFAULT, "session is nullptr");
         return WSError::WS_ERROR_NULLPTR;
     }
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "property is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
     auto sessionProperty = sceneSession->GetSessionProperty();
     uint32_t flags = property->GetWindowFlags();
     uint32_t oldFlags = sessionProperty->GetWindowFlags();
-    if (((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED) ||
-         (oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK)) &&
+    uint32_t changedFlags = oldFlags ^ flags;
+    if (((changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) ||
+         (changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK))) &&
         !property->GetSystemCalling()) {
         TLOGE(WmsLogTag::DEFAULT, "permission denied");
         return WSError::WS_ERROR_NOT_SYSTEM_APP;
     }
     sessionProperty->SetWindowFlags(flags);
     CheckAndNotifyWaterMarkChangedResult();
-    if ((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
+    if (changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
         sceneSession->OnShowWhenLocked(flags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED));
     }
     TLOGI(WmsLogTag::DEFAULT, "set flags: %{public}u", flags);
