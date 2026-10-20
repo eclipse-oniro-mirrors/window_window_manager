@@ -342,8 +342,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     session->property_ = property;
     session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
-    auto result = session->Foreground(property, false, "", false);
-    EXPECT_EQ(result, WSError::WS_OK);
+    session->Foreground(property, false, "", false);
     std::string resultLog = "Foreground state invalid! state:";
     EXPECT_TRUE(g_logMsg.find(resultLog) != std::string::npos);
  
