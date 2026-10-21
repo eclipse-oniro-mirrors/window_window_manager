@@ -271,9 +271,12 @@ void ClientAgentContainer<T1, T2>::RemoveAgent(const sptr<IRemoteObject>& remote
         WLOGFW("UnregisterAgentLocked entry again");
     }
     isEntryAgain = true;
-    for (auto& elem : agentMap_) {
-        if (UnregisterAgentLocked(elem.second, remoteObject)) {
-            break;
+    for (auto it = agentMap_.begin(); it != agentMap_.end();) {
+        UnregisterAgentLocked(it->second, remoteObject);
+        if (it->second.empty()) {
+            it = agentMap_.erase(it);
+        } else {
+            ++it;
         }
     }
     remoteObject->RemoveDeathRecipient(deathRecipient_);
