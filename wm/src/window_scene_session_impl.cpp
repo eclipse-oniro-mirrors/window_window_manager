@@ -7148,7 +7148,8 @@ bool WindowSceneSessionImpl::ShouldSkipSupportWindowModeCheck(uint32_t windowMod
     bool isCompatibleWindow = mode == WindowMode::WINDOW_MODE_FLOATING ||
                               mode == WindowMode::WINDOW_MODE_FULLSCREEN;
     bool isDragScale = property_->IsAdaptToDragScale();
-    if (windowSystemConfig_.IsPcOrPcMode() && isCompatibleWindow && isDragScale) {
+    if ((windowSystemConfig_.IsPcOrPcMode() || isFreeMultiWindowMode) &&
+        isCompatibleWindow && isDragScale) {
         return true;
     }
 
