@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_DISPLAY_ISOLATION_POLICY_H
 #define OHOS_ROSEN_WINDOW_DISPLAY_ISOLATION_POLICY_H
 
+#include <mutex>
 #include <optional>
 #include <set>
 #include <string>
@@ -110,10 +111,13 @@ private:
      */
     static DisplayIsolationConfig GetDisplayIsolationConfig();
 
+    static std::mutex displayIsolationConfigMutex_;
+
     /**
      * @brief Cached display isolation configuration for the current process.
      */
     static std::optional<DisplayIsolationConfig> displayIsolationConfig_;
+    // Above guarded by displayIsolationConfigMutex_
 };
 
 } // namespace OHOS::Rosen
