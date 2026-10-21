@@ -91,6 +91,7 @@ AniWindow::AniWindow(const sptr<Window>& window, ani_vm* vm)
             TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
         windowToken_ = nullptr;
+        isDestroyed_ = true;
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in ani window", windowName.c_str());
     };
     windowToken_->RegisterWindowDestroyedListener(func);
@@ -2812,8 +2813,12 @@ void AniWindow::OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_re
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     auto window = GetWindow();
     if (window == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        if (isDestroyed_) {
+            TLOGI(WmsLogTag::WMS_LIFE, "window is already destroy, ignore.");
+        } else {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        }
         return;
     }
     std::string cbType;
