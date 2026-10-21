@@ -15495,7 +15495,8 @@ DMError ScreenSessionManager::GetDisplayCapability(std::string& capabilitInfo)
     if (CHILD_WATCH == "child") {
         isChildWatch = true;
     }
-    if ((g_isPcDevice && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) || isTvDevice || isChildWatch) {
+    if ((g_isPcDevice && !FoldScreenStateInternel::IsSuperFoldDisplayDevice()) || isTvDevice || isChildWatch ||
+        IsConcurrentUser()) {
         orientation = {"1", "0", "3", "2"};
     }
     nlohmann::ordered_json jsonDisplayCapabilityList;
