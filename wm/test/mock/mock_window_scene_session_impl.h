@@ -30,6 +30,7 @@ public:
 
     MOCK_METHOD(float, GetVirtualPixelRatio, (const sptr<DisplayInfo>& displayInfo), (override));
     MOCK_METHOD(WMError, GetVirtualPixelRatio, (float& vpr, sptr<DisplayInfo>* displayInfo), (override));
+    MOCK_METHOD(bool, IsDeviceFeatureCapableForFreeMultiWindow, (), (const, override));
 
     // Forward to the real base implementation (bypassing the mock) for branch tests of the
     // optional displayInfo out-parameter.
