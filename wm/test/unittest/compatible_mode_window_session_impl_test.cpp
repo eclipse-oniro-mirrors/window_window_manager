@@ -639,6 +639,7 @@ HWTEST_F(CompatibleModeWindowSessionImplTest, RecoverForCompatibleModeVerticalFu
     option->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetPersistentId(103);
+    window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     SessionInfo sessionInfo;
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;

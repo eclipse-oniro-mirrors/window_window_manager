@@ -18,6 +18,7 @@
 #include "window_manager_hilog.h"
 #include "unique_fd.h"
 
+#include <cstdint>
 #include <securec.h>
 
 using namespace OHOS::Media;
@@ -114,53 +115,109 @@ bool SurfaceReader::ProcessBuffer(const sptr<SurfaceBuffer>& buf)
         return false;
     }
 
-    BufferHandle *bufferHandle =  buf->GetBufferHandle();
-    if (bufferHandle == nullptr) {
-        WLOGFE("bufferHandle nullptr");
+    BufferInfo info;
+    if (!GetBufferInfo(buf, info)) {
         return false;
     }
 
-    uint32_t width = static_cast<uint32_t>(bufferHandle->width);
-    uint32_t height = static_cast<uint32_t>(bufferHandle->height);
-    uint32_t stride = static_cast<uint32_t>(bufferHandle->stride);
-    uint8_t *addr = (uint8_t *)buf->GetVirAddr();
-
-    auto data = (uint8_t *)malloc(width * height * BPP);
+    size_t totalBytes = 0;
+    uint8_t *data = AllocateAndCopyBuffer(info, totalBytes);
     if (data == nullptr) {
-        WLOGFE("data malloc failed");
         return false;
     }
-    for (uint32_t i = 0; i < height; i++) {
-        errno_t ret = memcpy_s(data + width * i * BPP,  width * BPP, addr + stride * i, width * BPP);
-        if (ret != EOK) {
-            WLOGFE("memcpy failed");
-            free(data);
-            return false;
-        }
-    }
 
-    Media::InitializationOptions opts;
-    opts.size.width = static_cast<int32_t>(width);
-    opts.size.height = static_cast<int32_t>(height);
-    std::unique_ptr<Media::PixelMap> pixelMapPtr = Media::PixelMap::Create(opts);
-    sptr<Media::PixelMap> pixelMap(pixelMapPtr.release());
+    sptr<Media::PixelMap> pixelMap = CreatePixelMap(info, data, totalBytes);
     if (pixelMap == nullptr) {
-        WLOGFE("create pixelMap failed");
         free(data);
         return false;
     }
 
-    ImageInfo info;
-    info.size.width = static_cast<int32_t>(width);
-    info.size.height = static_cast<int32_t>(height);
-    info.pixelFormat = OHOS::Media::PixelFormat::RGBA_8888;
-    info.colorSpace = ColorSpace::SRGB;
-    pixelMap->SetImageInfo(info);
-
-    pixelMap->SetPixelsAddr(data, nullptr, width * height, AllocatorType::HEAP_ALLOC, nullptr);
-
     handler_->OnImageAvailable(pixelMap);
     return true;
+}
+
+bool SurfaceReader::GetBufferInfo(const sptr<SurfaceBuffer>& buf, BufferInfo& info) const
+{
+    if (buf == nullptr) {
+        WLOGFE("buffer is nullptr");
+        return false;
+    }
+    BufferHandle *bufferHandle = buf->GetBufferHandle();
+    if (bufferHandle == nullptr) {
+        WLOGFE("bufferHandle nullptr");
+        return false;
+    }
+    info.width = static_cast<uint32_t>(bufferHandle->width);
+    info.height = static_cast<uint32_t>(bufferHandle->height);
+    info.stride = static_cast<uint32_t>(bufferHandle->stride);
+    info.addr = static_cast<uint8_t *>(buf->GetVirAddr());
+    if (info.addr == nullptr) {
+        WLOGFE("buffer virAddr is nullptr");
+        return false;
+    }
+    if (info.width == 0 || info.height == 0 || info.stride == 0) {
+        WLOGFE("invalid dimension w:%{public}u h:%{public}u stride:%{public}u", info.width, info.height, info.stride);
+        return false;
+    }
+    return true;
+}
+
+uint8_t *SurfaceReader::AllocateAndCopyBuffer(const BufferInfo& info, size_t& totalBytes) const
+{
+    size_t rowBytes = static_cast<size_t>(info.width) * static_cast<size_t>(BPP);
+    if (rowBytes > SIZE_MAX / info.height) {
+        WLOGFE("buffer size overflow w:%{public}u h:%{public}u", info.width, info.height);
+        return nullptr;
+    }
+    totalBytes = rowBytes * info.height;
+    if (totalBytes > UINT32_MAX) {
+        WLOGFE("buffer size too large w:%{public}u h:%{public}u", info.width, info.height);
+        return nullptr;
+    }
+    if (info.stride < rowBytes) {
+        WLOGFE("stride %{public}u smaller than rowBytes", info.stride);
+        return nullptr;
+    }
+    auto data = static_cast<uint8_t *>(malloc(totalBytes));
+    if (data == nullptr) {
+        WLOGFE("data malloc failed");
+        return nullptr;
+    }
+    for (uint32_t i = 0; i < info.height; i++) {
+        size_t dstOff = rowBytes * i;
+        size_t srcOff = static_cast<size_t>(info.stride) * i;
+        errno_t ret = memcpy_s(data + dstOff, rowBytes, info.addr + srcOff, rowBytes);
+        if (ret != EOK) {
+            WLOGFE("memcpy failed");
+            free(data);
+            return nullptr;
+        }
+    }
+    return data;
+}
+
+sptr<Media::PixelMap> SurfaceReader::CreatePixelMap(
+    const BufferInfo& info, uint8_t *data, size_t totalBytes) const
+{
+    Media::InitializationOptions opts;
+    opts.size.width = static_cast<int32_t>(info.width);
+    opts.size.height = static_cast<int32_t>(info.height);
+    std::unique_ptr<Media::PixelMap> pixelMapPtr = Media::PixelMap::Create(opts);
+    sptr<Media::PixelMap> pixelMap(pixelMapPtr.release());
+    if (pixelMap == nullptr) {
+        WLOGFE("create pixelMap failed");
+        return nullptr;
+    }
+
+    ImageInfo imageInfo;
+    imageInfo.size.width = static_cast<int32_t>(info.width);
+    imageInfo.size.height = static_cast<int32_t>(info.height);
+    imageInfo.pixelFormat = OHOS::Media::PixelFormat::RGBA_8888;
+    imageInfo.colorSpace = ColorSpace::SRGB;
+    pixelMap->SetImageInfo(imageInfo);
+
+    pixelMap->SetPixelsAddr(data, nullptr, static_cast<uint32_t>(totalBytes), AllocatorType::HEAP_ALLOC, nullptr);
+    return pixelMap;
 }
 }
 }

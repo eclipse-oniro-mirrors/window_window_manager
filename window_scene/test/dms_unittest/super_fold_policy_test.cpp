@@ -475,15 +475,170 @@ HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeInner04, TestSize.Level1)
     EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_MODE_ID);
 }
 
-HWTEST_F(SuperFoldPolicyTest, ChangeScreenDisplayModeInner05, TestSize.Level1)
+/**
+ * @tc.name: CheckAndSetRunningStatus01
+ * @tc.desc: test function : CheckAndSetRunningStatus01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, CheckAndSetRunningStatus01, TestSize.Level1)
 {
     LOG_SetCallback(MyLogCallback);
-    FoldDisplayMode mode = FoldDisplayMode::MAIN;
-    bool isScreenOn = true;
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    bool ret = SuperFoldPolicy::GetInstance().CheckAndSetRunningStatus(FoldDisplayMode::MAIN);
+    EXPECT_TRUE(ret);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.load(), FoldDisplayMode::MAIN);
+    EXPECT_TRUE(SuperFoldPolicy::GetInstance().displayModeChangeRunning_.load());
+    EXPECT_TRUE(g_logMsg.find("set last display mode") != std::string::npos);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().pendingTask_.store(2);
+    g_logMsg.clear();
+}
+
+/**
+ * @tc.name: CheckAndSetRunningStatus02
+ * @tc.desc: test function : CheckAndSetRunningStatus02
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, CheckAndSetRunningStatus02, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
     SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::MAIN);
-    DMError ret = SuperFoldPolicy::GetInstance().ChangeScreenDisplayModeInner(mode, isScreenOn);
-    EXPECT_EQ(ret, DMError::DM_OK);
+    bool ret = SuperFoldPolicy::GetInstance().CheckAndSetRunningStatus(FoldDisplayMode::MAIN, false);
+    EXPECT_FALSE(ret);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.load(), FoldDisplayMode::MAIN);
+    EXPECT_FALSE(SuperFoldPolicy::GetInstance().displayModeChangeRunning_.load());
     EXPECT_TRUE(g_logMsg.find("already in displayMode") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("set last display mode") != std::string::npos);
+    g_logMsg.clear();
+}
+
+/**
+ * @tc.name: CheckAndSetRunningStatus03
+ * @tc.desc: test function : CheckAndSetRunningStatus03
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, CheckAndSetRunningStatus03, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::MAIN);
+    SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.store(FoldDisplayMode::FULL);
+    bool ret = SuperFoldPolicy::GetInstance().CheckAndSetRunningStatus(FoldDisplayMode::MAIN, true);
+    EXPECT_FALSE(ret);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.load(), FoldDisplayMode::FULL);
+    EXPECT_TRUE(g_logMsg.find("check display mode failed") != std::string::npos);
+    g_logMsg.clear();
+}
+ 
+/**
+ * @tc.name: CheckAndSetRunningStatus04
+ * @tc.desc: test function : CheckAndSetRunningStatus04
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, CheckAndSetRunningStatus04, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(true);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    bool ret = SuperFoldPolicy::GetInstance().CheckAndSetRunningStatus(FoldDisplayMode::MAIN, false);
+    EXPECT_FALSE(ret);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.load(), FoldDisplayMode::MAIN);
+    EXPECT_TRUE(g_logMsg.find("onBootAnimation can not change mode") != std::string::npos);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    g_logMsg.clear();
+}
+
+/**
+ * @tc.name: CheckAndSetRunningStatus05
+ * @tc.desc: test function : CheckAndSetRunningStatus05
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, CheckAndSetRunningStatus05, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(true);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.store(FoldDisplayMode::FULL);
+    bool ret = SuperFoldPolicy::GetInstance().CheckAndSetRunningStatus(FoldDisplayMode::MAIN, true);
+    EXPECT_FALSE(ret);
+    EXPECT_EQ(SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.load(), FoldDisplayMode::FULL);
+    EXPECT_TRUE(g_logMsg.find("check display mode failed") != std::string::npos);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    g_logMsg.clear();
+}
+
+/**
+ * @tc.name: UpdateToLastDisplayMode01
+ * @tc.desc: test function : UpdateToLastDisplayMode01
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, UpdateToLastDisplayMode01, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.store(FoldDisplayMode::MAIN);
+    SuperFoldPolicy::GetInstance().UpdateToLastDisplayMode();
+    EXPECT_TRUE(g_logMsg.find("UpdateToLastDisplayMode mode") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("set last display mode") != std::string::npos);
+    usleep(SLEEP_TIME_US);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().pendingTask_.store(2);
+    g_logMsg.clear();
+}
+
+/**
+ * @tc.name: UpdateToLastDisplayMode02
+ * @tc.desc: test function : UpdateToLastDisplayMode02
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, UpdateToLastDisplayMode02, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::MAIN);
+    SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.store(FoldDisplayMode::MAIN);
+    SuperFoldPolicy::GetInstance().UpdateToLastDisplayMode();
+    EXPECT_TRUE(g_logMsg.find("UpdateToLastDisplayMode mode") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("check display mode failed") != std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("displayMode: 2") != std::string::npos);
+    g_logMsg.clear();
+}
+
+/**
+ * @tc.name: UpdateToLastDisplayMode03
+ * @tc.desc: test function : UpdateToLastDisplayMode03
+ * @tc.type: FUNC
+ */
+HWTEST_F(SuperFoldPolicyTest, UpdateToLastDisplayMode03, TestSize.Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(true);
+    SuperFoldPolicy::GetInstance().isLockDisplayMode_.store(false);
+    SuperFoldPolicy::GetInstance().displayModeChangeRunning_.store(false);
+    SuperFoldPolicy::GetInstance().currentDisplayMode_.store(FoldDisplayMode::FULL);
+    SuperFoldPolicy::GetInstance().lastCacheDisplayMode_.store(FoldDisplayMode::MAIN);
+    SuperFoldPolicy::GetInstance().UpdateToLastDisplayMode();
+    EXPECT_TRUE(g_logMsg.find("UpdateToLastDisplayMode mode") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("check display mode failed") != std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("displayMode: 2") != std::string::npos);
+    SuperFoldPolicy::GetInstance().onBootAnimation_.store(false);
     g_logMsg.clear();
 }
 

@@ -35,6 +35,7 @@ constexpr DisplayId DISPLAY_ID_INVALID = -1ULL;
 constexpr ScreenId SCREEN_ID_INVALID = -1ULL;
 constexpr DisplayGroupId DISPLAY_GROUP_ID_INVALID = -1ULL;
 constexpr DisplayGroupId DISPLAY_GROUP_ID_DEFAULT = 0;
+constexpr DisplayGroupId DISPLAY_GROUP_ID_SECONDARY = 1;
 constexpr ScreenId MAIN_SCREEN_ID_DEFAULT = 0;
 constexpr ScreenId SCREEN_ID_FAKE = 999;
 constexpr DisplayId DISPLAY_ID_FAKE = 999;
@@ -318,6 +319,7 @@ public:
      * @brief Notify when display power event status changed.
      */
     virtual void OnDisplayPowerEvent(DisplayPowerEvent event, EventStatus status) = 0;
+    virtual void OnSpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status) {};
 };
 
 /**
@@ -585,6 +587,12 @@ enum class ScreenCombination : uint32_t {
     SCREEN_UNIQUE,
     SCREEN_EXTEND,
     SCREEN_MAIN,
+};
+
+enum class DisplayGroupType : uint32_t {
+    DEFAULT = 0,
+    SPECIAL = 1,
+    INVALID = 2,
 };
 
 enum class MultiScreenPowerSwitchType : uint32_t {

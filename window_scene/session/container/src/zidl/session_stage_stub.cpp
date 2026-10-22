@@ -139,6 +139,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateWindowMode(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_GET_TOP_NAV_DEST_NAME):
             return HandleGetTopNavDestinationName(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DPI_HOOK_SCALE):
+            return HandleNotifyDpiHookScale(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_LAYOUT_FINISH_AFTER_WINDOW_MODE_CHANGE):
             return HandleNotifyLayoutFinishAfterWindowModeChange(data, reply);
         case static_cast<uint32_t>
@@ -441,12 +443,14 @@ int SessionStageStub::HandleUpdateSessionViewportConfig(MessageParcel& data, Mes
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "HandleUpdateSessionViewportConfig!");
     SessionViewportConfig config;
-    if (!data.ReadBool(config.isDensityFollowHost_) || !data.ReadFloat(config.density_) ||
+    uint32_t dpiFollowStrategyValue = 0;
+    if (!data.ReadUint32(dpiFollowStrategyValue) || !data.ReadFloat(config.density_) ||
         !data.ReadUint64(config.displayId_) || !data.ReadInt32(config.orientation_) ||
         !data.ReadUint32(config.transform_)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Read HandleUpdateSessionViewportConfig data failed!");
         return ERR_INVALID_DATA;
     };
+    config.dpiFollowStrategy_ = static_cast<DpiFollowStrategy>(dpiFollowStrategyValue);
     UpdateSessionViewportConfig(config);
     return ERR_NONE;
 }
@@ -701,6 +705,18 @@ int SessionStageStub::HandleGetTopNavDestinationName(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write stage error code failed");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyDpiHookScale(MessageParcel& data, MessageParcel& reply)
+{
+    float scale = 0.0f;
+    if (!data.ReadFloat(scale)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read scale failed");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = NotifyDpiHookScale(scale);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
 
@@ -1028,9 +1044,9 @@ int SessionStageStub::HandleNotifyRebindAttachAfterParentChange(MessageParcel& d
 int SessionStageStub::HandleNotifyDensityFollowHost(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_UIEXT, "HandleNotifyDensityFollowHost");
-    bool isFollowHost = data.ReadBool();
+    auto dpiFollowStrategy = static_cast<DpiFollowStrategy>(data.ReadUint32());
     float densityValue = data.ReadFloat();
-    NotifyDensityFollowHost(isFollowHost, densityValue);
+    NotifyDensityFollowHost(dpiFollowStrategy, densityValue);
     return ERR_NONE;
 }
 

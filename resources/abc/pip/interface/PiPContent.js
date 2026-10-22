@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const pip = requireNapi('pip');
+const pip = requireNapi('PiPWindow');
 const NodeController = requireNapi('arkui.node').NodeController;
 const FrameNode = requireNapi('arkui.node').FrameNode;
 

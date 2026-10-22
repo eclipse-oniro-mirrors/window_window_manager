@@ -478,5 +478,287 @@ HWTEST_F(SceneSessionManagerTest13, FixWindowUITypeInSupportModeChange, TestSize
     OHOS::system::SetParameter("persist.sceneboard.ispcmode", oldIsPcMode);
     ssm_->systemConfig_.windowUIType_ = oldWindowUIType;
 }
+
+/**
+ * @tc.name: ReportRssFloatWindowV1_EmptySetAfterErase
+ * @tc.desc: Verify ReportRssFloatWindowV1 correctly handles empty set after erase
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, ReportRssFloatWindowV1_EmptySetAfterErase, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatWindowV1Set_.clear();
+    ASSERT_NE(ssm_, nullptr);
+ 
+    SessionInfo info;
+    info.abilityName_ = "floatEmptyTest";
+    info.bundleName_ = "floatEmptyTest";
+    sptr<SceneSession> floatSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    floatSession->property_->SetPersistentId(4001);
+    floatSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession->SetSessionState(SessionState::STATE_FOREGROUND);
+ 
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.empty(), true);
+ 
+    ssm_->ReportRssFloatWindowV1(true, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.empty(), false);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 1);
+ 
+    ssm_->ReportRssFloatWindowV1(false, floatSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.empty(), true);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession), 0);
+}
+ 
+/**
+ * @tc.name: ReportRssFloatWindowV1_NonEmptySetAfterErase
+ * @tc.desc: Verify ReportRssFloatWindowV1 set remains non-empty with multiple sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, ReportRssFloatWindowV1_NonEmptySetAfterErase, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatWindowV1Set_.clear();
+    ASSERT_NE(ssm_, nullptr);
+ 
+    SessionInfo info1;
+    info1.abilityName_ = "floatMultiTest1";
+    info1.bundleName_ = "floatMultiTest1";
+    sptr<SceneSession> floatSession1 = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    floatSession1->property_->SetPersistentId(4002);
+    floatSession1->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession1->SetSessionState(SessionState::STATE_FOREGROUND);
+ 
+    SessionInfo info2;
+    info2.abilityName_ = "floatMultiTest2";
+    info2.bundleName_ = "floatMultiTest2";
+    sptr<SceneSession> floatSession2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
+    floatSession2->property_->SetPersistentId(4003);
+    floatSession2->property_->SetWindowType(WindowType::WINDOW_TYPE_FLOAT);
+    floatSession2->SetSessionState(SessionState::STATE_FOREGROUND);
+ 
+    ssm_->ReportRssFloatWindowV1(true, floatSession1);
+    ssm_->ReportRssFloatWindowV1(true, floatSession2);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.empty(), false);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.size(), 2);
+ 
+    ssm_->ReportRssFloatWindowV1(false, floatSession1);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.empty(), false);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.size(), 1);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession1), 0);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.count(floatSession2), 1);
+ 
+    ssm_->ReportRssFloatWindowV1(false, floatSession2);
+    EXPECT_EQ(ssm_->foregroundSessionFloatWindowV1Set_.empty(), true);
+}
+ 
+/**
+ * @tc.name: ReportRssFB_EmptySetAfterErase
+ * @tc.desc: Verify ReportRssFB correctly handles empty set after erase
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, ReportRssFB_EmptySetAfterErase, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatBallSet_.clear();
+    ASSERT_NE(ssm_, nullptr);
+ 
+    SessionInfo info;
+    info.abilityName_ = "fbEmptyTest";
+    info.bundleName_ = "fbEmptyTest";
+    sptr<SceneSession> fbSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    fbSession->property_->SetPersistentId(4004);
+    fbSession->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession->SetSessionState(SessionState::STATE_FOREGROUND);
+ 
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.empty(), true);
+ 
+    ssm_->ReportRssFB(true, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.empty(), false);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 1);
+ 
+    ssm_->ReportRssFB(false, fbSession);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.empty(), true);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession), 0);
+}
+ 
+/**
+ * @tc.name: ReportRssFB_NonEmptySetAfterErase
+ * @tc.desc: Verify ReportRssFB set remains non-empty with multiple sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, ReportRssFB_NonEmptySetAfterErase, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    ssm_->foregroundSessionFloatBallSet_.clear();
+    ASSERT_NE(ssm_, nullptr);
+ 
+    SessionInfo info1;
+    info1.abilityName_ = "fbMultiTest1";
+    info1.bundleName_ = "fbMultiTest1";
+    sptr<SceneSession> fbSession1 = sptr<SceneSession>::MakeSptr(info1, nullptr);
+    fbSession1->property_->SetPersistentId(4005);
+    fbSession1->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession1->SetSessionState(SessionState::STATE_FOREGROUND);
+ 
+    SessionInfo info2;
+    info2.abilityName_ = "fbMultiTest2";
+    info2.bundleName_ = "fbMultiTest2";
+    sptr<SceneSession> fbSession2 = sptr<SceneSession>::MakeSptr(info2, nullptr);
+    fbSession2->property_->SetPersistentId(4006);
+    fbSession2->property_->SetWindowType(WindowType::WINDOW_TYPE_FB);
+    fbSession2->SetSessionState(SessionState::STATE_FOREGROUND);
+ 
+    ssm_->ReportRssFB(true, fbSession1);
+    ssm_->ReportRssFB(true, fbSession2);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.empty(), false);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.size(), 2);
+ 
+    ssm_->ReportRssFB(false, fbSession1);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.empty(), false);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.size(), 1);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession1), 0);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.count(fbSession2), 1);
+ 
+    ssm_->ReportRssFB(false, fbSession2);
+    EXPECT_EQ(ssm_->foregroundSessionFloatBallSet_.empty(), true);
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground01
+ * @tc.desc: Permission denied
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground01, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(false);
+    MockAccesstokenKit::MockAccessTokenKitRet(-1);
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_INVALID_PERMISSION);
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground02
+ * @tc.desc: Device not support
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground02, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_DEVICE_NOT_SUPPORT);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground03
+ * @tc.desc: RestoreSessionToForeground listener is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground03, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->restoreSessionToForegroundFunc_ = nullptr;
+
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 301;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
+    int32_t persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_ERROR_INVALID_OPERATION);
+    ssm_->sceneSessionMap_.erase(persistentId);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground04
+ * @tc.desc: RestoreSessionToForeground main session not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground04, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->sceneSessionMap_.erase(301);
+    ssm_->SetRestoreSessionToForegroundListener([](int32_t) {});
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_INVALID_PARAM);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground05
+ * @tc.desc: RestoreSessionToForeground success
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground05, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->SetRestoreSessionToForegroundListener([](int32_t) {});
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 301;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sceneSession->SetSessionState(SessionState::STATE_ACTIVE);
+    int32_t persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_OK);
+    ssm_->sceneSessionMap_.erase(persistentId);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground06
+ * @tc.desc: RestoreSessionToForeground screen locked
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground06, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->isScreenLocked_ = true;
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(301).errCode, WSError::WS_ERROR_INVALID_OPERATION);
+    ssm_->isScreenLocked_ = false;
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
+
+/**
+ * @tc.name: RestoreSessionToForeground07
+ * @tc.desc: RestoreSessionToForeground session disconnected
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest13, RestoreSessionToForeground07, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    MockAccesstokenKit::MockIsSACalling(true);
+    auto oldUIType = ssm_->systemConfig_.windowUIType_;
+    ssm_->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    ssm_->SetRestoreSessionToForegroundListener([](int32_t) {});
+    SessionInfo sessionInfo;
+    sessionInfo.persistentId_ = 301;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sceneSession->SetSessionState(SessionState::STATE_DISCONNECT);
+    int32_t persistentId = sceneSession->GetPersistentId();
+    ssm_->sceneSessionMap_.insert({ persistentId, sceneSession });
+    ASSERT_EQ(ssm_->RestoreSessionToForeground(persistentId).errCode, WSError::WS_ERROR_INVALID_PARAM);
+    ssm_->sceneSessionMap_.erase(persistentId);
+    ssm_->systemConfig_.windowUIType_ = oldUIType;
+}
 } // namespace Rosen
 } // namespace OHOS

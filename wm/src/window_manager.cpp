@@ -21,10 +21,12 @@
 
 #include "input_manager.h"
 #include "marshalling_helper.h"
+#include "window.h"
 #include "window_adapter.h"
 #include "window_display_change_adapter.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
+#include "window_session_impl.h"
 #include "ws_common.h"
 #include "hitrace_meter.h"
 
@@ -2059,7 +2061,7 @@ void WindowManager::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChan
         WLOGFE("focusChangeInfo is nullptr.");
         return;
     }
-    TLOGD(WmsLogTag::WMS_FOCUS, "window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
+    TLOGI(WmsLogTag::WMS_FOCUS, "window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
     if (focused) {
         pImpl_->NotifyFocused(focusChangeInfo);
     } else {
@@ -2143,13 +2145,14 @@ WMError WindowManager::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos) const
 {
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::ListWindowInfo");
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
-        static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+        "userId: %{public}d windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
+        userId_, static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),
         windowInfoOption.displayId, windowInfoOption.windowId);
     WMError ret = WindowAdapter::GetInstance(userId_).ListWindowInfo(windowInfoOption, infos);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: ret=%{public}d", static_cast<int32_t>(ret));
     }
     return ret;
 }
@@ -2478,6 +2481,44 @@ WMError WindowManager::MoveMainWindowToTargetDisplay(DisplayId displayId, int32_
     return ret;
 }
 
+WMError WindowManager::SetWindowPosition(const WindowPositionInfo& windowPositionInfo)
+{
+    // A window can only adjust its own z-order, so the target window must be one created
+    // by the calling process. The server enforces the same rule with the real ipc calling
+    // pid (SceneSessionManager::CheckSetWindowPositionSessions); checking here only avoids
+    // a useless ipc round trip and reports the failure with the same error code.
+    for (const auto& position : windowPositionInfo.windowPositions) {
+        if (position.windowId <= 0 ||
+            Window::GetWindowWithId(static_cast<uint32_t>(position.windowId)) == nullptr) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY,
+                "target window is not created by current process, windowId: %{public}d", position.windowId);
+            return WMError::WM_ERROR_INVALID_WINDOW;
+        }
+    }
+    WMError ret = WindowAdapter::GetInstance(userId_).SetWindowPosition(windowPositionInfo);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "set window position failed");
+        return ret;
+    }
+    // Only these two sentinels change the topmost state, on the server side as well
+    // (SceneSessionManager::UpdateMainWindowTopmostState). The client property is never pushed
+    // back from the server, so it is recorded here to keep both sides in sync.
+    for (const auto& position : windowPositionInfo.windowPositions) {
+        if (position.insertAfter != static_cast<int32_t>(WindowPosition::TOPMOST) &&
+            position.insertAfter != static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            continue;
+        }
+        auto session = WindowSessionImpl::GetWindowWithId(static_cast<uint32_t>(position.windowId));
+        if (session == nullptr) {
+            TLOGW(WmsLogTag::WMS_HIERARCHY, "window not found, windowId: %{public}d", position.windowId);
+            continue;
+        }
+        session->UpdateMainWindowTopmostProperty(
+            position.insertAfter == static_cast<int32_t>(WindowPosition::TOPMOST));
+    }
+    return ret;
+}
+
 WMError WindowManager::RegisterVisibleWindowNumChangedListener(const sptr<IVisibleWindowNumChangedListener>& listener)
 {
     if (listener == nullptr) {
@@ -2735,9 +2776,17 @@ WMError WindowManager::NotifyScreenshotEvent(ScreenshotEventType type)
 WMError WindowManager::SetStartWindowBackgroundColor(
     const std::string& moduleName, const std::string& abilityName, uint32_t color)
 {
+    std::string errMsg;
+    return SetStartWindowBackgroundColor(moduleName, abilityName, color, errMsg);
+}
+
+WMError WindowManager::SetStartWindowBackgroundColor(
+    const std::string& moduleName, const std::string& abilityName, uint32_t color, std::string& errMsg)
+{
+    errMsg.clear();
     int32_t uid = static_cast<int32_t>(getuid());
     WMError ret = WindowAdapter::GetInstance(userId_).SetStartWindowBackgroundColor(
-        moduleName, abilityName, color, uid);
+        moduleName, abilityName, color, uid, errMsg);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_PATTERN, "failed");
     }
@@ -3046,6 +3095,8 @@ bool WindowManager::IsModuleHookOff(bool isModuleAbilityHookEnd, const std::stri
 
 void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dirtyFlags=%{public}u, infoSize=%{public}u",
+        propertyDirtyFlags, static_cast<uint32_t>(windowInfoList.size()));
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_RECT)) {
         pImpl_->NotifyWindowRectChange(windowInfoList);
     }

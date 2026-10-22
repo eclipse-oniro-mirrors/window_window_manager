@@ -634,7 +634,7 @@ HWTEST_F(SceneSessionManagerImmersiveTest, CheckAvoidAreaForAINavigationBar, Tes
     avoidArea.rightRect_ = { 0, 1, 1, 1 };
     EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), false);
     avoidArea.rightRect_ = { 0, 0, 0, 0 };
-    EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), true);
+    EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(true, avoidArea, 0), true);
     avoidArea.bottomRect_ = { 0, 1, 1, 1 };
     EXPECT_EQ(ssm_->CheckAvoidAreaForAINavigationBar(false, avoidArea, 0), false);
 }

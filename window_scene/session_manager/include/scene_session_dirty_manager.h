@@ -91,6 +91,9 @@ private:
         MMI::WindowInfo& windowInfo) const;
     std::map<int32_t, sptr<SceneSession>> GetDialogSessionMap(
         const std::map<int32_t, sptr<SceneSession>>& sessionMap) const;
+    sptr<SceneSession> FindCoverDialog(const sptr<SceneSession>& sceneSession,
+        const std::map<int32_t, sptr<SceneSession>>& dialogMap) const;
+
     void UpdateDefaultHotAreas(sptr<SceneSession> sceneSession, std::vector<MMI::Rect>& touchHotAreas,
         std::vector<MMI::Rect>& pointerHotAreas) const;
     void UpdatePointerAreas(sptr<SceneSession> sceneSession, std::vector<int32_t>& pointerChangeAreas) const;
@@ -101,6 +104,8 @@ private:
     void UpdateWindowFlagsForWindowSeparation(const sptr<SceneSession>& sceneSession,
         MMI::WindowInfo& windowInfo) const;
     void UpdateWindowFlagsForLockCursor(const sptr<SceneSession>& sceneSession, MMI::WindowInfo& windowInfo) const;
+    void UpdateWindowFlagsForVirtualPad(const sptr<SceneSession>& sceneSession, MMI::WindowInfo& windowInfo) const;
+
     void AddModalExtensionWindowInfo(std::vector<MMI::WindowInfo>& windowInfoList, MMI::WindowInfo windowInfo,
         const sptr<SceneSession>& sceneSession, const ExtensionWindowEventInfo& extensionInfo);
     void GetModalUIExtensionInfo(std::vector<MMI::WindowInfo>& windowInfoList,

@@ -123,6 +123,44 @@ void RootScene::SetDisplayOrientation(int32_t orientation)
     orientation_ = orientation;
 }
 
+void RootScene::UpdateDisplayDpi(const sptr<DisplayInfo>& displayInfo, WindowSizeChangeReason reason)
+{
+    if (displayInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "displayInfo is nullptr: reason=%{public}u", reason);
+        return;
+    }
+    auto displayId = displayInfo->GetDisplayId();
+    wptr<Window> weakWindow(this);
+    bool found = false;
+    {
+        std::lock_guard<std::mutex> lock(rootSceneMapMutex_);
+        auto iter = rootSceneMap_.find(displayId);
+        if (iter != rootSceneMap_.end()) {
+            weakWindow = iter->second;
+            found = true;
+        }
+    }
+    auto window = weakWindow.promote();
+    if (!found || window == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no window: found=%{public}d, reason=%{public}u, displayId=%{public}" PRIu64,
+            found, reason, displayId);
+        return;
+    }
+    auto dpi = displayInfo->GetVirtualPixelRatio();
+    Rect rect = { displayInfo->GetOffsetX(), displayInfo->GetOffsetY(),
+                  displayInfo->GetWidth(), displayInfo->GetHeight() };
+    auto ret = window->UpdateRootDisplayDpi(dpi, rect, reason);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "reason=%{public}u, dpi=%{public}f, ret=%{public}d, displayId=%{public}" PRIu64,
+        reason, dpi, ret, displayId);
+}
+
+WMError RootScene::UpdateRootDisplayDpi(float dpi, const Rect& rect, WindowSizeChangeReason reason)
+{
+    SetDisplayDensity(dpi);
+    UpdateViewportConfig(rect, reason);
+    return WMError::WM_OK;
+}
+
 void RootScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason reason)
 {
     if (updateRootSceneRectCallback_ != nullptr) {
@@ -130,7 +168,7 @@ void RootScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason re
     }
 
     if (uiContent_ == nullptr) {
-        TLOGD(WmsLogTag::DEFAULT, "uiContent_ is nullptr!");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "uiContent_ is nullptr: reason=%{public}u", reason);
         return;
     }
     auto density = GetDisplayDensity();
@@ -141,6 +179,8 @@ void RootScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason re
     config.SetOrientation(orientation_);
     config.SetDisplayId(GetDisplayId());
     uiContent_->UpdateViewportConfig(config, reason);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "reason=%{public}u, dpi=%{public}f, rect=%{public}s, displayId=%{public}" PRIu64,
+        reason, density, rect.ToString().c_str(), GetDisplayId());
 }
 
 void RootScene::SetDisplayDensity(float density, DisplayId displayId)
@@ -378,9 +418,9 @@ void RootScene::SetFrameLayoutFinishCallback(std::function<void()>&& callback)
     TLOGI(WmsLogTag::WMS_LAYOUT, "end");
 }
 
-void RootScene::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
+void RootScene::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom, DvsyncDisableReason disableReason)
 {
-    vsyncStation_->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom);
+    vsyncStation_->SetUiDvsyncSwitch(dvsyncSwitch, fromWhom, disableReason);
 }
 
 void RootScene::SetTouchEvent(int32_t touchType)

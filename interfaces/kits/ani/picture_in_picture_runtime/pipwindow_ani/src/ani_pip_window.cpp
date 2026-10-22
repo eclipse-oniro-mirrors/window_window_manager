@@ -155,7 +155,7 @@ void AniPiPWindow::Finalizer(ani_env* env, ani_long nativeObj)
         AniPipUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR, "aniPipController is nullptr, skip");
         return;
     }
-    AniPipController::DelListener(env);
+    AniPipController::DelListener(env, aniPipController);
     ani_status ret = DelAniPiPControllerObj(aniPipController);
     if (ret == ANI_OK) {
         TLOGI(WmsLogTag::WMS_SYSTEM, "finish");

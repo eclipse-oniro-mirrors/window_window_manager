@@ -304,7 +304,6 @@ void ScreenSession::UnregisterScreenChangeListener(IScreenChangeListener* screen
         TLOGE(WmsLogTag::DMS, "Failed to unregister screen change listener, listener is null!");
         return;
     }
-    std::lock_guard<std::mutex> lock(screenChangeListenerListMutex_);
     screenChangeListenerList_.erase(
         std::remove_if(screenChangeListenerList_.begin(), screenChangeListenerList_.end(),
             [screenChangeListener](IScreenChangeListener* listener) { return screenChangeListener == listener; }),
@@ -514,7 +513,7 @@ bool ScreenSession::GetIsInternal() const
 
 void ScreenSession::SetIsCurrentInUse(bool isInUse)
 {
-    isInUse_ = isInUse;
+    isCurrentInUse_ = isInUse;
 }
 
 bool ScreenSession::GetIsCurrentInUse() const
@@ -753,6 +752,7 @@ void ScreenSession::UpdatePropertyByFoldControl(const ScreenProperty& updatedPro
     property_.SetDpiPhyBounds(updatedProperty.GetPhyWidth(), updatedProperty.GetPhyHeight());
     property_.SetPhyBounds(updatedProperty.GetPhyBounds());
     property_.SetBounds(updatedProperty.GetBounds());
+    property_.SetRsId(updatedProperty.GetRsId());
     if (FoldScreenStateInternel::IsSecondaryDisplayFoldDevice()) {
         Rotation screenRotation = property_.GetScreenRotation();
         if (firstSCBConnect) {
@@ -1091,7 +1091,6 @@ void ScreenSession::ProcPropertyChangedForSuperFold(ScreenProperty& screenProper
     // back server for post processs of screen change
     screenProperty.SetSuperFoldStatusChangeEvent(changeEvent);
     screenProperty.SetIsDestroyDisplay(eventPara.GetIsFakeInUse());
-    screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
 
     switch (changeEvent) {
         case SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED: {
@@ -3054,6 +3053,9 @@ std::shared_ptr<Media::PixelMap> ScreenSession::GetScreenSnapshotWithAllWindows(
         RSSurfaceCaptureConfig config = {
             .scaleX = scaleX,
             .scaleY = scaleY,
+            .useDma = true,
+            .isHdrCapture = true,
+            .displayIntent = DisplayIntent::LOCAL,
         };
         SetScreenSnapshotRect(config);
         auto rsUIContext = GetRSUIContext();
@@ -3073,14 +3075,17 @@ std::shared_ptr<Media::PixelMap> ScreenSession::GetScreenSnapshotWithAllWindows(
             return nullptr;
         }
     }
-    auto pixelMap = callback->GetResult(SNAPSHOT_TIMEOUT_MS);
-    if (pixelMap != nullptr) {
-        TLOGD(WmsLogTag::DMS, "get pixelMap WxH = %{public}dx%{public}d, NeedCheckDrmAndSurfaceLock is %{public}d",
-            pixelMap->GetWidth(), pixelMap->GetHeight(), isNeedCheckDrmAndSurfaceLock);
-    } else {
-        TLOGW(WmsLogTag::DMS, "null pixelMap, may have drm or surface lock, NeedCheckDrmAndSurfaceLock is %{public}d",
+    auto pixelMaps = callback->GetHDRResult(SNAPSHOT_TIMEOUT_MS);
+    if (pixelMaps.size() <= 0) {
+        TLOGE(WmsLogTag::DMS, "null pixelMap, may have drm or surface lock, NeedCheckDrmAndSurfaceLock is %{public}d",
             isNeedCheckDrmAndSurfaceLock);
+        return nullptr;
     }
+    bool hasHdrPixelMap = pixelMaps.size() > 1 && pixelMaps[1] != nullptr;
+    auto pixelMap = hasHdrPixelMap ? pixelMaps[1] : pixelMaps[0]; // 0: common pixelmap, 1: hdr pixelmap
+    TLOGD(WmsLogTag::DMS, "pixelMap WxH: %{public}dx%{public}d, checkDrmAndSurfaceLock: %{public}d, isHdr: %{public}d",
+        pixelMap == nullptr ? 0 : pixelMap->GetWidth(), pixelMap == nullptr ? 0 : pixelMap->GetHeight(),
+        isNeedCheckDrmAndSurfaceLock, hasHdrPixelMap);
     return pixelMap;
 }
 
@@ -3398,6 +3403,26 @@ ScreenId ScreenSession::GetMainDisplayIdOfGroup() const
     return property_.GetMainDisplayIdOfGroup();
 }
 
+DisplayGroupType ScreenSession::GetGroupType() const
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        return DisplayGroupType::INVALID;
+    }
+    // Read from property so that the value synced from server side is visible here.
+    DisplayGroupType groupType = property_.GetDisplayGroupType();
+    if (groupType != DisplayGroupType::INVALID) {
+        return groupType;
+    }
+    return property_.GetDisplayGroupId() == DISPLAY_GROUP_ID_DEFAULT
+        ? DisplayGroupType::DEFAULT : DisplayGroupType::SPECIAL;
+}
+
+void ScreenSession::SetGroupType(DisplayGroupType groupType)
+{
+    // Write into property so that OnScreenPropertyChangeNotifyClient can sync it to client side.
+    property_.SetDisplayGroupType(groupType);
+}
+
 void ScreenSession::SetScreenAreaOffsetX(uint32_t screenAreaOffsetX)
 {
     property_.SetScreenAreaOffsetX(screenAreaOffsetX);
@@ -3515,6 +3540,7 @@ void ScreenSession::ProcPropertyChange(ScreenProperty& screenProperty, const Scr
         screenBoundsRect.width_, screenBoundsRect.height_,
         eventBoundsRect.width_, eventBoundsRect.height_);
 
+    screenProperty.SetPropertyChangeReason(eventPara.GetPropertyChangeReason());
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
         ProcPropertyChangedForSuperFold(screenProperty, eventPara);
         

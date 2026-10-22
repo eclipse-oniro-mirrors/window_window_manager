@@ -55,6 +55,7 @@ ohos_static_library("libwm_static") {
 
   sources = [
     "../wmserver/src/zidl/window_manager_proxy.cpp",
+    "src/all_users_window_manager.cpp",
     "src/extension_window.cpp",
     "src/extension_window_impl.cpp",
     "src/floating_ball_controller.cpp",
@@ -222,6 +223,7 @@ ohos_shared_library("libwm") {
 
   sources = [
     "../wmserver/src/zidl/window_manager_proxy.cpp",
+    "src/all_users_window_manager.cpp",
     "src/extension_window.cpp",
     "src/extension_window_impl.cpp",
     "src/floating_ball_controller.cpp",
@@ -408,6 +410,7 @@ ohos_shared_library("libwm_lite") {
   ]
   sources = [
     "../utils/src/window_visibility_info.cpp",
+    "src/all_users_window_manager_lite.cpp",
     "src/window_adapter_lite.cpp",
     "src/window_manager_agent_lite.cpp",
     "src/window_manager_lite.cpp",

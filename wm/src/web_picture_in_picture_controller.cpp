@@ -236,14 +236,15 @@ WMError WebPictureInPictureController::SetPipParentWindowId(uint32_t windowId)
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow is null");
         return WMError::WM_ERROR_PIP_INTERNAL_ERROR;
     }
-    mainWindow_->UnregisterLifeCycleListener(mainWindowLifeCycleListener_);
     auto newMainWindow = WindowSceneSessionImpl::GetMainWindowWithId(windowId);
     if (newMainWindow == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "mainWindow not found: %{public}u", windowId);
         return WMError::WM_ERROR_INVALID_PARAM;
     }
+    mainWindow_->UnregisterLifeCycleListener(mainWindowLifeCycleListener_);
     mainWindow_ = newMainWindow;
     mainWindowId_ = windowId;
+    mainWindowLifeCycleListener_ = sptr<PictureInPictureController::WindowLifeCycleListener>::MakeSptr(mainWindowId_);
     mainWindow_->RegisterLifeCycleListener(mainWindowLifeCycleListener_);
     if (window_ == nullptr) {
         TLOGI(WmsLogTag::WMS_PIP, "window is null");

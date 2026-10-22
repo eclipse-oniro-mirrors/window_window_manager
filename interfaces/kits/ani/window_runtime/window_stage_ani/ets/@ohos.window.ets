@@ -492,6 +492,25 @@ namespace window {
     contentColor: string;
   }
 
+  export interface WindowFocusState {
+    isFocused: boolean;
+    focusChangeReason: FocusChangeReason;
+    nextFocusedWindowId?: int;
+    prevFocusedWindowId?: int;
+  }
+
+  export enum FocusChangeReason {
+    DEFAULT = 0,
+    CLICK = 1,
+  }
+
+  export class WindowFocusStateInternal implements WindowFocusState {
+    isFocused: boolean = false;
+    focusChangeReason: FocusChangeReason = FocusChangeReason.DEFAULT;
+    nextFocusedWindowId?: int;
+    prevFocusedWindowId?: int;
+  }
+
   export enum RectChangeReason {
     UNDEFINED = 0,
     MAXIMIZE = 1,
@@ -1634,6 +1653,23 @@ export class GetWindowsByCoordinateParamInternal implements GetWindowsByCoordina
   y: int;
 }
 
+export enum WindowPosition {
+  NOT_TOPMOST = -3,
+  TOPMOST = -2,
+  BOTTOM = -1,
+  TOP = 0
+}
+
+export interface WindowPositionParams {
+  windowId: int;
+  insertAfter: int;
+}
+
+export class WindowPositionParamsInternal implements WindowPositionParams {
+  windowId: int;
+  insertAfter: int;
+}
+
 
 export interface SystemBarStyle {
   statusBarContentColor?: string;
@@ -1754,6 +1790,9 @@ export interface WindowCreateParams {
     systemAnimationParams?: StartAnimationSystemParams;
     needAnimation?: boolean;
     isWindowLimitsForcible?: boolean;
+    minimizeOnStart?: boolean;
+    excludeFromDock?: boolean;
+    excludeFromRecent?: boolean;
 }
 
 export class WindowCreateParamsInternal implements WindowCreateParams {
@@ -1761,6 +1800,9 @@ export class WindowCreateParamsInternal implements WindowCreateParams {
     systemAnimationParams?: StartAnimationSystemParams;
     needAnimation?: boolean;
     isWindowLimitsForcible?: boolean;
+    minimizeOnStart?: boolean;
+    excludeFromDock?: boolean;
+    excludeFromRecent?: boolean;
 }
 
 /**
@@ -4743,6 +4785,14 @@ export class WindowInternal implements Window {
       this.offSync(this.nativeObj, "windowHighlightChange", callback);
     }
 
+    public onWindowFocusStateChange(callback: Callback<WindowFocusState>): void {
+      this.onSync(this.nativeObj, 'windowFocusStateChange', callback);
+    }
+
+    public offWindowFocusStateChange(callback?: Callback<WindowFocusState>): void {
+      this.offSync(this.nativeObj, 'windowFocusStateChange', callback);
+    }
+
     public setWindowShadowEnabled(enable: boolean): Promise<void> {
       return new Promise<void>(
         (resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
@@ -5677,6 +5727,8 @@ export interface Window {
     setShadow(radius: double, color?: string, offsetX?: double, offsetY?: double): void;
     onWindowHighlightChange(callback: Callback<boolean>): void;
     offWindowHighlightChange(callback?: Callback<boolean>): void;
+    onWindowFocusStateChange(callback: Callback<WindowFocusState>): void;
+    offWindowFocusStateChange(callback?: Callback<WindowFocusState>): void;
     setCornerRadius(cornerRadius: double): void;
     getTransitionController(): TransitionController;
     setBlur(radius: double): void;
@@ -5832,6 +5884,7 @@ native function setSpecificSystemWindowZIndexSync(nativeObj: long, windowType: W
 native function createSubWindowAndBindParentSync(nativeObj: long, name: string,
   parentId: int, ctx: BaseContext, parentWindowEventListener: WindowEventListener): Window;
 native function moveMainWindowToTargetDisplaySync(nativeObj: long, displayId: long, windowId: int, userId: int): void;
+native function setWindowPositionSync(nativeObj: long, list: Array<WindowPositionParams>): void;
 
 export function createSubWindowAndBindParent(name: string, parentId: int, ctx: BaseContext,
   parentWindowEventListener: WindowEventListener): Promise<Window> {
@@ -6310,6 +6363,18 @@ export function moveMainWindowToTargetDisplay(displayId: long, windowId: int, us
   });
 }
 
+export function setWindowPosition(list: Array<WindowPositionParams>): Promise<void> {
+  return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+      taskpool.execute((): void => {
+          return setWindowPositionSync(nativeObj, list);
+      }).then((ret: Any) => {
+          resolve(undefined);
+      }).catch((err: Any) => {
+          reject(err as BusinessError);
+      });
+  });
+}
+
 export function on<T>(type: string, callback: Callback<T>): void {
   onSync(nativeObj, type, callback);
 }
@@ -6358,6 +6423,11 @@ function runWindowListenerVoidArgCallback(cb: object): void {
 function runWindowListenerBooleanArgCallback(cb: object, cbArg: boolean): void {
   const func = cb as (cbArg: boolean) => void;
   func(cbArg);
+}
+
+function runWindowFocusStateChangeCallback(cb: object, state: object): void {
+  const func = cb as (state: WindowFocusState) => void;
+  func(state as WindowFocusState);
 }
 
 function runWindowWillCloseListenerCallback(cb: object, cbArg: object): void {

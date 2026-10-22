@@ -98,7 +98,7 @@ HWTEST_F(SceneSessionManagerKioskTest,
 {
     MockAccesstokenKit::MockIsSystemApp(false);
     MockAccesstokenKit::MockIsSACalling(true);
-    ssm_->kioskModeChangeFunc_ = [](bool mode, int sessionId) {
+    ssm_->kioskModeChangeFunc_ = [](bool mode, int32_t sessionId, KioskType kioskType) {
         return WMError::WM_OK;
     };
     WMError result = ssm_->ExitKioskMode();
@@ -164,7 +164,7 @@ HWTEST_F(SceneSessionManagerKioskTest,
     info.persistentId_ = 101;
     sptr<SceneSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
     session->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    ssm_->kioskModeChangeFunc_ = [](bool, uint64_t) {};
+    ssm_->kioskModeChangeFunc_ = [](bool, int32_t, KioskType) {};
     sptr<IRemoteObject> token = new MockIRemoteObject();
     session->SetAbilityToken(token);
     ssm_->sceneSessionMap_[101] = session;
@@ -287,7 +287,7 @@ HWTEST_F(SceneSessionManagerKioskTest,
     ATC_RegisterKioskModeChangeCallback_ShouldCallCallback_WhenValidFuncIsProvided, TestSize.Level0)
 {
     ssm_->isKioskMode_ = false;
-    auto callback = [](bool isKioskMode, int32_t kioskAppPersistentId) {
+    auto callback = [](bool isKioskMode, int32_t kioskAppPersistentId, KioskType kioskType) {
         EXPECT_FALSE(isKioskMode);
     };
     ssm_->RegisterKioskModeChangeCallback(std::move(callback));

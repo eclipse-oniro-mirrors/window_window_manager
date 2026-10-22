@@ -287,6 +287,7 @@ void SuperFoldPolicy::SetCurrentScreenId(ScreenId screenId)
 void SuperFoldPolicy::SetLastCacheDisplayMode(FoldDisplayMode displayMode)
 {
     lastCacheDisplayMode_.store(displayMode);
+    TLOGNI(WmsLogTag::DMS, "set last display mode: %{public}d", displayMode);
 }
 
 FoldDisplayMode SuperFoldPolicy::GetCurrentDisplayMode()
@@ -316,7 +317,10 @@ DMError SuperFoldPolicy::SetScreenSwitchState(ScreenClosedState screenClosedStat
     if (displayMode == FoldDisplayMode::UNKNOWN) {
         return DMError::DM_ERROR_INVALID_PARAM;
     }
-    ChangeScreenDisplayModeInner(displayMode, isScreenOn);
+    
+    if (CheckAndSetRunningStatus(displayMode)) {
+        ChangeScreenDisplayModeInner(displayMode, isScreenOn);
+    }
     // notify foldStatus
     NotifyFoldStatus(screenClosedState);
     ScreenSessionManager::GetInstance().NotifyScreenClosedStateChange(screenClosedState);
@@ -464,18 +468,50 @@ void SuperFoldPolicy::SetScreenCombination(ScreenId screenId, ScreenCombination 
 
 DMError SuperFoldPolicy::ChangeScreenDisplayMode(FoldDisplayMode displayMode)
 {
+    if (!CheckAndSetRunningStatus(displayMode)) {
+        return DMError::DM_OK;
+    }
+
     bool isScreenOn = PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn();
     return ChangeScreenDisplayModeInner(displayMode, isScreenOn);
 }
 
-DMError SuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMode, bool isScreenOn)
+void SuperFoldPolicy::UpdateToLastDisplayMode()
 {
+    TLOGNW(WmsLogTag::DMS, "UpdateToLastDisplayMode mode: %{public}d", lastCacheDisplayMode_.load());
+    if (!CheckAndSetRunningStatus(lastCacheDisplayMode_.load(), true)) {
+        return;
+    }
+ 
+    bool isScreenOn = PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn();
+    auto ret = ChangeScreenDisplayModeInner(lastCacheDisplayMode_.load(), isScreenOn);
+    if (ret != DMError::DM_OK) {
+        TLOGNE(WmsLogTag::DMS, "UpdateToLastDisplayMode failed, mode: %{public}d", lastCacheDisplayMode_.load());
+    }
+}
+ 
+bool SuperFoldPolicy::CheckAndSetRunningStatus(FoldDisplayMode displayMode, bool isInnerUpdate)
+{
+    std::lock_guard<std::mutex> lock(runningStatusMutex_);
+    if (!CheckDisplayMode(displayMode)) {
+        if (!isInnerUpdate) {
+            SetLastCacheDisplayMode(displayMode);
+            HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:ChangeScreenDisplayMode(displayMode= %" PRIu64")",
+                displayMode);
+        } else {
+            TLOGNW(WmsLogTag::DMS, "check display mode failed, mode: %{public}d, %{public}d",
+                displayMode, lastCacheDisplayMode_.load());
+        }
+        return false;
+    }
     SetLastCacheDisplayMode(displayMode);
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "ssm:ChangeScreenDisplayMode(displayMode= %" PRIu64")", displayMode);
-    if (!CheckDisplayMode(displayMode)) {
-        return DMError::DM_OK;
-    }
     SetdisplayModeChangeStatus(true);
+    return true;
+}
+
+DMError SuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMode, bool isScreenOn)
+{
     ReportFoldDisplayModeChange(displayMode);
     switch (displayMode) {
         case FoldDisplayMode::MAIN: {
@@ -497,8 +533,18 @@ DMError SuperFoldPolicy::ChangeScreenDisplayModeInner(FoldDisplayMode displayMod
     SetCurrentDisplayMode(displayMode);
     SetdisplayModeChangeStatus(false);
     ScreenSessionManager::GetInstance().NotifyDisplayModeChanged(displayMode);
+    UpdateOuterScreenGroupType(displayMode);
     OnScreenPropertyChangeNotifyClient();
     return DMError::DM_OK;
+}
+
+void SuperFoldPolicy::UpdateOuterScreenGroupType(FoldDisplayMode displayMode)
+{
+    sptr<ScreenSession> outerSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_MAIN);
+    if (outerSession != nullptr) {
+        outerSession->SetGroupType(displayMode == FoldDisplayMode::MAIN
+            ? DisplayGroupType::DEFAULT : DisplayGroupType::SPECIAL);
+    }
 }
 
 void SuperFoldPolicy::OnScreenPropertyChangeNotifyClient()
@@ -517,6 +563,8 @@ void SuperFoldPolicy::OnScreenPropertyChangeNotifyClient()
 
 void SuperFoldPolicy::ChangeScreenDisplayModeToCoordination(bool isScreenOn)
 {
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_FULL, true);
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_MAIN, true);
     ScreenSessionManager::GetInstance().SetCoordinationFlag(true);
     SetScreenCombination(SCREEN_ID_MAIN, ScreenCombination::SCREEN_MAIN);
     SetScreenIsInUse(SCREEN_ID_MAIN, true);
@@ -542,6 +590,8 @@ void SuperFoldPolicy::CloseCoordination()
         TLOGI(WmsLogTag::DMS, "not in coordination");
         return;
     }
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_FULL, false);
+    ScreenSessionManager::GetInstance().NotifyRSCoordination(SCREEN_ID_MAIN, false);
     ScreenSessionManager::GetInstance().SetRSScreenPowerStatusExt(SCREEN_ID_MAIN,
         ScreenPowerStatus::POWER_STATUS_OFF);
     NotifyRefreshRateEvent(false);

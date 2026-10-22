@@ -128,6 +128,7 @@ ohos_shared_library("window_extension_module") {
     "ability_runtime:ability_context_native",
     "ability_runtime:abilitykit_native",
     "common_event_service:cesfwk_innerkits",
+    "c_utils:utils",
     "hilog:libhilog",
     "ipc:ipc_napi",
     "napi:ace_napi",

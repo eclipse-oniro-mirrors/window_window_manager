@@ -231,7 +231,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession01, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102);
     windowSceneSession->property_->SetParentPersistentId(100);
     windowSceneSession->property_->SetParentId(100);
@@ -266,7 +266,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession02, TestSize
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -295,7 +295,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession03, TestSize
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -325,7 +325,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession04, TestSize
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -353,7 +353,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession05, TestSize
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_NE(WMError::WM_ERROR_INVALID_TYPE, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_NE(WMError::WM_ERROR_INVALID_TYPE, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_NE(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -382,7 +382,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession06, TestSize
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::SYSTEM_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -411,7 +411,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession07, TestSize
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::SYSTEM_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -475,7 +475,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession09, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::WINDOW_TYPE_WALLET_SWIPE_CARD);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102);
     windowSceneSession->property_->SetParentPersistentId(100);
     windowSceneSession->property_->SetParentId(100);
@@ -538,7 +538,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession11, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::WINDOW_TYPE_FLOAT_NAVIGATION);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102);
     windowSceneSession->property_->SetParentPersistentId(100);
     windowSceneSession->property_->SetParentId(100);
@@ -575,7 +575,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession12, TestSize
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::SYSTEM_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(999, windowSceneSession->property_->GetDisplayId());
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
@@ -595,7 +595,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession13, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102);
     windowSceneSession->property_->SetParentPersistentId(100);
     windowSceneSession->property_->SetParentId(100);
@@ -621,7 +621,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession14, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::WINDOW_TYPE_MAGNIFICATION);
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102);
     windowSceneSession->property_->SetParentPersistentId(100);
     windowSceneSession->property_->SetParentId(100);
@@ -649,7 +649,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession15, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::WINDOW_TYPE_MAGNIFICATION_MENU);
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102);
     windowSceneSession->property_->SetParentPersistentId(100);
     windowSceneSession->property_->SetParentId(100);
@@ -677,7 +677,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession16, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::WINDOW_TYPE_SELECTION);
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102); // 102 is persistentId
     windowSceneSession->property_->SetParentPersistentId(100); // 100 is parentPersistentId
     windowSceneSession->property_->SetParentId(100); // 100 is parentId
@@ -705,7 +705,7 @@ HWTEST_F(WindowSceneSessionImplTest, CreateAndConnectSpecificSession17, TestSize
     sptr<WindowSceneSessionImpl> windowSceneSession = sptr<WindowSceneSessionImpl>::MakeSptr(option);
 
     windowSceneSession->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
-    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102); // 102 is persistentId
     windowSceneSession->property_->SetParentPersistentId(100); // 100 is parentPersistentId
     windowSceneSession->property_->SetParentId(100); // 100 is parentId
@@ -2010,7 +2010,7 @@ HWTEST_F(WindowSceneSessionImplTest, NotifyRemoveStartingWindow, TestSize.Level1
     ret = window->NotifyRemoveStartingWindow();
     ASSERT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    EXPECT_CALL(*(session), RemoveStartingWindow()).WillOnce(Return(WSError::WS_OK));
+    EXPECT_CALL(*(session), RemoveStartingWindow(::testing::_)).WillOnce(Return(WSError::WS_OK));
     ret = window->NotifyRemoveStartingWindow();
     ASSERT_EQ(ret, WMError::WM_OK);
 }
@@ -3536,6 +3536,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions01, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3679,6 +3680,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions07, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3704,6 +3706,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions08, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3729,6 +3732,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions09, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3754,6 +3758,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions10, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -4086,6 +4091,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeDelegatedPath01, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -4536,6 +4542,103 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowMixedConfig02,
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
     ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+// ==================== IsDisplayInFreeMultiWindow Branch Tests ====================
+
+/**
+ * @tc.name: MaximizeWithOptions_DisplayNotInFreeMultiWindow01
+ * @tc.desc: Display not in supportMultiWindowScreenSet should intercept maximize (returns WM_OK, not executed)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_DisplayNotInFreeMultiWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("DisplayNotInFreeMultiWin01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // supportMultiWindowScreenSet_ is empty, so IsDisplayInFreeMultiWindow() returns false
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    // Intercepted path returns WM_OK
+    ASSERT_EQ(ret, WMError::WM_OK);
+    // Maximize not executed: enableImmersiveMode_ and maximizeLayoutFullScreen_ stay at default false
+    EXPECT_EQ(window->enableImmersiveMode_.load(), false);
+    EXPECT_EQ(window->maximizeLayoutFullScreen_.load(), false);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_DisplayInFreeMultiWindow01
+ * @tc.desc: Display in supportMultiWindowScreenSet and not fullscreen-disabled should execute maximize
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_DisplayInFreeMultiWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("DisplayInFreeMultiWin01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // Add current display to supportMultiWindowScreenSet_ so IsDisplayInFreeMultiWindow() returns true
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+    // Maximize executed: ENTER_IMMERSIVE sets enableImmersiveMode_ and maximizeLayoutFullScreen_ to true
+    EXPECT_EQ(window->enableImmersiveMode_.load(), true);
+    EXPECT_EQ(window->maximizeLayoutFullScreen_.load(), true);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_FullScreenDisabled01
+ * @tc.desc: FullScreenDisabled should intercept maximize even when display is in free multi window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_FullScreenDisabled01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("FullScreenDisabled01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // Display is in free multi window
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
+    // But fullscreen is disabled via CompatibleModeProperty
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetDisableFullScreen(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    // Intercepted path returns WM_OK
+    ASSERT_EQ(ret, WMError::WM_OK);
+    // Maximize not executed: enableImmersiveMode_ and maximizeLayoutFullScreen_ stay at default false
+    EXPECT_EQ(window->enableImmersiveMode_.load(), false);
+    EXPECT_EQ(window->maximizeLayoutFullScreen_.load(), false);
 }
 
 /**

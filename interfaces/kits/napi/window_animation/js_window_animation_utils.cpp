@@ -211,6 +211,33 @@ std::optional<bool> GetOptionalBoolProp(napi_env env, napi_value napiObject, con
     return result;
 }
 
+std::shared_ptr<bool> GetOptionalSharedBoolProp(napi_env env, napi_value jsObject, const char* propName)
+{
+    RETURN_IF_NULL(env, nullptr);
+    RETURN_IF_NULL(jsObject, nullptr);
+    RETURN_IF_NULL(propName, nullptr);
+
+    bool hasProperty = false;
+    napi_has_named_property(env, jsObject, propName, &hasProperty);
+    if (!hasProperty) {
+        return nullptr;
+    }
+
+    napi_value jsValue = nullptr;
+    napi_get_named_property(env, jsObject, propName, &jsValue);
+    napi_valuetype type = napi_undefined;
+    napi_typeof(env, jsValue, &type);
+    if (type != napi_boolean) {
+        return nullptr;
+    }
+
+    bool tempVal = false;
+    if (napi_get_value_bool(env, jsValue, &tempVal) == napi_ok) {
+        return std::make_shared<bool>(tempVal);
+    }
+    return nullptr;
+}
+
 bool IsSystemCalling()
 {
     uint64_t accessTokenID = IPCSkeleton::GetCallingFullTokenID();
@@ -397,28 +424,23 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
             windowCreateParams.animationSystemParams = nullptr;
         }
     }
-    bool hasNeedAnimation = false;
-    napi_has_named_property(env, jsObject, "needAnimation", &hasNeedAnimation);
-    if (hasNeedAnimation) {
-        napi_value jsNeedAnimation = nullptr;
-        napi_get_named_property(env, jsObject, "needAnimation", &jsNeedAnimation);
-        napi_valuetype type = napi_undefined;
-        napi_typeof(env, jsNeedAnimation, &type);
-        if (type == napi_boolean) {
-            bool tempVal = false;
-            if (napi_get_value_bool(env, jsNeedAnimation, &tempVal) == napi_ok) {
-                windowCreateParams.needAnimation = std::make_shared<bool>(tempVal);
-            }
-        }
-    } else {
-        windowCreateParams.needAnimation = nullptr;
-    }
+    windowCreateParams.needAnimation = GetOptionalSharedBoolProp(env, jsObject, "needAnimation");
+
     if (isSystemCalling) {
         windowCreateParams.isWindowLimitsForcible =
             GetOptionalBoolProp(env, jsObject, "isWindowLimitsForcible").value_or(false);
     } else {
         windowCreateParams.isWindowLimitsForcible = false;
     }
+
+    windowCreateParams.minimizeOnStart =
+        GetOptionalBoolProp(env, jsObject, "minimizeOnStart").value_or(false);
+
+    windowCreateParams.excludeFromDock =
+        GetOptionalSharedBoolProp(env, jsObject, "excludeFromDock");
+
+    windowCreateParams.excludeFromRecent =
+        GetOptionalSharedBoolProp(env, jsObject, "excludeFromRecent");
     return true;
 }
 

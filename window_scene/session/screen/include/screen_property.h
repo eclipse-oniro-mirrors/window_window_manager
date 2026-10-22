@@ -316,6 +316,8 @@ public:
     // displayInfo
     void SetDisplayGroupId(DisplayGroupId displayGroupId) { displayGroupId_ = displayGroupId; }
     DisplayGroupId GetDisplayGroupId() const { return displayGroupId_; }
+    void SetDisplayGroupType(DisplayGroupType displayGroupType) { displayGroupType_ = displayGroupType; }
+    DisplayGroupType GetDisplayGroupType() const { return displayGroupType_; }
     void SetMainDisplayIdOfGroup(ScreenId screenId) { mainDisplayIdOfGroup_ = screenId; }
     ScreenId GetMainDisplayIdOfGroup() const { return mainDisplayIdOfGroup_; }
     void SetScreenAreaOffsetX(uint32_t screenAreaOffsetX) { screenAreaOffsetX_ = screenAreaOffsetX; }
@@ -336,6 +338,7 @@ private:
         return (rotation == Rotation::ROTATION_0 || rotation == Rotation::ROTATION_180);
     }
     DisplayGroupId displayGroupId_ = DISPLAY_GROUP_ID_INVALID;
+    DisplayGroupType displayGroupType_ = DisplayGroupType::INVALID;
     ScreenId mainDisplayIdOfGroup_ = SCREEN_ID_INVALID;
     float rotation_ { 0.0f };
     float physicalRotation_ { 0.0f };

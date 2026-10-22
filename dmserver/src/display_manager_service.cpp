@@ -247,7 +247,7 @@ DMError DisplayManagerService::DestroyVirtualScreen(ScreenId screenId)
         TLOGE(WmsLogTag::DMS, "destroy virtual screen permission denied!");
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
-    if (!accessTokenIdMaps_.isExistAndRemove(screenId, IPCSkeleton::GetCallingTokenID())) {
+    if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
         if (isCallingByThirdParty) {
             return DMError::DM_ERROR_NULLPTR;
         }
@@ -258,7 +258,11 @@ DMError DisplayManagerService::DestroyVirtualScreen(ScreenId screenId)
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
 
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "dms:DestroyVirtualScreen(%" PRIu64 ")", screenId);
-    return abstractScreenController_->DestroyVirtualScreen(screenId);
+    DMError ret = abstractScreenController_->DestroyVirtualScreen(screenId);
+    if (ret == DMError::DM_OK) {
+        accessTokenIdMaps_.erase(screenId);
+    }
+    return ret;
 }
 
 DMError DisplayManagerService::SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)
@@ -272,6 +276,13 @@ DMError DisplayManagerService::SetVirtualScreenSurface(ScreenId screenId, sptr<I
     }
     if (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
         Permission::IsStartByHdcd() || isCallingByThirdParty) {
+        if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
+            TLOGE(WmsLogTag::DMS, "SetVirtualScreenSurface ownership denied!");
+            if (isCallingByThirdParty) {
+                return DMError::DM_ERROR_NULLPTR;
+            }
+            return DMError::DM_ERROR_INVALID_CALLING;
+        }
         sptr<Surface> pPurface = Surface::CreateSurfaceAsProducer(surface);
         return abstractScreenController_->SetVirtualScreenSurface(screenId, pPurface);
     }
@@ -361,6 +372,10 @@ DMError DisplayManagerService::GetScreenGamutMap(ScreenId screenId, ScreenGamutM
 
 DMError DisplayManagerService::SetScreenGamutMap(ScreenId screenId, ScreenGamutMap gamutMap)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::DMS, "permission denied!");
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
     TLOGI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64 ", ScreenGamutMap %{public}u",
         screenId, static_cast<uint32_t>(gamutMap));
     CHECK_SCREEN_AND_RETURN(screenId, DMError::DM_ERROR_INVALID_PARAM);
@@ -381,7 +396,13 @@ DMError DisplayManagerService::SetScreenColorTransform(ScreenId screenId)
 DMError DisplayManagerService::RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     DisplayManagerAgentType type)
 {
-    if (type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER && !Permission::IsSystemCalling()
+    if (type < DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER ||
+        type >= DisplayManagerAgentType::DISPLAY_MANAGER_MAX_AGENT_TYPE) {
+        TLOGE(WmsLogTag::DMS, "RegisterDisplayManagerAgent invalid type: %{public}u", static_cast<uint32_t>(type));
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
+        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) && !Permission::IsSystemCalling()
         && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::DMS, "register display manager agent permission denied!");
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
@@ -396,7 +417,13 @@ DMError DisplayManagerService::RegisterDisplayManagerAgent(const sptr<IDisplayMa
 DMError DisplayManagerService::UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     DisplayManagerAgentType type)
 {
-    if (type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER && !Permission::IsSystemCalling()
+    if (type < DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER ||
+        type >= DisplayManagerAgentType::DISPLAY_MANAGER_MAX_AGENT_TYPE) {
+        TLOGE(WmsLogTag::DMS, "UnregisterDisplayManagerAgent invalid type: %{public}u", static_cast<uint32_t>(type));
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    if ((type == DisplayManagerAgentType::SCREEN_EVENT_LISTENER ||
+        type == DisplayManagerAgentType::PRIVATE_WINDOW_LISTENER) && !Permission::IsSystemCalling()
         && !Permission::IsStartByHdcd()) {
         TLOGE(WmsLogTag::DMS, "unregister display manager agent permission denied!");
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
@@ -474,6 +501,10 @@ bool DisplayManagerService::SetScreenPowerForAll(ScreenPowerState state, PowerSt
 
 ScreenPowerState DisplayManagerService::GetScreenPower(ScreenId dmsScreenId)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::DMS, "GetScreenPower permission denied!");
+        return ScreenPowerState::INVALID_STATE;
+    }
     return abstractScreenController_->GetScreenPower(dmsScreenId);
 }
 
@@ -609,6 +640,18 @@ DMError DisplayManagerService::StopMirror(const std::vector<ScreenId>& mirrorScr
 
 void DisplayManagerService::RemoveVirtualScreenFromGroup(std::vector<ScreenId> screens)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        if (!Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION)) {
+            TLOGE(WmsLogTag::DMS, "RemoveVirtualScreenFromGroup permission denied!");
+            return;
+        }
+        for (ScreenId screenId : screens) {
+            if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
+                TLOGE(WmsLogTag::DMS, "RemoveVirtualScreenFromGroup ownership denied!");
+                return;
+            }
+        }
+    }
     abstractScreenController_->RemoveVirtualScreenFromGroup(screens);
 }
 
@@ -879,7 +922,6 @@ void DisplayManagerService::NotifyPrivateWindowStateChanged(bool hasPrivate)
 
 std::vector<DisplayPhysicalResolution> DisplayManagerService::GetAllDisplayPhysicalResolution()
 {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (allDisplayPhysicalResolution_.empty()) {
         sptr<DisplayInfo> displayInfo = DisplayManagerService::GetDefaultDisplayInfo();
         if (displayInfo == nullptr) {
@@ -897,6 +939,16 @@ std::vector<DisplayPhysicalResolution> DisplayManagerService::GetAllDisplayPhysi
 
 bool DisplayManagerService::SetVirtualScreenAsDefault(ScreenId screenId)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        if (!Permission::CheckCallingPermission(ACCESS_VIRTUAL_SCREEN_PERMISSION)) {
+            TLOGE(WmsLogTag::DMS, "SetVirtualScreenAsDefault permission denied!");
+            return false;
+        }
+        if (!accessTokenIdMaps_.isExist(screenId, IPCSkeleton::GetCallingTokenID())) {
+            TLOGE(WmsLogTag::DMS, "SetVirtualScreenAsDefault ownership denied!");
+            return false;
+        }
+    }
     TLOGI(WmsLogTag::DMS, "Enter, screenId: %{public}" PRIu64, screenId);
     return abstractScreenController_->SetVirtualScreenAsDefault(screenId);
 }

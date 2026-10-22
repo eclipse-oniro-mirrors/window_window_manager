@@ -124,6 +124,8 @@ const std::map<uint64_t, HandlWritePropertyFunc> WindowSessionProperty::writeFun
         &WindowSessionProperty::WriteActionUpdateAnimationFlag),
     std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA),
         &WindowSessionProperty::WriteActionUpdateTouchHotArea),
+    std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION),
+        &WindowSessionProperty::WriteActionUpdateTouchHotArea),
     std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_KEYBOARD_TOUCH_HOT_AREA),
         &WindowSessionProperty::WriteActionUpdateKeyboardTouchHotArea),
     std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_DECOR_ENABLE),
@@ -202,6 +204,8 @@ const std::map<uint64_t, HandlReadPropertyFunc> WindowSessionProperty::readFuncM
     std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG),
         &WindowSessionProperty::ReadActionUpdateAnimationFlag),
     std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA),
+        &WindowSessionProperty::ReadActionUpdateTouchHotArea),
+    std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION),
         &WindowSessionProperty::ReadActionUpdateTouchHotArea),
     std::make_pair(static_cast<uint64_t>(WSPropertyChangeAction::ACTION_UPDATE_KEYBOARD_TOUCH_HOT_AREA),
         &WindowSessionProperty::ReadActionUpdateKeyboardTouchHotArea),
@@ -1711,7 +1715,7 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(isAtomicService_) && parcel.WriteUint32(apiVersion_) &&
         parcel.WriteBool(isFullScreenWaterfallMode_) && parcel.WriteBool(isAbilityHookOff_) &&
         parcel.WriteBool(isAbilityHook_) &&
-        parcel.WriteParcelable(compatibleModeProperty_) && parcel.WriteBool(isFollowScreenChange_) &&
+        parcel.WriteParcelable(GetCompatibleModeProperty()) && parcel.WriteBool(isFollowScreenChange_) &&
         parcel.WriteBool(subWindowOutlineEnabled_) &&
         parcel.WriteBool(zLevelAboveParentLoosened_) &&
         parcel.WriteUint32(windowModeSupportType_) &&
@@ -1739,7 +1743,8 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(titleHoverShowEnabled_) &&
         parcel.WriteBool(dockHoverShowEnabled_) &&
         MarshallingSupportWindowModes(parcel) &&
-        MarshallingFvTemplateInfo(parcel);
+        MarshallingFvTemplateInfo(parcel) &&
+        parcel.WriteString(GetHookSceneMessage());
 }
 
 WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
@@ -1872,6 +1877,7 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     property->SetTitleAndDockHoverEnabled(parcel.ReadBool(), parcel.ReadBool());
     UnmarshallingSupportWindowModes(parcel, property);
     UnmarshallingFvTemplateInfo(parcel, property);
+    property->SetHookSceneMessage(parcel.ReadString());
     return property;
 }
 
@@ -1995,6 +2001,7 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     SetSurfaceNodeAlpha(property->GetSurfaceNodeAlpha());
     statusBarHeightInImmersive_ = property->statusBarHeightInImmersive_;
     pageCompatibleMode_ = property->pageCompatibleMode_;
+    SetHookSceneMessage(property->GetHookSceneMessage());
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
     SetWidthHookRatio(property->GetHookWindowInfo().widthHookRatio);
     titleHoverShowEnabled_ = property->titleHoverShowEnabled_;
@@ -2821,6 +2828,18 @@ void WindowSessionProperty::SetPageCompatibleMode(CompatibleStyleMode compatible
 CompatibleStyleMode WindowSessionProperty::GetPageCompatibleMode() const
 {
     return pageCompatibleMode_;
+}
+
+void WindowSessionProperty::SetHookSceneMessage(const std::string& hookSceneMessage)
+{
+    std::lock_guard<std::mutex> lock(hookSceneMessageMutex_);
+    hookSceneMessage_ = hookSceneMessage;
+}
+
+std::string WindowSessionProperty::GetHookSceneMessage() const
+{
+    std::lock_guard<std::mutex> lock(hookSceneMessageMutex_);
+    return hookSceneMessage_;
 }
 
 void WindowSessionProperty::SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig)

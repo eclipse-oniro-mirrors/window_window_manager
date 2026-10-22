@@ -316,6 +316,7 @@ HWTEST_F(WindowSceneSessionImplTest5, Maximize02, TestSize.Level1)
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->property_->SetWindowModeSupportType(1);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
 
     presentation = MaximizePresentation::ENTER_IMMERSIVE;
     auto ret = window->Maximize(presentation);
@@ -1119,6 +1120,7 @@ HWTEST_F(WindowSceneSessionImplTest5, MobileAppInPadLayoutFullScreenChange, Test
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->windowSystemConfig_.freeMultiWindowEnable_ = true;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
 
     window->property_->SetMobileAppInPadLayoutFullScreen(true);
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
@@ -3335,7 +3337,8 @@ HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimits, TestSize.Level
     ASSERT_NE(nullptr, display);
     auto displayInfo = display->GetDisplayInfo();
     ASSERT_NE(nullptr, displayInfo);
-    float virtualPixelRatio = testImpl->GetVirtualPixelRatio(displayInfo);
+    float vpr = testImpl->GetVirtualPixelRatio(displayInfo);
+    float displayPixelRatio = 0.0f;
     testImpl->property_->SetDisplayId(0);
     testImpl->property_->SetConfigWindowLimitsVP(customizedLimits);
 
@@ -3353,7 +3356,7 @@ HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimits, TestSize.Level
     customizedLimits = {200, 200, 10, 10, 0.0f, 0.0f, 1.0f};
     expectLimits ={200, 200, 10, 10, 0.0f, 0.0f, 1.0f};
     testImpl->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio);
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
     EXPECT_EQ(customizedLimits.maxWidth_, expectLimits.maxWidth_);
     EXPECT_EQ(customizedLimits.maxHeight_, expectLimits.maxHeight_);
     EXPECT_EQ(customizedLimits.minWidth_, expectLimits.minWidth_);
@@ -3363,8 +3366,8 @@ HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimits, TestSize.Level
     testImpl->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
     customizedLimits = {200, 200, 10, 10, 0.0f, 0.0f, 1.0f};
     expectLimits ={200, 200, 10, 10, 0.0f, 0.0f, 1.0f};
-    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio);
-    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio);
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
     EXPECT_EQ(customizedLimits.maxWidth_, expectLimits.maxWidth_);
     EXPECT_EQ(customizedLimits.maxHeight_, expectLimits.maxHeight_);
     EXPECT_EQ(customizedLimits.minWidth_, expectLimits.minWidth_);
@@ -3375,7 +3378,7 @@ HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimits, TestSize.Level
     customizedLimits = {200, 200, 10, 10, 0.0f, 0.0f, 1.0f};
     WindowLimits userLimits = {900, 900, 100, 100, 0.0f, 0.0f, 1.0f};
     testImpl->property_->SetUserWindowLimits(userLimits);
-    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio);
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
     EXPECT_EQ(customizedLimits.maxWidth_, userLimits.maxWidth_);
     EXPECT_EQ(customizedLimits.maxHeight_, userLimits.maxHeight_);
     EXPECT_EQ(customizedLimits.minWidth_, userLimits.minWidth_);

@@ -23,6 +23,7 @@
 #include "screen_scene.h"
 
 #include "app_mgr_client.h"
+#include "configuration.h"
 #include "mock_uicontent.h"
 #include "singleton.h"
 #include "singleton_container.h"
@@ -697,8 +698,14 @@ HWTEST_F(RootSceneTest, AddRootScene, TestSize.Level1)
     rootScene->AddRootScene(12, weakWindow1);
 
     auto res = rootScene->GetUIContentByDisplayId(1);
-    ASSERT_EQ(res.second, true);
-    res = rootScene->GetUIContentByDisplayId(12);
+    EXPECT_EQ(res.second, true);
+
+    rootScene->UpdateDisplayDpi(nullptr, WindowSizeChangeReason::UNDEFINED);
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    displayInfo->SetDisplayId(1);
+    rootScene->UpdateDisplayDpi(displayInfo, WindowSizeChangeReason::UNDEFINED);
+    displayInfo->SetDisplayId(12);
+    rootScene->UpdateDisplayDpi(displayInfo, WindowSizeChangeReason::UNDEFINED);
 }
 
 /**

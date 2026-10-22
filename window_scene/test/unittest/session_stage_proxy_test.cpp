@@ -785,6 +785,43 @@ HWTEST_F(SessionStageProxyTest, NotifyWindowVisibility, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NotifyDpiHookScale
+ * @tc.desc: notify the dpi hook scale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, NotifyDpiHookScale, TestSize.Level1)
+{
+    float scale = 1.0f;
+    auto tempProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    auto ret = tempProxy->NotifyDpiHookScale(scale);
+    EXPECT_EQ(ret, WSError::WS_ERROR_IPC_FAILED);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SessionStageProxy> proxy = sptr<SessionStageProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->NotifyDpiHookScale(scale);
+    EXPECT_EQ(ret, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteFloatErrorFlag(true);
+    ret = proxy->NotifyDpiHookScale(scale);
+    EXPECT_EQ(ret, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteFloatErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->NotifyDpiHookScale(scale);
+    EXPECT_EQ(ret, WSError::WS_ERROR_IPC_FAILED);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    ret = proxy->NotifyDpiHookScale(scale);
+    EXPECT_NE(ret, WSError::WS_ERROR_NO_MEM);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
  * @tc.name: NotifyDensityFollowHost
  * @tc.desc: test function : NotifyDensityFollowHost
  * @tc.type: FUNC
@@ -792,7 +829,7 @@ HWTEST_F(SessionStageProxyTest, NotifyWindowVisibility, TestSize.Level1)
 HWTEST_F(SessionStageProxyTest, NotifyDensityFollowHost, TestSize.Level1)
 {
     ASSERT_TRUE((sessionStage_ != nullptr));
-    ASSERT_EQ(WSError::WS_OK, sessionStage_->NotifyDensityFollowHost(true, 1.0f));
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->NotifyDensityFollowHost(DpiFollowStrategy::FOLLOW_HOST_DPI_UEA, 1.0f));
 }
 
 /**

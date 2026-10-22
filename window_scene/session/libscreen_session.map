@@ -141,6 +141,7 @@
             OHOS::Rosen::ScreenSession::GetDisplayNode*;
             OHOS::Rosen::ScreenSession::GetExpandAvailableArea*;
             OHOS::Rosen::ScreenSession::GetFakeScreenSession*;
+            OHOS::Rosen::ScreenSession::GetGroupType*;
             OHOS::Rosen::ScreenSession::GetHdrFormats*;
             OHOS::Rosen::ScreenSession::GetInnerName*;
             OHOS::Rosen::ScreenSession::GetIsCurrentInUse*;
@@ -249,6 +250,7 @@
             OHOS::Rosen::ScreenSession::SetFoldScreen*;
             OHOS::Rosen::ScreenSession::SetForceCloseHdr*;
             OHOS::Rosen::ScreenSession::SetFrameGravity*;
+            OHOS::Rosen::ScreenSession::SetGroupType*;
             OHOS::Rosen::ScreenSession::SetHdrFormats*;
             OHOS::Rosen::ScreenSession::SetHorizontalRotation*;
             OHOS::Rosen::ScreenSession::SetInnerName*;
@@ -357,6 +359,7 @@
             OHOS::Rosen::ScreenSessionGroup::AddChild*;
             OHOS::Rosen::ScreenSessionGroup::ConvertToScreenGroupInfo*;
             OHOS::Rosen::ScreenSessionGroup::GetChildCount*;
+            OHOS::Rosen::ScreenSessionGroup::GetScreenCombination*;
             OHOS::Rosen::ScreenSessionGroup::HasChild*;
             OHOS::Rosen::ScreenSessionGroup::RemoveChild*;
             OHOS::Rosen::ScreenSessionGroup::ScreenSessionGroup*;

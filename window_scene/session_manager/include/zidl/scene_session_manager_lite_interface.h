@@ -38,6 +38,7 @@ namespace OHOS::Rosen {
 using ISessionListener = AAFwk::IMissionListener;
 using SessionInfoBean = AAFwk::MissionInfo;
 using SessionSnapshot = AAFwk::MissionSnapshot;
+
 class ISceneSessionManagerLite : public OHOS::Rosen::IWindowManagerLite {
 public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ISceneSessionManagerLite");
@@ -135,6 +136,8 @@ public:
         TRANS_ID_NOTIFY_APP_USE_CONTROL_DISPLAY,
         TRANS_ID_GET_SESSION_INFO_WITH_DISPLAY,
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
+        TRANS_ID_UPDATE_ROG_WINDOW_CONFIG,
+        TRANS_ID_RESTORE_SESSION_TO_FOREGROUND,
     };
 
     /*
@@ -176,9 +179,9 @@ public:
         SessionInfoBean& sessionInfo) = 0;
     virtual WSError SetSessionContinueState(const sptr<IRemoteObject>& token, const ContinueState& continueState) = 0;
     virtual WSError IsValidSessionIds(const std::vector<int32_t>& sessionIds, std::vector<bool>& results) = 0;
-    virtual WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+    virtual WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DISPLAY_ID_INVALID) = 0;
     virtual WSError GetFocusSessionElement(AppExecFwk::ElementName& element,
-        DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+        DisplayId displayId = DISPLAY_ID_INVALID) = 0;
     virtual WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent) { return WSError::WS_OK; }
     virtual WSError GetSessionSnapshot(const std::string& deviceId, int32_t persistentId,
                                        SessionSnapshot& snapshot, bool isLowResolution) = 0;
@@ -363,6 +366,22 @@ public:
         bool shouldBackToCaller = true) { return WSError::WS_OK; }
 
     /**
+     * @brief restore session to foreground
+     *
+     * This function is used to request session to foreground by persistentId
+     *
+     * @caller SA or the caller with CONTROL_DEVICE permission
+     * @permission application requires ohos.permission.CONTROL_DEVICE permission and SA permission
+     *
+     * @param persistentId the session of persistentId
+     * @return Successful call returns WSError: WS-OK, otherwise it indicates failure
+     */
+    virtual WSErrorResult RestoreSessionToForeground(int32_t persistentId)
+    {
+        return WSErrorResult{WSError::WS_OK, ""};
+    }
+
+    /**
      * @brief Create a new instanceKey of a specific bundle
      *
      * This function is used to create a new instanceKey
@@ -440,9 +459,11 @@ public:
      * @permission SA permission or SystemApp permission
      *
      * @param token the abilitytoken of the mission entered kiosk mode
+     * @param kioskType the type of kiosk mode
      * @return Successful call returns WMError: WM-OK, otherwise it indicates failure
      */
-    virtual WMError EnterKioskMode(const sptr<IRemoteObject>& token) { return WMError::WM_OK; }
+    virtual WMError EnterKioskMode(const sptr<IRemoteObject>& token, KioskType kioskType = KioskType::DEFAULT)
+        { return WMError::WM_OK; }
 
     /**
      * @brief Notify exit kiosk mode
@@ -481,6 +502,19 @@ public:
 
     virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) = 0;
+
+    /**
+     * @brief Update custom window config for specific apps
+     *
+     * This function is used to update custom window config for 720p apps
+     *
+     * @caller SA
+     * @permission SA permission
+     *
+     * @param windowConfig The window config including width, height, dpi, scale and xhdpiAppList
+     * @return Successful call returns WMError: WM-OK, otherwise it indicates failure
+     */
+    virtual WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_INTERFACE_H

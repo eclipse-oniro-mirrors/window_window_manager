@@ -343,7 +343,7 @@ WSError SessionStageProxy::UpdateSessionViewportConfig(const SessionViewportConf
         TLOGE(WmsLogTag::WMS_UIEXT, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    if (!(data.WriteBool(config.isDensityFollowHost_) && data.WriteFloat(config.density_) &&
+    if (!(data.WriteUint32(static_cast<uint32_t>(config.dpiFollowStrategy_)) && data.WriteFloat(config.density_) &&
             data.WriteUint64(config.displayId_) && data.WriteInt32(config.orientation_) &&
             data.WriteUint32(config.transform_))) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Write config failed");
@@ -945,7 +945,7 @@ WSError SessionStageProxy::NotifyWindowOcclusionState(const WindowVisibilityStat
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option(MessageOption::TF_ASYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write stage interfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
@@ -1043,6 +1043,35 @@ WSError SessionStageProxy::GetTopNavDestinationName(std::string& topNavDestName)
         return WSError::WS_ERROR_IPC_FAILED;
     }
     return static_cast<WSError>(errCode);
+}
+
+WSError SessionStageProxy::NotifyDpiHookScale(float scale)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write interfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteFloat(scale)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write scale failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    auto errCode = remote->SendRequest(
+        static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DPI_HOOK_SCALE),
+        data, reply, option);
+    if (errCode != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    int32_t ret = reply.ReadInt32();
+    return static_cast<WSError>(ret);
 }
 
 WSError SessionStageProxy::NotifyLayoutFinishAfterWindowModeChange(WindowMode mode)
@@ -1482,7 +1511,7 @@ void SessionStageProxy::NotifyGlobalScaledRectChange(const Rect& globalScaledRec
     }
 }
 
-WSError SessionStageProxy::NotifyDensityFollowHost(bool isFollowHost, float densityValue)
+WSError SessionStageProxy::NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -1492,8 +1521,8 @@ WSError SessionStageProxy::NotifyDensityFollowHost(bool isFollowHost, float dens
         return WSError::WS_ERROR_IPC_FAILED;
     }
 
-    if (!data.WriteBool(isFollowHost)) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Write isFollowHost failed");
+    if (!data.WriteUint32(static_cast<uint32_t>(dpiFollowStrategy))) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write dpiFollowStrategy failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 

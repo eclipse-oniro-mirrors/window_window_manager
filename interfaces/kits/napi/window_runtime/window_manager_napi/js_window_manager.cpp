@@ -38,6 +38,7 @@
 #include "sys_cap_util.h"
 #include "get_snapshot_callback.h"
 #include "window_histogram_management.h"
+#include "window_focus_error_msg_helper.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -45,6 +46,12 @@ using namespace AbilityRuntime;
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "JsWindowManager"};
 const std::string PIP_WINDOW = "pip_window";
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 constexpr size_t INDEX_ZERO = 0;
 constexpr size_t INDEX_ONE = 1;
 constexpr size_t INDEX_TWO = 2;
@@ -601,6 +608,42 @@ bool JsWindowManager::ParseWindowInfoOptions(napi_env env, napi_value jsObject, 
     if (option.foregroundBelowWindow < 0) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid foregroundBelowWindow=%{public}d", option.foregroundBelowWindow);
         return false;
+    }
+    return true;
+}
+
+bool JsWindowManager::ParseWindowPositionInfo(napi_env env, napi_value jsObject,
+    WindowPositionInfo& windowPositionInfo, WmErrorCode& errorCode)
+{
+    errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+    uint32_t size = 0;
+    if (GetType(env, jsObject) != napi_object || napi_get_array_length(env, jsObject, &size) != napi_ok) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert parameter to windowPositions");
+        return false;
+    }
+    if (size == 0) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions is empty");
+        return false;
+    }
+    for (uint32_t i = 0; i < size; i++) {
+        if (i >= MAX_SIZE_WINDOW_POSITION) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions size exceeds max, size: %{public}u", size);
+            errorCode = WmErrorCode::WM_ERROR_ILLEGAL_PARAM;
+            return false;
+        }
+        napi_value element = nullptr;
+        napi_get_element(env, jsObject, i, &element);
+        WindowPositionParams windowPosition;
+        if (!ParseJsValue(element, env, "windowId", windowPosition.windowId) || windowPosition.windowId <= 0) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert windowId");
+            return false;
+        }
+        if (!ParseJsValue(element, env, "insertAfter", windowPosition.insertAfter) ||
+            windowPosition.insertAfter < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "failed to convert insertAfter");
+            return false;
+        }
+        windowPositionInfo.windowPositions.emplace_back(windowPosition);
     }
     return true;
 }
@@ -1259,11 +1302,11 @@ static napi_value GetTopWindowTask(napi_value nativeContext, napi_env env, napi_
         if (lists->window == nullptr || lists->window->GetWindowState() == WindowState::STATE_DESTROYED) {
             if (newApi) {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Top window or main window is not created or destroyed."));
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             } else {
                 task.Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR,
-                    "[window][getLatsWindow]msg: Get top window failed"));
+                    "[window][getLastWindow]msg: Top window or main window is not created or destroyed."));
             }
             WLOGFE("Get top window failed, %{public}d", lists->window == nullptr);
             return;
@@ -1589,7 +1632,6 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != 2) { // 2: params num
-        TLOGE(WmsLogTag::WMS_FOCUS, "Argc is invalid: %{public}zu", argc);
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     int32_t sourcePersistentId = static_cast<int32_t>(INVALID_WINDOW_ID);
@@ -1603,31 +1645,33 @@ napi_value JsWindowManager::OnShiftAppWindowFocus(napi_env env, napi_callback_in
         errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
     if (errCode == WMError::WM_ERROR_INVALID_PARAM) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", WmErrorCode::WM_ERROR_INVALID_PARAM);
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][shiftAppWindowFocus]"));
         return NapiGetUndefined(env);
     }
-    // only return promiss<void>
     napi_value lastParam = nullptr;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
     auto asyncTask = [env, task = napiAsyncTask, sourcePersistentId, targetPersistentId] {
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-                SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourcePersistentId, targetPersistentId));
-            if (ret == WmErrorCode::WM_OK) {
+            WMError ret = SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(
+                sourcePersistentId, targetPersistentId);
+            if (ret == WMError::WM_OK) {
                 task->Resolve(env, NapiGetUndefined(env));
                 TLOGND(WmsLogTag::WMS_FOCUS, "OnShiftAppWindowFocus success");
             } else {
-                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", ret);
-                task->Reject(env, JsErrUtils::CreateJsError(env, ret, "ShiftAppWindowFocus failed"));
+                WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+                HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", wmErrorCode);
+                task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
+                    WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, ret)));
             }
         };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnShiftAppWindowFocus") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        TLOGE(WmsLogTag::WMS_FOCUS, "window state is abnormal!");
+        napiAsyncTask->Reject(env,
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][shiftAppWindowFocus]msg: send event failed"));
     }
     return result;
 }
@@ -1687,14 +1731,15 @@ napi_value JsWindowManager::OnSetStartWindowBackgroundColor(napi_env env, napi_c
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [moduleName, abilityName, color, env, task = napiAsyncTask] {
+        std::string errMsg;
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
-            SetStartWindowBackgroundColor(moduleName, abilityName, color));
+            SetStartWindowBackgroundColor(moduleName, abilityName, color, errMsg));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][setStartWindowBackgroundColor]"));
+                ConcatErrorMsg("[window][setStartWindowBackgroundColor]", errMsg)));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetStartWindowBackgroundColor") != napi_status::napi_ok) {
@@ -2593,6 +2638,57 @@ napi_value JsWindowManager::OnMoveMainWindowToTargetDisplay(napi_env env, napi_c
     return result;
 }
 
+napi_value JsWindowManager::SetWindowPosition(napi_env env, napi_callback_info info)
+{
+    JsWindowManager* me = CheckParamsAndGetThis<JsWindowManager>(env, info);
+    return (me != nullptr) ? me->OnSetWindowPosition(env, info) : nullptr;
+}
+
+napi_value JsWindowManager::OnSetWindowPosition(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "argc is invalid");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWindowPosition]msg: Mandatory parameters are left unspecified");
+    }
+    WindowPositionInfo windowPositionInfo;
+    WmErrorCode errorCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+    if (!ParseWindowPositionInfo(env, argv[INDEX_ZERO], windowPositionInfo, errorCode)) {
+        if (errorCode == WmErrorCode::WM_ERROR_ILLEGAL_PARAM) {
+            return NapiThrowError(env, errorCode,
+                "[window][setWindowPosition]msg: The windowPositions list exceeds the maximum size of 50.");
+        }
+        return NapiThrowError(env, errorCode,
+            "[window][setWindowPosition]msg: The windowPositions list is empty, the windowId is invalid, "
+            "or the insertAfter value is invalid.");
+    }
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [windowPositionInfo, env, task = napiAsyncTask] {
+        WMError wmError = SingletonContainer::Get<WindowManager>().SetWindowPosition(windowPositionInfo);
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
+        if (ret == WmErrorCode::WM_OK) {
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowPosition", ret);
+            std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(
+                WindowFocusApiType::SET_WINDOW_POSITION, wmError);
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, errMsg));
+        }
+    };
+    napi_status status = napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnSetWindowPosition");
+    if (status != napi_status::napi_ok) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowPosition",
+            WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][setWindowPosition]msg: send event failed"));
+    }
+    return result;
+}
+
 napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
 {
     WLOGFD("JsWindowManagerInit");
@@ -2617,6 +2713,7 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "WindowAnchor", WindowAnchorInit(env));
     napi_set_named_property(env, exportObj, "PixelUnit", PixelUnitInit(env));
     napi_set_named_property(env, exportObj, "WindowEventType", WindowEventTypeInit(env));
+    napi_set_named_property(env, exportObj, "FocusChangeReason", FocusChangeReasonInit(env));
     napi_set_named_property(env, exportObj, "WindowLayoutMode", WindowLayoutModeInit(env));
     napi_set_named_property(env, exportObj, "Orientation", OrientationInit(env));
     napi_set_named_property(env, exportObj, "OrientationExecutionResult", OrientationExecutionResultInit(env));
@@ -2636,6 +2733,7 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
     napi_set_named_property(env, exportObj, "AnimationType", AnimationTypeInit(env));
     napi_set_named_property(env, exportObj, "WindowTransitionType", WindowTransitionTypeInit(env));
     napi_set_named_property(env, exportObj, "WindowAnimationCurve", WindowAnimationCurveInit(env));
+    napi_set_named_property(env, exportObj, "WindowPosition", WindowPositionInit(env));
 
     const char *moduleName = "JsWindowManager";
     BindNativeFunction(env, exportObj, "create", moduleName, JsWindowManager::Create);
@@ -2687,6 +2785,8 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
         JsWindowManager::CreateSubWindowAndBindParent);
     BindNativeFunction(env, exportObj, "moveMainWindowToTargetDisplay", moduleName,
         JsWindowManager::MoveMainWindowToTargetDisplay);
+    BindNativeFunction(env, exportObj, "setWindowPosition", moduleName,
+        JsWindowManager::SetWindowPosition);
     return NapiGetUndefined(env);
 }
 }  // namespace Rosen

@@ -24,6 +24,10 @@ namespace OHOS::Rosen {
 std::unordered_map<int32_t, sptr<SessionManager>> SessionManager::sessionManagerMap_ = {};
 std::mutex SessionManager::sessionManagerMapMutex_;
 
+std::unordered_set<int32_t> SessionManager::activeUserIds_ = {};
+std::mutex SessionManager::activeUserIdsMutex_;
+bool SessionManager::activeUserIdsInitialized_ = false;
+
 SessionManagerServiceRecoverListener::SessionManagerServiceRecoverListener(int32_t userId) : userId_(userId) {}
 
 int32_t SessionManagerServiceRecoverListener::OnRemoteRequest(uint32_t code,
@@ -150,6 +154,7 @@ void SessionManager::OnWMSConnectionChangedCallback(int32_t userId, int32_t scre
         userId, screenId, isConnected, pid);
     callbackFunc(userId, screenId, isConnected, pid);
 }
+
 void SessionManager::OnWMSConnectionChanged(
     int32_t userId, int32_t screenId, bool isConnected,
     int32_t pid, int32_t fromUserId, int32_t fromPid,
@@ -184,14 +189,15 @@ void SessionManager::OnWMSConnectionChanged(
             userId_, shouldUpdateCurrentState,
             currentServer_.userId, currentServer_.screenId, currentServer_.pid, isWMSConnected_);
     }
+    UpdateActiveUserIds(userId, isConnected);
     bool isUserSwitched = fromUserId != INVALID_USER_ID;
     if (isConnected && isUserSwitched) {
+        UpdateActiveUserIds(fromUserId, false);
         OnWMSConnectionChangedCallback(fromUserId, screenId, false, fromPid);
         if (userId_ == INVALID_USER_ID && shouldUpdateCurrentState) {
             OnUserSwitch(sessionManagerService);
         }
     }
-
     OnWMSConnectionChangedCallback(userId, screenId, isConnected, pid);
 }
 
@@ -537,11 +543,121 @@ WMError SessionManager::UnregisterWMSConnectionChangedListener()
     return WMError::WM_OK;
 }
 
+void SessionManager::UpdateActiveUserIds(int32_t userId, bool isConnected)
+{
+    if (userId < INVALID_USER_ID || userId_ != INVALID_USER_ID) {
+        TLOGD(WmsLogTag::WMS_MULTI_USER, "Skip update, userId=%{public}d, instanceUserId=%{public}d",
+            userId, userId_);
+        return;
+    }
+
+    UserAddedCallbackFunc addedCallback = nullptr;
+    UserRemovedCallbackFunc removedCallback = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(activeUserIdsMutex_);
+        if (isConnected) {
+            activeUserIds_.insert(userId);
+            TLOGI(WmsLogTag::WMS_MULTI_USER, "User %{public}d added to activeUserIds, total: %{public}zu",
+                userId, activeUserIds_.size());
+            {
+                std::lock_guard<std::mutex> lock(userAddedCallbackFuncMutex_);
+                addedCallback = userAddedCallbackFunc_;
+            }
+        } else {
+            activeUserIds_.erase(userId);
+            TLOGI(WmsLogTag::WMS_MULTI_USER, "User %{public}d removed from activeUserIds, total: %{public}zu",
+                userId, activeUserIds_.size());
+            {
+                std::lock_guard<std::mutex> lock(userRemovedCallbackFuncMutex_);
+                removedCallback = userRemovedCallbackFunc_;
+            }
+        }
+    }
+    if (addedCallback) {
+        addedCallback(userId);
+    }
+    if (removedCallback) {
+        removedCallback(userId);
+    }
+}
+
+void SessionManager::GetActiveUserIds(std::vector<int32_t>& userIds)
+{
+    {
+        std::lock_guard<std::mutex> lock(activeUserIdsMutex_);
+        if (activeUserIdsInitialized_) {
+            userIds.assign(activeUserIds_.begin(), activeUserIds_.end());
+            return;
+        }
+    }
+    
+    InitializeActiveUserIds();
+    
+    std::lock_guard<std::mutex> lock(activeUserIdsMutex_);
+    userIds.assign(activeUserIds_.begin(), activeUserIds_.end());
+}
+
+void SessionManager::InitializeActiveUserIds()
+{
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "InitializeActiveUserIds");
+    
+    {
+        std::lock_guard<std::mutex> lock(activeUserIdsMutex_);
+        if (activeUserIdsInitialized_) {
+            TLOGD(WmsLogTag::WMS_MULTI_USER, "Already initialized by another thread");
+            return;
+        }
+    }
+    InitMockSMSProxy();
+    RegisterSMSRecoverListener();
+    auto msmProxy = GetMockSessionManagerServiceProxy();
+    if (!msmProxy) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "GetMockSessionManagerServiceProxy failed");
+        return;
+    }
+    
+    std::vector<int32_t> userIdsVec;
+    ErrCode err = msmProxy->GetActiveUserIds(userIdsVec);
+    if (err != ERR_OK) {
+        TLOGE(WmsLogTag::WMS_MULTI_USER, "GetActiveUserIds IPC failed: %{public}d", err);
+        return;
+    }
+    
+    SetAllActiveUserIds(userIdsVec);
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "Initialized with %{public}zu users", userIdsVec.size());
+}
+
+void SessionManager::SetAllActiveUserIds(const std::vector<int32_t>& userIds)
+{
+    std::lock_guard<std::mutex> lock(activeUserIdsMutex_);
+    for (int32_t userId : userIds) {
+        if (userId > INVALID_USER_ID) {
+            activeUserIds_.insert(userId);
+        }
+    }
+    activeUserIdsInitialized_ = true;
+    TLOGI(WmsLogTag::WMS_MULTI_USER, "SetAllActiveUserIds with %{public}zu users", activeUserIds_.size());
+}
+
 void SessionManager::RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc)
 {
     TLOGD(WmsLogTag::WMS_MULTI_USER, "enter, userId=%{public}d", userId_);
     std::lock_guard<std::mutex> lock(userSwitchCallbackFuncMutex_);
     userSwitchCallbackFunc_ = callbackFunc;
+}
+
+void SessionManager::RegisterUserAddedListener(const UserAddedCallbackFunc& callbackFunc)
+{
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "enter, userId=%{public}d", userId_);
+    std::lock_guard<std::mutex> lock(userAddedCallbackFuncMutex_);
+    userAddedCallbackFunc_ = callbackFunc;
+}
+
+void SessionManager::RegisterUserRemovedListener(const UserRemovedCallbackFunc& callbackFunc)
+{
+    TLOGD(WmsLogTag::WMS_MULTI_USER, "enter, userId=%{public}d", userId_);
+    std::lock_guard<std::mutex> lock(userRemovedCallbackFuncMutex_);
+    userRemovedCallbackFunc_ = callbackFunc;
 }
 
 void SessionManager::OnFoundationDied()
@@ -568,6 +684,12 @@ void SessionManager::OnFoundationDied()
         std::lock_guard<std::mutex> lock(mockSessionManagerServiceMutex_);
         mockSessionManagerServiceProxy_ = nullptr;
     }
+    {
+        std::lock_guard<std::mutex> lock(activeUserIdsMutex_);
+        activeUserIds_.clear();
+        activeUserIdsInitialized_ = false;
+    }
+    
     TLOGI(WmsLogTag::DEFAULT, "Clear success, userId=%{public}d", userId_);
 }
 

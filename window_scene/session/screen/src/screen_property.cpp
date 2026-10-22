@@ -440,7 +440,7 @@ void ScreenProperty::SetRogScreenResolution(uint32_t width, uint32_t height)
 
 void ScreenProperty::UpdateXDpi()
 {
-    if (dpiPhyWidth_ != UINT32_MAX) {
+    if (dpiPhyWidth_ != UINT32_MAX && dpiPhyWidth_ != 0) {
         int32_t width = phyBounds_.rect_.width_;
         if (rogWidth_ != 0) {
             width = static_cast<int32_t>(rogWidth_);
@@ -452,7 +452,7 @@ void ScreenProperty::UpdateXDpi()
 
 void ScreenProperty::UpdateYDpi()
 {
-    if (dpiPhyHeight_ != UINT32_MAX) {
+    if (dpiPhyHeight_ != UINT32_MAX && dpiPhyHeight_ != 0) {
         int32_t height_ = phyBounds_.rect_.height_;
         if (rogHeight_ != 0) {
             height_ = static_cast<int32_t>(rogHeight_);

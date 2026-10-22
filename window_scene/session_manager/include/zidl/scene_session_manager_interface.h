@@ -185,6 +185,7 @@ public:
         TRANS_ID_GET_CROSS_PROCESS_WINDOW_INFO,
         TRANS_ID_GET_FLOAT_VIEW_LIMITS,
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
+        TRANS_ID_SET_WINDOW_POSITION,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -194,9 +195,9 @@ public:
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) = 0;
     virtual WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
         bool shouldBackToCaller = true, int32_t reason = 0) = 0;
-    virtual WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+    virtual WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DISPLAY_ID_INVALID) = 0;
     virtual WSError GetFocusSessionElement(AppExecFwk::ElementName& element,
-        DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
+        DisplayId displayId = DISPLAY_ID_INVALID) = 0;
 
     virtual WSError RegisterSessionListener(const sptr<ISessionListener>& listener) = 0;
     virtual WSError UnRegisterSessionListener(const sptr<ISessionListener>& listener) = 0;
@@ -391,7 +392,7 @@ public:
         std::vector<sptr<RSWindowAnimationTarget>>& targets) override { return WMError::WM_OK; }
     void SetMaximizeMode(MaximizeMode maximizeMode) override {}
     MaximizeMode GetMaximizeMode() override { return MaximizeMode::MODE_AVOID_SYSTEM_BAR; }
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override {}
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override {}
     void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
         const sptr<IRemoteObject>& abilityToken) override {}
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
@@ -416,6 +417,7 @@ public:
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override { return WSError::WS_OK; }
     WSError ResetSpecificWindowZIndex(int32_t pid) override { return WSError::WS_OK; }
     WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId) override { return WSError::WS_OK; }
+    WSError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override { return WSError::WS_OK; }
     void AddExtensionWindowStageToSCB(const sptr<ISessionStage>& sessionStage, const sptr<IRemoteObject>& token,
         uint64_t surfaceNodeId, int64_t startModalExtensionTimeStamp, bool isConstrainedModal) override {}
     void RemoveExtensionWindowStageFromSCB(const sptr<ISessionStage>& sessionStage,
@@ -489,9 +491,14 @@ public:
 
     WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
         int32_t persistentId) override { return WMError::WM_OK; }
+    WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg) override { return WMError::WM_OK; }
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId) override { return WMError::WM_OK; }
+    WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg) override { return WMError::WM_OK; }
     WMError RemoveImageForRecent(int32_t persistentId) override { return WMError::WM_OK; }
+    WMError RemoveImageForRecent(int32_t persistentId, std::string& errMsg) override { return WMError::WM_OK; }
 
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) override { return WMError::WM_OK; }
@@ -509,6 +516,8 @@ public:
     WMError NotifyScreenshotEvent(ScreenshotEventType type) override { return WMError::WM_OK; }
     WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
         uint32_t color, int32_t uid) override { return WMError::WM_OK; }
+    WMError SetStartWindowBackgroundColor(const std::string& moduleName, const std::string& abilityName,
+        uint32_t color, int32_t uid, std::string& errMsg) override { return WMError::WM_OK; }
     WMError HasFloatingWindowForeground(const sptr<IRemoteObject>& abilityToken,
         bool& hasOrNot) override { return WMError::WM_OK; }
     WSError UseImplicitAnimation(int32_t hostWindowId, bool useImplicit) override { return WSError::WS_OK; };

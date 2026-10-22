@@ -44,7 +44,7 @@ public:
      * @return WSError
      */
     WSError RequestExtensionSessionActivation(const sptr<ExtensionSession>& extensionSession, uint32_t hostWindowId,
-        std::function<void(WSError)>&& resultCallback);
+        std::function<void(WSError, int32_t)>&& resultCallback);
 
     /**
      * @brief background extension session

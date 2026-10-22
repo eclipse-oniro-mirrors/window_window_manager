@@ -60,7 +60,7 @@ public:
     WMError UnregisterWindowManagerAgent(WindowManagerAgentType type,
         const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
     WMError SetGestureNavigationEnabled(bool enable) override;
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
         const sptr<IRemoteObject>& abilityToken) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
@@ -77,8 +77,8 @@ public:
         bool shouldBackToCaller = true, int32_t reason = 0) override;
     WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot) override;
     WMError GetSnapshotByWindowId(int32_t persistentId, std::shared_ptr<Media::PixelMap>& pixelMap) override;
-    WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
-    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DISPLAY_ID_INVALID) override;
+    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override;
 
     WSError RegisterSessionListener(const sptr<ISessionListener>& listener) override;
@@ -147,6 +147,7 @@ public:
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override;
     WSError ResetSpecificWindowZIndex(int32_t pid) override;
     WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId) override;
+    WSError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override;
     void AddExtensionWindowStageToSCB(const sptr<ISessionStage>& sessionStage,
         const sptr<IRemoteObject>& token, uint64_t surfaceNodeId, int64_t startModalExtensionTimeStamp,
         bool isConstrainedModal = false) override;
@@ -186,9 +187,14 @@ public:
     WMError IsPcOrPadFreeMultiWindowMode(bool& isPcOrPadFreeMultiWindowMode) override;
     WMError IsWindowRectAutoSave(const std::string& key, bool& enabled, int persistentId) override;
     WMError SetImageForRecent(uint32_t imgResourceId, ImageFit ImageFit, int32_t persistentId) override;
+    WMError SetImageForRecent(uint32_t imgResourceId, ImageFit ImageFit,
+        int32_t persistentId, std::string& errMsg) override;
     WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit ImageFit,
         int32_t persistentId) override;
+    WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit ImageFit,
+        int32_t persistentId, std::string& errMsg) override;
     WMError RemoveImageForRecent(int32_t persistentId) override;
+    WMError RemoveImageForRecent(int32_t persistentId, std::string& errMsg) override;
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
         std::unordered_map<uint64_t, DisplayId>& windowDisplayIdMap) override;
     WMError SetGlobalDragResizeType(DragResizeType dragResizeType) override;
@@ -201,6 +207,9 @@ public:
     WMError NotifyScreenshotEvent(ScreenshotEventType type) override;
     WMError SetStartWindowBackgroundColor(
         const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid) override;
+    WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid,
+        std::string& errMsg) override;
     WMError MinimizeByWindowId(const std::vector<int32_t>& windowIds) override;
     WMError SetForegroundWindowNum(uint32_t windowNum) override;
     WSError UseImplicitAnimation(int32_t hostWindowId, bool useImplicit) override;

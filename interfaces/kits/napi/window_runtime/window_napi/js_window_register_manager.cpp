@@ -75,6 +75,7 @@ const std::map<std::string, RegisterListenerType> WINDOW_LISTENER_MAP {
     {WINDOW_ROTATION_CHANGE_CB, RegisterListenerType::WINDOW_ROTATION_CHANGE_CB},
     {FREE_WINDOW_MODE_CHANGE_CB, RegisterListenerType::FREE_WINDOW_MODE_CHANGE_CB},
     {PARENT_LIFECYCLE_EVENT_CB, RegisterListenerType::PARENT_LIFECYCLE_EVENT_CB},
+    {WINDOW_FOCUS_STATE_CHANGE_CB, RegisterListenerType::WINDOW_FOCUS_STATE_CHANGE_CB},
 };
 const std::map<std::string, RegisterListenerType> WINDOW_STAGE_LISTENER_MAP {
     // white register list for window stage
@@ -390,6 +391,24 @@ WmErrorCode JsWindowRegisterManager::ProcessApplicationFocusChangeRegister(sptr<
     } else {
         ret = MappingWmErrorCodeSafely(
             WindowManager::GetInstance().UnregisterApplicationFocusChangedListener(thisListener));
+    }
+    return ret;
+}
+
+WmErrorCode JsWindowRegisterManager::ProcessFocusStateChangeRegister(sptr<JsWindowListener> listener,
+    sptr<Window> window, bool isRegister, napi_env env, napi_value parameter)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "called");
+    if (window == nullptr) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "window is nullptr");
+        return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+    }
+    sptr<IFocusStateChangedListener> thisListener(listener);
+    WmErrorCode ret;
+    if (isRegister) {
+        ret = MappingWmErrorCodeSafely(window->RegisterFocusStateChangedListener(thisListener));
+    } else {
+        ret = MappingWmErrorCodeSafely(window->UnregisterFocusStateChangedListener(thisListener));
     }
     return ret;
 }
@@ -839,6 +858,8 @@ WmErrorCode JsWindowRegisterManager::ProcessListener(RegisterListenerType regist
                 return ProcessFreeWindowModeChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             case static_cast<uint32_t>(RegisterListenerType::PARENT_LIFECYCLE_EVENT_CB):
                 return ProcessParentLifecycleEventRegister(windowManagerListener, window, isRegister, env, parameter);
+            case static_cast<uint32_t>(RegisterListenerType::WINDOW_FOCUS_STATE_CHANGE_CB):
+                return ProcessFocusStateChangeRegister(windowManagerListener, window, isRegister, env, parameter);
             default:
                 WLOGFE("RegisterListenerType %{public}u is not supported",
                     static_cast<uint32_t>(registerListenerType));
@@ -882,6 +903,7 @@ WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std
     }
     RegisterListenerType listenerType = iterCallbackType->second;
     if (value == nullptr) {
+        TLOGI(WmsLogTag::DEFAULT, "SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto it = jsCbMap_[type].begin(); it != jsCbMap_[type].end();) {
             if (it->second->CanCancelUnregister(type) != WmErrorCode::WM_OK) {
                 return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
@@ -971,6 +993,8 @@ WmErrorCode JsWindowRegisterManager::UnregisterWindowPostureModeListener(napi_en
         return WmErrorCode::WM_OK;
     }
     if (callback == nullptr) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "SubEvent op=off_all kit=ArkUIKit event=%{public}u",
+            static_cast<uint32_t>(mode));
         for (auto it = jsPostureModeCbMap_[mode].begin(); it != jsPostureModeCbMap_[mode].end();) {
             WmErrorCode ret = ProcessWindowPostureModeChangeRegister(it->second, window, false, env, mode);
             if (ret != WmErrorCode::WM_OK) {

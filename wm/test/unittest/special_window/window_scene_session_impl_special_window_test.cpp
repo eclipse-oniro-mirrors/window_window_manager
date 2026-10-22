@@ -104,7 +104,7 @@ HWTEST_F(WindowSceneSessionImplSpecialWindowTest, CreateAndConnectSpecificSessio
     ASSERT_NE(nullptr, windowSceneSession);
 
     windowSceneSession->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     windowSceneSession->property_->SetPersistentId(102);
     windowSceneSession->property_->SetParentPersistentId(100);
     windowSceneSession->property_->SetParentId(100);
@@ -140,7 +140,7 @@ HWTEST_F(WindowSceneSessionImplSpecialWindowTest, CreateAndConnectSpecificSessio
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -169,7 +169,7 @@ HWTEST_F(WindowSceneSessionImplSpecialWindowTest, CreateAndConnectSpecificSessio
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -199,7 +199,7 @@ HWTEST_F(WindowSceneSessionImplSpecialWindowTest, CreateAndConnectSpecificSessio
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -227,7 +227,7 @@ HWTEST_F(WindowSceneSessionImplSpecialWindowTest, CreateAndConnectSpecificSessio
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::APP_SUB_WINDOW_BASE;
-    ASSERT_NE(WMError::WM_ERROR_INVALID_TYPE, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_NE(WMError::WM_ERROR_INVALID_TYPE, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_NE(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -256,7 +256,7 @@ HWTEST_F(WindowSceneSessionImplSpecialWindowTest, CreateAndConnectSpecificSessio
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::SYSTEM_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_OK, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 
@@ -285,7 +285,7 @@ HWTEST_F(WindowSceneSessionImplSpecialWindowTest, CreateAndConnectSpecificSessio
     windowSceneSession->hostSession_ = session;
 
     windowSceneSession->property_->type_ = WindowType::SYSTEM_SUB_WINDOW_BASE;
-    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession());
+    ASSERT_EQ(WMError::WM_ERROR_NULLPTR, windowSceneSession->CreateAndConnectSpecificSession().errCode);
     ASSERT_EQ(WMError::WM_OK, windowSceneSession->Destroy(true));
 }
 

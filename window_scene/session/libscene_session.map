@@ -69,6 +69,7 @@
             OHOS::Rosen::SceneSession::ActivateDragBySystem*;
             OHOS::Rosen::SceneSession::MarkAvoidAreaAsDirty*;
             OHOS::Rosen::SceneSession::NotifyOcclusionState*;
+            OHOS::Rosen::SceneSession::NotifyDpiHookScale*;
             OHOS::Rosen::SceneSession::NotifyRotationChange*;
             OHOS::Rosen::SceneSession::RemoveExtWindowFlags*;
             OHOS::Rosen::SceneSession::SendPointerEventToUI*;
@@ -145,6 +146,7 @@
             OHOS::Rosen::SceneSession::AddOrUpdateWindowDragHotArea*;
             OHOS::Rosen::SceneSession::RegisterSessionEventCallback*;
             OHOS::Rosen::SceneSession::RegisterTouchOutsideCallback*;
+            OHOS::Rosen::SceneSession::RegisterTouchHotAreasChangeCallback*;
             OHOS::Rosen::SceneSession::RemoveNormalModalUIExtension*;
             OHOS::Rosen::SceneSession::ResetSizeChangeReasonIfDirty*;
             OHOS::Rosen::SceneSession::SetHighlightChangeNotifyFunc*;

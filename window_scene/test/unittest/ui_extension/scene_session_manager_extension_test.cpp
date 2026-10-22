@@ -126,19 +126,19 @@ HWTEST_F(SceneSessionManagerExtensionTest, CheckSubSessionStartedByExtension, Te
     sptr<IRemoteObject> token;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     property->SetParentPersistentId(100000);
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_ERROR_NULLPTR);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_ERROR_NULLPTR);
     property->SetParentPersistentId(parentSession->GetPersistentId());
 
     info.isSystem_ = true;
     parentSession->sessionInfo_ = info;
     ssm_->sceneSessionMap_.insert({ parentSession->GetPersistentId(), parentSession });
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_ERROR_INVALID_WINDOW);
     info.isSystem_ = false;
     parentSession->sessionInfo_ = info;
     ssm_->sceneSessionMap_.insert({ parentSession->GetPersistentId(), parentSession });
 
     LOCK_GUARD_EXPR(SCENE_GUARD, parentSession->SetCallingPid(IPCSkeleton::GetCallingPid()));
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_OK);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_OK);
     LOCK_GUARD_EXPR(SCENE_GUARD, parentSession->SetCallingPid(IPCSkeleton::GetCallingPid() + 1));
 
     AAFwk::UIExtensionSessionInfo extensionSessionInfo;
@@ -146,20 +146,20 @@ HWTEST_F(SceneSessionManagerExtensionTest, CheckSubSessionStartedByExtension, Te
     extensionSessionInfo.persistentId = property->GetParentPersistentId();
     extensionSessionInfo.hostWindowId = property->GetParentPersistentId();
     AAFwk::MockAbilityManagerClient::SetUIExtensionSessionInfo(extensionSessionInfo);
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_OK);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_OK);
     MockUIExtSessionPermission::SetIsSystemCallingFlag(false);
     extensionSessionInfo.hostWindowId = property->GetParentPersistentId() + 1;
     AAFwk::MockAbilityManagerClient::SetUIExtensionSessionInfo(extensionSessionInfo);
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_ERROR_INVALID_WINDOW);
     extensionSessionInfo.hostWindowId = INVALID_SESSION_ID;
     AAFwk::MockAbilityManagerClient::SetUIExtensionSessionInfo(extensionSessionInfo);
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_ERROR_INVALID_WINDOW);
     extensionSessionInfo.persistentId = INVALID_SESSION_ID;
     AAFwk::MockAbilityManagerClient::SetUIExtensionSessionInfo(extensionSessionInfo);
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_ERROR_INVALID_WINDOW);
 
     MockUIExtSessionPermission::SetIsSystemCallingFlag(true);
-    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property), WSError::WS_OK);
+    EXPECT_EQ(ssm_->CheckSubSessionStartedByExtension(token, property).errCode, WSError::WS_OK);
 
     MockUIExtSessionPermission::ClearAllFlag();
     AAFwk::MockAbilityManagerClient::ClearAll();

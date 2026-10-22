@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_EXTENSION_SESSION_H
 #define OHOS_ROSEN_WINDOW_SCENE_EXTENSION_SESSION_H
 #include <future>
+#include <mutex>
 
 #include "key_event.h"
 #include "want.h"
@@ -24,6 +25,8 @@
 #include "session/host/include/session.h"
 
 namespace OHOS::Rosen {
+class RSUIDirector;
+
     bool IsExtensionSessionInvalid(int32_t persistentId);
 
 class WindowEventChannelListener : public IRemoteStub<IWindowEventChannelListener> {
@@ -113,7 +116,7 @@ public:
     WSError TransferAccessibilityDumpChildInfo(const std::vector<std::string>& params, std::vector<std::string>& info);
     void NotifySyncOn() override;
     void NotifyAsyncOn() override;
-    WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue = 1.0f);
+    WSError NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue = 1.0f);
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config);
     void TriggerBindModalUIExtension() override;
     void RegisterExtensionSessionEventCallback(const sptr<ExtensionSessionEventCallback>& extSessionEventCallback);
@@ -131,14 +134,39 @@ public:
         isTransparentUIExtension_ = isTransparentUIExtension;
     }
     bool IsTransparentUIExtension() const { return isTransparentUIExtension_; }
+    std::shared_ptr<RSUIContext> GetRSUIContext(const char* caller = "") override;
 
 private:
+    /**
+     * @brief Gets a fallback RSUIContext when the host RSUIContext is unavailable.
+     *
+     * A fallback RSUIDirector is lazily created from an available render session
+     * and reused for subsequent calls. In the SCB process, the render session of
+     * the target screen is used. In a nested UEC scenario, a render session
+     * available in the current process is used.
+     *
+     * @return The fallback RSUIContext if available; otherwise, nullptr.
+     */
+    std::shared_ptr<RSUIContext> GetFallbackRSUIContext();
+
     sptr<ExtensionSessionEventCallback> extSessionEventCallback_ = nullptr;
     bool isFirstTriggerBindModal_ = true;
     sptr<ChannelDeathRecipient> channelDeath_ = nullptr;
     sptr<WindowEventChannelListener> channelListener_ = nullptr;
     std::shared_ptr<Extension::DataHandler> dataHandler_;
     bool isTransparentUIExtension_ = false;
+
+    std::mutex directorMutex_;
+
+    /**
+     * @brief Fallback RSUIDirector used when no suitable RSUIContext can be
+     *        obtained through the normal lookup paths.
+     *
+     * It is created temporarily from an available fallback RSUIContext and may
+     * not be used if a valid RSUIContext is obtained from another source.
+     */
+    std::shared_ptr<RSUIDirector> fallbackRSUIDirector_;
+    // Above guarded by directorMutex_
 };
 } // namespace OHOS::Rosen
 

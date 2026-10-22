@@ -72,6 +72,7 @@ enum class ListenerFuncType : uint32_t {
     FORCE_HIDE_CHANGE_CB,
     WINDOW_DRAG_HOT_AREA_CB,
     TOUCH_OUTSIDE_CB,
+    TOUCH_HOT_AREAS_CHANGE_CB,
     SESSIONINFO_LOCKEDSTATE_CHANGE_CB,
     PREPARE_CLOSE_PIP_SESSION,
     LANDSCAPE_MULTI_WINDOW_CB,
@@ -191,6 +192,7 @@ private:
     static napi_value SetShowRecent(napi_env env, napi_callback_info info);
     static napi_value SetZOrder(napi_env env, napi_callback_info info);
     static napi_value SetTouchable(napi_env env, napi_callback_info info);
+    static napi_value GetTouchHotAreas(napi_env env, napi_callback_info info);
     static napi_value SetWindowInputType(napi_env env, napi_callback_info info);
     static napi_value SetExpandInputFlag(napi_env env, napi_callback_info info);
     static napi_value SetSystemActive(napi_env env, napi_callback_info info);
@@ -300,6 +302,8 @@ private:
     static napi_value NotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
     static napi_value SetDragDisabledAreas(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
+    static napi_value UpdateCallerPersistentId(napi_env env, napi_callback_info info);
+    static napi_value UpdateDensity(napi_env env, napi_callback_info info);
     /*
      * PC Window
      */
@@ -318,6 +322,7 @@ private:
     napi_value OnSetShowRecent(napi_env env, napi_callback_info info);
     napi_value OnSetZOrder(napi_env env, napi_callback_info info);
     napi_value OnSetTouchable(napi_env env, napi_callback_info info);
+    napi_value OnGetTouchHotAreas(napi_env env, napi_callback_info info);
     napi_value OnSetWindowInputType(napi_env env, napi_callback_info info);
     napi_value OnSetExpandInputFlag(napi_env env, napi_callback_info info);
     napi_value OnSetSystemActive(napi_env env, napi_callback_info info);
@@ -418,6 +423,8 @@ private:
     napi_value OnNotifyPreCalcWindowProperty(napi_env env, napi_callback_info info);
     napi_value OnSetDragDisabledAreas(napi_env env, napi_callback_info info);
     napi_value OnUpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
+    napi_value OnUpdateCallerPersistentId(napi_env env, napi_callback_info info);
+    napi_value OnUpdateDensity(napi_env env, napi_callback_info info);
 
     /*
      * PC Window
@@ -472,6 +479,7 @@ private:
     void ProcessForceHideChangeRegister();
     void ProcessWindowDragHotAreaRegister();
     void ProcessTouchOutsideRegister();
+    void ProcessTouchHotAreasChangeRegister();
     void ProcessSessionInfoLockedStateChangeRegister();
     void ProcessPrepareClosePiPSessionRegister();
     void ProcessLandscapeMultiWindowRegister();
@@ -539,7 +547,7 @@ private:
     void ChangeSessionVisibilityWithStatusBar(const SessionInfo& info, bool visible);
     void ChangeSessionVisibilityWithStatusBarInner(std::shared_ptr<SessionInfo> sessionInfo, bool visible);
     void OnBufferAvailableChange(const bool isBufferAvailable, bool startWindowInvisible = false);
-    void OnCreateSubSession(const sptr<SceneSession>& sceneSession);
+    void OnCreateSubSession(const sptr<SceneSession>& sceneSession, bool isBoundedSystemTray);
     void OnClearSubSession(int32_t subPersistentId);
     void OnBindDialogTarget(const sptr<SceneSession>& sceneSession);
     void OnSessionRectChange(const WSRect& rect,
@@ -579,6 +587,7 @@ private:
     void OnForceHideChange(bool hide);
     void OnWindowDragHotArea(uint32_t type, SizeChangeReason reason, DisplayId displayId);
     void OnTouchOutside();
+    void OnTouchHotAreasChange(const std::vector<Rect>& touchHotAreas);
     void OnSessionInfoLockedStateChange(bool lockedState);
     void OnPrepareClosePiPSession();
     void OnContextTransparent();
@@ -597,7 +606,7 @@ private:
     void OnUpdateAppUseControl(ControlAppType type, bool isNeedControl, bool isControlRecentOnly);
     void OnWindowMoving(DisplayId displayId, int32_t pointerX, int32_t pointerY);
     void UpdateSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
-        const std::string& updatedIconPath);
+        const std::string& updatedIconPath, const std::string& groupId = "");
     void OnKeyboardStateChange(SessionState state, const KeyboardEffectOption& effectOption,
         const uint32_t callingSessionId, const DisplayId targetDisplayId);
     void OnKeyboardEffectOptionChange(const KeyboardEffectOption& effectOption);

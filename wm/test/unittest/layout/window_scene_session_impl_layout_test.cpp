@@ -19,12 +19,15 @@
 
 #include "ability_context_impl.h"
 #include "display_info.h"
+#include "mock_display_manager_adapter.h"
 #include "mock_session.h"
 #include "mock_uicontent.h"
 #include "mock_window_adapter.h"
 #include "mock_window_scene_session_impl.h"
 #include "scene_board_judgement.h"
 #include "session/host/include/scene_session.h"
+#include "singleton_mocker.h"
+#include "window_limits_threshold.h"
 #include "window_scene_session_impl.h"
 #include "window_session_impl.h"
 
@@ -101,6 +104,123 @@ RSSurfaceNode::SharedPtr WindowSceneSessionImplLayoutTest::CreateRSSurfaceNode()
     auto surfaceNode = RSSurfaceNode::Create(rsSurfaceNodeConfig, RSSurfaceNodeType::DEFAULT);
     return surfaceNode;
 }
+
+namespace {
+// WorkArea capping test env: display 2000x1000 px, vpr 2.0, workArea 2000x1000, percentage 81
+constexpr int32_t WORK_AREA_TEST_PERCENTAGE = 81;
+constexpr uint32_t WORK_AREA_TEST_CAP_W = 1620; // 2000 * 0.81
+constexpr uint32_t WORK_AREA_TEST_CAP_H = 810;  // 1000 * 0.81
+constexpr float WORK_AREA_TEST_VPR = 2.0f;
+constexpr float DEFAULT_DENSITY = 1.9f;
+
+// Inject the limits-threshold config into WindowLimitsThreshold (updates parameter and static cache).
+// Each test case calls this explicitly, so no cross-case pollution of the cached config.
+void SaveWorkAreaThresholdConfig(bool enable, int32_t percentage)
+{
+    WindowLimitsThresholdConfig config;
+    config.enable = enable;
+    config.limitsThresholdPercentage = percentage;
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(config);
+}
+
+// Disable the work-area min-limit capping (WindowLimitsThreshold); the caller keeps responsibility
+// for saving/restoring the original config.
+void DisableWorkAreaCapping()
+{
+    WindowLimitsThresholdConfig disabledConfig;
+    disabledConfig.enable = false;
+    disabledConfig.limitsThresholdPercentage = 0;
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(disabledConfig);
+}
+
+sptr<DisplayInfo> CreateWorkAreaTestDisplayInfo()
+{
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    displayInfo->SetDisplayId(0);
+    displayInfo->SetWidth(2000);
+    displayInfo->SetHeight(1000);
+    displayInfo->SetVirtualPixelRatio(WORK_AREA_TEST_VPR);
+    return displayInfo;
+}
+
+sptr<MockWindowSceneSessionImpl> CreateWorkAreaTestWindow(const std::string& name)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName(name);
+    option->SetDisplayId(0);
+    sptr<MockWindowSceneSessionImpl> window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
+    window->GetProperty()->SetPersistentId(1);
+    window->GetProperty()->SetDisplayId(0);
+    window->GetProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->state_ = WindowState::STATE_FROZEN;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    SaveWorkAreaThresholdConfig(true, WORK_AREA_TEST_PERCENTAGE);
+    return window;
+}
+
+// Create the common mocked main-window for the density/limits tests; also returns the mocked host
+// session so callers can set EXPECT_CALL on it.
+sptr<MockWindowSceneSessionImpl> CreateMockedMainWindow(const std::string& name, sptr<SessionMocker>& session)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName(name);
+    option->SetDisplayId(0);
+    sptr<MockWindowSceneSessionImpl> window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
+    window->GetProperty()->SetPersistentId(1);
+    window->GetProperty()->SetDisplayId(0);
+    window->GetProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->state_ = WindowState::STATE_FROZEN;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    return window;
+}
+
+// Create a real (non-mock) window with an independent density for SetWindowLimits cases.
+sptr<WindowSceneSessionImpl> CreateUniqueDensityTestWindow(const std::string& name)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName(name);
+    option->SetDisplayId(0);
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->state_ = WindowState::STATE_FROZEN;
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->useUniqueDensity_ = true;
+    window->virtualPixelRatio_ = DEFAULT_DENSITY;
+    return window;
+}
+
+// Mock both GetVirtualPixelRatio overloads to return the given density: the float& overload is
+// called by the limits branch of UpdateDensityInner and again on the display-info change path
+// (UpdateViewportConfig), so it must be WillRepeatedly, not WillOnce.
+void MockDensityOverloads(const sptr<MockWindowSceneSessionImpl>& window, float vpr)
+{
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(::testing::Return(vpr));
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgReferee<0>(vpr),
+            ::testing::Return(WMError::WM_OK)));
+}
+
+// Set up display adapter mocks: displayInfo 2000x1000/vpr 2.0, workArea 2000x1000
+std::unique_ptr<SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>>
+    SetUpWorkAreaDisplayMock()
+{
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetDisplayInfo(_, _))
+        .WillRepeatedly(Return(CreateWorkAreaTestDisplayInfo()));
+    DMRect workArea = { 0, 0, 2000, 1000 };
+    EXPECT_CALL(displayMocker->Mock(), GetAvailableArea(_, _))
+        .WillRepeatedly(DoAll(SetArgReferee<1>(workArea), Return(DMError::DM_OK)));
+    return displayMocker;
+}
+} // namespace
 
 namespace {
 
@@ -246,21 +366,13 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, ResetAspectRatioTest, TestSize.Level1
  */
 HWTEST_F(WindowSceneSessionImplLayoutTest, SetWindowLimits01, TestSize.Level0)
 {
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetWindowLimits01");
-    option->SetDisplayId(0);
+    sptr<WindowSceneSessionImpl> window = CreateUniqueDensityTestWindow("SetWindowLimits01");
 
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-
-    window->property_->SetPersistentId(1);
-    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    window->state_ = WindowState::STATE_FROZEN;
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->hostSession_ = session;
-
-    window->useUniqueDensity_ = true;
-    window->virtualPixelRatio_ = 1.9;
+    // The work-area min-limit capping (WindowLimitsThreshold) is a process-level static that can
+    // leak enabled from other tests; disable it and mock the display so limits are not capped.
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    DisableWorkAreaCapping();
+    auto displayMocker = SetUpWorkAreaDisplayMock();
 
     WindowLimits windowLimits = { 2000, 2000, 2000, 2000, 0.0f, 0.0f };
     EXPECT_EQ(WMError::WM_OK, window->SetWindowLimits(windowLimits, false));
@@ -285,6 +397,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, SetWindowLimits01, TestSize.Level0)
     EXPECT_NE(windowSizeLimits.maxHeight_, 10000);
     EXPECT_NE(windowSizeLimits.minWidth_, 30);
     EXPECT_NE(windowSizeLimits.minHeight_, 30);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
 }
 
 /**
@@ -294,21 +408,13 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, SetWindowLimits01, TestSize.Level0)
  */
 HWTEST_F(WindowSceneSessionImplLayoutTest, SetWindowLimits06, TestSize.Level0)
 {
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetWindowLimits06");
-    option->SetDisplayId(0);
+    sptr<WindowSceneSessionImpl> window = CreateUniqueDensityTestWindow("SetWindowLimits06");
 
-    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
-
-    window->property_->SetPersistentId(1);
-    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    window->state_ = WindowState::STATE_FROZEN;
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->hostSession_ = session;
-
-    window->useUniqueDensity_ = true;
-    window->virtualPixelRatio_ = 1.9;
+    // The work-area min-limit capping (WindowLimitsThreshold) is a process-level static that can
+    // leak enabled from other tests; disable it and mock the display so limits are not capped.
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    DisableWorkAreaCapping();
+    auto displayMocker = SetUpWorkAreaDisplayMock();
 
     WindowLimits windowLimits = { 2000, 2000, 2000, 2000, 0.0f, 0.0f };
     EXPECT_EQ(WMError::WM_OK, window->SetWindowLimits(windowLimits, true));
@@ -342,6 +448,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, SetWindowLimits06, TestSize.Level0)
     EXPECT_NE(windowSizeLimits.maxHeight_, 10000);
     EXPECT_NE(windowSizeLimits.minWidth_, 30);
     EXPECT_NE(windowSizeLimits.minHeight_, 30);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
 }
 
 /**
@@ -1000,67 +1108,61 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, RemoveAttachedWindowLimits01, Functio
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible01
- * @tc.desc: Sub-window with decor visible, drag should be enabled
+ * @tc.name: UpdateSubWindowDragEnabled01
+ * @tc.desc: Sub-window with decor enabled should be draggable in free multi-window mode
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible01,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled01,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible01");
+    option->SetWindowName("UpdateSubWindowDragEnabled01");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(true);
     window->property_->SetPersistentId(1);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(false);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabled(true);
     EXPECT_TRUE(window->property_->GetDragEnabled());
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible02
- * @tc.desc: Sub-window with decor not visible, drag should be disabled
+ * @tc.name: UpdateSubWindowDragEnabled02
+ * @tc.desc: Sub-window with decor disabled should not be draggable in free multi-window mode
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible02,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled02,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible02");
+    option->SetWindowName("UpdateSubWindowDragEnabled02");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(false);
     window->property_->SetPersistentId(1);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(false));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabled(true);
     EXPECT_FALSE(window->property_->GetDragEnabled());
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible03
+ * @tc.name: UpdateSubWindowDragEnabled03
  * @tc.desc: Main window should skip update
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible03,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled03,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible03");
+    option->SetWindowName("UpdateSubWindowDragEnabled03");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->property_->SetPersistentId(1);
@@ -1068,26 +1170,22 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabled(false);
     // Main window should not be affected, drag remains true
     EXPECT_TRUE(window->property_->GetDragEnabled());
 }
 
 /**
- * @tc.name: UpdateSubWindowDragEnabledByDecorVisible04
+ * @tc.name: UpdateSubWindowDragEnabled04
  * @tc.desc: hasSetEnableDrag_ is true, should skip update
  * @tc.type: FUNC
  */
-HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisible04,
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled04,
     Function | SmallTest | Level2)
 {
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateSubWindowDragEnabledByDecorVisible04");
+    option->SetWindowName("UpdateSubWindowDragEnabled04");
     sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
     window->property_->SetPersistentId(1);
@@ -1095,16 +1193,62 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabledByDecorVisi
     SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
-    auto uiContent = std::make_unique<Ace::UIContentMocker>();
-    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).WillRepeatedly(Return(true));
-    window->uiContent_ = std::move(uiContent);
-
     window->property_->SetDragEnabled(false);
     window->hasSetEnableDrag_.store(true);
-    window->UpdateSubWindowDragEnabledByDecorVisible();
+    window->UpdateSubWindowDragEnabled(true);
     // Should skip, drag remains false
     EXPECT_FALSE(window->property_->GetDragEnabled());
     window->hasSetEnableDrag_.store(false);
+}
+
+/**
+ * @tc.name: UpdateSubWindowDragEnabled05
+ * @tc.desc: Hidden decor should not disable dragging when the sub-window property enables decor
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled05,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabled05");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    window->property_->SetIsLayoutFullScreen(true);
+    window->property_->SetDecorEnable(true);
+    window->property_->SetIsShowDecorInFreeMultiWindow(true);
+    window->property_->SetDragEnabled(false);
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.isSystemDecorEnable_ = true;
+    auto uiContent = std::make_unique<Ace::UIContentMocker>();
+    EXPECT_CALL(*uiContent, GetContainerModalTitleVisible(_)).Times(0);
+    window->uiContent_ = std::move(uiContent);
+
+    EXPECT_FALSE(window->UpdateDecorEnable(true));
+    window->UpdateSubWindowDragEnabled(true);
+
+    EXPECT_TRUE(window->property_->GetDragEnabled());
+}
+
+/**
+ * @tc.name: UpdateSubWindowDragEnabled06
+ * @tc.desc: Sub-window drag should be disabled after exiting free multi-window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateSubWindowDragEnabled06,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateSubWindowDragEnabled06");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    window->property_->SetDecorEnable(true);
+    window->property_->SetDragEnabled(true);
+
+    window->UpdateSubWindowDragEnabled(false);
+
+    EXPECT_FALSE(window->property_->GetDragEnabled());
 }
 
 /**
@@ -1217,7 +1361,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect01,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_TRUE(result.pxValid);
     EXPECT_TRUE(result.vpValid);
@@ -1247,7 +1391,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect02,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_TRUE(result.pxValid);
     EXPECT_TRUE(result.vpValid);
@@ -1276,7 +1420,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect03,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_FALSE(result.pxValid);
 }
@@ -1309,9 +1453,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // First attached window: minWidth=max(100,200)=200, maxWidth=min(2500,2000)=2000
     // Second window applied: minWidth=max(200,150)=200, maxWidth=min(2000,2200)=2000
@@ -1336,9 +1480,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // Limits should remain unchanged
     EXPECT_EQ(newLimits.minWidth_, 100);
@@ -1523,7 +1667,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect04,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_TRUE(result.pxValid);
     EXPECT_TRUE(result.vpValid);
@@ -1556,7 +1700,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect05,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_TRUE(result.pxValid);
     EXPECT_TRUE(result.vpValid);
@@ -1589,7 +1733,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect06,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_FALSE(result.pxValid);
     EXPECT_FALSE(result.vpValid);
@@ -1616,7 +1760,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect07,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_TRUE(result.pxValid);
     EXPECT_TRUE(result.vpValid);
@@ -1650,7 +1794,7 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect08,
     float virtualPixelRatio = 2.0f;
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     EXPECT_TRUE(result.pxValid);
     EXPECT_TRUE(result.vpValid);
@@ -1682,10 +1826,117 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect09,
     float virtualPixelRatio = 0.0f; // Invalid ratio
 
     auto result = window->CalcSingleWinIntersect(
-        currentLimits, currentLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
 
     // With zero ratio, conversion fails but direct PX intersection should still work
     EXPECT_TRUE(result.pxValid);
+}
+
+/**
+ * @tc.name: CalcSingleWinIntersect10
+ * @tc.desc: Attached VP limits carry an independent density snapshot (vpRatio_=3.0) different from
+ *           the local vpr (2.0): PX conversion uses the snapshot, VP view derived with local vpr.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect10,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CalcSingleWinIntersect10");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    WindowLimits currentLimits = { 2000, 2000, 100, 1000, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
+    WindowLimits currentLimitsVP = { 1000, 500, 50, 100, 0.0f, 0.0f, 2.0f, PixelUnit::VP };
+    // Attached limits in VP computed by a provider with independent density 3.0
+    WindowLimits attachedLimits = { 900, 600, 60, 110, 0.0f, 0.0f, 3.0f, PixelUnit::VP };
+    AttachLimitOptions limitOptions{ true, true };
+    float virtualPixelRatio = 2.0f;
+
+    auto result = window->CalcSingleWinIntersect(
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, virtualPixelRatio });
+
+    EXPECT_TRUE(result.pxValid);
+    EXPECT_TRUE(result.vpValid);
+    // VP->PX conversion uses the snapshot 3.0 (NOT local 2.0): {2700, 1800, 180, 330}
+    EXPECT_EQ(result.pxLimits.minWidth_, 180);   // max(100, 180)
+    EXPECT_EQ(result.pxLimits.maxWidth_, 2000);  // min(2000, 2700)
+    EXPECT_EQ(result.pxLimits.minHeight_, 1000); // max(1000, 330)
+    EXPECT_EQ(result.pxLimits.maxHeight_, 1800); // min(2000, 1800)
+    // VP view derived from the PX result with the local vpr 2.0
+    EXPECT_EQ(result.vpLimits.minWidth_, 90);    // round(180 / 2)
+    EXPECT_EQ(result.vpLimits.maxHeight_, 900);  // round(1800 / 2)
+}
+
+/**
+ * @tc.name: CalcSingleWinIntersect11
+ * @tc.desc: Attached VP limits without a density snapshot (vpRatio_=0): conversion falls back to
+ *           the raw display density, preserving the behaviour for non-independent providers.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect11,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CalcSingleWinIntersect11");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    WindowLimits currentLimits = { 2000, 2000, 100, 1000, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    WindowLimits currentLimitsVP = { 1000, 500, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
+    WindowLimits attachedLimits = { 900, 600, 60, 110, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
+    AttachLimitOptions limitOptions{ true, true };
+    float virtualPixelRatio = 2.0f;
+    float displayVpr = 2.0f;
+
+    auto result = window->CalcSingleWinIntersect(
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, displayVpr });
+
+    EXPECT_TRUE(result.pxValid);
+    EXPECT_TRUE(result.vpValid);
+    // Snapshot invalid -> fallback display density 2.0: VP->PX = {1800, 1200, 120, 220}
+    EXPECT_EQ(result.pxLimits.minWidth_, 120);  // max(100, 120)
+    EXPECT_EQ(result.pxLimits.maxWidth_, 1800); // min(2000, 1800)
+    EXPECT_EQ(result.vpLimits.minWidth_, 60);   // round(120 / 2)
+}
+
+/**
+ * @tc.name: CalcSingleWinIntersect12
+ * @tc.desc: Receiver with an independent (custom) density 3.0 converts a snapshot-invalid (0) VP
+ *           source with the raw display density 2.0 (NOT its own effective 3.0), while the VP view
+ *           is derived with the effective density 3.0.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, CalcSingleWinIntersect12,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CalcSingleWinIntersect12");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    WindowLimits currentLimits = { 2000, 2000, 100, 1000, 0.0f, 0.0f, 3.0f, PixelUnit::PX };
+    WindowLimits currentLimitsVP = { 666, 666, 33, 333, 0.0f, 0.0f, 3.0f, PixelUnit::VP };
+    // Attached limits in VP shared by a provider without independent density (snapshot 0)
+    WindowLimits attachedLimits = { 900, 600, 60, 110, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
+    AttachLimitOptions limitOptions{ true, true };
+    float virtualPixelRatio = 3.0f; // receiver's independent density
+    float displayVpr = 2.0f;        // raw display density
+
+    auto result = window->CalcSingleWinIntersect(
+        currentLimits, currentLimitsVP, attachedLimits, limitOptions, { virtualPixelRatio, displayVpr });
+
+    EXPECT_TRUE(result.pxValid);
+    EXPECT_TRUE(result.vpValid);
+    // Snapshot invalid -> fallback display density 2.0 (NOT effective 3.0):
+    // VP->PX = {1800, 1200, 120, 220}
+    EXPECT_EQ(result.pxLimits.minWidth_, 120);   // max(100, 120)
+    EXPECT_EQ(result.pxLimits.maxWidth_, 1800);  // min(2000, 1800)
+    EXPECT_EQ(result.pxLimits.minHeight_, 1000); // max(1000, 220)
+    EXPECT_EQ(result.pxLimits.maxHeight_, 1200); // min(2000, 1200)
+    // VP view derived from the PX result with the effective density 3.0
+    EXPECT_EQ(result.vpLimits.minWidth_, 40);  // round(120 / 3)
+    EXPECT_EQ(result.vpLimits.maxWidth_, 600); // round(1800 / 3)
 }
 
 /**
@@ -1719,9 +1970,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // First window: minWidth=max(100,200)=200, maxWidth=min(2500,2000)=2000
     // Second window: minWidth=max(200,250)=250, maxWidth=min(2000,2200)=2000
@@ -1754,9 +2005,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // Limits should remain unchanged since no intersect flags
     EXPECT_EQ(newLimits.minWidth_, 100);
@@ -1792,9 +2043,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // Should only apply first window's limits (second skipped due to invalid intersection)
     EXPECT_EQ(newLimits.minWidth_, 200);
@@ -1830,9 +2081,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.5f;
+    float vpr = 2.5f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // First window PX: minWidth=max(100,200)=200, maxWidth=min(2500,2000)=2000
     // Second window VP->PX: {maxWidth=2000,maxHeight=1000,minWidth=200,minHeight=300}
@@ -1862,9 +2113,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 0.0f;  // Zero ratio - function should return early
+    float vpr = 0.0f;  // Zero ratio - function should return early
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // Limits should remain unchanged due to zero ratio
     EXPECT_EQ(newLimits.minWidth_, 100);
@@ -1895,9 +2146,9 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // Limits should remain unchanged since not in free multi-window mode
     EXPECT_EQ(newLimits.minWidth_, 100);
@@ -1936,15 +2187,131 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersec
 
     WindowLimits newLimits = { 2500, 1500, 100, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 50, 100, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // Height should be intersected, width should remain unchanged
     EXPECT_EQ(newLimits.minWidth_, 100);   // Width not intersected
     EXPECT_EQ(newLimits.maxWidth_, 2500);  // Width not intersected
     EXPECT_EQ(newLimits.minHeight_, 300);  // Height intersected: max(200, 300)
     EXPECT_EQ(newLimits.maxHeight_, 1000); // Height intersected: min(1500, 1000)
+}
+
+/**
+ * @tc.name: CalculateAttachedWindowLimitsIntersection10
+ * @tc.desc: Two collaborating windows with different densities (B: VP-user with independent
+ *           density 3.0, A: PX-user with local density 2.0) each compute the intersection with
+ *           the other's shared limits; both must derive identical PX results.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersection10,
+    Function | SmallTest | Level2)
+{
+    // Window A: PX-user, local vpr 2.0
+    sptr<WindowOption> optionA = sptr<WindowOption>::MakeSptr();
+    optionA->SetWindowName("CalculateAttachedWindowLimitsIntersection10A");
+    sptr<WindowSceneSessionImpl> windowA = sptr<WindowSceneSessionImpl>::MakeSptr(optionA);
+    windowA->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    windowA->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    windowA->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    // A's own base limits
+    WindowLimits limitsA = { 1000, 800, 400, 200, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
+    WindowLimits limitsVPA = { 500, 400, 200, 100, 0.0f, 0.0f, 2.0f, PixelUnit::VP };
+    // B's shared limits: VP unit, computed at its independent density 3.0 (snapshot 3.0)
+    WindowLimits sharedByB = { 300, 250, 200, 100, 0.0f, 0.0f, 3.0f, PixelUnit::VP };
+    windowA->property_->SetAttachedWindowLimits(2, sharedByB);
+    windowA->property_->SetAttachedLimitOptions(2, AttachLimitOptions{ true, true });
+
+    windowA->CalculateAttachedWindowLimitsIntersection(limitsA, limitsVPA, { 2.0f, 2.0f });
+    // B's shared VP converted with snapshot 3.0 -> PX [900, 750, 600, 300];
+    // intersect with A's base [1000, 800, 400, 200] -> [600, 900, 300, 750]
+    EXPECT_EQ(limitsA.minWidth_, 600);
+    EXPECT_EQ(limitsA.maxWidth_, 900);
+    EXPECT_EQ(limitsA.minHeight_, 300);
+    EXPECT_EQ(limitsA.maxHeight_, 750);
+
+    // Window B: VP-user with independent density 3.0
+    sptr<WindowOption> optionB = sptr<WindowOption>::MakeSptr();
+    optionB->SetWindowName("CalculateAttachedWindowLimitsIntersection10B");
+    sptr<WindowSceneSessionImpl> windowB = sptr<WindowSceneSessionImpl>::MakeSptr(optionB);
+    windowB->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    windowB->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    windowB->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    // B's own base limits (at its density 3.0)
+    WindowLimits limitsB = { 900, 750, 600, 300, 0.0f, 0.0f, 3.0f, PixelUnit::PX };
+    WindowLimits limitsVPB = { 300, 250, 200, 100, 0.0f, 0.0f, 3.0f, PixelUnit::VP };
+    // A's shared limits: PX unit (absolute, no conversion needed)
+    WindowLimits sharedByA = { 1000, 800, 400, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    windowB->property_->SetAttachedWindowLimits(1, sharedByA);
+    windowB->property_->SetAttachedLimitOptions(1, AttachLimitOptions{ true, true });
+
+    windowB->CalculateAttachedWindowLimitsIntersection(limitsB, limitsVPB, { 3.0f, 2.0f });
+    // A's shared PX is absolute -> intersect with B's base [900, 750, 600, 300] -> same PX result
+    EXPECT_EQ(limitsB.minWidth_, limitsA.minWidth_);
+    EXPECT_EQ(limitsB.maxWidth_, limitsA.maxWidth_);
+    EXPECT_EQ(limitsB.minHeight_, limitsA.minHeight_);
+    EXPECT_EQ(limitsB.maxHeight_, limitsA.maxHeight_);
+    // VP view is per-window: B derives it with its own density 3.0
+    EXPECT_EQ(limitsVPB.minWidth_, 200);  // round(600 / 3)
+    EXPECT_EQ(limitsVPB.maxWidth_, 300);  // round(900 / 3)
+}
+
+/**
+ * @tc.name: CalculateAttachedWindowLimitsIntersection11
+ * @tc.desc: Mixed-density pair: A has independent custom density 3.0, B follows the display (2.0)
+ *           and shares VP limits WITHOUT a snapshot. Both sides must derive identical PX results:
+ *           A converts B's shared limits with the raw display density 2.0, not its own 3.0.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, CalculateAttachedWindowLimitsIntersection11,
+    Function | SmallTest | Level2)
+{
+    // Window A: PX user with independent custom density 3.0 on a display of density 2.0
+    sptr<WindowOption> optionA = sptr<WindowOption>::MakeSptr();
+    optionA->SetWindowName("CalculateAttachedWindowLimitsIntersection11A");
+    sptr<WindowSceneSessionImpl> windowA = sptr<WindowSceneSessionImpl>::MakeSptr(optionA);
+    windowA->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    windowA->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    windowA->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    // A's own base limits
+    WindowLimits limitsA = { 1000, 800, 400, 200, 0.0f, 0.0f, 3.0f, PixelUnit::PX };
+    WindowLimits limitsVPA = { 333, 266, 133, 66, 0.0f, 0.0f, 3.0f, PixelUnit::VP };
+    // B's shared limits: VP unit, no density snapshot (non-independent provider)
+    WindowLimits sharedByB = { 900, 600, 60, 110, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
+    windowA->property_->SetAttachedWindowLimits(2, sharedByB);
+    windowA->property_->SetAttachedLimitOptions(2, AttachLimitOptions{ true, true });
+
+    windowA->CalculateAttachedWindowLimitsIntersection(limitsA, limitsVPA, { 3.0f, 2.0f });
+    // B's shared VP converted with the display density 2.0 (NOT A's effective 3.0)
+    // -> PX [1800, 1200, 120, 220]; intersect with A's base [1000, 800, 400, 200]
+    // -> [minW 400, maxW 1000, minH 220, maxH 800]
+    EXPECT_EQ(limitsA.minWidth_, 400);
+    EXPECT_EQ(limitsA.maxWidth_, 1000);
+    EXPECT_EQ(limitsA.minHeight_, 220);
+    EXPECT_EQ(limitsA.maxHeight_, 800);
+
+    // Window B: VP user following the display density 2.0
+    sptr<WindowOption> optionB = sptr<WindowOption>::MakeSptr();
+    optionB->SetWindowName("CalculateAttachedWindowLimitsIntersection11B");
+    sptr<WindowSceneSessionImpl> windowB = sptr<WindowSceneSessionImpl>::MakeSptr(optionB);
+    windowB->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    windowB->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    windowB->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    // B's own base limits (px at the display density 2.0)
+    WindowLimits limitsB = { 1800, 1200, 120, 220, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
+    WindowLimits limitsVPB = { 900, 600, 60, 110, 0.0f, 0.0f, 2.0f, PixelUnit::VP };
+    // A's shared limits: PX unit (absolute, no conversion needed)
+    WindowLimits sharedByA = { 1000, 800, 400, 200, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    windowB->property_->SetAttachedWindowLimits(1, sharedByA);
+    windowB->property_->SetAttachedLimitOptions(1, AttachLimitOptions{ true, true });
+
+    windowB->CalculateAttachedWindowLimitsIntersection(limitsB, limitsVPB, { 2.0f, 2.0f });
+    // A's shared PX is absolute -> intersect with B's base [1800, 1200, 120, 220] -> same PX result
+    EXPECT_EQ(limitsB.minWidth_, limitsA.minWidth_);
+    EXPECT_EQ(limitsB.maxWidth_, limitsA.maxWidth_);
+    EXPECT_EQ(limitsB.minHeight_, limitsA.minHeight_);
+    EXPECT_EQ(limitsB.maxHeight_, limitsA.maxHeight_);
 }
 
 /**
@@ -1999,12 +2366,46 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateWindowSizeLimits02, Function | 
     // Test the intersection logic directly (UpdateWindowSizeLimits requires display mock)
     WindowLimits newLimits = { 2500, 1500, 200, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
     WindowLimits newLimitsVP = { 1250, 750, 100, 150, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
-    float virtualPixelRatio = 2.0f;
+    float vpr = 2.0f;
 
-    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    window->CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { vpr, vpr });
 
     // Verify limits were intersected with attached window
     EXPECT_EQ(newLimits.minWidth_, 250); // max(200, 250)
+}
+
+/**
+ * @tc.name: GetDensitySnapshotForAttachedWindows01
+ * @tc.desc: Density snapshot is the invalid marker (0) without independent density, and equals the
+ *           effective density when custom / default / unique density mode is active.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, GetDensitySnapshotForAttachedWindows01,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetDensitySnapshotForAttachedWindows01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    const float effectiveVpr = 2.5f;
+
+    // No independent density: snapshot is the invalid marker
+    EXPECT_FLOAT_EQ(window->GetDensitySnapshotForAttachedWindows(effectiveVpr), 0.0f);
+
+    // Custom density set: snapshot equals the effective density
+    window->customDensity_ = 2.5f;
+    EXPECT_FLOAT_EQ(window->GetDensitySnapshotForAttachedWindows(effectiveVpr), 2.5f);
+    window->customDensity_ = UNDEFINED_DENSITY;
+
+    // Unique density enabled: snapshot equals the effective density
+    window->useUniqueDensity_ = true;
+    EXPECT_FLOAT_EQ(window->GetDensitySnapshotForAttachedWindows(effectiveVpr), 2.5f);
+    window->useUniqueDensity_ = false;
+
+    // Default density enabled: snapshot equals the effective density
+    window->SetDefaultDensityEnabledValue(true);
+    EXPECT_FLOAT_EQ(window->GetDensitySnapshotForAttachedWindows(effectiveVpr), 2.5f);
+    window->SetDefaultDensityEnabledValue(false);
 }
 
 /**
@@ -2706,19 +3107,23 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, SetWindowLimits_AttachPreserveBase02,
  */
 HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_PXAttach01, Function | SmallTest | Level2)
 {
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("UpdateDensityInner_PXAttach01");
-    option->SetDisplayId(0);
-    sptr<MockWindowSceneSessionImpl> window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
-    window->GetProperty()->SetPersistentId(1);
-    window->GetProperty()->SetDisplayId(0);
-    window->GetProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    window->state_ = WindowState::STATE_FROZEN;
-    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    window->hostSession_ = session;
+    sptr<SessionMocker> session;
+    sptr<MockWindowSceneSessionImpl> window = CreateMockedMainWindow("UpdateDensityInner_PXAttach01", session);
     window->windowSystemConfig_.freeMultiWindowEnable_ = true;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // The work-area min-limit capping (WindowLimitsThreshold) is a process-level static that can
+    // leak enabled from other tests; disable it so the PX path keeps the user's base limits and
+    // the attached intersection below.
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    DisableWorkAreaCapping();
+    // UpdateDensityInner's tail (NotifyDisplayInfoChange) re-runs UpdateWindowSizeLimits whenever
+    // it observes a system-density change. This window never called SetWindowLimits (userLimitsSet_
+    // stays false), so that path would fall back to the config limits (VP min 1) and clamp them to
+    // the main-window system minimum (640x480 at vpr 2.0), overwriting the PX-branch result. Mock
+    // the display at vpr 2.0 and pin lastSystemDensity_ to it so the density detection stays quiet.
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    window->lastSystemDensity_ = 2.0f;
 
     // Set user limits as PX
     WindowLimits userLimits = { 3000, 2000, 300, 400, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
@@ -2735,12 +3140,21 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_PXAttach01, Functi
     window->property_->SetAttachedWindowLimits(1, intersectedLimits);
     window->property_->SetAttachedLimitOptions(1, AttachLimitOptions{ true, true });
 
-    // Mock GetVirtualPixelRatio(float&) to set vpr=2.0f and return WM_OK
-    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<float&>()))
-        .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(2.0f), ::testing::Return(WMError::WM_OK)));
+    MockDensityOverloads(window, 2.0f);
+    // The density snapshot changes (2.0 -> 0: no independent density), so the shared limits are
+    // re-notified to attached windows once with the refreshed snapshot.
+    WindowLimits notifiedLimits;
+    EXPECT_CALL(*session, NotifyAttachedWindowsLimitsChanged(::testing::_))
+        .WillOnce(::testing::DoAll(::testing::SaveArg<0>(&notifiedLimits),
+            ::testing::Return(WSError::WS_OK)));
 
     // Call UpdateDensityInner to trigger PX + intersected attach branch
     window->UpdateDensityInner(nullptr);
+
+    // The shared limits carry the refreshed (invalid marker) density snapshot
+    EXPECT_FLOAT_EQ(window->property_->GetLimitsForAttachedWindows().vpRatio_, 0.0f);
+    EXPECT_FLOAT_EQ(notifiedLimits.vpRatio_, 0.0f);
+    EXPECT_EQ(notifiedLimits.maxWidth_, 3000);
 
     // Verify: base PX (3000) was used, recalculated VP, then intersected
     WindowLimits resultPx = window->property_->GetWindowLimits();
@@ -2752,6 +3166,111 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_PXAttach01, Functi
     EXPECT_EQ(resultPx.maxHeight_, 1500);
     EXPECT_EQ(resultPx.minWidth_, 300);
     EXPECT_EQ(resultPx.minHeight_, 400);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: UpdateDensityInner_CustomDensityReNotify01
+ * @tc.desc: While bound to attached windows, setting an independent (custom) density makes
+ *           UpdateDensityInner re-notify the shared limits carrying the new density snapshot,
+ *           so collaborating windows update the density they stored for this window.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_CustomDensityReNotify01,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateDensityInner_CustomDensityReNotify01");
+    option->SetDisplayId(0);
+    sptr<MockWindowSceneSessionImpl> window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
+    window->GetProperty()->SetPersistentId(1);
+    window->GetProperty()->SetDisplayId(0);
+    window->GetProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->state_ = WindowState::STATE_FROZEN;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // PX user limits and base shared limits with no density snapshot yet
+    WindowLimits userLimits = { 3000, 2000, 300, 400, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    window->property_->SetUserWindowLimits(userLimits);
+    WindowLimits baseLimits = { 3000, 2000, 300, 400, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    window->property_->SetLimitsForAttachedWindows(baseLimits);
+    // Bound to an attached window (main window notifies when options list is non-empty)
+    WindowLimits attachedLimits = { 2000, 1500, 300, 400, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    window->property_->SetAttachedWindowLimits(1, attachedLimits);
+    window->property_->SetAttachedLimitOptions(1, AttachLimitOptions{ true, true });
+    // The window has set its own independent density (custom density 3.0)
+    window->customDensity_ = 3.0f;
+
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(::testing::Return(3.0f));
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgReferee<0>(3.0f), ::testing::Return(WMError::WM_OK)));
+    // Snapshot changes (0 -> 3.0): shared limits re-notified once with the new snapshot
+    WindowLimits notifiedLimits;
+    EXPECT_CALL(*session, NotifyAttachedWindowsLimitsChanged(::testing::_))
+        .WillOnce(::testing::DoAll(::testing::SaveArg<0>(&notifiedLimits),
+            ::testing::Return(WSError::WS_OK)));
+
+    window->UpdateDensityInner(nullptr);
+
+    // Collaborators receive the shared limits carrying the independent density snapshot
+    EXPECT_FLOAT_EQ(3.0f, window->property_->GetLimitsForAttachedWindows().vpRatio_);
+    EXPECT_FLOAT_EQ(3.0f, notifiedLimits.vpRatio_);
+    EXPECT_EQ(notifiedLimits.maxWidth_, 3000);
+    EXPECT_EQ(notifiedLimits.pixelUnit_, PixelUnit::PX);
+}
+
+/**
+ * @tc.name: UpdateDensityInner_SystemDensityNoReNotify01
+ * @tc.desc: A system density change on a window without independent density keeps the snapshot
+ *           unchanged (invalid marker), so no re-notify is sent to collaborating windows.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_SystemDensityNoReNotify01,
+    Function | SmallTest | Level2)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateDensityInner_SystemDensityNoReNotify01");
+    option->SetDisplayId(0);
+    sptr<MockWindowSceneSessionImpl> window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
+    window->GetProperty()->SetPersistentId(1);
+    window->GetProperty()->SetDisplayId(0);
+    window->GetProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->state_ = WindowState::STATE_FROZEN;
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // PX user limits and base shared limits without independent density (snapshot 0)
+    WindowLimits userLimits = { 3000, 2000, 300, 400, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    window->property_->SetUserWindowLimits(userLimits);
+    WindowLimits baseLimits = { 3000, 2000, 300, 400, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    window->property_->SetLimitsForAttachedWindows(baseLimits);
+    // Bound to an attached window
+    WindowLimits attachedLimits = { 2000, 1500, 300, 400, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    window->property_->SetAttachedWindowLimits(1, attachedLimits);
+    window->property_->SetAttachedLimitOptions(1, AttachLimitOptions{ true, true });
+
+    // System density (vpr) changes 1.0 -> 2.0, but the window has no independent density
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(::testing::Return(2.0f));
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgReferee<0>(2.0f), ::testing::Return(WMError::WM_OK)));
+    // Snapshot stays 0: no re-notify to collaborating windows
+    EXPECT_CALL(*session, NotifyAttachedWindowsLimitsChanged(::testing::_)).Times(0);
+
+    window->UpdateDensityInner(nullptr);
+
+    EXPECT_FLOAT_EQ(0.0f, window->property_->GetLimitsForAttachedWindows().vpRatio_);
 }
 
 /**
@@ -2769,7 +3288,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, ConvertBaseLimitsToTargetUnit01, Func
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     WindowLimits srcPx = { 3000, 2000, 300, 400, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
-    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<float&>()))
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
         .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(2.0f), ::testing::Return(WMError::WM_OK)));
 
     WindowLimits result = window->ConvertBaseLimitsToTargetUnit(srcPx, PixelUnit::VP);
@@ -2799,7 +3319,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, ConvertBaseLimitsToTargetUnit02, Func
     window->hostSession_ = sptr<SessionMocker>::MakeSptr(sessionInfo);
 
     WindowLimits srcVp = { 1500, 1000, 150, 200, 0.0f, 0.0f, 2.0f, PixelUnit::VP };
-    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<float&>()))
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
         .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(2.0f), ::testing::Return(WMError::WM_OK)));
 
     WindowLimits result = window->ConvertBaseLimitsToTargetUnit(srcVp, PixelUnit::PX);
@@ -2830,7 +3351,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, ConvertBaseLimitsToTargetUnit03, Func
     window->property_->SetWindowLimitsVP(storedVp);
 
     WindowLimits srcPx = { 3000, 2000, 300, 400, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
-    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<float&>()))
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
         .WillOnce(::testing::Return(WMError::WM_ERROR_NULLPTR));
 
     WindowLimits result = window->ConvertBaseLimitsToTargetUnit(srcPx, PixelUnit::VP);
@@ -2857,7 +3379,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, ConvertBaseLimitsToTargetUnit04, Func
     window->property_->SetWindowLimits(storedPx);
 
     WindowLimits srcVp = { 1500, 1000, 150, 200, 0.0f, 0.0f, 2.0f, PixelUnit::VP };
-    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<float&>()))
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
         .WillOnce(::testing::Return(WMError::WM_ERROR_NULLPTR));
 
     WindowLimits result = window->ConvertBaseLimitsToTargetUnit(srcVp, PixelUnit::PX);
@@ -2884,7 +3407,8 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, ConvertBaseLimitsToTargetUnit05, Func
     window->property_->SetWindowLimitsVP(storedVp);
 
     WindowLimits srcPx = { 3000, 2000, 300, 400, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
-    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<float&>()))
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
         .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(0.0f), ::testing::Return(WMError::WM_OK)));
 
     WindowLimits result = window->ConvertBaseLimitsToTargetUnit(srcPx, PixelUnit::VP);
@@ -3093,6 +3617,782 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, NotifyRebindAttachAfterParentChange06
     EXPECT_TRUE(afterInfo.isFromAttachOrDetach_);
 
     window->windowSessionMap_.erase("NotifyRebindAttachAfterParentChange06_Parent");
+}
+
+/**
+ * @tc.name: UpdateDensityInner_ValueChangeReNotify01
+ * @tc.desc: A density change that flips the system-bound clamps of a VP user changes the shared
+ *           limits values, so UpdateDensityInner re-notifies attached windows with the new values
+ *           even though the density snapshot stays invalid (0); ordinary recompute with unchanged
+ *           values would send nothing.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_ValueChangeReNotify01, Function | SmallTest | Level2)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("UpdateDensityInner_ValueChangeReNotify01");
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    SessionMocker& session = static_cast<SessionMocker&>(*(window->hostSession_));
+
+    // VP user limits within the system bounds at display 2000x1000 / vpr 2.0
+    WindowLimits userLimits = { 1000, 800, 400, 350, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
+    window->GetProperty()->SetUserWindowLimits(userLimits);
+    window->userLimitsSet_ = true;
+    // Stale shared limits recorded under an older, tighter system clamp
+    WindowLimits staleShared = { 500, 400, 450, 360, 0.0f, 0.0f, 0.0f, PixelUnit::VP };
+    window->GetProperty()->SetLimitsForAttachedWindows(staleShared);
+    // Bound to an attached window
+    WindowLimits attachedLimits = { 1200, 900, 300, 300, 0.0f, 0.0f, 0.0f, PixelUnit::PX };
+    window->GetProperty()->SetAttachedWindowLimits(1, attachedLimits);
+    window->GetProperty()->SetAttachedLimitOptions(1, AttachLimitOptions{ true, true });
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    // The VP branch resolves the effective density through the DisplayInfo overload
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(::testing::Return(2.0f));
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgReferee<0>(2.0f),
+            ::testing::Return(WMError::WM_OK)));
+
+    // The recompute flips the shared values while the snapshot stays invalid (0):
+    // the re-notify is driven purely by the value change and fires exactly once
+    WindowLimits notifiedLimits;
+    EXPECT_CALL(session, NotifyAttachedWindowsLimitsChanged(::testing::_))
+        .WillOnce(::testing::DoAll(::testing::SaveArg<0>(&notifiedLimits),
+            ::testing::Return(WSError::WS_OK)));
+
+    window->UpdateDensityInner(nullptr);
+
+    EXPECT_EQ(notifiedLimits.pixelUnit_, PixelUnit::VP);
+    EXPECT_FLOAT_EQ(notifiedLimits.vpRatio_, 0.0f);
+    EXPECT_EQ(notifiedLimits.maxWidth_, 1000u);  // clamp no longer applies
+    EXPECT_EQ(notifiedLimits.maxHeight_, 800u);
+    EXPECT_EQ(notifiedLimits.minWidth_, 400u);
+    EXPECT_EQ(notifiedLimits.minHeight_, 350u);
+}
+
+/**
+ * @tc.name: GetVirtualPixelRatio_ProvidedInfo01
+ * @tc.desc: A non-null displayInfo is used directly: no display fetch happens and the same
+ *           instance is passed to the effective-density resolution.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, GetVirtualPixelRatio_ProvidedInfo01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("GetVirtualPixelRatio_ProvidedInfo01");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    // The provided info must be used as-is: any display fetch is a failure.
+    EXPECT_CALL(displayMocker->Mock(), GetDisplayInfo(::testing::_, ::testing::_)).Times(0);
+    sptr<DisplayInfo> passed;
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillOnce(::testing::DoAll(::testing::SaveArg<0>(&passed), ::testing::Return(2.0f)));
+
+    sptr<DisplayInfo> provided = CreateWorkAreaTestDisplayInfo();
+    float vpr = 1.0f;
+    auto ret = window->CallRealGetVirtualPixelRatio(vpr, &provided);
+
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_FLOAT_EQ(2.0f, vpr);
+    EXPECT_EQ(provided, passed); // resolved from the provided info, not a refetch
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: GetVirtualPixelRatio_FetchAndWriteBack01
+ * @tc.desc: A null displayInfo with an out-parameter is resolved from the display manager and
+ *           written back through the pointer.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, GetVirtualPixelRatio_FetchAndWriteBack01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("GetVirtualPixelRatio_FetchAndWriteBack01");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(::testing::Return(2.0f));
+
+    float vpr = 1.0f;
+    sptr<DisplayInfo> displayInfo; // null: triggers the fetch + write-back path
+    auto ret = window->CallRealGetVirtualPixelRatio(vpr, &displayInfo);
+
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_FLOAT_EQ(2.0f, vpr);
+    ASSERT_NE(nullptr, displayInfo); // written back by the resolution
+    EXPECT_FLOAT_EQ(WORK_AREA_TEST_VPR, displayInfo->GetVirtualPixelRatio());
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: GetVirtualPixelRatio_NullOutParam01
+ * @tc.desc: Without the optional out-parameter the display is still fetched and the resolution
+ *           succeeds, keeping the plain single-argument behaviour.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, GetVirtualPixelRatio_NullOutParam01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("GetVirtualPixelRatio_NullOutParam01");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(::testing::Return(2.0f));
+
+    float vpr = 1.0f;
+    auto ret = window->CallRealGetVirtualPixelRatio(vpr);
+
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_FLOAT_EQ(2.0f, vpr);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: GetVirtualPixelRatio_FetchFail01
+ * @tc.desc: When the display info cannot be resolved the call fails and the out-parameter is
+ *           left untouched (stays null).
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, GetVirtualPixelRatio_FetchFail01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("GetVirtualPixelRatio_FetchFail01");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    EXPECT_CALL(displayMocker->Mock(), GetDisplayInfo(::testing::_, ::testing::_))
+        .WillRepeatedly(::testing::Return(nullptr));
+
+    float vpr = 1.0f;
+    sptr<DisplayInfo> displayInfo;
+    auto ret = window->CallRealGetVirtualPixelRatio(vpr, &displayInfo);
+
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, ret);
+    EXPECT_EQ(nullptr, displayInfo);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea01
+ * @tc.desc: Threshold disabled, whole path short-circuits without work area query
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea01, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea01");
+    SaveWorkAreaThresholdConfig(false, WORK_AREA_TEST_PERCENTAGE);
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetDisplayInfo(_, _)).Times(0);
+    EXPECT_CALL(displayMocker->Mock(), GetAvailableArea(_, _)).Times(0);
+
+    WindowLimits newLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_FALSE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, 1800u);
+    EXPECT_EQ(newLimits.minHeight_, 900u);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea02
+ * @tc.desc: Invalid percentage (0 or 150), short-circuits like disabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea02, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea02");
+    SaveWorkAreaThresholdConfig(true, 0);
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetAvailableArea(_, _)).Times(0);
+
+    WindowLimits newLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_FALSE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, 1800u);
+
+    // percentage >= 100 (ratio >= 1) is also invalid
+    SaveWorkAreaThresholdConfig(true, 150);
+    EXPECT_FALSE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, 1800u);
+    EXPECT_EQ(newLimits.minHeight_, 900u);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea03
+ * @tc.desc: Work area fetch failed, keep current behavior
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea03, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea03");
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetDisplayInfo(_, _))
+        .WillRepeatedly(Return(CreateWorkAreaTestDisplayInfo()));
+    EXPECT_CALL(displayMocker->Mock(), GetAvailableArea(_, _))
+        .WillRepeatedly(Return(DMError::DM_ERROR_NULLPTR));
+
+    WindowLimits newLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_FALSE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, 1800u);
+    EXPECT_EQ(newLimits.minHeight_, 900u);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea04
+ * @tc.desc: Min limits within caps, not triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea04, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea04");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits newLimits = { 3840, 1920, 1600, 800, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_FALSE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, 1600u);
+    EXPECT_EQ(newLimits.minHeight_, 800u);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea05
+ * @tc.desc: Both min width and height over caps, capped independently with VP synced
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea05, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea05");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits newLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_TRUE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(newLimits.minHeight_, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(newLimits.maxWidth_, 3840u);
+    EXPECT_EQ(newLimits.maxHeight_, 1920u);
+    EXPECT_EQ(newLimitsVP.minWidth_, 810u);  // round(1620 / 2.0)
+    EXPECT_EQ(newLimitsVP.minHeight_, 405u); // round(810 / 2.0)
+    EXPECT_EQ(newLimitsVP.maxWidth_, 1920u); // round(3840 / 2.0)
+    EXPECT_EQ(newLimitsVP.maxHeight_, 960u); // round(1920 / 2.0)
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea06
+ * @tc.desc: Only min width over cap
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea06, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea06");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits newLimits = { 3840, 1920, 1800, 500, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_TRUE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(newLimits.minHeight_, 500u);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea07
+ * @tc.desc: Only min height over cap
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea07, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea07");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits newLimits = { 3840, 1920, 800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_TRUE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    EXPECT_EQ(newLimits.minWidth_, 800u);
+    EXPECT_EQ(newLimits.minHeight_, WORK_AREA_TEST_CAP_H);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea08
+ * @tc.desc: AspectRatio set, derive width from capped height within cap (rule 4.2)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea08, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea08");
+    window->GetProperty()->SetAspectRatio(1.5f);
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits newLimits = { 3840, 1920, 800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_TRUE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    // capped minH = 810, derived minW = ceil(810 * 1.5) = 1215 <= capW
+    EXPECT_EQ(newLimits.minWidth_, 1215u);
+    EXPECT_EQ(newLimits.minHeight_, WORK_AREA_TEST_CAP_H);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea09
+ * @tc.desc: Derived width over cap, width capped then height derived back (rule 4.1)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea09, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea09");
+    window->GetProperty()->SetAspectRatio(2.5f);
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits newLimits = { 3840, 1920, 800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_TRUE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    // ceil(810 * 2.5) = 2025 > capW, so minW = 1620, minH = ceil(1620 / 2.5) = 648
+    EXPECT_EQ(newLimits.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(newLimits.minHeight_, 648u);
+}
+
+/**
+ * @tc.name: AdjustMinLimitsByWorkArea10
+ * @tc.desc: AspectRatio not set, fallback to limits built-in minRatio_
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, AdjustMinLimitsByWorkArea10, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("AdjustMinLimitsByWorkArea10");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    // aspectRatio unset (0.0), built-in minRatio_ = 0.9 as fallback
+    WindowLimits newLimits = { 3840, 1920, 1800, 900, 3.0f, 0.9f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    EXPECT_TRUE(window->AdjustMinLimitsByWorkArea(newLimits, newLimitsVP, WORK_AREA_TEST_VPR));
+    // capped minH = 810, derived minW = ceil(810 * 0.9) = 729 <= capW
+    EXPECT_EQ(newLimits.minWidth_, 729u);
+    EXPECT_EQ(newLimits.minHeight_, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(newLimitsVP.minWidth_, 365u);  // round(729 / 2.0)
+    EXPECT_EQ(newLimitsVP.minHeight_, 405u); // round(810 / 2.0)
+}
+
+/**
+ * @tc.name: GetEffectiveAspectRatio01
+ * @tc.desc: Set-interface value first, built-in minRatio_ as fallback
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, GetEffectiveAspectRatio01, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("GetEffectiveAspectRatio01");
+
+    WindowLimits limits = { 3840, 1920, 1800, 900, 3.0f, 0.8f, 0.0f, PixelUnit::PX };
+    // not set: fallback to limits minRatio_
+    EXPECT_EQ(window->GetEffectiveAspectRatio(limits), 0.8f);
+    // set via interface: takes priority
+    window->GetProperty()->SetAspectRatio(1.25f);
+    EXPECT_EQ(window->GetEffectiveAspectRatio(limits), 1.25f);
+}
+
+/**
+ * @tc.name: CapMinLimitsByAspectRatio01
+ * @tc.desc: Cap min limits by caps without aspect ratio (rule 1/2/3)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, CapMinLimitsByAspectRatio01, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("CapMinLimitsByAspectRatio01");
+
+    // No aspect ratio: both min values capped independently
+    WindowLimits limits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->CapMinLimitsByAspectRatio(limits, WORK_AREA_TEST_CAP_W, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(limits.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(limits.minHeight_, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(limits.maxWidth_, 3840u);
+    EXPECT_EQ(limits.maxHeight_, 1920u);
+}
+
+/**
+ * @tc.name: CapMinLimitsByAspectRatio02
+ * @tc.desc: Cap min limits by caps with aspect ratio (rule 4/4.1/4.2)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, CapMinLimitsByAspectRatio02, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("CapMinLimitsByAspectRatio02");
+
+    // Rule 4.2: derived width within cap
+    window->GetProperty()->SetAspectRatio(1.5f);
+    WindowLimits limits = { 3840, 1920, 800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->CapMinLimitsByAspectRatio(limits, WORK_AREA_TEST_CAP_W, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(limits.minWidth_, 1215u); // ceil(810 * 1.5)
+    EXPECT_EQ(limits.minHeight_, WORK_AREA_TEST_CAP_H);
+
+    // Rule 4.1: derived width over cap, cap takes priority
+    window->GetProperty()->SetAspectRatio(2.5f);
+    limits = { 3840, 1920, 800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->CapMinLimitsByAspectRatio(limits, WORK_AREA_TEST_CAP_W, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(limits.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(limits.minHeight_, 648u); // ceil(1620 / 2.5)
+}
+
+/**
+ * @tc.name: UpdateWindowSizeLimits_WorkArea01
+ * @tc.desc: Funnel integration: oversized user min limits capped by work area rule
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateWindowSizeLimits_WorkArea01, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("UpdateWindowSizeLimits_WorkArea01");
+    window->userLimitsSet_ = true;
+    window->forceLimits_ = false;
+    WindowLimits userLimits = { 3000, 2000, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetUserWindowLimits(userLimits);
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(Return(2.0f));
+
+    window->isMinLimitsAdjusted_ = false;
+    window->UpdateWindowSizeLimits();
+
+    WindowLimits result = window->GetProperty()->GetWindowLimits();
+    EXPECT_EQ(result.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(result.minHeight_, WORK_AREA_TEST_CAP_H);
+    WindowLimits resultVP = window->GetProperty()->GetWindowLimitsVP();
+    EXPECT_EQ(resultVP.minWidth_, 810u);
+    EXPECT_EQ(resultVP.minHeight_, 405u);
+    EXPECT_EQ(true, window->isMinLimitsAdjusted_.load());
+}
+
+/**
+ * @tc.name: UpdateWindowSizeLimits_WorkArea02
+ * @tc.desc: Funnel integration: threshold disabled, behavior identical to mainline
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateWindowSizeLimits_WorkArea02, Function | SmallTest | Level1)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("UpdateWindowSizeLimits_WorkArea02");
+    SaveWorkAreaThresholdConfig(false, WORK_AREA_TEST_PERCENTAGE);
+    window->userLimitsSet_ = true;
+    window->forceLimits_ = false;
+    WindowLimits userLimits = { 3000, 2000, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetUserWindowLimits(userLimits);
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    EXPECT_CALL(*window, GetVirtualPixelRatio(::testing::An<const sptr<DisplayInfo>&>()))
+        .WillRepeatedly(Return(2.0f));
+
+    window->isMinLimitsAdjusted_ = false;
+    window->UpdateWindowSizeLimits();
+
+    WindowLimits result = window->GetProperty()->GetWindowLimits();
+    EXPECT_EQ(result.minWidth_, 1800u);
+    EXPECT_EQ(result.minHeight_, 900u);
+    EXPECT_EQ(false, window->isMinLimitsAdjusted_.load());
+}
+
+/**
+ * @tc.name: UpdateDensityInner_PXWorkArea01
+ * @tc.desc: PX user limits capped by work area rule in UpdateDensityInner else branch
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_PXWorkArea01, Function | SmallTest | Level2)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("UpdateDensityInner_PXWorkArea01");
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // PX user limits with oversized min values (1800x900 over caps)
+    WindowLimits userLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetUserWindowLimits(userLimits);
+    window->GetProperty()->SetWindowLimits(userLimits);
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgReferee<0>(2.0f),
+            ::testing::Return(WMError::WM_OK)));
+
+    // Call UpdateDensityInner to trigger PX branch with work area capping
+    window->UpdateDensityInner(nullptr);
+
+    WindowLimits resultPx = window->GetProperty()->GetWindowLimits();
+    WindowLimits resultVp = window->GetProperty()->GetWindowLimitsVP();
+    EXPECT_EQ(resultPx.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(resultPx.minHeight_, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(resultPx.maxWidth_, 3840u);
+    EXPECT_EQ(resultPx.maxHeight_, 1920u);
+    EXPECT_EQ(resultVp.minWidth_, 810u);  // round(1620 / 2.0)
+    EXPECT_EQ(resultVp.minHeight_, 405u); // round(810 / 2.0)
+    EXPECT_EQ(true, window->isMinLimitsAdjusted_.load());
+}
+
+/**
+ * @tc.name: UpdateDensityInner_PXWorkArea02
+ * @tc.desc: PX user with work area capping before attached intersection, baseline refreshed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, UpdateDensityInner_PXWorkArea02, Function | SmallTest | Level2)
+{
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("UpdateDensityInner_PXWorkArea02");
+    window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+
+    // PX user limits with oversized min values
+    WindowLimits userLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetUserWindowLimits(userLimits);
+    // Attached scenario takes limits from the attached baseline, preset it with the oversized values
+    window->GetProperty()->SetLimitsForAttachedWindows(userLimits);
+    // Set up intersected attach with tighter max limits
+    WindowLimits attachedLimits = { 2000, 1500, 300, 400, 0.0f, 0.0f, 2.0f, PixelUnit::PX };
+    window->GetProperty()->SetAttachedWindowLimits(1, attachedLimits);
+    window->GetProperty()->SetAttachedLimitOptions(1, AttachLimitOptions{ true, true });
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillRepeatedly(::testing::DoAll(::testing::SetArgReferee<0>(2.0f),
+            ::testing::Return(WMError::WM_OK)));
+
+    window->UpdateDensityInner(nullptr);
+
+    // Capped min (1620x810) then intersected with attached max (2000x1500)
+    WindowLimits resultPx = window->GetProperty()->GetWindowLimits();
+    EXPECT_EQ(resultPx.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(resultPx.minHeight_, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(resultPx.maxWidth_, 2000u);
+    EXPECT_EQ(resultPx.maxHeight_, 1500u);
+    // Attached baseline refreshed with the final result
+    WindowLimits baseline = window->GetProperty()->GetLimitsForAttachedWindows();
+}
+
+/**
+ * @tc.name: IsExceedingWorkAreaCap01
+ * @tc.desc: Threshold disabled or null display, no refresh needed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, IsExceedingWorkAreaCap01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("IsExceedingWorkAreaCap01");
+    SaveWorkAreaThresholdConfig(false, WORK_AREA_TEST_PERCENTAGE);
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(0);
+
+    // Disabled: false regardless of limits
+    WindowLimits limits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(limits);
+    EXPECT_FALSE(window->IsExceedingWorkAreaCap(display));
+    // Null display: false
+    SaveWorkAreaThresholdConfig(true, WORK_AREA_TEST_PERCENTAGE);
+    EXPECT_FALSE(window->IsExceedingWorkAreaCap(nullptr));
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: IsExceedingWorkAreaCap02
+ * @tc.desc: Exceeds caps returns true, within caps returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, IsExceedingWorkAreaCap02, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("IsExceedingWorkAreaCap02");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(0);
+
+    // min 1800x900 exceeds caps 1620x810
+    WindowLimits overLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(overLimits);
+    EXPECT_TRUE(window->IsExceedingWorkAreaCap(display));
+
+    // min 1600x800 within caps
+    WindowLimits inLimits = { 3840, 1920, 1600, 800, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(inLimits);
+    EXPECT_FALSE(window->IsExceedingWorkAreaCap(display));
+
+    // only width exceeds
+    WindowLimits widthOver = { 3840, 1920, 1700, 800, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(widthOver);
+    EXPECT_TRUE(window->IsExceedingWorkAreaCap(display));
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: IsExceedingWorkAreaCap03
+ * @tc.desc: Work area fetch failed returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, IsExceedingWorkAreaCap03, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("IsExceedingWorkAreaCap03");
+
+    using DisplayMocker = SingletonMocker<DisplayManagerAdapter, MockDisplayManagerAdapter>;
+    auto displayMocker = std::make_unique<DisplayMocker>();
+    EXPECT_CALL(displayMocker->Mock(), GetDisplayInfo(_, _))
+        .WillRepeatedly(Return(CreateWorkAreaTestDisplayInfo()));
+    EXPECT_CALL(displayMocker->Mock(), GetAvailableArea(_, _))
+        .WillRepeatedly(Return(DMError::DM_ERROR_NULLPTR));
+
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(0);
+    WindowLimits overLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(overLimits);
+    EXPECT_FALSE(window->IsExceedingWorkAreaCap(display));
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: RefreshLimitsOnGeometryChange01
+ * @tc.desc: Threshold disabled, returns false without touching records
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RefreshLimitsOnGeometryChange01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RefreshLimitsOnGeometryChange01");
+    SaveWorkAreaThresholdConfig(false, WORK_AREA_TEST_PERCENTAGE);
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    // Records keep initial values (0): disabled path returns false before any detection
+    EXPECT_FALSE(window->RefreshLimitsOnGeometryChange());
+    EXPECT_EQ(window->lastDisplayWidth_, 0u);
+    EXPECT_EQ(window->lastDisplayHeight_, 0u);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: RefreshLimitsOnGeometryChange02
+ * @tc.desc: Geometry unchanged, returns false without refresh
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RefreshLimitsOnGeometryChange02, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RefreshLimitsOnGeometryChange02");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    // Records preset to the actual geometry (2000x1000, ROTATION_0): no change
+    window->lastDisplayWidth_ = 2000;
+    window->lastDisplayHeight_ = 1000;
+    window->lastDisplayRotation_ = Rotation::ROTATION_0;
+    EXPECT_FALSE(window->RefreshLimitsOnGeometryChange());
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: RefreshLimitsOnGeometryChange03
+ * @tc.desc: Geometry changed and limits exceed new caps, returns true and updates records
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RefreshLimitsOnGeometryChange03, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RefreshLimitsOnGeometryChange03");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    // Records preset to landscape (1000x2000), actual mock display is portrait 2000x1000: changed
+    window->lastDisplayWidth_ = 1000;
+    window->lastDisplayHeight_ = 2000;
+    window->lastDisplayRotation_ = Rotation::ROTATION_0;
+    // Limits exceed caps 1620x810
+    WindowLimits overLimits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(overLimits);
+
+    EXPECT_TRUE(window->RefreshLimitsOnGeometryChange());
+    // Records updated to the actual geometry
+    EXPECT_EQ(window->lastDisplayWidth_, 2000u);
+    EXPECT_EQ(window->lastDisplayHeight_, 1000u);
+    // Second call: geometry unchanged now, no refresh needed (dedup)
+    EXPECT_FALSE(window->RefreshLimitsOnGeometryChange());
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: RefreshLimitsOnGeometryChange04
+ * @tc.desc: Geometry changed but limits within caps, returns false while records still update
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RefreshLimitsOnGeometryChange04, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RefreshLimitsOnGeometryChange04");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    window->lastDisplayWidth_ = 1000;
+    window->lastDisplayHeight_ = 2000;
+    window->lastDisplayRotation_ = Rotation::ROTATION_90;
+    // Limits within caps
+    WindowLimits inLimits = { 3840, 1920, 1600, 800, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(inLimits);
+
+    // No refresh needed (within caps), but the change is absorbed into records
+    EXPECT_FALSE(window->RefreshLimitsOnGeometryChange());
+    EXPECT_EQ(window->lastDisplayWidth_, 2000u);
+    EXPECT_EQ(window->lastDisplayHeight_, 1000u);
+    EXPECT_EQ(window->lastDisplayRotation_, Rotation::ROTATION_0);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: RecalcPxLimitsOnDensity01
+ * @tc.desc: vpr fetch failed, limits keep unchanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RecalcPxLimitsOnDensity01, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RecalcPxLimitsOnDensity01");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits limits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(limits);
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillOnce(::testing::Return(WMError::WM_ERROR_NULLPTR));
+
+    window->RecalcPxLimitsOnDensity(nullptr);
+
+    // vpr failed: early return, stored limits unchanged
+    WindowLimits result = window->GetProperty()->GetWindowLimits();
+    EXPECT_EQ(result.minWidth_, 1800u);
+    EXPECT_EQ(result.minHeight_, 900u);
+    EXPECT_EQ(false, window->isMinLimitsAdjusted_.load());
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+
+/**
+ * @tc.name: RecalcPxLimitsOnDensity02
+ * @tc.desc: Oversized PX min capped by work area rule, VP view refreshed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RecalcPxLimitsOnDensity02, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RecalcPxLimitsOnDensity02");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+
+    WindowLimits limits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(limits);
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(2.0f), ::testing::Return(WMError::WM_OK)));
+
+    window->RecalcPxLimitsOnDensity(nullptr);
+
+    WindowLimits resultPx = window->GetProperty()->GetWindowLimits();
+    WindowLimits resultVp = window->GetProperty()->GetWindowLimitsVP();
+    EXPECT_EQ(resultPx.minWidth_, WORK_AREA_TEST_CAP_W);
+    EXPECT_EQ(resultPx.minHeight_, WORK_AREA_TEST_CAP_H);
+    EXPECT_EQ(resultVp.minWidth_, 810u);  // round(1620 / 2.0)
+    EXPECT_EQ(resultVp.minHeight_, 405u); // round(810 / 2.0)
+    EXPECT_EQ(true, window->isMinLimitsAdjusted_.load());
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
 }
 
 } // namespace

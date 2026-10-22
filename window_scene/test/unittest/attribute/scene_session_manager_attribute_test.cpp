@@ -709,6 +709,33 @@ HWTEST_F(SceneSessionManagerAttributeTest, FilterForGetAllWindowLayoutInfo004, T
 }
 
 /**
+ * @tc.name: NotifyAllSessionDpiHookScale001
+ * @tc.desc: test NotifyAllSessionDpiHookScale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, NotifyAllSessionDpiHookScale001, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    auto oldSceneSessionMap = ssm_->sceneSessionMap_;
+    auto oldXhDpiAppList = ssm_->rogWindowConfig_.xhdpiAppList;
+    ssm_->sceneSessionMap_.clear();
+    ssm_->rogWindowConfig_.xhdpiAppList.clear();
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "test.bundle";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_->SetPersistentId(100);
+    ssm_->sceneSessionMap_.insert(std::make_pair(sceneSession->GetPersistentId(), sceneSession));
+    ssm_->NotifyNewSessionDpiHookScale(nullptr);
+    ssm_->rogWindowConfig_.xhdpiAppList.push_back(sessionInfo.bundleName_);
+    ssm_->NotifyAllSessionDpiHookScale();
+    ssm_->sceneSessionMap_.clear();
+    ssm_->rogWindowConfig_.xhdpiAppList.clear();
+    ssm_->sceneSessionMap_ = oldSceneSessionMap;
+    ssm_->rogWindowConfig_.xhdpiAppList = oldXhDpiAppList;
+}
+
+/**
  * @tc.name: ProcessVirtualPixelRatioChange
  * @tc.desc: test ProcessVirtualPixelRatioChange.
  * @tc.type: FUNC
@@ -766,13 +793,16 @@ HWTEST_F(SceneSessionManagerAttributeTest, ShouldProcessVirtualPixelRatioChange0
     displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
     displayInfo->SetDensityInCurResolution(virtualPixelRatio);
 
-    ProcessVirtualPixelRatioChangeFunc func = [](float ratio, const OHOS::Rosen::Rect& rect) {};
+    ProcessVirtualPixelRatioChangeFunc func = [](const sptr<DisplayInfo>& displayInfo) {};
     ssm_->SetVirtualPixelRatioChangeListener(func);
 
     ASSERT_NE(nullptr, ssm_);
     auto shouldProcess =
         ssm_->ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType::RESOLUTION_CHANGE, displayInfo);
     EXPECT_TRUE(shouldProcess);
+    displayInfo->SetDisplayId(0);
+    std::map<DisplayId, sptr<DisplayInfo>> displayInfoMap;
+    ssm_->ProcessVirtualPixelRatioChange(0, displayInfo, displayInfoMap, DisplayStateChangeType::RESOLUTION_CHANGE);
     ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
 }
 
@@ -789,16 +819,44 @@ HWTEST_F(SceneSessionManagerAttributeTest, ShouldProcessVirtualPixelRatioChange0
     displayInfo->SetVirtualPixelRatio(virtualPixelRatio);
     displayInfo->SetDensityInCurResolution(virtualPixelRatio);
     displayInfo->SetDisplayId(defaultDisplayId);
-    system::SetParameter("const.product.has_buildin_screen", "0");
 
-    ProcessVirtualPixelRatioChangeFunc func = [](float ratio, const OHOS::Rosen::Rect& rect) {};
+    ProcessVirtualPixelRatioChangeFunc func = [](const sptr<DisplayInfo>& displayInfo) {};
     ssm_->SetVirtualPixelRatioChangeListener(func);
 
     ASSERT_NE(nullptr, ssm_);
-    auto shouldProcess =
-        ssm_->ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE, displayInfo);
-    EXPECT_TRUE(shouldProcess);
+    auto shouldProcess = ssm_->ShouldProcessVirtualPixelRatioChange(DisplayStateChangeType::FREEZE, displayInfo);
+    EXPECT_FALSE(shouldProcess);
     ssm_->processVirtualPixelRatioChangeFunc_ = nullptr;
+}
+
+/**
+ * @tc.name: SetGlobalSkipList
+ * @tc.desc: SetGlobalSkipList
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, SetGlobalSkipList, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    std::vector<uint64_t> skipList;
+    ssm_->SetGlobalSkipList(skipList);
+    skipList.push_back(1);
+    skipList.push_back(2);
+    ssm_->SetGlobalSkipList(skipList);
+}
+
+/**
+ * @tc.name: RemoveGlobalSkipList
+ * @tc.desc: RemoveGlobalSkipList
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, RemoveGlobalSkipList, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    std::vector<uint64_t> skipList;
+    ssm_->RemoveGlobalSkipList(skipList);
+    skipList.push_back(1);
+    skipList.push_back(2);
+    ssm_->RemoveGlobalSkipList(skipList);
 }
 } // namespace
 } // namespace Rosen

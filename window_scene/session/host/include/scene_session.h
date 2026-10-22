@@ -93,6 +93,7 @@ using NotifyReqOrientationChangeFunc =
 using NotifyRaiseAboveTargetFunc = std::function<void(int32_t subWindowId)>;
 using NotifyForceHideChangeFunc = std::function<void(bool hide)>;
 using NotifyTouchOutsideFunc = std::function<void()>;
+using NotifyTouchHotAreasChangeFunc = std::function<void(const std::vector<Rect>&)>;
 using ClearCallbackMapFunc = std::function<void(bool needRemove)>;
 using NotifyPrepareClosePiPSessionFunc = std::function<void()>;
 using OnOutsideDownEvent = std::function<void(int32_t x, int32_t y)>;
@@ -185,6 +186,8 @@ using NotifyRecoverWindowEffectFunc = std::function<void(bool recoverCorner, boo
 using NotifySessionBlackListFunc = std::function<WMError(int32_t persistentId,
     const std::unordered_set<std::string>& privacyWindowTags)>;
 using NotifyPreCalcWindowPropertyFunc = std::function<void()>;
+using CheckAndGetRogScaleFunc = std::function<bool(const std::string bundleName,
+    float& scale)>;
 
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
@@ -237,6 +240,7 @@ public:
         CheckAndGetAbilityInfoByWantCallback onCheckAndGetAbilityInfoByWantCallback_;
         NotifyFollowScreenChangeFunc onUpdateFollowScreenChange_;
         NotifyRotationLockChangeFunc onRotationLockChange_;
+        CheckAndGetRogScaleFunc onCheckAndGetRogScaleCallback_;
     };
 
     // func for change window scene pattern property
@@ -257,7 +261,7 @@ public:
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") override;
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
-        const std::string& identityToken = "") override;
+        const std::string& identityToken = "", bool isAlreadyShown = false) override;
     WSError Background(bool isFromClient = false, const std::string& identityToken = "",
         bool isFromInnerkits = false) override;
     WSError BackgroundTask(const bool isSaveSnapshot = true,
@@ -726,6 +730,7 @@ public:
      * Window Input Event
      */
     void RegisterTouchOutsideCallback(NotifyTouchOutsideFunc&& callback);
+    void RegisterTouchHotAreasChangeCallback(NotifyTouchHotAreasChangeFunc&& callback);
     void SetMousePointerDownEventStatus(bool mousePointerDownEventStatus);
     bool GetMousePointerDownEventStatus() const;
     void SetFingerPointerDownStatus(int32_t fingerId);
@@ -856,6 +861,8 @@ public:
         const std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>& callback);
     std::function<bool(int32_t callingPid, uint32_t callingToken, const std::string &instanceKey)>
         isSessionBoundedSystemTrayCallback_;
+    virtual bool GetSessionBoundedSystemTray(
+        int32_t callingPid, uint32_t callingToken, const std::string &instanceKey) const { return false; }
 
     /*
      * Window Decor
@@ -1093,6 +1100,9 @@ public:
     void SetWindowShadowsCallback(NotifySetWindowShadowsFunc&& func);
     WSError SetWindowShadows(const ShadowsInfo& shadowsInfo) override;
     virtual WSError GetTopNavDestinationName(std::string& topNavDestName);
+    void NotifyDpiHookScale(float scale);
+    void SetDpiHookScale(float scale) { dpiHookScale_.store(scale); }
+    float GetDpiHookScale() const { return dpiHookScale_.load(); }
     void RegisterWindowShadowEnableChangeCallback(NotifyWindowShadowEnableChangeFunc&& callback);
     void SetNotifyScreenshotAppEventRegisteredFunc(UpdateScreenshotAppEventRegisteredFunc&& func);
     WMError UpdateScreenshotAppEventRegistered(int32_t persistentId, bool isRegister) override;
@@ -1294,6 +1304,16 @@ protected:
         SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID) {}
     virtual void UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
         const MoveConfiguration& moveConfiguration);
+
+    /**
+     * @brief Converts a rectangle to screen coordinates for move-to-global
+     *        requests when required by the session layout.
+     *
+     * @param rect The rectangle to convert.
+     * @return The converted rectangle, or the original rectangle when no conversion is required.
+     */
+    virtual WSRect ConvertToScreenCoordinates(const WSRect& rect) { return rect; }
+
     void NotifySessionDisplayIdChange(uint64_t displayId);
     virtual void CheckAndMoveDisplayIdRecursively(uint64_t displayId);
     void SetShouldFollowParentWhenShow(bool shouldFollow) { shouldFollowParentWhenShow_ = shouldFollow; }
@@ -1372,6 +1392,8 @@ protected:
 
 private:
     bool ShouldNotifyTouchOutside() const;
+    bool ShouldNotifyOutsideDownXY() const;
+
     void NotifyAccessibilityVisibilityChange();
     void CalculateCombinedExtWindowFlags();
     WSError ValidateWindowAnchorInfo(const WindowAnchorInfo& windowAnchorInfo,
@@ -1402,6 +1424,9 @@ private:
         const std::map<WindowType, SystemBarProperty>& properties, AvoidAreaType type);
     template<typename T>
     Rect CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const;
+    WSError GetScale(float& scaleX, float& scaleY) const;
+    bool CheckAndGetRogScale(float& scale) const override;
+    WSError GetScaleInRog(float& scaleX, float& scaleY) const;
 
     /*
      * Window Lifecycle
@@ -1412,7 +1437,7 @@ private:
     StartWindowType startWindowType_ = StartWindowType::DEFAULT;
 
     // session lifecycle funcs
-    WSError ForegroundTask(const sptr<WindowSessionProperty>& property);
+    WSError ForegroundTask(const sptr<WindowSessionProperty>& property, bool isAlreadyShown = false);
 
     /*
      * Move Drag
@@ -1499,6 +1524,8 @@ private:
     bool IsFullScreenMovable() const;
     bool IsSplitMovable() const;
     void HandleCastScreenConnection(SessionInfo& info, sptr<SceneSession> session);
+    WMError CheckUpdatePropertyPermission(WSPropertyChangeAction action,
+        const sptr<WindowSessionProperty>& property, bool isSystemCalling);
     WMError HandleUpdatePropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action);
     WMError HandleActionUpdateTurnScreenOn(const sptr<WindowSessionProperty>& property,
@@ -1752,6 +1779,7 @@ private:
      * Window Input Event
      */
     NotifyTouchOutsideFunc onTouchOutside_;
+    NotifyTouchHotAreasChangeFunc onTouchHotAreasChange_;
     bool isMousePointerDownEventStatus_ { false };
     std::unordered_set<int32_t> fingerPointerDownStatusList_;
 
@@ -1815,6 +1843,7 @@ private:
      * Window pattern
      */
     void NotifyAddOrRemoveSnapshotWindow(bool interactive);
+    void CheckRemoveSnapshotForUseControl(bool visibility);
 
     /*
      * Window Property
@@ -1827,6 +1856,7 @@ private:
     bool isAncoForFloatingWindow_ = false;
     bool subWindowOutlineEnabled_ = false;
     std::atomic_bool isRegisterAcrossDisplaysChanged_ = false;
+    std::atomic<float> dpiHookScale_ = 0.0f;
     void OnSurfaceNodeChanged() override;
     void UpdateSurfaceDarkMode();
     bool GetDarkMode() const;

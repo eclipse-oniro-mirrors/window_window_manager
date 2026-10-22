@@ -658,6 +658,142 @@ bool DisplayManagerLiteProxy::SuspendEnd()
 #endif
 }
 
+bool DisplayManagerLiteProxy::WakeUpBegin(DisplayId displayId, PowerStateChangeReason reason)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpBegin with screenId remote is nullptr");
+        return false;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpBegin with screenId: WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpBegin with screenId: Write screenId failed");
+        return false;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(reason))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpBegin with screenId: Write PowerStateChangeReason failed");
+        return false;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_WAKE_UP_BEGIN_WITH_DISPLAY_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpBegin with screenId: SendRequest failed");
+        return false;
+    }
+    return reply.ReadBool();
+#else
+    return false;
+#endif
+}
+
+bool DisplayManagerLiteProxy::WakeUpEnd(DisplayId displayId)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpEnd with screenId remote is nullptr");
+        return false;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpEnd with screenId: WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpEnd with screenId: Write screenId failed");
+        return false;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_WAKE_UP_END_WITH_DISPLAY_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER_IVI]WakeUpEnd with screenId: SendRequest failed");
+        return false;
+    }
+    return reply.ReadBool();
+#else
+    return false;
+#endif
+}
+
+bool DisplayManagerLiteProxy::SuspendBegin(DisplayId displayId, PowerStateChangeReason reason)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendBegin with screenId remote is nullptr");
+        return false;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendBegin with screenId : WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendBegin with screenId: Write screenId failed");
+        return false;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(reason))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendBegin with screenId: Write PowerStateChangeReason failed");
+        return false;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUSPEND_BEGIN_WITH_DISPLAY_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendBegin with screenId: SendRequest failed");
+        return false;
+    }
+    return reply.ReadBool();
+#else
+    return false;
+#endif
+}
+
+bool DisplayManagerLiteProxy::SuspendEnd(DisplayId displayId)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendEnd with screenId remote is nullptr");
+        return false;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendEnd with screenId: WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendEnd with screenId: Write screenId failed");
+        return false;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SUSPEND_END_WITH_DISPLAY_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER_IVI]SuspendEnd with screenId: SendRequest failed");
+        return false;
+    }
+    return reply.ReadBool();
+#else
+    return false;
+#endif
+}
+
 DMError DisplayManagerLiteProxy::SetScreenSwitchState(ScreenClosedState screenClosedState, bool isScreenOn)
 {
 #ifdef SCENE_BOARD_ENABLED
@@ -839,6 +975,46 @@ bool DisplayManagerLiteProxy::SetScreenPowerForAll(ScreenPowerState state, Power
 #endif
 }
 
+bool DisplayManagerLiteProxy::SetScreenPowerForSpecifiedId(ScreenId screenId, ScreenPowerState state,
+    PowerStateChangeReason reason)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI] SetScreenPowerForSpecifiedId remote is nullptr");
+        return false;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI] WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(screenId))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI] Write ScreenId failed");
+        return false;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(state))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI] Write ScreenPowerState failed");
+        return false;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(reason))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI] Write PowerStateChangeReason failed");
+        return false;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_POWER_FOR_SPECIFIED_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER_IVI] SendRequest failed");
+        return false;
+    }
+    return reply.ReadBool();
+#else
+    return false;
+#endif
+}
+
 ScreenPowerState DisplayManagerLiteProxy::GetScreenPower(ScreenId dmsScreenId)
 {
 #ifdef SCENE_BOARD_ENABLED
@@ -961,6 +1137,42 @@ bool DisplayManagerLiteProxy::SetDisplayState(DisplayState state)
     bool isSucc = false;
     SetDisplayState(static_cast<uint32_t>(state), isSucc);
     return isSucc;
+#endif
+}
+
+bool DisplayManagerLiteProxy::SetDisplayState(DisplayId displayId, DisplayState state)
+{
+#ifdef SCENE_BOARD_ENABLED
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SetDisplayState remote is nullptr");
+        return false;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]WriteInterfaceToken failed");
+        return false;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]SetDisplayState with screenId: Write screenId failed");
+        return false;
+    }
+    if (!data.WriteUint32(static_cast<uint32_t>(state))) {
+        TLOGE(WmsLogTag::DMS, "[UL_POWER_IVI]Write DisplayState failed");
+        return false;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_DISPLAY_STATE_WITH_DISPLAY_ID),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "[UL_POWER_IVI]SendRequest failed");
+        return false;
+    }
+    return reply.ReadBool();
+#else
+    return false;
 #endif
 }
 

@@ -102,14 +102,14 @@ public:
         return oss.str();
     }
 
-    const std::vector<TrackInfo>& GetRecordInfos()
+    std::vector<TrackInfo> GetRecordInfos()
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        allRecordInfos_ = recordInfos_;
+        std::vector<TrackInfo> result = recordInfos_;
         for (auto info : recordBoundsInfos_) {
-            allRecordInfos_.emplace_back(info);
+            result.emplace_back(info);
         }
-        return allRecordInfos_;
+        return result;
     }
 
 private:
@@ -117,7 +117,6 @@ private:
     mutable std::chrono::system_clock::time_point lastOutputTime_;
     std::vector<TrackInfo> recordInfos_;
     std::list<TrackInfo> recordBoundsInfos_;
-    std::vector<TrackInfo> allRecordInfos_;
 };
 
 

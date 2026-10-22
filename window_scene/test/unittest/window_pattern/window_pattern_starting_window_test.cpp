@@ -17,12 +17,15 @@
 #include <regex>
 #include <bundle_mgr_interface.h>
 #include <bundlemgr/launcher_service.h>
+#include <parameter.h>
+#include <parameters.h>
 
 #include "context.h"
 #include "interfaces/include/ws_common.h"
 #include "session_info.h"
 #include "session/host/include/scene_persistence.h"
 #include "session/host/include/scene_persistent_storage.h"
+#include "session/screen/include/screen_session.h"
 #include "session_manager/include/rdb/starting_window_rdb_manager.h"
 #include "session_manager/include/scene_session_manager.h"
 #include "window_manager_hilog.h"
@@ -548,6 +551,51 @@ HWTEST_F(WindowPatternStartingWindowTest, GetBundleStartingWindowInfos, TestSize
 }
 
 /**
+ * @tc.name: PostProcessStartingWindowInfo
+ * @tc.desc: PostProcessStartingWindowInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternStartingWindowTest, PostProcessStartingWindowInfo, TestSize.Level3)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    AppExecFwk::AbilityInfo abilityInfo1;
+    abilityInfo1.bundleName = "test";
+
+    AppExecFwk::Metadata metadata1;
+    metadata1.name = "test";
+    metadata1.value = "false";
+    abilityInfo1.metadata.push_back(metadata1);
+
+    AppExecFwk::Metadata metadata2;
+    metadata2.name = "enable.optional.starting.window";
+    metadata2.value = "false";
+    abilityInfo1.metadata.push_back(metadata2);
+
+    StartingWindowInfo startingWindowInfo;
+    startingWindowInfo.backgroundColorEarlyVersion_ = 0xff000000;
+    startingWindowInfo.iconPathEarlyVersion_ = "resource:///12345678.png";
+
+    ssm_->PostProcessStartingWindowInfo(abilityInfo1, startingWindowInfo);
+    EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "resource:///12345678.png");
+
+    AppExecFwk::AbilityInfo abilityInfo2;
+    abilityInfo2.bundleName = "test";
+
+    AppExecFwk::Metadata metadata3;
+    metadata3.name = "enable.optional.starting.window";
+    metadata3.value = "true";
+    abilityInfo2.metadata.push_back(metadata3);
+
+    ssm_->PostProcessStartingWindowInfo(abilityInfo2, startingWindowInfo);
+    if (GetPerformanceClass() == PERFORMANCE_CLASS_LOW_LEVEL) {
+        EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "resource:///12345678.png");
+    } else {
+        EXPECT_EQ(startingWindowInfo.iconPathEarlyVersion_, "");
+    }
+}
+
+/**
  * @tc.name: GetPreloadStartingWindow_WithoutAnyData
  * @tc.desc: Test GetPreloadStartingWindow when neither PixelMap nor SVG buffer is set
  * @tc.type: FUNC
@@ -861,6 +909,7 @@ HWTEST_F(WindowPatternStartingWindowTest, PreLoadStartingWindow, TestSize.Level1
 HWTEST_F(WindowPatternStartingWindowTest, GetCropInfoByDisplaySize, TestSize.Level1)
 {
     ASSERT_NE(ssm_, nullptr);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
     Media::ImageInfo imageInfo;
     imageInfo.size.width = 2200;
     imageInfo.size.height = 3200;
@@ -868,33 +917,28 @@ HWTEST_F(WindowPatternStartingWindowTest, GetCropInfoByDisplaySize, TestSize.Lev
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.top, 0);
 
-    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
-    ASSERT_NE(displayInfo, nullptr);
-    ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
-    displayInfo->SetDisplayId(defaultScreenId);
-    displayInfo->SetWidth(5000);
-    displayInfo->SetHeight(5000);
-    ssm_->UpdateDisplayRegion(displayInfo);
+    sptr<ScreenSession> screenSession = sptr<ScreenSession>::MakeSptr();
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.insert(std::make_pair(0, screenSession));
+
+    screenSession->SetBounds(RRect({ 0, 0, 5000, 5000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.top, 0);
 
-    displayInfo->SetWidth(3000);
-    displayInfo->SetHeight(3000);
-    ssm_->UpdateDisplayRegion(displayInfo);
+    screenSession->SetBounds(RRect({ 0, 0, 3000, 3000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.top, 100);
 
     imageInfo.size.width = 3200;
     imageInfo.size.height = 2200;
-    ssm_->UpdateDisplayRegion(displayInfo);
+    screenSession->SetBounds(RRect({ 0, 0, 3000, 3000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.left, 100);
 
-    displayInfo->SetWidth(2000);
-    displayInfo->SetHeight(2000);
-    ssm_->UpdateDisplayRegion(displayInfo);
+    screenSession->SetBounds(RRect({ 0, 0, 2000, 2000 }, 0.0f, 0.0f));
     ssm_->GetCropInfoByDisplaySize(imageInfo, decodeOpts);
     EXPECT_EQ(decodeOpts.CropRect.left, 600);
+
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
 }
 
 /**

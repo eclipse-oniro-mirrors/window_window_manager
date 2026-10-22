@@ -76,11 +76,6 @@ void AniPipManager::OnInitXComponentController(ani_env* env, ani_int windowId, a
     TLOGD(WmsLogTag::WMS_PIP, "start");
     std::shared_ptr<XComponentController> xComponentControllerResult =
         XComponentController::GetXComponentControllerFromAniValue(env, xComponentController);
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return;
-    }
     int32_t pipWindowId = static_cast<int32_t>(windowId);
     auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (pipController == nullptr) {
@@ -114,11 +109,6 @@ ani_ref AniPipManager::GetCustomUIController(ani_env* env, ani_long nativeObj, a
 ani_ref AniPipManager::OnGetCustomUIController(ani_env* env, ani_int windowId)
 {
     TLOGI(WmsLogTag::WMS_PIP, "OnGetCustomUIController");
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return AniPipUtils::AniGetUndefined(env);
-    }
     int32_t pipWindowId = static_cast<int32_t>(windowId);
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", pipWindowId);
     auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
@@ -147,11 +137,6 @@ ani_ref AniPipManager::GetTypeNode(ani_env* env, ani_long nativeObj, ani_int win
 ani_object AniPipManager::OnGetTypeNode(ani_env* env, ani_int windowId)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return AniPipUtils::AniGetUndefined(env);
-    }
     int32_t pipWindowId = static_cast<int32_t>(windowId);
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", pipWindowId);
     auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
@@ -181,11 +166,6 @@ void AniPipManager::SetTypeNodeEnabled(ani_env* env, ani_long nativeObj, ani_int
 void AniPipManager::OnSetTypeNodeEnabled(ani_env* env, ani_int windowId)
 {
     TLOGD(WmsLogTag::WMS_PIP, "start");
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return;
-    }
     int32_t pipWindowId = static_cast<int32_t>(windowId);
     TLOGI(WmsLogTag::WMS_PIP, "winId: %{public}u", pipWindowId);
     auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
@@ -248,15 +228,8 @@ void AniPipManager::OnRegisterCallback(ani_env* env, ani_int windowId, ani_strin
         TLOGE(WmsLogTag::WMS_PIP, "Callback is null");
         return;
     }
-
     ani_ref fnRef = {};
     env->GlobalReference_Create(callback, &fnRef);
-
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
-        return;
-    }
     int32_t pipWindowId = static_cast<int32_t>(windowId);
     auto pipController = PictureInPictureManager::GetPipControllerInfo(pipWindowId);
     if (!pipController) {
@@ -290,12 +263,6 @@ void AniPipManager::OnUnregisterCallback(ani_env* env, ani_int windowId, ani_str
     TLOGI(WmsLogTag::WMS_PIP, "OnUnregisterCallback type:%{public}s", cbType.c_str());
     if (PIP_CONTENT_CALLBACK.count(cbType) == 0) {
         TLOGE(WmsLogTag::WMS_PIP, "cbType is not in PIP_CONTENT_CALLBACK");
-        return;
-    }
-
-    sptr<Window> pipWindow = Window::Find(PIP_WINDOW_NAME);
-    if (pipWindow == nullptr) {
-        TLOGE(WmsLogTag::WMS_PIP, "Failed to find pip window");
         return;
     }
     int32_t pipWindowId = static_cast<int32_t>(windowId);

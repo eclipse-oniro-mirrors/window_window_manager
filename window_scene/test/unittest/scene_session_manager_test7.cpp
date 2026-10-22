@@ -167,7 +167,7 @@ HWTEST_F(SceneSessionManagerTest7, ProcessVirtualPixelRatioChange01, TestSize.Le
     displayInfo->SetVirtualPixelRatio(0.1f);
     displayInfo->SetDensityInCurResolution(0.1f);
     ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap, type);
-    ProcessVirtualPixelRatioChangeFunc func = [](float ratio, const OHOS::Rosen::Rect& rect) {};
+    ProcessVirtualPixelRatioChangeFunc func = [](const sptr<DisplayInfo>& displayInfo) {};
     ssm_->SetVirtualPixelRatioChangeListener(func);
     ASSERT_NE(nullptr, ssm_->processVirtualPixelRatioChangeFunc_);
     ssm_->ProcessVirtualPixelRatioChange(defaultDisplayId, displayInfo, displayInfoMap, type);

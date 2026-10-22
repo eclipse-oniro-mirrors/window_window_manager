@@ -94,6 +94,18 @@ public:
     using UserSwitchCallbackFunc = std::function<void()>;
     void RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc);
 
+    using UserAddedCallbackFunc = std::function<void(int32_t userId)>;
+    void RegisterUserAddedListener(const UserAddedCallbackFunc& callbackFunc);
+
+    using UserRemovedCallbackFunc = std::function<void(int32_t userId)>;
+    void RegisterUserRemovedListener(const UserRemovedCallbackFunc& callbackFunc);
+
+    /*
+     * Active User IDs Management
+     */
+    void GetActiveUserIds(std::vector<int32_t>& userIds);
+    void UpdateActiveUserIds(int32_t userId, bool isConnected);
+
     /*
      * Window Recover
      */
@@ -117,8 +129,16 @@ private:
     const int32_t userId_;
     static std::unordered_map<int32_t, sptr<SessionManagerLite>> sessionManagerLiteMap_;
     static std::mutex sessionManagerLiteMapMutex_;
+
+    static std::unordered_set<int32_t> activeUserIds_;
+    static std::mutex activeUserIdsMutex_;
+    static bool activeUserIdsInitialized_;
+
     void OnUserSwitch(const sptr<ISessionManagerService>& sessionManagerService);
     void OnWMSConnectionChangedCallback(int32_t userId, int32_t screenId, bool isConnected, int32_t pid);
+
+    void InitializeActiveUserIds();
+    void SetAllActiveUserIds(const std::vector<int32_t>& userIds);
 
     /*
      * Window Recover
@@ -153,6 +173,12 @@ private:
      */
     UserSwitchCallbackFunc userSwitchCallbackFunc_ = nullptr;
     std::mutex userSwitchCallbackFuncMutex_;
+
+    UserAddedCallbackFunc userAddedCallbackFunc_ = nullptr;
+    std::mutex userAddedCallbackFuncMutex_;
+
+    UserRemovedCallbackFunc userRemovedCallbackFunc_ = nullptr;
+    std::mutex userRemovedCallbackFuncMutex_;
 
     struct ScreenUserInfo {
         int32_t userId;

@@ -424,6 +424,94 @@ namespace {
         int res = stub_->ProcPrivateWindowList(data);
         EXPECT_EQ(res, 0);
     }
+
+    /**
+     * @tc.name: NotifyDisplayStateChangedById
+     * @tc.desc: TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED_BY_ID
+     * @tc.type: FUNC
+     */
+    HWTEST_F(DisplayManagerAgentStubTest, NotifyDisplayStateChangedById, TestSize.Level1)
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+
+        data.WriteInterfaceToken(DisplayManagerAgentStub::GetDescriptor());
+        DisplayId id = 0;
+        DisplayState state = DisplayState::OFF;
+        data.WriteUint64(static_cast<uint64_t>(id));
+        data.WriteUint32(static_cast<uint32_t>(state));
+        uint32_t code = static_cast<uint32_t>(IDisplayManagerAgent::TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED_BY_ID);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, 0);
+    }
+
+    /**
+     * @tc.name: NotifyDisplayStateChangedById_InvalidToken
+     * @tc.desc: TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED_BY_ID with invalid token
+     * @tc.type: FUNC
+     */
+    HWTEST_F(DisplayManagerAgentStubTest, NotifyDisplayStateChangedById_InvalidToken, TestSize.Level1)
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+
+        data.WriteInterfaceToken(u"InvalidDescriptor");
+        DisplayId id = 0;
+        DisplayState state = DisplayState::OFF;
+        data.WriteUint64(static_cast<uint64_t>(id));
+        data.WriteUint32(static_cast<uint32_t>(state));
+        uint32_t code = static_cast<uint32_t>(IDisplayManagerAgent::TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED_BY_ID);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, -1);
+    }
+
+    /**
+     * @tc.name: NotifySpecifiedDisplayPowerEvent_Stub
+     * @tc.desc: TRANS_ID_NOTIFY_SPECIFIED_DISPLAY_POWER_EVENT
+     * @tc.type: FUNC
+     */
+    HWTEST_F(DisplayManagerAgentStubTest, NotifySpecifiedDisplayPowerEvent_Stub, TestSize.Level1)
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+
+        data.WriteInterfaceToken(DisplayManagerAgentStub::GetDescriptor());
+        DisplayId displayId = 0;
+        DisplayPowerEvent event = DisplayPowerEvent::WAKE_UP;
+        EventStatus status = EventStatus::BEGIN;
+        data.WriteUint64(static_cast<uint64_t>(displayId));
+        data.WriteUint32(static_cast<uint32_t>(event));
+        data.WriteUint32(static_cast<uint32_t>(status));
+        uint32_t code = static_cast<uint32_t>(IDisplayManagerAgent::TRANS_ID_NOTIFY_SPECIFIED_DISPLAY_POWER_EVENT);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, 0);
+    }
+
+    /**
+     * @tc.name: NotifySpecifiedDisplayPowerEvent_Stub_InvalidToken
+     * @tc.desc: TRANS_ID_NOTIFY_SPECIFIED_DISPLAY_POWER_EVENT with invalid token
+     * @tc.type: FUNC
+     */
+    HWTEST_F(DisplayManagerAgentStubTest, NotifySpecifiedDisplayPowerEvent_Stub_InvalidToken, TestSize.Level1)
+    {
+        MessageParcel data;
+        MessageParcel reply;
+        MessageOption option;
+
+        data.WriteInterfaceToken(u"InvalidDescriptor");
+        DisplayId displayId = 0;
+        DisplayPowerEvent event = DisplayPowerEvent::WAKE_UP;
+        EventStatus status = EventStatus::BEGIN;
+        data.WriteUint64(static_cast<uint64_t>(displayId));
+        data.WriteUint32(static_cast<uint32_t>(event));
+        data.WriteUint32(static_cast<uint32_t>(status));
+        uint32_t code = static_cast<uint32_t>(IDisplayManagerAgent::TRANS_ID_NOTIFY_SPECIFIED_DISPLAY_POWER_EVENT);
+        int res = stub_->OnRemoteRequest(code, data, reply, option);
+        EXPECT_EQ(res, -1);
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

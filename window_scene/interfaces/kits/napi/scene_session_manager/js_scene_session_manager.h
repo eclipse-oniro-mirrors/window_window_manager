@@ -61,8 +61,11 @@ enum class ListenerFunctionType : uint32_t {
     DISPLAY_POWER_EVENT_CHANGE_CB,
     MINIMIZE_ALL_CB,
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
+    SET_WINDOW_POSITION_CB,
     NOTIFY_PAGE_ENABLE_REGISTERED_CB,
     GET_FLOAT_VIEW_LIMIT_CB,
+    UPDATE_ROG_WINDOW_CONFIG_CB,
+    RESTORE_SESSION_TO_FOREGROUND_CB,
 };
 
 class JsSceneSessionManager final {
@@ -398,7 +401,7 @@ private:
     void OnMinimizeByWindowId(const std::vector<int32_t>& windowIds);
     void OnUpdateKioskAppListCallback(const std::vector<std::string>& kioskAppList);
     void RegisterUpdateKioskAppListCallback();
-    void OnKioskModeChangeCallback(bool isKioskMode, int32_t persistentId);
+    void OnKioskModeChangeCallback(bool isKioskMode, int32_t persistentId, KioskType kioskType);
     void RegisterKioskModeChangeCallback();
 
     /*
@@ -408,6 +411,8 @@ private:
     napi_value OnGetBatchAbilityInfos(napi_env env, napi_callback_info info);
     void OnRecoverSceneSession(const sptr<SceneSession>& sceneSession, const SessionInfo& sessionInfo);
     void ProcessRecoverSceneSessionRegister();
+    void OnRestoreSessionToForeground(int32_t persistentId);
+    void ProcessRestoreSessionToForegroundRegister();
 
     /*
      * PiP Window
@@ -476,6 +481,8 @@ private:
     void RegisterMoveMainWindowToTargetDisplayCallback();
     void OnMoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId,
         bool isFromScreenVirtual, bool isToScreenVirtual);
+    void RegisterSetWindowPositionCallback();
+    void OnSetWindowPosition(const WindowPositionInfo& windowPositionInfo);
 
     napi_env env_;
     std::mutex jsCbMapMutex_;
@@ -495,7 +502,7 @@ private:
     void ProcessSensorRotationRegister();
     void OnSensorRotationChange(float sensorRotation);
     void ProcessSmartSensorRotationRegister();
-    void OnSmartSensorRotationChange(float sensorRotation);
+    void OnSmartSensorRotationChange(float sensorRotation, bool isSwitchUser, int16_t reason);
     void ProcessDisplayPowerEventRegister();
     void OnDisplayPowerEventChange(ScreenId screenId, DisplayPowerEvent event, EventStatus status);
 
@@ -521,6 +528,9 @@ private:
     napi_value OnSyncFloatViewLimits(napi_env env, napi_callback_info info);
     void RegisterGetFloatViewLimitCallback();
     void OnGetFloatViewLimitCallback();
+    
+    void RegisterUpdateRogWindowConfigCallback();
+    void OnUpdateRogWindowConfigCallback(const RogWindowConfig& windowConfig);
 
     /**
      * Config

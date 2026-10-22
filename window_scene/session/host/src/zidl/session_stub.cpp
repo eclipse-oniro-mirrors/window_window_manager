@@ -147,6 +147,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleHide(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_DRAWING_COMPLETED):
             return HandleDrawingCompleted(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_WITH_SNAPSHOT):
+            return HandleStartWithSnapshot(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_APP_REMOVE_STARTING_WINDOW):
             return HandleRemoveStartingWindow(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_RECTCHANGE_LISTENER_REGISTERED):
@@ -439,7 +441,12 @@ int SessionStub::HandleForeground(MessageParcel& data, MessageParcel& reply)
         TLOGE(WmsLogTag::WMS_LIFE, "Read identityToken failed.");
         return ERR_INVALID_DATA;
     }
-    const WSError errCode = Foreground(property, isFromClient, identityToken);
+    bool isAlreadyShown = false;
+    if (!data.ReadBool(isAlreadyShown)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read isAlreadyShown failed.");
+        return ERR_INVALID_DATA;
+    }
+    const WSError errCode = Foreground(property, isFromClient, identityToken, isAlreadyShown);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;
 }
@@ -699,10 +706,20 @@ int SessionStub::HandleDrawingCompleted(MessageParcel& data, MessageParcel& repl
     return ERR_NONE;
 }
 
+int SessionStub::HandleStartWithSnapshot(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_PATTERN, "Called!");
+    const WSError errCode = StartWithSnapshot();
+    reply.WriteInt32(static_cast<int32_t>(errCode));
+    return ERR_NONE;
+}
+
 int SessionStub::HandleRemoveStartingWindow(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_STARTUP_PAGE, "Called!");
-    WSError errCode = RemoveStartingWindow();
+    std::string errMsg;
+    WSError errCode = RemoveStartingWindow(errMsg);
+    reply.WriteString(errMsg);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
@@ -2362,7 +2379,13 @@ int SessionStub::HandleSetSessionLabelAndIcon(MessageParcel& data, MessageParcel
         TLOGE(WmsLogTag::WMS_MAIN, "read icon failed");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = SetSessionLabelAndIcon(label, icon);
+    std::string groupId;
+    if (!data.ReadString(groupId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read groupId failed");
+        return ERR_INVALID_DATA;
+    }
+
+    WSError errCode = SetSessionLabelAndIcon(label, icon, groupId);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_MAIN, "write errCode fail.");
         return ERR_INVALID_DATA;

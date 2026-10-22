@@ -879,7 +879,7 @@ HWTEST_F(AbstractScreenControllerTest, CreateAndGetNewScreenId01, TestSize.Level
  */
 HWTEST_F(AbstractScreenControllerTest, ConvertToRsScreenId01, TestSize.Level1)
 {
-    ScreenId rsScreenId;
+    ScreenId rsScreenId = SCREEN_ID_INVALID;
     ScreenId dmsScreenId = 8;
     ASSERT_EQ(false, absController_->screenIdManager_.ConvertToRsScreenId(dmsScreenId, rsScreenId));
 }

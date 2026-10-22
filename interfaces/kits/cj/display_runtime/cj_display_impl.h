@@ -23,6 +23,7 @@
 namespace OHOS {
 namespace Rosen {
 class DisplayImpl final : public OHOS::FFI::FFIData {
+    DECL_TYPE(DisplayImpl, OHOS::FFI::FFIData)
 public:
     explicit DisplayImpl(const sptr<Display>& display);
     ~DisplayImpl() override;
@@ -53,20 +54,9 @@ public:
     DMError RegisterDisplayListenerWithType(const std::string& type, int64_t funcId);
     int32_t OnUnRegisterDisplayManagerCallback(const std::string& type, int64_t funcId);
     DMError UnRegisterDisplayListenerWithType(const std::string& type, int64_t funcId);
-    OHOS::FFI::RuntimeType* GetRuntimeType() override
-    {
-        return GetClassType();
-    }
 
 private:
     sptr<Display> display_ = nullptr;
-    friend class OHOS::FFI::RuntimeType;
-    friend class OHOS::FFI::TypeBase;
-    static OHOS::FFI::RuntimeType* GetClassType()
-    {
-        static OHOS::FFI::RuntimeType runtimeType = OHOS::FFI::RuntimeType::Create<OHOS::FFI::FFIData>("DisplayImpl");
-        return &runtimeType;
-    }
 };
 
 enum class DisplayStateMode : uint32_t {

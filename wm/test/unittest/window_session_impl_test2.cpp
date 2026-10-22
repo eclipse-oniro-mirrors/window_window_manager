@@ -25,6 +25,7 @@
 #include "mock_uicontent.h"
 #include "mock_window.h"
 #include "parameters.h"
+#include "rs_adapter.h"
 #include "wm_common.h"
 
 using namespace testing;
@@ -252,6 +253,34 @@ HWTEST_F(WindowSessionImplTest2, Destroy, TestSize.Level1)
     ASSERT_FALSE(window->IsWindowSessionInvalid());
     window->context_ = std::make_shared<AbilityRuntime::AbilityContextImpl>();
     ASSERT_EQ(window->Destroy(true, true), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: DestroyRemovesRSUIContext
+ * @tc.desc: Verify destroy removes a stale RSUIContext mapping even when the window is already invalid.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest2, DestroyRemovesRSUIContext, TestSize.Level1)
+{
+    if (!RSAdapterUtil::IsClientMultiInstanceEnabled()) {
+        GTEST_SKIP() << "Skip test when RS client multi-instance is disabled.";
+    }
+
+    constexpr int32_t WINDOW_ID = 100;
+    auto rsUIDirector = RSUIDirector::Create(nullptr);
+    ASSERT_NE(rsUIDirector, nullptr);
+    auto rsUIContext = rsUIDirector->GetRSUIContext();
+    ASSERT_NE(rsUIContext, nullptr);
+
+    auto window = GetTestWindowImpl("DestroyRemovesRSUIContext");
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(WINDOW_ID);
+    window->state_ = WindowState::STATE_DESTROYED;
+    RSUIContextContainer::SetRSUIContext(WINDOW_ID, rsUIContext);
+    ASSERT_EQ(RSUIContextContainer::GetRSUIContext(WINDOW_ID), rsUIContext);
+
+    EXPECT_EQ(window->Destroy(), WMError::WM_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(RSUIContextContainer::GetRSUIContext(WINDOW_ID), nullptr);
 }
 
 /**

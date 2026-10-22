@@ -405,7 +405,7 @@ enum class SceneType : uint8_t {
 };
 
 struct SessionViewportConfig {
-    bool isDensityFollowHost_ = false;
+    DpiFollowStrategy dpiFollowStrategy_ = DpiFollowStrategy::NONE;
     float density_ = 1.0f; // Indicates the host's density, if following the host, use it, otherwise get it from DMS.
     uint64_t displayId_ = 0;
     int32_t orientation_ = 0;
@@ -1743,19 +1743,33 @@ enum class SidebarBlurType : uint32_t {
     INITIAL,
     DEFAULT_FLOAT,
     DEFAULT_MAXIMIZE,
+    DEFAULT_MAXIMIZE_NOANIMATE,
+    END,
+};
+
+/**
+ * @brief Type of kiosk mode
+ */
+enum class KioskType : int32_t {
+    DEFAULT = 0,
+    EXAM_MODE = 1,
     END,
 };
 
 struct PreWindowProperty {
     uint32_t rotation = 0;
+    int32_t posX = 0;
+    int32_t posY = 0;
     uint32_t width = 0;
     uint32_t height = 0;
 
     PreWindowProperty() {}
 
-    PreWindowProperty(uint32_t rotation, uint32_t width, uint32_t height)
+    PreWindowProperty(uint32_t rotation, int32_t posX, int32_t posY, uint32_t width, uint32_t height)
     {
         this->rotation = rotation;
+        this->posX = posX;
+        this->posY = posY;
         this->width = width;
         this->height = height;
     }
@@ -1814,6 +1828,27 @@ struct PrelayoutContext {
             << ", winRect: " << winRect.ToString()
             << ", display: " << display.width << ", " << display.height
             << ", " << display.density << ", " << display.rotation;
+        return oss.str();
+    }
+};
+
+struct RogWindowConfig {
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t dpi = 0;
+    float scale = 0.0f;
+    std::vector<std::string> xhdpiAppList;
+
+    bool IsValid() const
+    {
+        return width > 0 && height > 0 && dpi > 0 && scale > 0;
+    }
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << " width: " << width << " height: " << height << " dpi: " << dpi << " scale: " << scale
+            << " xhdpiAppList size: " << xhdpiAppList.size();
         return oss.str();
     }
 };

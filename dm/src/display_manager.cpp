@@ -24,6 +24,8 @@
 #include "display_manager_adapter.h"
 #include "display_manager_agent_default.h"
 #include "dm_common.h"
+#include "fold_screen_state_internel.h"
+#include "permission.h"
 #include "screen_manager.h"
 #include "singleton_delegator.h"
 #include "window_manager_hilog.h"
@@ -37,6 +39,7 @@ const static uint32_t SCB_GET_DISPLAY_INTERVAL_US = 5000;
 const static uint32_t APP_GET_DISPLAY_INTERVAL_US = 25000;
 const static float INVALID_DEFAULT_DENSITY = 1.0f;
 const static uint32_t PIXMAP_VECTOR_SIZE = 2;
+constexpr ScreenId SCREEN_ID_MAIN = 5;
 std::atomic<bool> g_dmIsDestroyed = false;
 std::mutex snapBypickerMutex;
 
@@ -165,6 +168,7 @@ private:
     void NotifyPrivateStateWindowListChanged(DisplayId id, std::vector<std::string> privacyWindowList);
     void NotifyScreenshot(sptr<ScreenshotInfo> info);
     void NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status);
+    void NotifySpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status);
     void NotifyDisplayStateChanged(DisplayId id, DisplayState state);
     void NotifyDisplayChangedEvent(sptr<DisplayInfo> info, DisplayChangeEvent event);
     void NotifyDisplayCreate(sptr<DisplayInfo> info);
@@ -328,6 +332,12 @@ public:
     virtual void NotifyDisplayStateChanged(DisplayId id, DisplayState state) override
     {
         pImpl_->NotifyDisplayStateChanged(id, state);
+    }
+
+    virtual void NotifySpecifiedDisplayPowerEvent(DisplayId displayId,
+        DisplayPowerEvent event, EventStatus status) override
+    {
+        pImpl_->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
     }
 private:
     sptr<Impl> pImpl_;
@@ -1243,6 +1253,12 @@ std::vector<sptr<Display>> DisplayManager::GetAllDisplays(int32_t userId)
     for (auto displayId : displayIds) {
         const sptr<Display> display = GetDisplayById(displayId);
         if (display != nullptr) {
+            if (!Permission::IsSystemCalling() &&
+                FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                display->GetScreenId() == SCREEN_ID_MAIN) {
+                TLOGI(WmsLogTag::DMS, "GetAllDisplays filter SPN outer screen, displayId: %{public}" PRIu64, displayId);
+                continue;
+            }
             res.emplace_back(display);
         } else {
             TLOGE(WmsLogTag::DMS, "display %" PRIu64" nullptr!", displayId);
@@ -2460,6 +2476,23 @@ void DisplayManager::Impl::NotifyDisplayStateChanged(DisplayId id, DisplayState 
     }
     TLOGW(WmsLogTag::DMS, "callback_ target is not set!");
 }
+
+void DisplayManager::Impl::NotifySpecifiedDisplayPowerEvent(DisplayId displayId,
+    DisplayPowerEvent event, EventStatus status)
+{
+    std::set<sptr<IDisplayPowerEventListener>> powerEventListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        powerEventListeners = powerEventListeners_;
+    }
+    TLOGD(WmsLogTag::DMS,
+        "[UL_POWER_IVI]NotifyDisplayPowerEvent event:%{public}u, status:%{public}u, size:%{public}zu",
+        event, status, powerEventListeners.size());
+    for (auto& listener : powerEventListeners) {
+        listener->OnSpecifiedDisplayPowerEvent(displayId, event, status);
+    }
+}
+ 
 
 void DisplayManager::Impl::NotifyDisplayCreate(sptr<DisplayInfo> info)
 {

@@ -98,11 +98,14 @@ Rosen::InputAfterRedistributeBehavior GtxInputEventSender::NapiAVSessionInputRed
         item.SetWindowXPos(WindowXPos * mScaleX + mOffsetX);
         item.SetGlobalX(globalX * mScaleX + mOffsetX);
 
-        item.SetDisplayY(displayY * mScaleY + mOffsetY);
-        item.SetWindowY(WindowY * mScaleY + mOffsetY);
-        item.SetDisplayYPos(DisplayYPos * mScaleY + mOffsetY);
-        item.SetWindowYPos(WindowYPos * mScaleY + mOffsetY);
-        item.SetGlobalY(globalY * mScaleY + mOffsetY);
+        int32_t mainWindowHeight = Rosen::WindowSessionImpl::GetMainWindowHeight();
+        int32_t offsetY = mainWindowHeight > 0 ? -mainWindowHeight : mOffsetY;
+
+        item.SetDisplayY(displayY * mScaleY + offsetY);
+        item.SetWindowY(WindowY * mScaleY + offsetY);
+        item.SetDisplayYPos(DisplayYPos * mScaleY + offsetY);
+        item.SetWindowYPos(WindowYPos * mScaleY + offsetY);
+        item.SetGlobalY(globalY * mScaleY + offsetY);
 
         pointerEvent->UpdatePointerItem(item.GetPointerId(), item);
     }

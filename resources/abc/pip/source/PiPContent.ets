@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import pip from '@ohos.pip';
+import pip from '@ohos.PiPWindow';
 import { NodeController, FrameNode, UIContext, typeNode } from '@kit.ArkUI';
 
 const TAG: string = 'PiPContent';

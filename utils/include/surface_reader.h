@@ -54,6 +54,16 @@ private:
     void OnVsync();
     bool ProcessBuffer(const sptr<SurfaceBuffer>& buf);
 
+    struct BufferInfo {
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint32_t stride = 0;
+        uint8_t *addr = nullptr;
+    };
+    bool GetBufferInfo(const sptr<SurfaceBuffer>& buf, BufferInfo& info) const;
+    uint8_t *AllocateAndCopyBuffer(const BufferInfo& info, size_t& totalBytes) const;
+    sptr<Media::PixelMap> CreatePixelMap(const BufferInfo& info, uint8_t *data, size_t totalBytes) const;
+
     sptr<IBufferConsumerListener> listener_ = nullptr;
     sptr<IConsumerSurface> csurface_ = nullptr; // cosumer surface
     sptr<Surface> psurface_ = nullptr; // producer surface

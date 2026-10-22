@@ -91,7 +91,7 @@ bool WriteRect(MessageParcel& data, const Rect& rect)
 } // namespace
 
 WSError SessionProxy::Foreground(
-    sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken)
+    sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken, bool isAlreadyShown)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -118,6 +118,10 @@ WSError SessionProxy::Foreground(
     }
     if (!data.WriteString(identityToken)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write identityToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(isAlreadyShown)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write isAlreadyShown failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();
@@ -470,24 +474,60 @@ WSError SessionProxy::DrawingCompleted()
     return static_cast<WSError>(reply.ReadInt32());
 }
 
-WSError SessionProxy::RemoveStartingWindow()
+WSError SessionProxy::StartWithSnapshot()
 {
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_START_WITH_SNAPSHOT),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return static_cast<WSError>(reply.ReadInt32());
+}
+
+WSError SessionProxy::RemoveStartingWindow()
+{
+    std::string errMsg;
+    return RemoveStartingWindow(errMsg);
+}
+
+WSError SessionProxy::RemoveStartingWindow(std::string& errMsg)
+{
+    errMsg.clear();
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "WriteInterfaceToken failed");
+        errMsg = "WriteInterfaceToken failed";
         return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "remote is null");
+        errMsg = "remote is null";
         return WSError::WS_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_APP_REMOVE_STARTING_WINDOW),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "SendRequest failed");
+        errMsg = "SendRequest failed";
         return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!reply.ReadString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "Read errMsg failed");
     }
     return static_cast<WSError>(reply.ReadInt32());
 }
@@ -3338,7 +3378,8 @@ WSError SessionProxy::NotifySupportWindowModesChange(
     return WSError::WS_OK;
 }
 
-WSError SessionProxy::SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon)
+WSError SessionProxy::SetSessionLabelAndIcon(const std::string& label, const std::shared_ptr<Media::PixelMap>& icon,
+    const std::string& groupId)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -3353,6 +3394,10 @@ WSError SessionProxy::SetSessionLabelAndIcon(const std::string& label, const std
     }
     if (!data.WriteParcelable(icon.get())) {
         TLOGE(WmsLogTag::WMS_MAIN, "write icon failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteString(groupId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "write groupId failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
 

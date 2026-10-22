@@ -30,6 +30,7 @@
 #include "window_manager_hilog.h"
 #include "wm_common.h"
 #include "wm_common_inner.h"
+#include "session_info.h"
 #include "window_manager.h"
 
 namespace OHOS {

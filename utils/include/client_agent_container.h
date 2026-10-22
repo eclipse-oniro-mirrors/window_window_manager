@@ -227,17 +227,7 @@ std::set<sptr<T1>> ClientAgentContainer<T1, T2>::GetAgentsByType(T2 type)
         WLOGFD("no such type of agent registered! type:%{public}u", type);
         return std::set<sptr<T1>>();
     }
-    auto agents = agentMap_.at(type);
-    std::ostringstream pids;
-    for (const auto& agent : agents) {
-        auto it = agentPidMap_.find(agent);
-        if (it != agentPidMap_.end()) {
-            pids << it->second << ",";
-        }
-    }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, #agents=%{public}u, pids=[%{public}s]",
-        type, static_cast<uint32_t>(agents.size()), pids.str().c_str());
-    return agents;
+    return agentMap_.at(type);
 }
 
 template<typename T1, typename T2>
@@ -281,9 +271,12 @@ void ClientAgentContainer<T1, T2>::RemoveAgent(const sptr<IRemoteObject>& remote
         WLOGFW("UnregisterAgentLocked entry again");
     }
     isEntryAgain = true;
-    for (auto& elem : agentMap_) {
-        if (UnregisterAgentLocked(elem.second, remoteObject)) {
-            break;
+    for (auto it = agentMap_.begin(); it != agentMap_.end();) {
+        UnregisterAgentLocked(it->second, remoteObject);
+        if (it->second.empty()) {
+            it = agentMap_.erase(it);
+        } else {
+            ++it;
         }
     }
     remoteObject->RemoveDeathRecipient(deathRecipient_);

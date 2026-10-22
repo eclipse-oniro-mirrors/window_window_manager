@@ -101,6 +101,7 @@ public:
     static sptr<Window> Find(const std::string& name);
     static std::vector<sptr<Window>> GetSubWindow(int parentId);
     static sptr<WindowSessionImpl> GetWindowWithId(uint32_t windowId);
+    static int32_t GetMainWindowHeight();
 
     virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
         const sptr<Rosen::ISession>& iSession,
@@ -144,7 +145,11 @@ public:
     Rect GetRequestRect() const override;
     Rect GetGlobalDisplayRect(bool useHookedSize = false) const override;
     WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition) const override;
+    WMError ClientToGlobalDisplay(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const override;
     WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition) const override;
+    WMError GlobalDisplayToClient(const Position& inPosition, Position& outPosition,
+        std::string& errMsg) const override;
     WSError UpdateGlobalDisplayRectFromServer(const WSRect& rect, SizeChangeReason reason) override;
     WindowType GetType() const override;
     const std::string& GetWindowName() const override;
@@ -160,6 +165,9 @@ public:
     bool IsTopmost() const override;
     WMError SetMainWindowTopmost(bool isTopmost) override;
     bool IsMainWindowTopmost() const override;
+    // Keeps the local property in sync when the server changes the topmost state on its own,
+    // for example through setWindowPosition. No ipc is sent.
+    void UpdateMainWindowTopmostProperty(bool isTopmost);
     WMError SetSubWindowModal(bool isModal, ModalityType modalityType = ModalityType::WINDOW_MODALITY) override;
     WMError SetWindowModal(bool isModal) override;
     void SetSubWindowZLevelToProperty();
@@ -167,6 +175,7 @@ public:
     WMError RaiseToAppTopOnDrag();
 
     WMError SetResizeByDragEnabled(bool dragEnabled) override;
+    WMError SetResizeByDragEnabled(bool dragEnabled, std::string& errMsg) override;
     WMError SetRaiseByClickEnabled(bool raiseEnabled) override;
     WMError SetMainWindowRaiseByClickEnabled(bool raiseEnabled) override;
     WMError HideNonSystemFloatingWindows(bool shouldHide) override;
@@ -181,6 +190,7 @@ public:
     bool IsPhonePadOrPcWindow() const override;
     bool IsPcOrFreeMultiWindowCapabilityEnabled() const override;
     bool IsPcOrPadFreeMultiWindowMode() const override;
+    bool IsDisplayInFreeMultiWindow() const;
     bool IsPadAndNotFreeMultiWindowCompatibleMode() const override;
     bool IsSceneBoardEnabled() const override;
     bool GetCompatibleModeInPc() const override;
@@ -275,12 +285,13 @@ public:
     WSError UpdateOrientation() override;
     WSError UpdateDisplayId(uint64_t displayId) override;
     WSError UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyInfo, bool isFocused) override;
-    void UpdateFocusState(bool isFocused);
+    void UpdateFocusState(bool isFocused, const sptr<FocusNotifyInfo>& focusNotifyInfo = nullptr);
     bool IsFocused() const override;
     WMError RequestFocus() const override;
     WMError RequestFocusByClient(bool isFocused) const override;
     WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override { return WSError::WS_OK; }
+    WSError NotifyDpiHookScale(float scale) override;
     WSError HandleBackEvent() override;
     KeyboardAnimationConfig GetKeyboardAnimationConfig() override;
     bool NotifyOnKeyPreImeEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent) override;
@@ -304,6 +315,8 @@ public:
 
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
     WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener) override;
+    WMError RegisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener) override;
+    WMError UnregisterFocusStateChangedListener(const sptr<IFocusStateChangedListener>& listener) override;
     WMError RegisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError UnregisterDisplayMoveListener(sptr<IDisplayMoveListener>& listener) override;
     WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener) override;
@@ -491,7 +504,7 @@ public:
     WMError SetWindowContainerColor(const std::string& activeColor, const std::string& inactiveColor) override;
     WMError SetWindowContainerModalColor(const std::string& activeColor, const std::string& inactiveColor) override;
     nlohmann::json SetContainerButtonStyle(const DecorButtonStyle& decorButtonStyle);
-    void UpdateDecorEnable(bool needNotify = false, WindowMode mode = WindowMode::WINDOW_MODE_UNDEFINED);
+    bool UpdateDecorEnable(bool needNotify = false, WindowMode mode = WindowMode::WINDOW_MODE_UNDEFINED);
     void SetDockAutoHide(bool isDockAutoHide)
     {
         windowSystemConfig_.isDockAutoHide_ = isDockAutoHide;
@@ -538,7 +551,8 @@ public:
         const sptr<IExtensionSecureLimitChangeListener>& listener) override;
     virtual WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) const override;
     virtual WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) const override;
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM,
+        DvsyncDisableReason disableReason = DEFAULT_DVSYNCDISABLEREASON) override;
     virtual void SetTouchEvent(int32_t touchType) override;
     WMError SetContinueState(int32_t continueState) override;
     virtual WMError CheckAndModifyWindowRect(uint32_t& width, uint32_t& height)
@@ -562,6 +576,7 @@ public:
      * Window Layout
      */
     WMError EnableDrag(bool enableDrag) override;
+    WMError EnableDrag(bool enableDrag, std::string& errMsg) override;
     WSError SetDragActivated(uint32_t dragActivatedBitmap) override;
     WSError SetEnableDragBySystem(bool enableDrag) override;
     bool IsWindowDraggable();
@@ -571,6 +586,7 @@ public:
     WSError LinkKeyFrameNode() override;
     WSError SetStageKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
     WMError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy) override;
+    WMError SetDragKeyFramePolicy(const KeyFramePolicy& keyFramePolicy, std::string& errMsg) override;
     WMError RegisterWindowStatusDidChangeListener(const sptr<IWindowStatusDidChangeListener>& listener) override;
     WMError UnregisterWindowStatusDidChangeListener(const sptr<IWindowStatusDidChangeListener>& listener) override;
     WMError RegisterParentWindowSizeChangeListener(const sptr<IParentWindowSizeChangeListener>& listener) override;
@@ -600,7 +616,7 @@ public:
     {
         windowSystemConfig_.freeMultiWindowEnable_ = enable;
     }
-    virtual void UpdateSubWindowDragEnabledByDecorVisible() {}
+    virtual void UpdateSubWindowDragEnabled(bool freeMultiWindowEnable) {}
     void SwitchSubWindow(bool freeMultiWindowEnable, int32_t parentId);
     void SwitchSystemWindow(bool freeMultiWindowEnable, int32_t parentId);
     void UpdateSubWindowPropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property, int32_t parentId);
@@ -630,6 +646,8 @@ public:
         return type != AvoidAreaType::TYPE_FLOAT_NAVIGATION ||
             (type == AvoidAreaType::TYPE_FLOAT_NAVIGATION && floatNavigationAvoidAreaEnabled_);
     }
+    bool UpdateLastAvoidAreaIfChanged(AvoidAreaType type, const AvoidArea& avoidArea);
+    std::map<AvoidAreaType, AvoidArea> GetLastAvoidAreaMapCopy() const;
 
     /*
      * Window Property
@@ -637,6 +655,7 @@ public:
     WMError SetWindowDefaultDensityEnabled(bool enabled) override;
     void SetDefaultDensityEnabledValue(bool enabled);
     bool IsStageDefaultDensityEnabled();
+    virtual float GetExtensionCustomDensity() { return UNDEFINED_DENSITY; }
     WSError NotifyDisplayIdChange(DisplayId displayId);
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type) override;
     bool IsDeviceFeatureCapableFor(const std::string& feature) const override;
@@ -754,6 +773,7 @@ protected:
     void NotifyAfterInactive();
     void NotifyBeforeDestroy(std::string windowName);
     void NotifyAfterDestroy();
+    void DisableUiDvsyncSwitchApiIfNeeded(DvsyncDisableReason reason);
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
     template<typename T> WMError RegisterListener(std::vector<std::pair<sptr<T>, bool>>& holder,
         const std::pair<sptr<T>, bool>& listener)
@@ -983,6 +1003,7 @@ protected:
     bool isIgnoreSafeAreaNeedNotify_ = false;
     bool isIgnoreSafeArea_ = false;
     std::atomic_bool isFocused_ = false;
+    std::atomic_bool isUiDvsyncSwitchApiEnabled_ = false;
     std::atomic_bool isHighlighted_ = false;
     std::atomic_bool shouldReNotifyHighlight_ = false;
     static std::atomic<int64_t> updateFocusTimeStamp_;
@@ -1020,6 +1041,7 @@ protected:
      */
     float compatScaleX_ = 1.0f;
     float compatScaleY_ = 1.0f;
+    float dpiHookScale_ = 0.0f;
     mutable std::mutex compatScaleListenerMutex_;
     std::atomic_bool isFullScreenInForceSplit_ { false };
     std::atomic_bool viewportUseHookedSize_ { false };
@@ -1077,7 +1099,10 @@ protected:
     sptr<FutureCallback> getRotationResultFuture_ = nullptr;
     sptr<FutureCallback> updateRectCallback_ = nullptr;
     void UpdateVirtualPixelRatio(const sptr<Display>& display);
-    virtual WMError GetVirtualPixelRatio(float& vpr);
+    // displayInfo is an optional in/out parameter: a provided non-null value is used directly
+    // (no display fetch); otherwise the display info is resolved from the display manager and
+    // written back through the pointer when given.
+    virtual WMError GetVirtualPixelRatio(float& vpr, sptr<DisplayInfo>* displayInfo = nullptr);
     void SetCurrentTransform(const Transform& transform);
     Transform GetCurrentTransform() const;
     void NotifyAfterUIContentReady();
@@ -1102,7 +1127,10 @@ protected:
      */
     virtual void UpdateDefaultStatusBarColor() { return; }
     WMError UpdateStatusBarColorByColorMode(uint32_t& contentColor);
+    WMError SubscribeTitleButtonsRectChange();
+    void UpdateAvoidAreaForTitleButton(Rect& titleButtonRect);
     std::map<AvoidAreaType, AvoidArea> lastAvoidAreaMap_;
+    mutable std::mutex lastAvoidAreaMapMutex_;
     uint32_t GetStatusBarHeight() const override;
     WindowType rootHostWindowType_ = WindowType::APP_MAIN_WINDOW_BASE;
     SystemBarSettingFlag systemBarSettingFlag_ = SystemBarSettingFlag::DEFAULT_SETTING;
@@ -1135,10 +1163,14 @@ protected:
     WindowVisibilityState lastVisibilityState_ = WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION;
     std::unordered_set<std::string> containerColorList_;
     float lastSystemDensity_ = UNDEFINED_DENSITY;
+    uint32_t lastDisplayWidth_ = 0;
+    uint32_t lastDisplayHeight_ = 0;
+    Rotation lastDisplayRotation_ = Rotation::ROTATION_0;
     std::atomic<bool> isDefaultDensityEnabled_ = false;
     std::atomic<bool> defaultDensityEnabledStageConfig_ = false;
     WSError NotifySystemDensityChange(float density);
     WSError NotifyWindowDensityChange(float density);
+    float AdaptToHookedDensity(float density, bool needHook = false);
     void RegisterWindowInspectorCallback();
     uint32_t GetTargetAPIVersionByApplicationInfo() const;
     void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
@@ -1193,6 +1225,8 @@ private:
     static GraphicColorGamut GetSurfaceGamutFromColorSpace(ColorSpace colorSpace);
 
     template<typename T> EnableIfSame<T, IWindowLifeCycle, std::vector<sptr<IWindowLifeCycle>>> GetListeners();
+    template<typename T>
+    EnableIfSame<T, IFocusStateChangedListener, std::vector<sptr<IFocusStateChangedListener>>> GetListeners();
     template<typename T>
     EnableIfSame<T, IWindowStageLifeCycle, std::vector<sptr<IWindowStageLifeCycle>>> GetListeners();
     template<typename T> EnableIfSame<T, IDisplayMoveListener, std::vector<sptr<IDisplayMoveListener>>> GetListeners();
@@ -1281,6 +1315,8 @@ private:
     void NotifyAfterResumed();
     void NotifyAfterPaused();
     void NotifyUIContentHighlightStatus(bool isHighlighted);
+    void NotifyFocusStateChanged(bool isFocused, WindowFocusChangeReason reason,
+        int32_t nextFocusedWindowId, int32_t prevFocusedWindowId);
 
     /*
      * Window Decor listener
@@ -1322,6 +1358,8 @@ private:
         const std::array<float, ANIMATION_PARAM_SIZE> param);
     void UpdateRectForRotation(const Rect& wmRect, const Rect& preRect, WindowSizeChangeReason wmReason,
         const SceneAnimationConfig& config, const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {});
+    void UpdateRectByReason(const Rect& wmRect, const Rect& preRect, WindowSizeChangeReason wmReason,
+        const SceneAnimationConfig& config, const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {});
     void UpdateRectForPageRotation(const Rect& wmRect, const Rect& preRect, WindowSizeChangeReason wmReason,
         const SceneAnimationConfig& config, const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {});
     void UpdateRectForOtherReason(const Rect& wmRect, const Rect& preRect, WindowSizeChangeReason wmReason,
@@ -1355,6 +1393,7 @@ private:
     bool InitWaterfallMode();
 
     static std::recursive_mutex lifeCycleListenerMutex_;
+    static std::recursive_mutex focusStateChangedListenerMutex_;
     static std::recursive_mutex windowStageLifeCycleListenerMutex_;
     static std::recursive_mutex windowChangeListenerMutex_;
     static std::recursive_mutex windowCrossAxisListenerMutex_;
@@ -1394,6 +1433,7 @@ private:
     static std::mutex frameMetricsChangeListenerMutex_;
     static std::unordered_map<int32_t, std::vector<sptr<IFrameMetricsChangedListener>>> frameMetricsChangeListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowLifeCycle>>> lifecycleListeners_;
+    static std::map<int32_t, std::vector<sptr<IFocusStateChangedListener>>> focusStateChangedListeners_;
     static std::map<int32_t, std::vector<sptr<IWindowStageLifeCycle>>> windowStageLifecycleListeners_;
     static std::map<int32_t, std::vector<sptr<IDisplayMoveListener>>> displayMoveListeners_;
     static std::map<int32_t, std::vector<std::pair<sptr<IWindowChangeListener>, bool>>> windowChangeListeners_;

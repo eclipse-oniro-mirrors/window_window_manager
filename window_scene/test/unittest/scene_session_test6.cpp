@@ -1996,6 +1996,12 @@ HWTEST_F(SceneSessionTest6, SetSidebarBlur2, Function | SmallTest | Level1)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
     session->sessionStage_ = sessionStageMocker;
+    // Default SceneSession property has WINDOW_MODE_FULLSCREEN; set non-fullscreen
+    // to test the DEFAULT_FLOAT / INITIAL branches (fullscreen branches covered by
+    // SetSidebarBlur3 and SetSidebarBlur4).
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->property_ = property;
 
     EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::NONE)).Times(2);
     session->SetSidebarBlur(false, false);
@@ -2004,6 +2010,86 @@ HWTEST_F(SceneSessionTest6, SetSidebarBlur2, Function | SmallTest | Level1)
     session->SetSidebarBlur(true, false);
     EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_FLOAT)).Times(1);
     session->SetSidebarBlur(true, true);
+}
+
+/**
+ * @tc.name: SetSidebarBlur3
+ * @tc.desc: SetSidebarBlur with fullscreen + needAnimation -> DEFAULT_MAXIMIZE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur3, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_MAXIMIZE)).Times(1);
+    session->SetSidebarBlur(true, true);
+}
+
+/**
+ * @tc.name: SetSidebarBlur4
+ * @tc.desc: SetSidebarBlur with fullscreen + no animation -> DEFAULT_MAXIMIZE_NOANIMATE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur4, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE))
+        .Times(1);
+    session->SetSidebarBlur(true, false);
+}
+
+/**
+ * @tc.name: SetSidebarBlur5
+ * @tc.desc: SetSidebarBlur with fullscreen + not default -> NONE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur5, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::NONE)).Times(2);
+    session->SetSidebarBlur(false, true);
+    session->SetSidebarBlur(false, false);
+}
+
+/**
+ * @tc.name: SetSidebarBlur6
+ * @tc.desc: SetSidebarBlur with non-fullscreen + needAnimation -> DEFAULT_FLOAT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur6, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_FLOAT)).Times(1);
+    session->SetSidebarBlur(true, true);
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::INITIAL)).Times(1);
+    session->SetSidebarBlur(true, false);
 }
 
 /**
@@ -2116,23 +2202,31 @@ HWTEST_F(SceneSessionTest6, PreWindowPropertyConstructors, Function | SmallTest 
 {
     PreWindowProperty defaultProp;
     EXPECT_EQ(defaultProp.rotation, 0u);
+    EXPECT_EQ(defaultProp.posX, 0);
+    EXPECT_EQ(defaultProp.posY, 0);
     EXPECT_EQ(defaultProp.width, 0u);
     EXPECT_EQ(defaultProp.height, 0u);
-    
-    PreWindowProperty paramProp(90, 1920, 1080);
+
+    PreWindowProperty paramProp(90, 100, 200, 1920, 1080);
     EXPECT_EQ(paramProp.rotation, 90u);
+    EXPECT_EQ(paramProp.posX, 100);
+    EXPECT_EQ(paramProp.posY, 200);
     EXPECT_EQ(paramProp.width, 1920u);
     EXPECT_EQ(paramProp.height, 1080u);
-    
-    PreWindowProperty zeroProp(0, 0, 0);
+
+    PreWindowProperty zeroProp(0, 0, 0, 0, 0);
     EXPECT_EQ(zeroProp.rotation, 0u);
+    EXPECT_EQ(zeroProp.posX, 0);
+    EXPECT_EQ(zeroProp.posY, 0);
     EXPECT_EQ(zeroProp.width, 0u);
     EXPECT_EQ(zeroProp.height, 0u);
-    
+
     std::vector<uint32_t> rotations = {0, 90, 180, 270};
     for (uint32_t rotation : rotations) {
-        PreWindowProperty rotationProp(rotation, 1920, 1080);
+        PreWindowProperty rotationProp(rotation, 0, 0, 1920, 1080);
         EXPECT_EQ(rotationProp.rotation, rotation);
+        EXPECT_EQ(rotationProp.posX, 0);
+        EXPECT_EQ(rotationProp.posY, 0);
         EXPECT_EQ(rotationProp.width, 1920u);
         EXPECT_EQ(rotationProp.height, 1080u);
     }
@@ -2148,20 +2242,20 @@ HWTEST_F(SceneSessionTest6, PreCalcWindowPropertyBasic, Function | SmallTest | L
     SessionInfo info;
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
-    
+
     PreWindowProperty resultWithoutCallback = session->PreCalcWindowProperty();
     EXPECT_EQ(resultWithoutCallback.rotation, 0u);
     EXPECT_EQ(resultWithoutCallback.width, 0u);
     EXPECT_EQ(resultWithoutCallback.height, 0u);
-    
+
     bool callbackCalled = false;
     NotifyPreCalcWindowPropertyFunc callback = [&callbackCalled]() {
         callbackCalled = true;
     };
-    
+
     session->SetPreCalcWindowPropertyCallback(callback);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
+
     PreWindowProperty resultWithCallback = session->PreCalcWindowProperty();
     EXPECT_TRUE(callbackCalled);
 }
@@ -2176,29 +2270,29 @@ HWTEST_F(SceneSessionTest6, PreCalcWindowPropertyWithValues, Function | SmallTes
     SessionInfo info;
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
-    
+
     struct TestCase {
         uint32_t rotation;
         uint32_t width;
         uint32_t height;
     };
-    
+
     std::vector<TestCase> testCases = {
         {0, 1920, 1080},
         {90, 1080, 1920},
         {180, 3840, 2160},
         {270, 2560, 1440}
     };
-    
+
     for (const auto& testCase : testCases) {
         NotifyPreCalcWindowPropertyFunc callback = [session, testCase]() {
-            PreWindowProperty prop(testCase.rotation, testCase.width, testCase.height);
+            PreWindowProperty prop(testCase.rotation, 0, 0, testCase.width, testCase.height);
             session->preWindowPropertyFuture_.SetValue(prop);
         };
-        
+
         session->SetPreCalcWindowPropertyCallback(callback);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        
+
         PreWindowProperty result = session->PreCalcWindowProperty();
         EXPECT_EQ(result.rotation, testCase.rotation);
         EXPECT_EQ(result.width, testCase.width);

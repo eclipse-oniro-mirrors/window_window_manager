@@ -15,6 +15,8 @@
 
 #include <gtest/gtest.h>
 #include "screen_manager_lite.cpp"
+#include "mock_display_manager_adapter_lite.h"
+#include "singleton_mocker.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -48,6 +50,44 @@ void ScreenManagerLiteTest::TearDown()
 }
 
 namespace {
+using ScreenManagerMocker = SingletonMocker<ScreenManagerAdapterLite, MockScreenManagerAdapterLite>;
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_ReturnTrue
+ * @tc.desc: SetScreenPowerForSpecifiedId returns true when adapter returns true
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerLiteTest, SetScreenPowerForSpecifiedId_ReturnTrue, TestSize.Level1)
+{
+    std::unique_ptr<ScreenManagerMocker> m = std::make_unique<ScreenManagerMocker>();
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_ON;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    EXPECT_CALL(m->Mock(), SetScreenPowerForSpecifiedId(displayId, state, reason))
+        .Times(1)
+        .WillOnce(Return(true));
+    bool ret = sml_.SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_TRUE(ret);
+}
+
+/**
+ * @tc.name: SetScreenPowerForSpecifiedId_ReturnFalse
+ * @tc.desc: SetScreenPowerForSpecifiedId returns false when adapter returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerLiteTest, SetScreenPowerForSpecifiedId_ReturnFalse, TestSize.Level1)
+{
+    std::unique_ptr<ScreenManagerMocker> m = std::make_unique<ScreenManagerMocker>();
+    DisplayId displayId = 0;
+    ScreenPowerState state = ScreenPowerState::POWER_OFF;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    EXPECT_CALL(m->Mock(), SetScreenPowerForSpecifiedId(displayId, state, reason))
+        .Times(1)
+        .WillOnce(Return(false));
+    bool ret = sml_.SetScreenPowerForSpecifiedId(displayId, state, reason);
+    EXPECT_FALSE(ret);
+}
+
 /**
  * @tc.name: GetScreenInfoById
  * @tc.desc: GetScreenInfoById

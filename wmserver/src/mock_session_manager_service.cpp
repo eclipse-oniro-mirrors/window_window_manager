@@ -23,6 +23,8 @@
 #include <bundle_mgr_interface.h>
 #include <system_ability_definition.h>
 #include <cinttypes>
+#include <algorithm>
+#include <cctype>
 #include <csignal>
 #include <iomanip>
 #include <ipc_skeleton.h>
@@ -33,6 +35,7 @@
 #include "window_manager_hilog.h"
 #include "unique_fd.h"
 #include "parameters.h"
+#include "persistent_id_manager.h"
 #include "root_scene.h"
 #include "string_ex.h"
 #include "wm_common.h"
@@ -57,6 +60,9 @@ const char DEFAULT_STRING[] = "error";
 const std::string ARG_DUMP_HELP = "-h";
 const std::string ARG_DUMP_ALL = "-a";
 const std::string ARG_DUMP_WINDOW = "-w";
+const std::string ARG_DUMP_USER = "-user";
+const std::string ARG_DUMP_USER_ALL = "all";
+const int ERR_DUMP_USER_NOT_FOREGROUND = -2;
 const std::string KEY_SCENE_BOARD_TEST_ENABLE = "persist.scb.testmode.enable";
 const std::string SCENE_BOARD_BUNDLE_NAME = "com.ohos.sceneboard";
 const std::string TEST_MODULE_NAME_SUFFIX = "_test";
@@ -204,7 +210,7 @@ int MockSessionManagerService::Dump(int fd, const std::vector<std::u16string>& a
         ShowHelpInfo(dumpInfo);
     } else {
         int errCode = DumpSessionInfo(params, dumpInfo);
-        if (errCode != 0) {
+        if (errCode != 0 && errCode != ERR_DUMP_USER_NOT_FOREGROUND) {
             ShowIllegalArgsInfo(dumpInfo);
         }
     }
@@ -652,30 +658,121 @@ sptr<IRemoteObject> MockSessionManagerService::GetSceneSessionManager()
 int MockSessionManagerService::DumpSessionInfo(const std::vector<std::string>& args, std::string& dumpInfo)
 {
     if (args.empty()) {
-        return -1;  // WMError::WM_ERROR_INVALID_PARAM;
-    }
-    int32_t defaultWMSUserId = GetDefaultWMSUserId();
-    auto sessionManagerService = GetSessionManagerServiceInner(defaultWMSUserId);
-    if (sessionManagerService == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "sessionManagerService is null");
         return -1;
     }
-    sptr<IRemoteObject> defaultSSMRemote = GetSceneSessionManager();
-    if (!defaultSSMRemote) {
-        TLOGE(WmsLogTag::DEFAULT, "Get scene session mgr remote failed");
+
+    std::vector<int32_t> targetUserIds;
+    std::vector<std::string> dumpArgs(args);
+    bool hasUserArg = false;
+
+    if (args[0] == ARG_DUMP_USER) {
+        int errCode = ParseUserArg(args, targetUserIds, dumpArgs, hasUserArg, dumpInfo);
+        if (errCode != 0) {
+            return errCode;
+        }
+    }
+
+    if (!hasUserArg) {
+        int32_t defaultWMSUserId = GetDefaultWMSUserId();
+        targetUserIds.push_back(defaultWMSUserId);
+    }
+
+    if (dumpArgs.empty()) {
+        TLOGE(WmsLogTag::DEFAULT, "No dump command after -user");
         return -1;
     }
-    auto sceneSessionManagerProxy = iface_cast<ISceneSessionManager>(defaultSSMRemote);
+
+    for (int32_t userId : targetUserIds) {
+        std::string userDumpInfo;
+        int errCode = DumpSessionInfoByUserId(userId, dumpArgs, userDumpInfo);
+        if (errCode != 0) {
+            return errCode;
+        }
+        if (hasUserArg) {
+            const std::string separatorLine = "====";
+            std::string userHeader = separatorLine + "user ID: " + std::to_string(userId) +
+                separatorLine + "\n";
+            dumpInfo.append(userHeader);
+        }
+        dumpInfo.append(userDumpInfo);
+    }
+    return 0;
+}
+
+int MockSessionManagerService::ParseUserArg(const std::vector<std::string>& args,
+    std::vector<int32_t>& targetUserIds, std::vector<std::string>& dumpArgs, bool& hasUserArg,
+    std::string& dumpInfo)
+{
+    const size_t userArgMinSize = 2;
+    const size_t userArgValueIndex = 1;
+    const size_t userArgDumpOffset = 2;
+    const size_t userIdMaxLength = 5;
+
+    if (args.size() < userArgMinSize) {
+        TLOGE(WmsLogTag::DEFAULT, "-user requires a value");
+        return -1;
+    }
+    hasUserArg = true;
+    const std::string& userValue = args[userArgValueIndex];
+    if (userValue == ARG_DUMP_USER_ALL) {
+        ErrCode errCode = GetActiveUserIds(targetUserIds);
+        if (errCode != ERR_OK || targetUserIds.empty()) {
+            TLOGE(WmsLogTag::DEFAULT, "GetActiveUserIds failed or no active users");
+            return -1;
+        }
+        dumpArgs.assign(args.begin() + userArgDumpOffset, args.end());
+        return 0;
+    }
+    if (!IsDigitString(userValue) || userValue.length() > userIdMaxLength) {
+        TLOGE(WmsLogTag::DEFAULT, "Invalid user id: %{public}s", userValue.c_str());
+        return -1;
+    }
+    int32_t userId = std::stoi(userValue);
+    std::vector<int32_t> foregroundUserIds;
+    if (GetActiveUserIds(foregroundUserIds) != ERR_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "GetActiveUserIds failed");
+        return -1;
+    }
+    if (std::find(foregroundUserIds.begin(), foregroundUserIds.end(), userId) ==
+        foregroundUserIds.end()) {
+        TLOGE(WmsLogTag::DEFAULT, "User %{public}d is not in foreground", userId);
+        dumpInfo.append("user " + std::to_string(userId) +
+            " is not in foreground or does not exist\n");
+        return ERR_DUMP_USER_NOT_FOREGROUND;
+    }
+    targetUserIds.push_back(userId);
+    dumpArgs.assign(args.begin() + userArgDumpOffset, args.end());
+    return 0;
+}
+
+bool MockSessionManagerService::IsDigitString(const std::string& str) const
+{
+    if (str.empty()) {
+        return false;
+    }
+    return std::all_of(str.begin(), str.end(), [](unsigned char c) { return isdigit(c); });
+}
+
+int MockSessionManagerService::DumpSessionInfoByUserId(int32_t userId,
+    const std::vector<std::string>& args, std::string& dumpInfo)
+{
+    sptr<IRemoteObject> sceneSessionManagerRemote = GetSceneSessionManagerByUserId(userId);
+    if (!sceneSessionManagerRemote) {
+        TLOGE(WmsLogTag::DEFAULT, "Get scene session mgr remote failed for userId: %{public}d", userId);
+        return -1;
+    }
+    auto sceneSessionManagerProxy = iface_cast<ISceneSessionManager>(sceneSessionManagerRemote);
     if (sceneSessionManagerProxy == nullptr) {
-        WLOGFW("sessionManagerServiceProxy is nullptr");
+        TLOGE(WmsLogTag::DEFAULT, "sceneSessionManagerProxy is nullptr, userId: %{public}d", userId);
         return -1;
     }
     WSError ret = sceneSessionManagerProxy->GetSessionDumpInfo(args, dumpInfo);
     if (ret != WSError::WS_OK) {
-        WLOGFD("sessionManagerService set success!");
+        TLOGE(WmsLogTag::DEFAULT, "GetSessionDumpInfo failed, userId: %{public}d, ret: %{public}d",
+            userId, static_cast<int32_t>(ret));
         return -1;
     }
-    return 0; // WMError::WM_OK;
+    return 0;
 }
 
 void MockSessionManagerService::ShowHelpInfo(std::string& dumpInfo)
@@ -687,6 +784,10 @@ void MockSessionManagerService::ShowHelpInfo(std::string& dumpInfo)
         .append("|dump all window information in the system\n")
         .append(" -w {window id} [ArkUI Option]  ")
         .append("|dump specified window information\n")
+        .append(" -motion {0|1|2|3}              ")
+        .append("|enable motion with rotation angle, 0:0°, 1:90°, 2:180°, 3:270°\n")
+        .append(" -smartmotion {0|1|2|3}         ")
+        .append("|enable smart motion with rotation angle, 0:0°, 1:90°, 2:180°, 3:270°\n")
         .append(" ------------------------------------[ArkUI Option]------------------------------------ \n");
     ShowAceDumpHelp(dumpInfo);
 }
@@ -1336,6 +1437,43 @@ ErrCode MockSessionManagerService::GetActiveUserIds(std::vector<int32_t>& active
     TLOGD(WmsLogTag::WMS_MULTI_USER,
         "GetActiveUserIds returns %{public}zu active users",
         activeUserIds.size());
+    return ERR_OK;
+}
+
+ErrCode MockSessionManagerService::AcquireKeyId(int32_t userId, int32_t& keyId)
+{
+    keyId = INVALID_KEY_ID;
+    const int32_t callingUserId = GetUserIdByCallingUid();
+    if (callingUserId <= INVALID_USER_ID || callingUserId != userId) {
+        TLOGE(WmsLogTag::WMS_LIFE, "calling user does not match, userId: %{public}d, calling: %{public}d",
+            userId, callingUserId);
+        return ERR_INVALID_VALUE;
+    }
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "permission denied");
+        return ERR_PERMISSION_DENIED;
+    }
+    keyId = PersistentIdManager::GetInstance().AcquireKeyId(userId);
+    if (keyId == INVALID_KEY_ID) {
+        TLOGW(WmsLogTag::WMS_LIFE, "acquire keyId failed, userId: %{public}d", userId);
+    }
+    return ERR_OK;
+}
+
+ErrCode MockSessionManagerService::SyncKeyId(int32_t userId, int32_t keyId, bool& isSuccess)
+{
+    isSuccess = false;
+    const int32_t callingUserId = GetUserIdByCallingUid();
+    if (callingUserId <= INVALID_USER_ID || callingUserId != userId) {
+        TLOGE(WmsLogTag::WMS_LIFE, "calling user does not match, userId: %{public}d, calling: %{public}d",
+            userId, callingUserId);
+        return ERR_INVALID_VALUE;
+    }
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "permission denied");
+        return ERR_PERMISSION_DENIED;
+    }
+    isSuccess = PersistentIdManager::GetInstance().SyncKeyId(userId, keyId);
     return ERR_OK;
 }
 

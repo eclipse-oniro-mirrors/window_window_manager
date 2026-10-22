@@ -37,8 +37,8 @@ public:
     WSError PendingSessionToBackground(const sptr<IRemoteObject>& token, const BackgroundParams& params) override;
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
         bool shouldBackToCaller = true, int32_t reason = 0) override;
-    WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
-    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DISPLAY_ID_INVALID) override;
+    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent) override;
     WSError RegisterSessionListener(const sptr<ISessionListener>& listener, bool isRecover = false) override;
     WSError UnRegisterSessionListener(const sptr<ISessionListener>& listener) override;
@@ -71,7 +71,7 @@ public:
     WSError ClearAllSessions() override;
     WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) override;
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                          std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override;
     WMError RegisterWindowManagerAgent(WindowManagerAgentType type,
@@ -131,6 +131,7 @@ public:
     WMError GetRouterStackInfo(int32_t persistentId, const sptr<ISessionRouterStackListener>& listener) override;
     WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
         bool shouldBackToCaller = true) override;
+    WSErrorResult RestoreSessionToForeground(int32_t persistentId) override;
     WMError CreateNewInstanceKey(const std::string& bundleName, std::string& instanceKey) override;
     WMError RemoveInstanceKey(const std::string& bundleName, const std::string& instanceKey) override;
     WMError TransferSessionToTargetScreen(const TransferSessionInfo& info) override;
@@ -139,7 +140,7 @@ public:
     WMError RegisterPipChgListenerByScreenId(int32_t screenId, const sptr<IPipChangeListener>& listener) override;
     WMError UnregisterPipChgListenerByScreenId(int32_t screenId) override;
     WMError UpdateKioskAppList(const std::vector<std::string>& kioskAppList) override;
-    WMError EnterKioskMode(const sptr<IRemoteObject>& token) override;
+    WMError EnterKioskMode(const sptr<IRemoteObject>& token, KioskType kioskType = KioskType::DEFAULT) override;
     WMError ExitKioskMode(const sptr<IRemoteObject>& token) override;
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) override;
     WMError GetDisplayIdByWindowId(const std::vector<uint64_t>& windowIds,
@@ -147,6 +148,7 @@ public:
     WSError NotifyAppUseControlDisplay(DisplayId displayId, bool useControl) override;
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
+    WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);

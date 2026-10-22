@@ -77,6 +77,8 @@ HWTEST_F(ExtensionSessionManagerTest, RequestExtensionSessionActivation01, TestS
               ExtensionSessionManager::GetInstance().RequestExtensionSessionBackground(extensionSession, nullptr));
 }
 
+void activationFunc(WSError we, int32_t errorCode) {}
+
 void func(WSError we) {}
 
 /**
@@ -92,7 +94,7 @@ HWTEST_F(ExtensionSessionManagerTest, RequestExtensionSessionActivation02, TestS
     ASSERT_EQ(WSError::WS_OK, instance->RequestExtensionSessionActivation(extensionSession, 1, nullptr));
     usleep(WAIT_SYNC_IN_NS);
 
-    ASSERT_EQ(WSError::WS_OK, instance->RequestExtensionSessionActivation(extensionSession, 1, (func)));
+    ASSERT_EQ(WSError::WS_OK, instance->RequestExtensionSessionActivation(extensionSession, 1, (activationFunc)));
     usleep(WAIT_SYNC_IN_NS);
 
     extensionSession->persistentId_ = -1;

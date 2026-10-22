@@ -35,8 +35,9 @@ public:
         SystemSessionConfig& systemConfig, sptr<IRemoteObject>& renderSession,
         std::shared_ptr<RSSurfaceNode>& surfaceNode, sptr<IRemoteObject> token));
 
-    MOCK_METHOD3(
-        Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken));
+    MOCK_METHOD4(
+        Foreground, WSError(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken,
+        bool isAlreadyShown));
     MOCK_METHOD3(Background, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
     MOCK_METHOD3(Disconnect, WSError(bool isFromClient, const std::string& identityToken, bool isFromInnerkits));
 
@@ -64,6 +65,7 @@ public:
     MOCK_METHOD1(SetActive, WSError(bool active));
     MOCK_METHOD1(SyncSessionEvent, WSError(SessionEvent event));
     MOCK_METHOD0(RemoveStartingWindow, WSError(void));
+    MOCK_METHOD1(RemoveStartingWindow, WSError(std::string& errMsg));
     MOCK_METHOD1(GetGlobalMaximizeMode, WSError(MaximizeMode& mode));
     MOCK_METHOD2(UpdateSessionPropertyByAction, WMError(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action));

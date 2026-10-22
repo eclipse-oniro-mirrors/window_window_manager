@@ -28,6 +28,7 @@ constexpr const char* DRAG_ISOLATED_DISPLAY_IDS_PARAM_KEY =
     "persist.windowlayout.displayisolation.dragisolateddisplayids";
 } // namespace
 
+std::mutex WindowDisplayIsolationPolicy::displayIsolationConfigMutex_;
 std::optional<DisplayIsolationConfig> WindowDisplayIsolationPolicy::displayIsolationConfig_;
 
 std::string DisplayIsolationConfig::ToString() const
@@ -54,7 +55,10 @@ void WindowDisplayIsolationPolicy::SaveDisplayIsolationSystemConfig(const Displa
     const std::string dragDisplayIds = StringUtil::JoinValueSet(config.dragIsolatedDisplayIds, ',');
     system::SetParameter(MOVE_ISOLATED_DISPLAY_IDS_PARAM_KEY, moveDisplayIds);
     system::SetParameter(DRAG_ISOLATED_DISPLAY_IDS_PARAM_KEY, dragDisplayIds);
-    displayIsolationConfig_ = config;
+    {
+        std::lock_guard<std::mutex> lock(displayIsolationConfigMutex_);
+        displayIsolationConfig_ = config;
+    }
     TLOGI(WmsLogTag::WMS_LAYOUT, "config: %{public}s", config.ToString().c_str());
 }
 
@@ -81,6 +85,7 @@ bool WindowDisplayIsolationPolicy::IsOperationEnable(const std::set<DisplayId>& 
 
 DisplayIsolationConfig WindowDisplayIsolationPolicy::GetDisplayIsolationConfig()
 {
+    std::lock_guard<std::mutex> lock(displayIsolationConfigMutex_);
     if (!displayIsolationConfig_.has_value()) {
         displayIsolationConfig_ = LoadDisplayIsolationSystemConfig();
     }

@@ -34,6 +34,7 @@
 #include "image_source.h"
 #include "rs_adapter.h"
 #include "session_helper.h"
+#include "session/persistent_id/include/persistent_id_allocator.h"
 #include "surface_capture_future.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
@@ -50,9 +51,6 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "Session" };
-std::atomic<int32_t> g_persistentId = INVALID_SESSION_ID;
-std::set<int32_t> g_persistentIdSet;
-std::mutex g_persistentIdSetMutex;
 constexpr float INNER_BORDER_VP = 5.0f;
 constexpr float OUTSIDE_BORDER_VP = 4.0f;
 constexpr float INNER_ANGLE_VP = 16.0f;
@@ -148,6 +146,13 @@ Session::~Session()
             // do nothing
         });
     }
+    std::vector<std::shared_ptr<ILifecycleListener>> listeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(lifecycleListenersMutex_);
+        listeners.swap(lifecycleListeners_);
+        TLOGD(WmsLogTag::WMS_LIFE, "id:%{public}d, lifecycleListeners cnt:%{public}zu",
+            GetPersistentId(), listeners.size());
+    }
 }
 
 void Session::SetEventHandler(const std::shared_ptr<AppExecFwk::EventHandler>& handler,
@@ -237,15 +242,21 @@ std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode() const
 
 std::shared_ptr<RSSurfaceNode> Session::GetSurfaceNode(bool isUpdateContextBeforeGet)
 {
+    std::shared_ptr<RSUIContext> rsUIContext;
+    if (isUpdateContextBeforeGet) {
+        // ExtensionSession::GetRSUIContext() may acquire surfaceNodeMutex_.
+        rsUIContext = GetRSUIContext();
+    }
+
     std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
     if (isUpdateContextBeforeGet) {
         TLOGI(WmsLogTag::WMS_SCB,
               "id: %{public}d, surfaceNode: %{public}s, original: %{public}s",
               GetPersistentId(),
               RSAdapterUtil::RSNodeToStr(surfaceNode_).c_str(),
-              RSAdapterUtil::RSUIContextToStr(GetRSUIContext()).c_str());
+              RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str());
         if (surfaceNode_) {
-            RSAdapterUtil::SetRSUIContext(surfaceNode_, GetRSUIContext(), true);
+            RSAdapterUtil::SetRSUIContext(surfaceNode_, rsUIContext, true);
         }
     }
     return surfaceNode_;
@@ -365,6 +376,20 @@ void Session::SetSessionInfoCallerPersistentId(int32_t callerPersistentId)
 {
     std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
     sessionInfo_.callerPersistentId_ = callerPersistentId;
+}
+
+void Session::UpdateCallerPersistentId(int32_t callerPersistentId)
+{
+    PostTask([weakThis = wptr(this), callerPersistentId, where = __func__]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s: session is null", where);
+            return;
+        }
+        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id:%{public}d, callerPersistentId:%{public}d",
+            where, session->GetPersistentId(), callerPersistentId);
+        session->SetSessionInfoCallerPersistentId(callerPersistentId);
+    }, __func__);
 }
 
 void Session::SetSessionInfoContinueState(ContinueState state)
@@ -794,9 +819,9 @@ void Session::NotifyAddSnapshot(bool useFfrt, bool needPersist,
     }
 }
 
-void Session::NotifyRemoveSnapshot()
+void Session::NotifyRemoveSnapshot(bool forceRemove)
 {
-    if (GetAppLockControl()) {
+    if (!forceRemove && GetAppLockControl()) {
         TLOGI(WmsLogTag::WMS_PATTERN, "not allowed");
         return;
     }
@@ -1156,6 +1181,14 @@ void Session::SetCallingUid(int32_t id)
     callingUid_ = id;
 }
 
+void Session::SetPendingAppHookDisplayInfo(const HookInfo& hookInfo, bool enable)
+{
+    std::lock_guard<std::mutex> lock(pendingAppHookDisplayInfoMutex_);
+    pendingAppHookDisplayInfo_ = hookInfo;
+    pendingAppHookDisplayInfoEnable_ = enable;
+    hasPendingAppHookDisplayInfo_ = true;
+}
+
 int32_t Session::GetCallingPid() const
 {
     return callingPid_;
@@ -1242,6 +1275,13 @@ bool Session::IsTerminated() const
 bool Session::IsLifecycleForeground() const
 {
     return state_ == SessionState::STATE_FOREGROUND || state_ == SessionState::STATE_ACTIVE;
+}
+
+bool Session::IsForegroundPreState() const
+{
+    return state_ == SessionState::STATE_CONNECT ||
+        state_ == SessionState::STATE_BACKGROUND ||
+        state_ == SessionState::STATE_INACTIVE;
 }
 
 bool Session::IsSessionNotBackground() const
@@ -1380,10 +1420,10 @@ WSError Session::UpdateClientDisplayId(DisplayId displayId)
           GetPersistentId(), displayId, clientDisplayId_);
     sessionStage_->UpdateDisplayId(displayId);
     if (displayId != clientDisplayId_) {
+        clientDisplayId_ = displayId;
         AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));
         NotifyDisplayIdChanged(GetPersistentId(), displayId);
     }
-    clientDisplayId_ = displayId;
     return WSError::WS_OK;
 }
 
@@ -1501,7 +1541,7 @@ bool Session::SessionIsSingleHandMode()
 WSError Session::UpdateRect(const WSRect& rect, SizeChangeReason reason,
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction)
 {
-    return UpdateRectWithLayoutInfo(rect, reason, updateReason, rsTransaction, {});
+    return UpdateRectWithLayoutInfoInner(rect, reason, updateReason, rsTransaction, {});
 }
 
 void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
@@ -1515,6 +1555,28 @@ void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
 }
 
 WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+    const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
+    const std::map<AvoidAreaType, AvoidArea>& avoidAreas, bool onlyUpdateAvoidArea)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_IMMS, "sessionStage_ is nullptr, id: %{public}d", GetPersistentId());
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (onlyUpdateAvoidArea) {
+        for (const auto& [type, avoidArea] : avoidAreas) {
+            auto ret = sessionStage_->UpdateAvoidArea(new AvoidArea(avoidArea), type);
+            if (ret != WSError::WS_OK) {
+                TLOGE(WmsLogTag::WMS_IMMS, "UpdateAvoidArea failed, type: %{public}u, ret: %{public}u",
+                    static_cast<uint32_t>(type), static_cast<uint32_t>(ret));
+            }
+        }
+    } else {
+        return UpdateRectWithLayoutInfoInner(rect, reason, updateReason, rsTransaction, avoidAreas);
+    }
+    return WSError::WS_OK;
+}
+
+WSError Session::UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeReason reason,
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
@@ -1675,12 +1737,13 @@ __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISe
     InitSessionPropertyWhenConnect(property);
     SetCallingPid(pid);
     callingUid_ = uid;
+    NotifyPendingAppHookDisplayInfo();
     UpdateSessionState(SessionState::STATE_CONNECT);
 
     // Window Layout
     const auto prelayoutContext = GetPrelayoutContext();
     HandleInitialRect(prelayoutContext);
-    HandleHookDisplay(prelayoutContext);
+    HandlePrelaunchDisplayHook(prelayoutContext);
 
     EditSessionInfo().disableDelegator = property->GetIsAbilityHookOff();
     NotifyConnect();
@@ -1830,6 +1893,7 @@ WSError Session::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<I
     persistentId_ = property->GetPersistentId();
     SetCallingPid(pid);
     callingUid_ = uid;
+    NotifyPendingAppHookDisplayInfo();
     bufferAvailable_ = true;
     auto windowRect = property->GetWindowRect();
     layoutRect_ = { windowRect.posX_, windowRect.posY_,
@@ -1842,7 +1906,8 @@ WSError Session::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<I
     return WSError::WS_OK;
 }
 
-WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken)
+WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken,
+    bool isAlreadyShown)
 {
     HandleDialogForeground();
     SessionState state = GetSessionState();
@@ -1853,8 +1918,7 @@ WSError Session::Foreground(sptr<WindowSessionProperty> property, bool isFromCli
         TLOGE(WmsLogTag::WMS_LIFE, "Main window foreground error! state:%{public}u", state);
         RecordLifecycleSessionStateError(SessionState::STATE_FOREGROUND, state);
     }
-    if (state != SessionState::STATE_CONNECT && state != SessionState::STATE_BACKGROUND &&
-        state != SessionState::STATE_INACTIVE) {
+    if (!IsForegroundPreState()) {
         TLOGE(WmsLogTag::WMS_LIFE, "Foreground state invalid! state:%{public}u", state);
         return WSError::WS_ERROR_INVALID_SESSION;
     }
@@ -1965,6 +2029,28 @@ void Session::ResetIsActive()
     isActive_ = false;
 }
 
+void Session::SetIsGamePrelaunch(bool isGamePrelaunch)
+{
+    PostTask([weakThis = wptr(this), isGamePrelaunch, where = __func__]() {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s: session is null", where);
+            return;
+        }
+
+        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id: %{public}d, isGamePrelaunch: %{public}d",
+               where, session->GetPersistentId(), isGamePrelaunch);
+        {
+            std::lock_guard<std::recursive_mutex> lock(session->sessionInfoMutex_);
+            session->sessionInfo_.isGamePrelaunch_ = isGamePrelaunch;
+        }
+
+        if (!isGamePrelaunch) {
+            session->ClearPrelaunchDisplayHook();
+        }
+    }, __func__);
+}
+
 WSError Session::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     auto state = GetSessionState();
@@ -2040,8 +2126,26 @@ WSError Session::DrawingCompleted()
     return WSError::WS_OK;
 }
 
+WSError Session::StartWithSnapshot()
+{
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d", GetPersistentId());
+    if (!SessionPermission::IsSystemAppCall()) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "permission denied!");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    SetStartWithSnapshot(true);
+    return WSError::WS_OK;
+}
+
 WSError Session::RemoveStartingWindow()
 {
+    std::string errMsg;
+    return RemoveStartingWindow(errMsg);
+}
+
+WSError Session::RemoveStartingWindow(std::string& errMsg)
+{
+    errMsg.clear();
     auto lifecycleListeners = GetListeners<ILifecycleListener>();
     for (auto& listener : lifecycleListeners) {
         if (auto listenerPtr = listener.lock()) {
@@ -2641,11 +2745,10 @@ void Session::SetPendingSessionToForegroundListener(NotifyPendingSessionToForegr
     }, __func__);
 }
 
-WSError Session::PendingSessionToForeground()
+WSError Session::PendingSessionToForeground(SessionInfo& info)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "id: %{public}d", GetPersistentId());
     if (pendingSessionActivationFunc_) {
-        SessionInfo info = GetSessionInfo();
         pendingSessionActivationFunc_(info);
     }
     return WSError::WS_OK;
@@ -3215,6 +3318,10 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     auto callback = std::make_shared<SurfaceCaptureFuture>();
     auto scaleValue = (options.scaleParam < 0.0f || std::fabs(options.scaleParam) < std::numeric_limits<float>::min()) ?
         snapshotScale_ : options.scaleParam;
+    float rogScale = 0.0f;
+    if (CheckAndGetRogScale(rogScale)) {
+        scaleValue = 1.0f;
+    }
     scaleValue = needBlurSnapshot ? scaleValue * BLUR_SNAPSHOT_SCALE : scaleValue;
     RSSurfaceCaptureConfig config = {
         .scaleX = scaleValue,
@@ -3233,7 +3340,8 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     bool ret = false;
     if (needBlurSnapshot) {
-        config.backGroundColor = blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ?
+        config.backGroundColor =
+            (blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() || IsExitSplitOnBackground()) ?
             GetBackgroundColor() : blurBackgroundColor_;
         ret = rsUICtx->GetRSRenderInterface()->TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius_);
     } else {
@@ -3864,6 +3972,7 @@ void Session::InitSnapshotCapacity()
     }
     if (scenePersistence_) {
         scenePersistence_->SetSnapshotCapacity(capacity_);
+        scenePersistence_->SetIsPcWindow(systemConfig_.IsPcWindow());
     }
 }
 
@@ -5143,33 +5252,7 @@ WSError Session::ProcessBackEvent()
 
 void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
 {
-    std::lock_guard lock(g_persistentIdSetMutex);
-    if (persistentId != INVALID_SESSION_ID  && !g_persistentIdSet.count(persistentId)) {
-        g_persistentIdSet.insert(persistentId);
-        persistentId_ = persistentId;
-        return;
-    }
-
-    if (g_persistentId == INVALID_SESSION_ID) {
-        g_persistentId++; // init non system session id from 2
-    }
-
-    g_persistentId++;
-    while (g_persistentIdSet.count(g_persistentId)) {
-        g_persistentId++;
-    }
-    if (isExtension) {
-        constexpr uint32_t pidLength = 18;
-        constexpr uint32_t pidMask = (1 << pidLength) - 1;
-        constexpr uint32_t persistentIdLength = 12;
-        constexpr uint32_t persistentIdMask = (1 << persistentIdLength) - 1;
-        uint32_t assembledPersistentId = ((static_cast<uint32_t>(getpid()) & pidMask) << persistentIdLength) |
-            (static_cast<uint32_t>(g_persistentId.load()) & persistentIdMask);
-        persistentId_ = assembledPersistentId | 0x40000000;
-    } else {
-        persistentId_ = static_cast<uint32_t>(g_persistentId.load()) & 0x3fffffff;
-    }
-    g_persistentIdSet.insert(g_persistentId);
+    persistentId_ = PersistentIdAllocator::GetInstance().Acquire(isExtension, persistentId);
     TLOGI(WmsLogTag::WMS_LIFE,
           "persistentId: %{public}d, persistentId_: %{public}d", persistentId, persistentId_);
 }
@@ -6322,10 +6405,6 @@ std::shared_ptr<RSUIContext> Session::GetRSUIContext(const char* caller)
     auto screenId = GetScreenId();
     std::lock_guard<std::mutex> lock(rsUIContextMutex_);
     if (screenIdOfRSUIContext_ != screenId || screenIdOfRSUIContext_ == SCREEN_ID_INVALID) {
-        // Note: For the window corresponding to UIExtAbility, RSUIContext cannot be obtained
-        // directly here because its server side is not SceneBoard. The acquisition of RSUIContext
-        // is deferred to the UIExtensionPattern::OnConnect(ui_extension_pattern.cpp) method,
-        // as ArkUI knows the host window for this type of window.
         rsUIContext_ = ScreenSessionManagerClient::GetInstance().GetRSUIContext(screenId);
         if (rsUIContext_ != nullptr) {
             screenIdOfRSUIContext_ = screenId;
@@ -6334,19 +6413,13 @@ std::shared_ptr<RSUIContext> Session::GetRSUIContext(const char* caller)
                 caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
         }
     }
-    if (rsUIContext_ == nullptr) {
-        TLOGI(WmsLogTag::WMS_SCB, "%{public}s: %{public}s, sessionId: %{public}d, screenId:%{public}" PRIu64,
-            caller, RSAdapterUtil::RSUIContextToStr(rsUIContext_).c_str(), GetPersistentId(), screenId);
-        // extensionSession use
-        rsUIContext_ = RSUIContextContainer::GetRSUIContext();
-    }
     return rsUIContext_;
 }
 
 std::shared_ptr<RSUIContext> Session::GetRSShadowContext()
 {
-    std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
     if (RSAdapterUtil::IsClientMultiInstanceEnabled()) {
+        std::lock_guard<std::mutex> lock(surfaceNodeMutex_);
         if (!shadowSurfaceNode_) {
             TLOGE(WmsLogTag::WMS_SCB, "Shadow surface node is nullptr, id: %{public}d.", GetPersistentId());
             return nullptr;
@@ -6358,8 +6431,8 @@ std::shared_ptr<RSUIContext> Session::GetRSShadowContext()
 
 std::shared_ptr<RSUIContext> Session::GetRSLeashWinShadowContext()
 {
-    std::lock_guard<std::mutex> lock(leashWinSurfaceNodeMutex_);
     if (RSAdapterUtil::IsClientMultiInstanceEnabled()) {
+        std::lock_guard<std::mutex> lock(leashWinSurfaceNodeMutex_);
         if (!leashWinShadowSurfaceNode_) {
             TLOGE(WmsLogTag::WMS_SCB, "Leash win shadow surface node is nullptr, id: %{public}d.", GetPersistentId());
             return nullptr;
@@ -6395,20 +6468,24 @@ PrelayoutContext Session::GetPrelayoutContext()
 
     // Enable prelayout only for game prelaunch to improve launch experience.
     ctx.enable = sessionInfo_.isGamePrelaunch_;
-    if (!ctx.enable && !sessionInfo_.isPrelaunch_) {
+    auto windowCreateParams = GetSessionInfo().windowCreateParams;
+    bool isMinimizeOnStart = windowCreateParams != nullptr ? windowCreateParams->minimizeOnStart : false;
+    if (!ctx.enable && !sessionInfo_.isPrelaunch_ && !isMinimizeOnStart) {
         return ctx;
     }
 
     const auto preCalc = PreCalcWindowProperty();
 
-    // Use pre-calculated size as initial window rect (position defaults to origin).
+    // Use pre-calculated size as initial window rect. Position is applied only for minimizeOnStart.
+    bool minimizeOnStart = (windowCreateParams != nullptr && windowCreateParams->minimizeOnStart);
     ctx.winRect = {
-        0, 0,
+        minimizeOnStart ? preCalc.posX : 0,
+        minimizeOnStart ? preCalc.posY : 0,
         static_cast<int32_t>(preCalc.width),
         static_cast<int32_t>(preCalc.height)
     };
 
-    if (sessionInfo_.isPrelaunch_ && !ctx.enable) {
+    if ((sessionInfo_.isPrelaunch_ && !ctx.enable) || minimizeOnStart) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "id: %{public}d, only initialize winRect, ctx: %{public}s",
             GetPersistentId(), ctx.ToString().c_str());
         return ctx;
@@ -6441,16 +6518,51 @@ void Session::HandleInitialRect(const PrelayoutContext& ctx)
         return;
     }
 
-    const std::optional<WSRect> rect =
-        (ctx.enable || GetSessionInfo().isPrelaunch_) ? std::make_optional(ctx.winRect) : std::nullopt;
+    auto windowCreateParams = GetSessionInfo().windowCreateParams;
+    bool minimizeOnStart = (windowCreateParams != nullptr && windowCreateParams->minimizeOnStart);
+    const std::optional<WSRect> rect = (ctx.enable || sessionInfo_.isPrelaunch_ || minimizeOnStart)
+        ? std::make_optional(ctx.winRect)
+        : std::nullopt;
 
     NotifyClientToUpdateRect("Connect", rect, nullptr);
+
+    if (sessionInfo_.isPrelaunch_ && sessionInfo_.frameNum_ == 0) {
+        layoutRect_ = ctx.winRect;
+    }
 }
 
-void Session::HandleHookDisplay(const PrelayoutContext& ctx)
+void Session::NotifyPendingAppHookDisplayInfo()
 {
-    if (!ctx.enable || !updateAppHookDisplayInfoFunc_) {
-        return;
+    HookInfo pendingHookInfo;
+    bool pendingEnable = false;
+    bool hasPending = false;
+    {
+        std::lock_guard<std::mutex> lock(pendingAppHookDisplayInfoMutex_);
+        hasPending = hasPendingAppHookDisplayInfo_;
+        if (hasPending) {
+            hasPendingAppHookDisplayInfo_ = false;
+            pendingHookInfo = pendingAppHookDisplayInfo_;
+            pendingEnable = pendingAppHookDisplayInfoEnable_;
+        }
+    }
+    if (hasPending && updateAppHookDisplayInfoFunc_) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "Id: %{public}d", persistentId_);
+        updateAppHookDisplayInfoFunc_(callingUid_, pendingHookInfo, pendingEnable);
+    }
+}
+
+bool Session::HandlePrelaunchDisplayHook(const PrelayoutContext& ctx)
+{
+    const auto windowId = GetWindowId();
+    if (!ctx.enable) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Prelaunch display hook is not required. id: %{public}d", windowId);
+        return false;
+    }
+    if (!updateAppHookDisplayInfoFunc_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Failed to set prelaunch display hook: func is null. id: %{public}d, uid: %{public}d",
+              windowId, callingUid_);
+        return false;
     }
 
     const HookInfo hookInfo = {
@@ -6465,9 +6577,40 @@ void Session::HandleHookDisplay(const PrelayoutContext& ctx)
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LAYOUT,
               "Failed to update app hook display info. id: %{public}d, uid: %{public}d, ret: %{public}d",
-              GetPersistentId(), callingUid_, ret);
-        return;
+              windowId, callingUid_, ret);
+        return false;
     }
+    prelaunchDisplayHookEnabled_ = true;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Update prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
+          windowId, callingUid_);
+    return true;
+}
+
+bool Session::ClearPrelaunchDisplayHook()
+{
+    auto windowId = GetWindowId();
+    if (!prelaunchDisplayHookEnabled_) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Prelaunch display hook is not enabled. id: %{public}d", windowId);
+        return false;
+    }
+    if (!updateAppHookDisplayInfoFunc_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Failed to clear prelaunch display hook: func is null. id: %{public}d, uid: %{public}d",
+              windowId, callingUid_);
+        return false;
+    }
+
+    const auto ret = updateAppHookDisplayInfoFunc_(callingUid_, HookInfo {}, false);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+              "Failed to clear prelaunch display hook. id: %{public}d, uid: %{public}d, ret: %{public}d",
+              windowId, callingUid_, ret);
+        return false;
+    }
+    prelaunchDisplayHookEnabled_ = false;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Clear prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
+          windowId, callingUid_);
+    return true;
 }
 
 WSError Session::UpdateLSStateInfo(bool isLSState)

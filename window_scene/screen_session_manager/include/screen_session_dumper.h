@@ -99,6 +99,10 @@ private:
     bool ParsePositionGroup(const std::string& group, MultiScreenPositionOptions& opts);
     bool IsDeveloperModeCommand();
     void ShowCurrentLcdStatus(ScreenId screenId);
+    void SetSuperFoldHallValue(const int32_t hallVal);
+    void SetSuperFoldPostureValue(const int32_t postureVal);
+    void SetSuperFoldPostureAndPower(const int32_t postureVal);
+    void SetSuperDisplayFoldStatus(const std::string& foldStatus, int32_t& errCode);
 private:
     const std::map<FoldStatus, std::string> statusMap_ = {
         {FoldStatus::EXPAND, "EXPAND"},

@@ -438,6 +438,8 @@ public:
     DisplayGroupId GetDisplayGroupId() const;
     void SetMainDisplayIdOfGroup(ScreenId screenId);
     ScreenId GetMainDisplayIdOfGroup() const;
+    DisplayGroupType GetGroupType() const;
+    void SetGroupType(DisplayGroupType groupType);
     void SetScreenAreaOffsetX(uint32_t screenAreaOffsetX);
     uint32_t GetScreenAreaOffsetX() const;
     void SetScreenAreaOffsetY(uint32_t screenAreaOffsetY);

@@ -150,7 +150,7 @@ WMError WindowGroupMgr::MoveMissionToForeground(int32_t missionId)
         }
     }
     windowNode->GetWindowToken()->UpdateWindowState(WindowState::STATE_SHOWN);
-    WindowManagerService::GetInstance().AddWindow(property);
+    WindowManagerService::GetInstance().AddWindowInner(property);
     for (auto displayId : displayIds) {
         auto container = windowRoot_->GetOrCreateWindowNodeContainer(displayId);
         if (container != nullptr) {

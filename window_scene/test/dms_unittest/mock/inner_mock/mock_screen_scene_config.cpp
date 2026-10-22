@@ -14,6 +14,7 @@
  */
 
 #include "screen_scene_config.h"
+#include <screen_manager/screen_types.h>
 
 namespace OHOS::Rosen {
 namespace {
@@ -80,7 +81,8 @@ uint32_t ScreenSceneConfig::curvedAreaInLandscape_ = 0;
 uint32_t ScreenSceneConfig::offScreenPPIThreshold_ = 0;
 uint64_t ScreenSceneConfig::bootTimeThreshold_ = 60;
 int32_t ScreenSceneConfig::rogDpi_ = 0;
-RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 0, 0, 0, 0 };
+uint32_t ScreenSceneConfig::rogMode_ = 1;
+RogResolution ScreenSceneConfig::rogResolution_ = { false, true, 1, 0, 0, 0 };
 std::map<int32_t, std::string> ScreenSceneConfig::xmlNodeMap_ = {
     {DPI, "dpi"},
     {SUB_DPI, "subDpi"},

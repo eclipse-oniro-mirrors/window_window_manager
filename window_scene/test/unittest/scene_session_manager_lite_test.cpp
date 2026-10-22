@@ -211,6 +211,161 @@ HWTEST_F(SceneSessionManagerLiteTest, UnsetPipEnableByScreenId, TestSize.Level1)
     EXPECT_EQ(SceneSessionManagerLite::GetInstance().UnsetPipEnableByScreenId(1),
         WMError::WM_ERROR_INVALID_PERMISSION);
 }
+
+/**
+ * @tc.name: UpdateRogWindowConfig02
+ * @tc.desc: test function : UpdateRogWindowConfig with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UpdateRogWindowConfig02, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.app1", "com.test.app2"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = SceneSessionManagerLite::GetInstance().UpdateRogWindowConfig(windowConfig);
+    auto expectRet = SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig03
+ * @tc.desc: test function : UpdateRogWindowConfig with different configs
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UpdateRogWindowConfig03, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"app1", "app2", "app3"};
+    windowConfig.width = 2560;
+    windowConfig.height = 1440;
+    windowConfig.dpi = 640;
+    windowConfig.scale = 2.0f;
+    auto ret = SceneSessionManagerLite::GetInstance().UpdateRogWindowConfig(windowConfig);
+    auto expectRet = SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig05
+ * @tc.desc: test function : UpdateRogWindowConfig with large app list
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UpdateRogWindowConfig05, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = std::vector<std::string>(100, "com.test.app");
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = SceneSessionManagerLite::GetInstance().UpdateRogWindowConfig(windowConfig);
+    auto expectRet = SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig06
+ * @tc.desc: test function : UpdateRogWindowConfig with 720P configuration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UpdateRogWindowConfig06, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.720p.app1", "com.test.720p.app2"};
+    windowConfig.width = 1280;
+    windowConfig.height = 720;
+    windowConfig.dpi = 320;
+    windowConfig.scale = 1.0f;
+    auto ret = SceneSessionManagerLite::GetInstance().UpdateRogWindowConfig(windowConfig);
+    auto expectRet = SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig07
+ * @tc.desc: test function : UpdateRogWindowConfig with 1080P configuration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UpdateRogWindowConfig07, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.1080p.app"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = SceneSessionManagerLite::GetInstance().UpdateRogWindowConfig(windowConfig);
+    auto expectRet = SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: UpdateRogWindowConfig08
+ * @tc.desc: test function : UpdateRogWindowConfig with 2K configuration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, UpdateRogWindowConfig08, TestSize.Level1)
+{
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.2k.app"};
+    windowConfig.width = 2560;
+    windowConfig.height = 1440;
+    windowConfig.dpi = 640;
+    windowConfig.scale = 2.0f;
+    auto ret = SceneSessionManagerLite::GetInstance().UpdateRogWindowConfig(windowConfig);
+    auto expectRet = SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: RegisterUpdateRogWindowConfigCallback01
+ * @tc.desc: test function : RegisterUpdateRogWindowConfigCallback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, RegisterUpdateRogWindowConfigCallback01, TestSize.Level1)
+{
+    auto callback = [](const RogWindowConfig& config) {};
+    SceneSessionManager::GetInstance().RegisterUpdateRogWindowConfigCallback(callback);
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.callback.app"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    auto ret = SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NOT_SYSTEM_APP);
+}
+
+/**
+ * @tc.name: RecoverProcessWatermark01
+ * @tc.desc: test function : RecoverProcessWatermark
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, RecoverProcessWatermark01, TestSize.Level1)
+{
+    int32_t pid = 100;
+    std::string watermarkName = "testWatermark";
+    auto ret = SceneSessionManagerLite::GetInstance().RecoverProcessWatermark(pid, watermarkName);
+    auto expectRet = SceneSessionManager::GetInstance().RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: RecoverProcessWatermark02
+ * @tc.desc: test function : RecoverProcessWatermark with empty name
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, RecoverProcessWatermark02, TestSize.Level1)
+{
+    int32_t pid = 100;
+    std::string watermarkName = "";
+    auto ret = SceneSessionManagerLite::GetInstance().RecoverProcessWatermark(pid, watermarkName);
+    auto expectRet = SceneSessionManager::GetInstance().RecoverProcessWatermark(pid, watermarkName);
+    EXPECT_EQ(ret, expectRet);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

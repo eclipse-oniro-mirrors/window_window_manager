@@ -18,6 +18,7 @@
 #include "ipc_skeleton.h"
 
 #include "rs_adapter.h"
+#include "sys_cap_util.h"
 #include "ui_extension/host_data_handler.h"
 #include "window_manager_hilog.h"
 
@@ -225,6 +226,10 @@ WSError ExtensionSession::ConnectInner(
         TLOGE(WmsLogTag::WMS_UIEXT, "invalid pid or uid");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "property is null");
+        return WSError::WS_ERROR_NULLPTR;
+    }
     auto task = [weakThis = wptr(this), sessionStage, eventChannel, nodeId, &surfaceNode,
         &systemConfig, property, token, &renderSession, pid, uid]() NO_THREAD_SAFETY_ANALYSIS {
         auto session = weakThis.promote();
@@ -252,6 +257,9 @@ WSError ExtensionSession::ConnectInner(
         if (session->IsTransparentUIExtension()) {
             sessionStage->SetUIExtensionTransparent();
         }
+        // Synchronize the parent persistent ID to ensure GetRSUIContext() can retrieve
+        // the RSUIContext associated with the parent session.
+        session->GetSessionProperty()->SetParentPersistentId(property->GetParentPersistentId());
         auto ret = session->Session::ConnectInner(
             sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode, property, token, pid, uid);
         renderSession = RSUIContextContainer::GetRenderSession();
@@ -275,6 +283,93 @@ WSError ExtensionSession::Connect(
     int32_t uid = IPCSkeleton::GetCallingUid();
     return ConnectInner(sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode,
         property, token, pid, uid, identityToken);
+}
+
+std::shared_ptr<RSUIContext> ExtensionSession::GetFallbackRSUIContext()
+{
+    RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
+
+    {
+        std::lock_guard<std::mutex> lock(directorMutex_);
+        if (fallbackRSUIDirector_) {
+            return fallbackRSUIDirector_->GetRSUIContext();
+        }
+    }
+
+    // Select an available render session for creating the fallback RSUIDirector.
+    sptr<IRemoteObject> renderSession;
+    if (SysCapUtil::GetBundleName() == AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME) {
+        // The host window may belong to the SCB process without a corresponding
+        // window client, so its RSUIContext may be unavailable. Use the render
+        // session associated with the target screen instead.
+        auto sourceRSUIContext = Session::GetRSUIContext();
+        if (sourceRSUIContext) {
+            renderSession = sourceRSUIContext->GetConnectToRender();
+        }
+    } else {
+        // In a nested UEC scenario, the current UEC window server runs in the
+        // process of the UEC client that launched it rather than the host
+        // window's process, so the host RSUIContext cannot be accessed. Use a
+        // render session available in the current process instead.
+        renderSession = RSUIContextContainer::GetRenderSession();
+    }
+
+    if (!renderSession) {
+        TLOGE(WmsLogTag::WMS_SCB,
+              "No render session available for fallback RSUIDirector, windowId: %{public}d",
+              GetPersistentId());
+        return nullptr;
+    }
+
+    std::shared_ptr<RSUIDirector> candidateDirector;
+    RSAdapterUtil::InitRSUIDirector(candidateDirector, renderSession);
+    if (!candidateDirector) {
+        TLOGE(WmsLogTag::WMS_SCB, "Failed to init fallback RSUIDirector, windowId: %{public}d", GetPersistentId());
+        return nullptr;
+    }
+
+    std::lock_guard<std::mutex> lock(directorMutex_);
+    if (!fallbackRSUIDirector_) {
+        fallbackRSUIDirector_ = std::move(candidateDirector);
+    }
+    return fallbackRSUIDirector_->GetRSUIContext();
+}
+
+std::shared_ptr<RSUIContext> ExtensionSession::GetRSUIContext(const char* caller)
+{
+    RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
+
+    const auto windowId = GetPersistentId();
+
+    // First, try the RSUIContext directly associated with the surface node.
+    const auto surfaceNode = GetSurfaceNode();
+    auto rsUIContext = surfaceNode ? surfaceNode->GetRSUIContext() : nullptr;
+    if (rsUIContext) {
+        TLOGD(WmsLogTag::WMS_SCB,
+              "Get from surface node, caller: %{public}s, windowId: %{public}d, rsUIContext: %{public}s",
+              caller, windowId, RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str());
+        return rsUIContext;
+    }
+
+    // Then, try the RSUIContext associated with the host parent window.
+    const auto hostParentId = GetSessionProperty()->GetParentPersistentId();
+    rsUIContext = RSUIContextContainer::GetRSUIContext(hostParentId);
+    if (rsUIContext) {
+        TLOGD(WmsLogTag::WMS_SCB,
+              "Get from host parent, caller: %{public}s, windowId: %{public}d, "
+              "hostParentId: %{public}d, rsUIContext: %{public}s",
+              caller, windowId, hostParentId, RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str());
+        return rsUIContext;
+    }
+
+    // Finally, use the fallback RSUIContext if the normal lookup paths fail.
+    // UIExtensionPattern::OnConnect will later set the correct RSUIContext
+    // based on the host window identified by ArkUI.
+    rsUIContext = GetFallbackRSUIContext();
+    TLOGD(WmsLogTag::WMS_SCB,
+          "Get from fallback, caller: %{public}s, windowId: %{public}d, rsUIContext: %{public}s",
+          caller, windowId, RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str());
+    return rsUIContext;
 }
 
 WSError ExtensionSession::TransferAbilityResult(uint32_t resultCode, const AAFwk::Want& want)
@@ -332,7 +427,7 @@ void ExtensionSession::NotifyAsyncOn()
     }
 }
 
-WSError ExtensionSession::NotifyDensityFollowHost(bool isFollowHost, float densityValue)
+WSError ExtensionSession::NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue)
 {
     if (!IsSessionValid()) {
         return WSError::WS_ERROR_INVALID_SESSION;
@@ -342,7 +437,7 @@ WSError ExtensionSession::NotifyDensityFollowHost(bool isFollowHost, float densi
         return WSError::WS_ERROR_NULLPTR;
     }
 
-    return sessionStage_->NotifyDensityFollowHost(isFollowHost, densityValue);
+    return sessionStage_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue);
 }
 
 WSError ExtensionSession::UpdateSessionViewportConfig(const SessionViewportConfig& config)
@@ -355,9 +450,9 @@ WSError ExtensionSession::UpdateSessionViewportConfig(const SessionViewportConfi
         TLOGE(WmsLogTag::WMS_UIEXT, "sessionStage_ is null");
         return WSError::WS_ERROR_NULLPTR;
     }
-    TLOGI(WmsLogTag::WMS_UIEXT, "winId: %{public}d, isDensityFollowHost_:%{public}d, "
+    TLOGI(WmsLogTag::WMS_UIEXT, "winId: %{public}d, dpiFollowStrategy_:%{public}u, "
         "displayId:%{public}" PRIu64", density:%{public}f, orientation:%{public}d.",
-        GetPersistentId(), config.isDensityFollowHost_, config.displayId_, config.density_, config.orientation_);
+        GetPersistentId(), config.dpiFollowStrategy_, config.displayId_, config.density_, config.orientation_);
     return sessionStage_->UpdateSessionViewportConfig(config);
 }
 

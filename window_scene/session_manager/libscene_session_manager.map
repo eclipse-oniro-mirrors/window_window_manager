@@ -177,6 +177,7 @@
             OHOS::Rosen::SceneSessionManager::SetPiPSettingSwitchStatus*;
             OHOS::Rosen::SceneSessionManager::SetRecoverSceneSessionListener*;
             OHOS::Rosen::SceneSessionManager::SetRequestVsyncByRootSceneWhenModeChangeFunc*;
+            OHOS::Rosen::SceneSessionManager::SetRestoreSessionToForegroundListener*;
             OHOS::Rosen::SceneSessionManager::SetRootSceneContext*;
             OHOS::Rosen::SceneSessionManager::SetRootSceneProcessBackEventFunc*;
             OHOS::Rosen::SceneSessionManager::SetSCBFocusChangeListener*;
@@ -198,6 +199,7 @@
             OHOS::Rosen::SceneSessionManager::SetUpdateDisplayDpiChangeCallback*;
             OHOS::Rosen::SceneSessionManager::SetVmaCacheStatus*;
             OHOS::Rosen::SceneSessionManager::SetWindowFlags*;
+            OHOS::Rosen::SceneSessionManager::SetWindowPositionListener*;
             OHOS::Rosen::SceneSessionManager::StartAbilityBySpecified*;
             OHOS::Rosen::SceneSessionManager::StartUIAbilityBySCB*;
             OHOS::Rosen::SceneSessionManager::NotifyStartWindowsAbility*;
@@ -229,6 +231,7 @@
             OHOS::Rosen::SceneSessionManager::NotifyRotationBegin*;
             OHOS::Rosen::SceneSessionManager::KioskModeChange*;
             OHOS::Rosen::SceneSessionManager::RegisterPageEnableFunc*;
+            OHOS::Rosen::SceneSessionManager::RegisterUpdateRogWindowConfigCallback*;
             OHOS::Rosen::SceneSessionManagerLite::GetInstance*;
             OHOS::Rosen::SceneSessionManager::SyncFloatViewLimits*;
             OHOS::Rosen::SceneSessionManager::RegisterGetFloatViewLimitCallback*;

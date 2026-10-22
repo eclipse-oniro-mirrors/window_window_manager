@@ -603,27 +603,49 @@ std::string RSAdapterUtil::RSUIDirectorToStr(const std::shared_ptr<RSUIDirector>
     return oss.str();
 }
 
+std::mutex RSUIContextContainer::containerMutex_;
 sptr<IRemoteObject> RSUIContextContainer::renderSession;
-std::shared_ptr<RSUIContext> RSUIContextContainer::rsUIContext;
+std::unordered_map<int32_t, std::shared_ptr<RSUIContext>> RSUIContextContainer::rsUIContextMap_;
 
 sptr<IRemoteObject> RSUIContextContainer::GetRenderSession()
 {
+    std::lock_guard<std::mutex> lock(containerMutex_);
     return renderSession;
 }
 
 void RSUIContextContainer::SetRenderSession(sptr<IRemoteObject> renderSessionObj)
 {
+    std::lock_guard<std::mutex> lock(containerMutex_);
     renderSession = renderSessionObj;
 }
 
-std::shared_ptr<RSUIContext> RSUIContextContainer::GetRSUIContext()
+std::shared_ptr<RSUIContext> RSUIContextContainer::GetRSUIContext(int32_t windowId)
 {
+    std::lock_guard<std::mutex> lock(containerMutex_);
+    auto iter = rsUIContextMap_.find(windowId);
+    if (iter == rsUIContextMap_.end()) {
+        TLOGW(WmsLogTag::WMS_SCB, "Not found, windowId: %{public}d", windowId);
+        return nullptr;
+    }
+    auto rsUIContext = iter->second;
+    TLOGD(WmsLogTag::WMS_SCB, "windowId: %{public}d, rsUIContext: %{public}s",
+          windowId, RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str());
     return rsUIContext;
 }
 
-void RSUIContextContainer::SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContextObj)
+void RSUIContextContainer::SetRSUIContext(int32_t windowId, const std::shared_ptr<RSUIContext>& rsUIContext)
 {
-    rsUIContext = rsUIContextObj;
+    TLOGD(WmsLogTag::WMS_SCB, "windowId: %{public}d, rsUIContext: %{public}s",
+          windowId, RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str());
+    std::lock_guard<std::mutex> lock(containerMutex_);
+    rsUIContextMap_[windowId] = rsUIContext;
+}
+
+void RSUIContextContainer::RemoveRSUIContext(int32_t windowId)
+{
+    TLOGD(WmsLogTag::WMS_SCB, "windowId: %{public}d", windowId);
+    std::lock_guard<std::mutex> lock(containerMutex_);
+    rsUIContextMap_.erase(windowId);
 }
 } // namespace Rosen
 } // namespace OHOS

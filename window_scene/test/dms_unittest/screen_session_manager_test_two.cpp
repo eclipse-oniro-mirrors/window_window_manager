@@ -330,15 +330,16 @@ HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenUser, TestSize.Level1)
     ssm_->displayConcurrentUserMap_.clear();
     sptr<ScreenSession> screenSession = new ScreenSession(1000, ScreenProperty(), 0);
     int32_t userId = 100;
-    ssm_->SetVirtualScreenUser(screenSession, userId);
+    auto screenId = screenSession->GetScreenId();
+    ssm_->SetVirtualScreenUser(screenId, userId);
     EXPECT_TRUE(g_errLog.find("invalid params") != std::string::npos);
     g_errLog.clear();
     ssm_->displayConcurrentUserMap_[1000][userId] = {false, 0};
-    ssm_->SetVirtualScreenUser(screenSession, userId);
+    ssm_->SetVirtualScreenUser(screenId, userId);
     EXPECT_TRUE(g_errLog.find("invalid params") != std::string::npos);
     g_errLog.clear();
     ssm_->displayConcurrentUserMap_[1000][userId] = {true, 0};
-    ssm_->SetVirtualScreenUser(screenSession, userId);
+    ssm_->SetVirtualScreenUser(screenId, userId);
     EXPECT_TRUE(g_errLog.find("invalid params") == std::string::npos);
     g_errLog.clear();
 }
@@ -667,7 +668,7 @@ HWTEST_F(ScreenSessionManagerTest, UpdateSessionByActiveModeChange001, TestSize.
     sptr<ScreenSession> screenSession = nullptr;
     RSScreenModeInfo screenMode;
     ssm_->UpdateSessionByActiveModeChange(screenSession, screenMode);
-    EXPECT_FALSE(g_errLog.find("screenSession is nullptr") != std::string::npos);
+    EXPECT_FALSE(g_errLog.find("screenSession is null") != std::string::npos);
     g_errLog.clear();
 }
 
@@ -2761,7 +2762,10 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectChangeWhenRotate, TestS
     g_errLog.clear();
 
     ssm_->screenSessionMap_[51] = screenSession;
-    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_BEGIN, 0, 0);
+    // The screenId must match the internal session (51) added above, otherwise the handler
+    // bails out at the "external screen not support" check before reaching the recovery
+    // branch and no "recovery" log is ever printed.
+    ssm_->HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType::ROTATION_BEGIN, 0, 51);
     EXPECT_TRUE(g_errLog.find("recovery") != std::string::npos);
     g_errLog.clear();
 
@@ -2797,15 +2801,14 @@ HWTEST_F(ScreenSessionManagerTest, CalculateTargetResolution1, TestSize.Level1)
     EXPECT_EQ(height, 0);
 
     screenSession2->property_.SetScreenRealHeight(1080);
-    ssm_->CalculateTargetResolution(screenSession1, screenSession2, false, width, height);
+    // Pure calculation: the toggle is off, so no effect is needed and the state is not touched.
+    EXPECT_FALSE(ssm_->CalculateTargetResolution(screenSession1, screenSession2, false, width, height));
     EXPECT_EQ(width, 3120);
     EXPECT_EQ(height, 2080);
-    EXPECT_FALSE(ssm_->curResolutionEffectEnable_);
 
-    ssm_->CalculateTargetResolution(screenSession1, screenSession2, true, width, height);
+    EXPECT_TRUE(ssm_->CalculateTargetResolution(screenSession1, screenSession2, true, width, height));
     EXPECT_EQ(width, 3120);
     EXPECT_EQ(height, 1755);
-    EXPECT_TRUE(ssm_->curResolutionEffectEnable_);
 
     screenSession2->property_.SetScreenRealWidth(1280);
     screenSession2->property_.SetScreenRealHeight(1024);
@@ -2935,19 +2938,572 @@ HWTEST_F(ScreenSessionManagerTest, SetResolutionEffect, TestSize.Level1)
     EXPECT_EQ(internalSession, screenSession1);
     EXPECT_EQ(externalSession, screenSession2);
 
-    auto ret = ssm_->SetResolutionEffect(51, 3120, 2080);
+    auto ret = ssm_->SetResolutionEffect(51, 3120, 2080, true);
     EXPECT_FALSE(ret);
 
-    ret = ssm_->SetResolutionEffect(52, 3120, 2080);
+    ret = ssm_->SetResolutionEffect(52, 3120, 2080, true);
     EXPECT_FALSE(ret);
 
     screenSession2->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
-    ssm_->curResolutionEffectEnable_ = true;
-    ret = ssm_->SetResolutionEffect(51, 3120, 2080);
+    ret = ssm_->SetResolutionEffect(51, 3120, 2080, true);
     EXPECT_TRUE(ret);
-    ssm_->curResolutionEffectEnable_ = false;
+    ssm_->MarkResolutionEffectIdle();
     ssm_->screenSessionMap_.erase(51);
     ssm_->screenSessionMap_.erase(52);
+}
+
+namespace {
+// Screen ids and internal-screen dims shared by the resolution-effect cast tests.
+// The internal screen is a 3:2 panel (3120x2080); ids are arbitrary test-local values.
+constexpr ScreenId CAST_EFFECT_INTERNAL_ID = 51;
+constexpr ScreenId CAST_EFFECT_PHYSICAL_ID = 52;
+constexpr ScreenId CAST_EFFECT_CAST_ID = 53;
+constexpr ScreenId CAST_EFFECT_GROUP_ID = 60;
+constexpr uint32_t CAST_EFFECT_REAL_WIDTH = 3120;
+constexpr uint32_t CAST_EFFECT_REAL_HEIGHT = 2080;
+
+// Shared three-screen fixture for the resolution-effect cast tests: internal screen 51
+// (REAL, in use, 3120x2080 real/area dims), optional physical screen 52 (REAL, in use,
+// given per-screen combination) and cast virtual screen 53 (VIRTUAL_MIRROR, given flag).
+// Group 60 membership and the per-screen specifics (serial number, region, rotation)
+// stay with each test.
+struct CastEffectScreens {
+    sptr<ScreenSession> internalSession;
+    sptr<ScreenSession> physicalSession;
+    sptr<ScreenSession> castSession;
+    sptr<ScreenSessionGroup> castGroup;
+    Point point = { 0, 0 };
+    bool isPcNow = false;
+};
+
+void InitCastEffectScreens(sptr<ScreenSessionManager>& ssm, CastEffectScreens& screens,
+    bool withPhysical, ScreenCombination physicalCombination, VirtualScreenFlag castFlag)
+{
+    screens.isPcNow = ssm->GetPcStatus();
+    ssm->SetPcStatus(true);
+    screens.internalSession = new ScreenSession(CAST_EFFECT_INTERNAL_ID, ScreenProperty(), 0);
+    screens.internalSession->SetIsCurrentInUse(true);
+    screens.internalSession->SetScreenType(ScreenType::REAL);
+    screens.internalSession->isInternal_ = true;
+    screens.internalSession->SetRealWidth(CAST_EFFECT_REAL_WIDTH);
+    screens.internalSession->SetRealHeight(CAST_EFFECT_REAL_HEIGHT);
+    screens.internalSession->SetScreenAreaWidth(CAST_EFFECT_REAL_WIDTH);
+    screens.internalSession->SetScreenAreaHeight(CAST_EFFECT_REAL_HEIGHT);
+    if (withPhysical) {
+        screens.physicalSession = new ScreenSession(CAST_EFFECT_PHYSICAL_ID, ScreenProperty(), 0);
+        screens.physicalSession->SetIsCurrentInUse(true);
+        screens.physicalSession->SetScreenType(ScreenType::REAL);
+        screens.physicalSession->isInternal_ = false;
+        screens.physicalSession->SetScreenCombination(physicalCombination);
+        ssm->screenSessionMap_[CAST_EFFECT_PHYSICAL_ID] = screens.physicalSession;
+    }
+    screens.castSession = new ScreenSession(CAST_EFFECT_CAST_ID, ScreenProperty(), 0);
+    screens.castSession->SetScreenType(ScreenType::VIRTUAL);
+    screens.castSession->SetVirtualScreenFlag(castFlag);
+    screens.castSession->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
+    ssm->screenSessionMap_[CAST_EFFECT_INTERNAL_ID] = screens.internalSession;
+    ssm->screenSessionMap_[CAST_EFFECT_CAST_ID] = screens.castSession;
+}
+
+// Creates a screen group with the given combination and adds the cast screen to it
+// as the only child.
+void AddCastGroup(sptr<ScreenSessionManager>& ssm, CastEffectScreens& screens,
+    ScreenCombination combination)
+{
+    screens.castGroup = new ScreenSessionGroup(CAST_EFFECT_GROUP_ID, SCREEN_ID_INVALID,
+        "castGroup", combination);
+    screens.castGroup->screenSessionMap_.insert(std::make_pair(CAST_EFFECT_CAST_ID,
+        std::make_pair(screens.castSession, screens.point)));
+    screens.castSession->groupSmsId_ = CAST_EFFECT_GROUP_ID;
+    ssm->smsScreenGroupMap_[CAST_EFFECT_GROUP_ID] = screens.castGroup;
+}
+
+void ClearCastEffectScreens(sptr<ScreenSessionManager>& ssm, CastEffectScreens& screens)
+{
+    if (screens.castGroup != nullptr) {
+        ssm->smsScreenGroupMap_.erase(CAST_EFFECT_GROUP_ID);
+    }
+    ssm->screenSessionMap_.erase(CAST_EFFECT_INTERNAL_ID);
+    ssm->screenSessionMap_.erase(CAST_EFFECT_PHYSICAL_ID);
+    ssm->screenSessionMap_.erase(CAST_EFFECT_CAST_ID);
+    ssm->SetPcStatus(screens.isPcNow);
+}
+}
+
+/**
+ * @tc.name: SetResolutionEffectForCastVirtualScreen
+ * @tc.desc: Set resolution effect for a wireless mirror screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetResolutionEffectForCastVirtualScreen, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    CastEffectScreens screens;
+    InitCastEffectScreens(ssm_, screens, true, ScreenCombination::SCREEN_EXTEND,
+        VirtualScreenFlag::CAST);
+    AddCastGroup(ssm_, screens, ScreenCombination::SCREEN_MIRROR);
+    screens.castSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    auto& internalSession = screens.internalSession;
+    auto& castSession = screens.castSession;
+
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaWidth(), 3120u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 1755u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.posX_, 0);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.posY_, 162);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.width_, 3120u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.height_, 1755u);
+    // The effect is keyed on the cast screen that mirrors the internal screen.
+    EXPECT_TRUE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), 53u);
+
+    EXPECT_TRUE(ssm_->RecoveryResolutionEffect());
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaWidth(), 3120u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.width_, 0u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.height_, 0u);
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), SCREEN_ID_INVALID);
+    ClearCastEffectScreens(ssm_, screens);
+}
+
+/**
+ * @tc.name: SetResolutionEffectForCastScreenInExtendGroup
+ * @tc.desc: Cast screen in extend group should not be treated as mirror external screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetResolutionEffectForCastScreenInExtendGroup, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    bool isPcNow = ssm_->GetPcStatus();
+    ssm_->SetPcStatus(true);
+    sptr<ScreenSession> internalSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(internalSession, nullptr);
+    internalSession->SetIsCurrentInUse(true);
+    internalSession->SetScreenType(ScreenType::REAL);
+    internalSession->isInternal_ = true;
+    internalSession->SetRealWidth(3120);
+    internalSession->SetRealHeight(2080);
+    internalSession->SetScreenAreaWidth(3120);
+    internalSession->SetScreenAreaHeight(2080);
+
+    sptr<ScreenSession> physicalSession = new ScreenSession(52, ScreenProperty(), 0);
+    ASSERT_NE(physicalSession, nullptr);
+    physicalSession->SetIsCurrentInUse(true);
+    physicalSession->SetScreenType(ScreenType::REAL);
+    physicalSession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    physicalSession->isInternal_ = false;
+
+    // Cast virtual screen switched to an extend group; its group combination rules it
+    // out as a mirror target even though the per-screen combination keeps the stale
+    // SCREEN_MIRROR value.
+    sptr<ScreenSession> castSession = new ScreenSession(53, ScreenProperty(), 0);
+    ASSERT_NE(castSession, nullptr);
+    castSession->SetScreenType(ScreenType::VIRTUAL);
+    castSession->SetVirtualScreenFlag(VirtualScreenFlag::CAST);
+    castSession->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
+    castSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    sptr<ScreenSessionGroup> extendGroup =
+        new ScreenSessionGroup(60, SCREEN_ID_INVALID, "extendGroup", ScreenCombination::SCREEN_EXTEND);
+    ASSERT_NE(extendGroup, nullptr);
+    Point point = { 0, 0 };
+    extendGroup->screenSessionMap_.insert(std::make_pair(53, std::make_pair(castSession, point)));
+    castSession->groupSmsId_ = 60;
+
+    ssm_->screenSessionMap_[51] = internalSession;
+    ssm_->screenSessionMap_[52] = physicalSession;
+    ssm_->screenSessionMap_[53] = castSession;
+    ssm_->smsScreenGroupMap_[60] = extendGroup;
+
+    // Rejected before any state transition: the state stays idle.
+    EXPECT_FALSE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaWidth(), 3120u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), SCREEN_ID_INVALID);
+
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+    ssm_->screenSessionMap_.erase(53);
+    ssm_->smsScreenGroupMap_.erase(60);
+    ssm_->SetPcStatus(isPcNow);
+}
+
+/**
+ * @tc.name: SetResolutionEffectPreferPhysicalMirrorOverCast
+ * @tc.desc: An active physical mirror takes priority over the cast virtual fallback: the
+ *           effect is keyed on the physical external screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetResolutionEffectPreferPhysicalMirrorOverCast, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    bool isPcNow = ssm_->GetPcStatus();
+    ssm_->SetPcStatus(true);
+    sptr<ScreenSession> internalSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(internalSession, nullptr);
+    internalSession->SetIsCurrentInUse(true);
+    internalSession->SetScreenType(ScreenType::REAL);
+    internalSession->isInternal_ = true;
+    internalSession->SetRealWidth(3120);
+    internalSession->SetRealHeight(2080);
+
+    // Physical external mirroring: per-screen combination only, no group membership, matching
+    // the physical mirror paths that never touch group state.
+    sptr<ScreenSession> physicalSession = new ScreenSession(52, ScreenProperty(), 0);
+    ASSERT_NE(physicalSession, nullptr);
+    physicalSession->SetIsCurrentInUse(true);
+    physicalSession->SetScreenType(ScreenType::REAL);
+    physicalSession->isInternal_ = false;
+    physicalSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    // A cast virtual screen is also actively mirroring in its own group.
+    sptr<ScreenSession> castSession = new ScreenSession(53, ScreenProperty(), 0);
+    ASSERT_NE(castSession, nullptr);
+    castSession->SetScreenType(ScreenType::VIRTUAL);
+    castSession->SetVirtualScreenFlag(VirtualScreenFlag::CAST);
+    castSession->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
+    sptr<ScreenSessionGroup> castGroup =
+        new ScreenSessionGroup(60, SCREEN_ID_INVALID, "castGroup", ScreenCombination::SCREEN_MIRROR);
+    ASSERT_NE(castGroup, nullptr);
+    Point point = { 0, 0 };
+    castGroup->screenSessionMap_.insert(std::make_pair(53, std::make_pair(castSession, point)));
+    castSession->groupSmsId_ = 60;
+
+    ssm_->screenSessionMap_[51] = internalSession;
+    ssm_->screenSessionMap_[52] = physicalSession;
+    ssm_->screenSessionMap_[53] = castSession;
+    ssm_->smsScreenGroupMap_[60] = castGroup;
+
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    // The physical mirror owns the effect; the cast fallback is not picked while it is active.
+    EXPECT_TRUE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), 52u);
+    EXPECT_EQ(physicalSession->GetMirrorScreenRegion().second.posY_, 162);
+    EXPECT_EQ(physicalSession->GetMirrorScreenRegion().second.width_, 3120u);
+    EXPECT_EQ(physicalSession->GetMirrorScreenRegion().second.height_, 1755u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 1755u);
+
+    ssm_->MarkResolutionEffectIdle();
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+    ssm_->screenSessionMap_.erase(53);
+    ssm_->smsScreenGroupMap_.erase(60);
+    ssm_->SetPcStatus(isPcNow);
+}
+
+/**
+ * @tc.name: SetResolutionEffectWithEffectNotNeeded
+ * @tc.desc: A no-op apply (ratios already match) resets any previous crop and returns the
+ *           effect state to idle
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetResolutionEffectWithEffectNotNeeded, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    bool isPcNow = ssm_->GetPcStatus();
+    ssm_->SetPcStatus(true);
+    sptr<ScreenSession> internalSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(internalSession, nullptr);
+    internalSession->SetIsCurrentInUse(true);
+    internalSession->SetScreenType(ScreenType::REAL);
+    internalSession->isInternal_ = true;
+    internalSession->SetRealWidth(3120);
+    internalSession->SetRealHeight(2080);
+
+    sptr<ScreenSession> castSession = new ScreenSession(53, ScreenProperty(), 0);
+    ASSERT_NE(castSession, nullptr);
+    castSession->SetScreenType(ScreenType::VIRTUAL);
+    castSession->SetVirtualScreenFlag(VirtualScreenFlag::CAST);
+    castSession->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
+    sptr<ScreenSessionGroup> castGroup =
+        new ScreenSessionGroup(60, SCREEN_ID_INVALID, "castGroup", ScreenCombination::SCREEN_MIRROR);
+    ASSERT_NE(castGroup, nullptr);
+    Point point = { 0, 0 };
+    castGroup->screenSessionMap_.insert(std::make_pair(53, std::make_pair(castSession, point)));
+    castSession->groupSmsId_ = 60;
+
+    ssm_->screenSessionMap_[51] = internalSession;
+    ssm_->screenSessionMap_[53] = castSession;
+    ssm_->smsScreenGroupMap_[60] = castGroup;
+
+    // Crop first: the effect is active with a cropped area.
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    EXPECT_TRUE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), 53u);
+
+    // Then a no-op apply with the full resolution: accepted, crop reset, state back to idle.
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 2080, false));
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), SCREEN_ID_INVALID);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaWidth(), 3120u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.width_, 0u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.height_, 0u);
+
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(53);
+    ssm_->smsScreenGroupMap_.erase(60);
+    ssm_->SetPcStatus(isPcNow);
+}
+
+/**
+ * @tc.name: SetResolutionEffectForCastScreenWithoutGroup
+ * @tc.desc: Unmarked virtual screen (flag DEFAULT, as created by the PC-to-pad wireless
+ *           mirror channel) mirrored through the multi-screen mode-change path (fresh
+ *           per-screen combination, never grouped): identified by the active mirror state
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetResolutionEffectForCastScreenWithoutGroup, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    bool isPcNow = ssm_->GetPcStatus();
+    ssm_->SetPcStatus(true);
+    sptr<ScreenSession> internalSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(internalSession, nullptr);
+    internalSession->SetIsCurrentInUse(true);
+    internalSession->SetScreenType(ScreenType::REAL);
+    internalSession->isInternal_ = true;
+    internalSession->SetRealWidth(3120);
+    internalSession->SetRealHeight(2080);
+
+    // Wireless mirror channel that marks nothing on the virtual screen (flag DEFAULT,
+    // type UNKNOWN), mirrors via SetMultiScreenMode -> CreateMirrorSession (per-screen
+    // combination SCREEN_MIRROR, no group) and identifies itself only by the serial
+    // number the effect toggle is keyed on.
+    sptr<ScreenSession> castSession = new ScreenSession(53, ScreenProperty(), 0);
+    ASSERT_NE(castSession, nullptr);
+    castSession->SetScreenType(ScreenType::VIRTUAL);
+    castSession->SetVirtualScreenFlag(VirtualScreenFlag::DEFAULT);
+    castSession->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
+    castSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    castSession->SetSerialNumber("pad-serial");
+
+    ssm_->screenSessionMap_[51] = internalSession;
+    ssm_->screenSessionMap_[53] = castSession;
+
+    // No group: the fresh per-screen combination must be accepted as a mirror target.
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    EXPECT_TRUE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), 53u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 1755u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.posY_, 162);
+
+    // Extend through the same path (CreateExtendSession): combination goes EXTEND, still
+    // ungrouped -> no longer a mirror target, apply rejected before any state transition.
+    ssm_->MarkResolutionEffectIdle();
+    castSession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    EXPECT_FALSE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), SCREEN_ID_INVALID);
+
+    // Unmarked mirror target WITHOUT a serial (e.g. a recording mirror screen with a
+    // custom region) must stay invisible to the cast lookup: neither the mirror-switch
+    // region handling nor the effect may pick it.
+    ssm_->screenSessionMap_.erase(53);
+    castSession->SetSerialNumber("");
+    castSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    sptr<ScreenSession> foundSession = nullptr;
+    ssm_->GetCastVirtualMirrorSession(foundSession);
+    EXPECT_EQ(foundSession, nullptr);
+
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->SetPcStatus(isPcNow);
+}
+
+/**
+ * @tc.name: RecoveryResolutionEffectOnOwnerExit
+ * @tc.desc: Recover only when the external screen owning the effect exits; a cast screen
+ *           exiting while the effect belongs to a physical mirror must keep it
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RecoveryResolutionEffectOnOwnerExit, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    // Physical external mirroring the internal screen. The physical mirror paths
+    // (PhysicalScreenMirrorSwitch / multi-screen mode change) only keep the per-screen
+    // combination and never touch group state, so no group membership is set up here.
+    CastEffectScreens screens;
+    InitCastEffectScreens(ssm_, screens, true, ScreenCombination::SCREEN_MIRROR,
+        VirtualScreenFlag::CAST);
+    auto& internalSession = screens.internalSession;
+    auto& castSession = screens.castSession;
+    // HandleCastVirtualScreenMirrorRegion refuses to touch the cast region while a super fold
+    // device is vertical (the fold state manager owns the region then), so keep the internal
+    // screen landscape for the region-clearing assertions below, same as the
+    // HandleCastVirtualScreenMirrorRegion test does.
+    internalSession->SetRotation(Rotation::ROTATION_270);
+    internalSession->SetScreenAreaHeight(1755);
+    DMRect mockRegion = { 0, 162, 3120, 1755 };
+    castSession->SetMirrorScreenRegion(castSession->GetScreenId(), mockRegion);
+
+    // Effect keyed on the physical mirror; the cast screen exiting must keep it.
+    ssm_->MarkResolutionEffectApplied(52);
+    ssm_->RecoveryResolutionEffectOnOwnerExit({ 53 });
+    EXPECT_TRUE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 1755u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.width_, 3120u);
+
+    // The physical mirror owning the effect exits; now the effect must be recovered.
+    ssm_->RecoveryResolutionEffectOnOwnerExit({ 52 });
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), SCREEN_ID_INVALID);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaWidth(), 3120u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.width_, 0u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.height_, 0u);
+
+    // Effect keyed on the cast screen; that screen exiting recovers as well.
+    internalSession->SetScreenAreaHeight(1755);
+    ssm_->MarkResolutionEffectApplied(53);
+    ssm_->RecoveryResolutionEffectOnOwnerExit({ 53 });
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+
+    ssm_->MarkResolutionEffectIdle();
+    ClearCastEffectScreens(ssm_, screens);
+}
+
+/**
+ * @tc.name: RemoveScreenFromMirrorGroup
+ * @tc.desc: Mirror-to-extend through the mode-change path: the cast virtual screen is removed
+ *           from its mirror group during the teardown, so the re-evaluation at the end of the
+ *           mode change recovers the effect instead of re-applying it to the virtual screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RemoveScreenFromMirrorGroup, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    // Unmarked wireless mirror channel: group-managed by MakeMirror, so its mirror state lives
+    // in the group; the per-screen combination is never set to mirror on that path.
+    CastEffectScreens screens;
+    InitCastEffectScreens(ssm_, screens, false, ScreenCombination::SCREEN_ALONE,
+        VirtualScreenFlag::DEFAULT);
+    screens.castSession->SetSerialNumber("pad-serial");
+    AddCastGroup(ssm_, screens, ScreenCombination::SCREEN_MIRROR);
+    auto& internalSession = screens.internalSession;
+    auto& castSession = screens.castSession;
+    auto& castGroup = screens.castGroup;
+
+    // Guards: an unknown screen and a non-mirror group must leave the membership untouched.
+    ssm_->RemoveScreenFromMirrorGroup(999);
+    castGroup->combination_ = ScreenCombination::SCREEN_EXPAND;
+    ssm_->RemoveScreenFromMirrorGroup(53);
+    EXPECT_TRUE(castGroup->HasChild(53));
+    castGroup->combination_ = ScreenCombination::SCREEN_MIRROR;
+
+    // Guard: physical screens are deliberately out of scope, even as mirror-group members -
+    // no current flow mirrors a physical screen group-managed and mode-changes it to extend,
+    // so their behavior must stay byte-for-byte as before.
+    sptr<ScreenSession> groupPhysicalSession = new ScreenSession(54, ScreenProperty(), 0);
+    groupPhysicalSession->SetScreenType(ScreenType::REAL);
+    castGroup->screenSessionMap_.insert(std::make_pair(54,
+        std::make_pair(groupPhysicalSession, screens.point)));
+    groupPhysicalSession->groupSmsId_ = 60;
+    ssm_->screenSessionMap_[54] = groupPhysicalSession;
+    ssm_->RemoveScreenFromMirrorGroup(54);
+    EXPECT_TRUE(castGroup->HasChild(54));
+    castGroup->screenSessionMap_.erase(54);
+    ssm_->screenSessionMap_.erase(54);
+
+    // Effect applied with the cast virtual as target, picked through the group state.
+    EXPECT_TRUE(ssm_->IsActiveMirrorTarget(castSession));
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    EXPECT_TRUE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), 53u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 1755u);
+
+    // The mode-change teardown sequence: group exit first, then the per-screen combination
+    // is switched to extend (CreateExtendSession in the real flow).
+    ssm_->RemoveScreenFromMirrorGroup(53);
+    EXPECT_FALSE(castGroup->HasChild(53));
+    EXPECT_EQ(castSession->groupSmsId_, SCREEN_ID_INVALID);
+    castSession->SetScreenCombination(ScreenCombination::SCREEN_EXTEND);
+    EXPECT_FALSE(ssm_->IsActiveMirrorTarget(castSession));
+
+    // The re-evaluation at the end of the mode change must recover, not re-apply.
+    ssm_->HandleResolutionEffectChange();
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), SCREEN_ID_INVALID);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaWidth(), 3120u);
+    EXPECT_EQ(internalSession->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+    EXPECT_EQ(castSession->GetMirrorScreenRegion().second.width_, 0u);
+    // The empty mirror group is cleaned up on last child removal.
+    EXPECT_TRUE(ssm_->smsScreenGroupMap_.find(60) == ssm_->smsScreenGroupMap_.end());
+    ClearCastEffectScreens(ssm_, screens);
+}
+
+/**
+ * @tc.name: CalculateTargetResolutionForCastScreen
+ * @tc.desc: Cast virtual screen dims are orientation-aligned with the internal screen
+ *           before the ratio calc, whichever order the cast engine reports them in
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CalculateTargetResolutionForCastScreen, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    sptr<ScreenSession> internalSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(internalSession, nullptr);
+    internalSession->SetRealWidth(3120);
+    internalSession->SetRealHeight(2080);
+    internalSession->SetRotation(Rotation::ROTATION_90);
+
+    // Cast virtual screens never rotate; the engine may report the 16:9 target dims
+    // in swapped (portrait) order.
+    sptr<ScreenSession> castSession = new ScreenSession(53, ScreenProperty(), 0);
+    ASSERT_NE(castSession, nullptr);
+    castSession->SetScreenType(ScreenType::VIRTUAL);
+    castSession->SetRealWidth(1080);
+    castSession->SetRealHeight(1920);
+
+    uint32_t targetWidth = 0;
+    uint32_t targetHeight = 0;
+    EXPECT_TRUE(ssm_->CalculateTargetResolution(internalSession, castSession, true, targetWidth, targetHeight));
+    EXPECT_EQ(targetWidth, 3120u);
+    EXPECT_EQ(targetHeight, 1755u);
+
+    // Landscape order must give the same result without a swap.
+    castSession->SetRealWidth(1920);
+    castSession->SetRealHeight(1080);
+    targetWidth = 0;
+    targetHeight = 0;
+    EXPECT_TRUE(ssm_->CalculateTargetResolution(internalSession, castSession, true, targetWidth, targetHeight));
+    EXPECT_EQ(targetWidth, 3120u);
+    EXPECT_EQ(targetHeight, 1755u);
+
+    // Non-fold PC: internal screen keeps ROTATION_0 with landscape dims.
+    internalSession->SetRotation(Rotation::ROTATION_0);
+    internalSession->SetRealWidth(2880);
+    internalSession->SetRealHeight(1800);
+    targetWidth = 0;
+    targetHeight = 0;
+    EXPECT_TRUE(ssm_->CalculateTargetResolution(internalSession, castSession, true, targetWidth, targetHeight));
+    EXPECT_EQ(targetWidth, 2880u);
+    EXPECT_EQ(targetHeight, 1620u);
 }
 
 /**
@@ -2981,9 +3537,11 @@ HWTEST_F(ScreenSessionManagerTest, RecoveryResolutionEffect, TestSize.Level1)
     ASSERT_EQ(internalSession, screenSession1);
     ASSERT_EQ(externalSession, screenSession2);
 
+    ssm_->MarkResolutionEffectApplied(52);
     auto ret = ssm_->RecoveryResolutionEffect();
     EXPECT_TRUE(ret);
-    ssm_->curResolutionEffectEnable_ = false;
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    ssm_->MarkResolutionEffectIdle();
     ssm_->screenSessionMap_.erase(51);
     ssm_->screenSessionMap_.erase(52);
 }
@@ -3045,7 +3603,7 @@ HWTEST_F(ScreenSessionManagerTest, SetExternalScreenResolutionEffect001, TestSiz
     screenSession->SetRSScreenId(51);
 
     DMRect targetRect1 = {0, 10, 3120, 2080};
-    ssm_->curResolutionEffectEnable_ = false;
+    ssm_->MarkResolutionEffectIdle();
     ssm_->SetExternalScreenResolutionEffect(screenSession, targetRect1);
     auto screenProperty = screenSession->GetScreenProperty();
     EXPECT_EQ(screenProperty.GetMirrorWidth(), 0);
@@ -3057,7 +3615,7 @@ HWTEST_F(ScreenSessionManagerTest, SetExternalScreenResolutionEffect001, TestSiz
     ASSERT_NE(nullptr, phyScreenSession);
     phyScreenSession->SetRSScreenId(51);
     ssm_->physicalScreenSessionMap_[51] = phyScreenSession;
-    ssm_->curResolutionEffectEnable_ = true;
+    ssm_->MarkResolutionEffectApplied(51);
     DMRect targetRect2 = {0, 10, 3120, 1755};
     ssm_->SetExternalScreenResolutionEffect(screenSession, targetRect2);
     auto physcreenProperty = screenSession->GetScreenProperty();
@@ -3069,7 +3627,7 @@ HWTEST_F(ScreenSessionManagerTest, SetExternalScreenResolutionEffect001, TestSiz
     }
  
     ssm_->physicalScreenSessionMap_.erase(51);
-    ssm_->curResolutionEffectEnable_ = false;
+    ssm_->MarkResolutionEffectIdle();
 }
  
 /**
@@ -3134,11 +3692,11 @@ HWTEST_F(ScreenSessionManagerTest, HandleCastVirtualScreenMirrorRegion, TestSize
     DMRect expectedRect1 = {0, 0, 0, 0};
     EXPECT_EQ(virtualSession->GetMirrorScreenRegion().second, expectedRect1);
     
-    ssm_->curResolutionEffectEnable_ = true;
+    ssm_->MarkResolutionEffectApplied(51);
     ret = ssm_->HandleCastVirtualScreenMirrorRegion();
     DMRect expectedRect2 = {0, 0, 100, 100};
     EXPECT_EQ(virtualSession->GetMirrorScreenRegion().second, expectedRect2);
-    ssm_->curResolutionEffectEnable_ = false;
+    ssm_->MarkResolutionEffectIdle();
     ssm_->screenSessionMap_.erase(51);
     ssm_->screenSessionMap_.erase(52);
 }
@@ -4099,6 +4657,134 @@ HWTEST_F(ScreenSessionManagerTest, HandleResolutionEffectAfterSwitchUser02, Test
 
     ssm_->screenSessionMap_.erase(51);
     LOG_SetCallback(nullptr);
+}
+
+namespace {
+// Dual-internal topology (super-fold dual display): the full screen (51, rs id 0 — on the
+// real device the default display always gets the smallest screen id) and the sub screen
+// (54, rs id 5) are both REAL internal in-use, plus a CAST-flagged mirror virtual screen
+// (52). This is the topology where the old last-wins internal slot resolved the sub screen.
+// All three are registered into the session map; erase the three ids when done.
+constexpr ScreenId DUAL_INTERNAL_FULL_ID = 51;
+constexpr ScreenId DUAL_INTERNAL_FULL_RS_ID = 0;
+constexpr ScreenId DUAL_INTERNAL_SUB_ID = 54;
+constexpr ScreenId DUAL_INTERNAL_SUB_RS_ID = 5;
+constexpr ScreenId DUAL_INTERNAL_CAST_ID = 52;
+constexpr uint32_t DUAL_INTERNAL_SUB_DIM = 980;
+void InitDualInternalEffectTopology(sptr<ScreenSession>& fullScreen, sptr<ScreenSession>& subScreen,
+    sptr<ScreenSession>& castScreen)
+{
+    fullScreen = new ScreenSession(DUAL_INTERNAL_FULL_ID, DUAL_INTERNAL_FULL_RS_ID, "full",
+        ScreenProperty(), nullptr);
+    fullScreen->SetIsCurrentInUse(true);
+    fullScreen->SetScreenType(ScreenType::REAL);
+    fullScreen->isInternal_ = true;
+    fullScreen->SetRealWidth(CAST_EFFECT_REAL_WIDTH);
+    fullScreen->SetRealHeight(CAST_EFFECT_REAL_HEIGHT);
+    fullScreen->SetScreenAreaWidth(CAST_EFFECT_REAL_WIDTH);
+    fullScreen->SetScreenAreaHeight(CAST_EFFECT_REAL_HEIGHT);
+    fullScreen->UpdateMirrorWidth(CAST_EFFECT_REAL_WIDTH);
+    fullScreen->UpdateMirrorHeight(CAST_EFFECT_REAL_HEIGHT);
+
+    subScreen = new ScreenSession(DUAL_INTERNAL_SUB_ID, DUAL_INTERNAL_SUB_RS_ID, "sub",
+        ScreenProperty(), nullptr);
+    subScreen->SetIsCurrentInUse(true);
+    subScreen->SetScreenType(ScreenType::REAL);
+    subScreen->isInternal_ = true;
+    subScreen->SetRealWidth(DUAL_INTERNAL_SUB_DIM);
+    subScreen->SetRealHeight(DUAL_INTERNAL_SUB_DIM);
+    subScreen->SetScreenAreaWidth(DUAL_INTERNAL_SUB_DIM);
+    subScreen->SetScreenAreaHeight(DUAL_INTERNAL_SUB_DIM);
+    subScreen->UpdateMirrorWidth(DUAL_INTERNAL_SUB_DIM);
+    subScreen->UpdateMirrorHeight(DUAL_INTERNAL_SUB_DIM);
+
+    castScreen = new ScreenSession(DUAL_INTERNAL_CAST_ID, DUAL_INTERNAL_CAST_ID, "cast",
+        ScreenProperty(), nullptr);
+    castScreen->SetScreenType(ScreenType::VIRTUAL);
+    castScreen->SetVirtualScreenFlag(VirtualScreenFlag::CAST);
+    castScreen->SetMirrorScreenType(MirrorScreenType::VIRTUAL_MIRROR);
+    castScreen->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[DUAL_INTERNAL_FULL_ID] = fullScreen;
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[DUAL_INTERNAL_CAST_ID] = castScreen;
+    ScreenSessionManagerTest::ssm_->screenSessionMap_[DUAL_INTERNAL_SUB_ID] = subScreen;
+}
+}
+
+/*
+ * @tc.name: InternalSlotOfScanMatchesFirstInternalScan
+ * @tc.desc: GetInternalAndExternalSession's internal slot and GetInternalScreenSession share
+ *           the same first-wins tie-break, so apply, recovery and the switch-user paths can
+ *           never diverge on which screen is "the internal screen" (regression lock for the
+ *           first/last-wins incident behind 0c0a7bc277)
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, InternalSlotOfScanMatchesFirstInternalScan, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<ScreenSession> fullScreen = nullptr;
+    sptr<ScreenSession> subScreen = nullptr;
+    sptr<ScreenSession> castScreen = nullptr;
+    InitDualInternalEffectTopology(fullScreen, subScreen, castScreen);
+    ASSERT_NE(nullptr, fullScreen);
+
+    sptr<ScreenSession> internalSlot = nullptr;
+    sptr<ScreenSession> externalSlot = nullptr;
+    ssm_->GetInternalAndExternalSession(internalSlot, externalSlot);
+    ASSERT_NE(nullptr, internalSlot);
+    ASSERT_NE(nullptr, ssm_->GetInternalScreenSession());
+    EXPECT_EQ(internalSlot->GetScreenId(), ssm_->GetInternalScreenSession()->GetScreenId());
+    EXPECT_EQ(internalSlot->GetScreenId(), static_cast<ScreenId>(51));
+
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+    ssm_->screenSessionMap_.erase(54);
+}
+
+/*
+ * @tc.name: SetResolutionEffectPinsFullScreenOnDualInternal
+ * @tc.desc: On dual-internal devices the effect must crop and restore the full/default screen
+ *           (rs id 0), not the sub screen the last-wins topology scan resolves
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetResolutionEffectPinsFullScreenOnDualInternal, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+    bool isPcNow = ssm_->GetPcStatus();
+    ssm_->SetPcStatus(true);
+
+    sptr<ScreenSession> fullScreen = nullptr;
+    sptr<ScreenSession> subScreen = nullptr;
+    sptr<ScreenSession> castScreen = nullptr;
+    InitDualInternalEffectTopology(fullScreen, subScreen, castScreen);
+    ASSERT_NE(nullptr, fullScreen);
+
+    EXPECT_TRUE(ssm_->SetResolutionEffect(51, 3120, 1755, true));
+    // The full screen carries the crop (and its cursor region follows it)...
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetScreenAreaHeight(), 1755u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorWidth(), 3120u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorHeight(), 1755u);
+    // ...while the sub screen the raw scan would have picked stays untouched.
+    EXPECT_EQ(subScreen->GetScreenProperty().GetScreenAreaHeight(), 980u);
+    EXPECT_EQ(subScreen->GetScreenProperty().GetMirrorWidth(), 980u);
+    EXPECT_EQ(ssm_->GetResolutionEffectOwner(), 52u);
+
+    EXPECT_TRUE(ssm_->RecoveryResolutionEffect());
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetScreenAreaHeight(), 2080u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorWidth(), 3120u);
+    EXPECT_EQ(fullScreen->GetScreenProperty().GetMirrorHeight(), 2080u);
+    EXPECT_EQ(subScreen->GetScreenProperty().GetScreenAreaHeight(), 980u);
+    EXPECT_EQ(subScreen->GetScreenProperty().GetMirrorWidth(), 980u);
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+
+    ssm_->MarkResolutionEffectIdle();
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+    ssm_->screenSessionMap_.erase(54);
+    ssm_->SetPcStatus(isPcNow);
 }
 }
 }

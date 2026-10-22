@@ -40,13 +40,13 @@ AniPipController::~AniPipController()
     TLOGI(WmsLogTag::WMS_PIP, "~AniPipController");
 }
 
-void AniPipController::DelListener(ani_env* env)
+void AniPipController::DelListener(ani_env* env, AniPipController* aniPipController)
 {
     std::lock_guard<std::mutex> lock(mtxListener_);
     if (!typeCallbackListenerMap_.empty()) {
         for (auto& [listenerType, innerMap] : typeCallbackListenerMap_) {
             for (auto& [ref, listener] : innerMap) {
-                env->GlobalReference_Delete(ref);
+                aniPipController->ClearListener(listenerType, listener);
             }
         }
         typeCallbackListenerMap_.clear();
@@ -553,7 +553,7 @@ WMError AniPipController::UnregisterListener(ani_env* env, AniListenerType type,
     env->Reference_IsUndefined(cb, &isUndef);
     env->Reference_IsNull(cb, &isNull);
     if (cb == nullptr || isUndef || isNull) {
-        TLOGI(WmsLogTag::WMS_PIP, "Unregister all callback of this type");
+        TLOGI(WmsLogTag::WMS_PIP, "[ANI]SubEvent op=off_all kit=ArkUIKit event=%{public}d", static_cast<int32_t>(type));
         for (auto &kv : it->second) {
             WMError res = ClearListener(type, kv.second);
             if (res != WMError::WM_OK) {

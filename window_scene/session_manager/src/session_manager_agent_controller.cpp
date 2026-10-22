@@ -25,9 +25,9 @@ WM_IMPLEMENT_SINGLE_INSTANCE(SessionManagerAgentController)
 WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
     WindowManagerAgentType type, int32_t pid, int32_t instanceUserId)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
-        static_cast<uint32_t>(type), pid, instanceUserId);
     if (smAgentContainer_.RegisterAgent(windowManagerAgent, type)) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
+            static_cast<uint32_t>(type), pid, instanceUserId);
         std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
         auto& userIdMap = windowManagerPidUserIdAgentMap_[pid];
         auto& typeAgentMap = userIdMap[instanceUserId];
@@ -48,6 +48,8 @@ WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWi
         }
         return WMError::WM_OK;
     } else {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
+            static_cast<uint32_t>(type), pid, instanceUserId);
         return WMError::WM_ERROR_NULLPTR;
     }
 }
@@ -55,11 +57,13 @@ WMError SessionManagerAgentController::RegisterWindowManagerAgent(const sptr<IWi
 WMError SessionManagerAgentController::UnregisterWindowManagerAgent(const sptr<IWindowManagerAgent>& windowManagerAgent,
     WindowManagerAgentType type, int32_t pid, int32_t instanceUserId)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
-        static_cast<uint32_t>(type), pid, instanceUserId);
     if (!smAgentContainer_.UnregisterAgent(windowManagerAgent, type)) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "failed: type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
+            static_cast<uint32_t>(type), pid, instanceUserId);
         return WMError::WM_ERROR_NULLPTR;
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "type=%{public}u, pid=%{public}d, instanceUserId=%{public}d",
+        static_cast<uint32_t>(type), pid, instanceUserId);
     std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
     auto pidIter = windowManagerPidUserIdAgentMap_.find(pid);
     if (pidIter == windowManagerPidUserIdAgentMap_.end()) {
@@ -312,12 +316,20 @@ void SessionManagerAgentController::NotifyWindowSystemBarPropertyChange(
 void SessionManagerAgentController::NotifyWindowPropertyChange(
     uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
-    for (const auto& agent : smAgentContainer_.GetAgentsByType(
-        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY)) {
+    std::ostringstream pidStream;
+    auto agents = smAgentContainer_.GetAgentsByType(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY);
+    for (const auto& agent : agents) {
         if (agent != nullptr) {
             agent->NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
+            std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
+            auto it = windowManagerAgentPairMap_.find(agent->AsObject());
+            if (it != windowManagerAgentPairMap_.end()) {
+                pidStream << std::get<0>(it->second) << ",";
+            }
         }
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "#agents=%{public}u, pids=[%{public}s]",
+        static_cast<uint32_t>(agents.size()), pidStream.str().c_str());
 }
 
 void SessionManagerAgentController::NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo)

@@ -3624,6 +3624,29 @@ HWTEST_F(SceneSessionTest5, UpdateCrossAxis, TestSize.Level1)
 }
 
 /**
+ * @tc.name: UpdateCrossAxis02
+ * @tc.desc: UpdateCrossAxis when session display differs from fold screen display
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, UpdateCrossAxis02, TestSize.Level1)
+{
+    const SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = sessionStageMocker;
+    sceneSession->isCrossAxisOfLayout_ = true;
+    // fold screen valid, but session on a different display
+    PcFoldScreenManager::GetInstance().displayId_ = 0;
+    sceneSession->GetSessionProperty()->displayId_ = 1;
+    sceneSession->crossAxisState_ = 100;
+    EXPECT_CALL(*sessionStageMocker, NotifyWindowCrossAxisChange(CrossAxisState::STATE_NO_CROSS)).Times(1);
+    sceneSession->UpdateCrossAxis();
+    // state unchanged, no notification
+    EXPECT_CALL(*sessionStageMocker, NotifyWindowCrossAxisChange(_)).Times(0);
+    sceneSession->UpdateCrossAxis();
+}
+
+/**
  * @tc.name: GetCrossAxisState
  * @tc.desc: GetCrossAxisState
  * @tc.type: FUNC
@@ -4337,6 +4360,68 @@ HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDrag, TestSize.Le
     if (result == WSError::WS_OK) {
         EXPECT_TRUE(raiseToTopCalled);
     }
+}
+
+/**
+ * @tc.name: TransferPointerEventInner_SubWindowDragMove
+ * @tc.desc: Test TransferPointerEventInner with sub window drag move event (isPointDown == false)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, TransferPointerEventInner_SubWindowDragMove, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "TransferPointerEventInner_SubWindowDragMove";
+    info.bundleName_ = "TransferPointerEventInner_SubWindowDragMove";
+    info.windowType_ = static_cast<uint32_t>(WindowType::APP_SUB_WINDOW_BASE);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+
+    session->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->property_->SetDragEnabled(true);
+    session->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    session->SetSessionState(SessionState::STATE_ACTIVE);
+    session->dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
+    WindowLimits limits = {100, 1000, 50, 800, FLT_MAX, 0.0f};
+    session->property_->SetWindowLimits(limits);
+    WSRect rect = {0, 0, 800, 600};
+    session->SetSessionRect(rect);
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
+    session->SetSystemConfig(systemConfig);
+
+    session->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(session));
+    session->moveDragController_->limits_ = limits;
+    session->moveDragController_->moveDragProperty_.originalRect_ = rect;
+    session->moveDragController_->decoration_ = {0, 0, 0, 0};
+    int raiseToTopCount = 0;
+    session->SetRaiseToAppTopForPointDownFunc([&raiseToTopCount]() { raiseToTopCount++; });
+
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_DOWN);
+    pointerEvent->SetPointerId(0);
+    pointerEvent->SetSourceType(MMI::PointerEvent::SOURCE_TYPE_MOUSE);
+    pointerEvent->SetButtonId(MMI::PointerEvent::MOUSE_BUTTON_LEFT);
+    pointerEvent->SetTargetDisplayId(0);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(0);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(100);
+    pointerItem.SetWindowX(-5);
+    pointerItem.SetWindowY(-5);
+    pointerItem.SetOriginPointerId(0);
+    pointerEvent->AddPointerItem(pointerItem);
+
+    // Step 1: POINTER_ACTION_DOWN starts the drag, sub window should raise (isPointDown == true)
+    WSError downResult = session->TransferPointerEventInner(pointerEvent, false);
+    EXPECT_EQ(WSError::WS_OK, downResult);
+    EXPECT_EQ(1, raiseToTopCount);
+
+    // Step 2: POINTER_ACTION_MOVE during ongoing drag (isPointDown == false),
+    // sub window should not raise again
+    pointerEvent->SetPointerAction(MMI::PointerEvent::POINTER_ACTION_MOVE);
+    WSError moveResult = session->TransferPointerEventInner(pointerEvent, false);
+    EXPECT_EQ(WSError::WS_OK, moveResult);
+    EXPECT_EQ(1, raiseToTopCount);
 }
 
 /**

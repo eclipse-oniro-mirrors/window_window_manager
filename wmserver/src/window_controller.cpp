@@ -138,6 +138,10 @@ void WindowController::CancelStartingWindow(sptr<IRemoteObject> abilityToken)
 WMError WindowController::NotifyWindowTransition(sptr<WindowTransitionInfo>& srcInfo,
     sptr<WindowTransitionInfo>& dstInfo)
 {
+    if (srcInfo == nullptr || dstInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "transition info is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
     TLOGI(WmsLogTag::WMS_STARTUP_PAGE, "begin!");
     sptr<WindowNode> dstNode = nullptr;
     sptr<WindowNode> srcNode = nullptr;
@@ -1568,6 +1572,12 @@ WMError WindowController::UpdateProperty(sptr<WindowProperty>& property, Propert
             break;
         }
         case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA: {
+            std::vector<Rect> rects;
+            property->GetTouchHotAreas(rects);
+            ret = UpdateTouchHotAreas(node, rects);
+            break;
+        }
+        case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION: {
             std::vector<Rect> rects;
             property->GetTouchHotAreas(rects);
             ret = UpdateTouchHotAreas(node, rects);

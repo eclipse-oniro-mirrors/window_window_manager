@@ -61,6 +61,7 @@ ohos_shared_library("scenesessionmanager_napi") {
     "ability_runtime:napi_common",
     "ability_runtime:process_options",
     "ability_runtime:runtime",
+    "ability_runtime:start_window_option",
     "ace_engine:ace_uicontent",
     "bundle_framework:appexecfwk_base",
     "c_utils:utils",

@@ -2871,6 +2871,49 @@ HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild05, TestSi
 }
 
 /**
+ * @tc.name: SyncAllAttachedLimitsToAttachingChild06
+ * @tc.desc: Test density snapshots (vpRatio_) carried by the limits are synced unchanged to the
+ *           attaching child, including the parent's own snapshot and other sources' snapshots.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLayoutTest, SyncAllAttachedLimitsToAttachingChild06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SyncAllAttachedLimitsToAttachingChild06";
+    info.bundleName_ = "SyncAllAttachedLimitsToAttachingChild06";
+
+    // Parent with an independent density (e.g. custom density 2.5) set before the child attaches
+    sptr<MainSession> parentSession = sptr<MainSession>::MakeSptr(info, nullptr);
+    WindowLimits parentLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 2.5f, PixelUnit::VP };
+    parentSession->GetSessionProperty()->SetLimitsForAttachedWindows(parentLimits);
+
+    // Another attached sub-window with its own independent density (3.0)
+    WindowLimits subLimits = { 1500, 800, 150, 250, 0.0f, 0.0f, 3.0f, PixelUnit::VP };
+    parentSession->GetSessionProperty()->SetAttachedWindowLimits(500, subLimits);
+    parentSession->GetSessionProperty()->SetAttachedLimitOptions(500, AttachLimitOptions{ true, true });
+
+    // Child with mock sessionStage
+    sptr<SubSession> childSession = sptr<SubSession>::MakeSptr(info, nullptr);
+    sptr<SessionStageMocker> childMockStage = sptr<SessionStageMocker>::MakeSptr();
+    childSession->sessionStage_ = childMockStage;
+
+    std::vector<std::pair<int32_t, WindowLimits>> capturedLimits;
+    EXPECT_CALL(*childMockStage, SyncAllAttachedLimitsToChild(
+        testing::SizeIs(2), testing::SizeIs(2)))
+        .Times(1).WillOnce(testing::DoAll(testing::SaveArg<0>(&capturedLimits),
+            testing::Return(WSError::WS_OK)));
+
+    childSession->SyncAllAttachedLimitsToAttachingChild(parentSession);
+
+    // Parent's own limits first with its density snapshot, then the other source's snapshot
+    ASSERT_EQ(2u, capturedLimits.size());
+    EXPECT_EQ(parentSession->GetPersistentId(), capturedLimits[0].first);
+    EXPECT_FLOAT_EQ(2.5f, capturedLimits[0].second.vpRatio_);
+    EXPECT_EQ(500, capturedLimits[1].first);
+    EXPECT_FLOAT_EQ(3.0f, capturedLimits[1].second.vpRatio_);
+}
+
+/**
  * @tc.name: ResetAttachBindingState01
  * @tc.desc: Reset attach state and verify all fields are cleared
  * @tc.type: FUNC

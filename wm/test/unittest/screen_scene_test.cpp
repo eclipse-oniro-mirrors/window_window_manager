@@ -18,6 +18,7 @@
 #include <viewport_config.h>
 
 #include "app_mgr_client.h"
+#include "configuration.h"
 #include "singleton.h"
 #include "singleton_container.h"
 

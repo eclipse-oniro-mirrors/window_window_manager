@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-const pip = requireNapi('pip');
+const pip = requireNapi('PiPWindow');
 
 const TAG = 'WebPiPContent';
 class WebPiPContent extends ViewPU {

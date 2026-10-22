@@ -24,6 +24,8 @@ namespace Rosen {
 class MockDisplayManagerAdapterLite : public DisplayManagerAdapterLite {
 public:
     MOCK_METHOD0(Clear, void());
+    MOCK_METHOD0(InitDMSProxy, bool());
+    MOCK_METHOD0(IsScreenLessDevice, bool());
     MOCK_METHOD2(RegisterDisplayManagerAgent, DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent,
         DisplayManagerAgentType type));
     MOCK_METHOD2(UnregisterDisplayManagerAgent, DMError(const sptr<IDisplayManagerAgent>& displayManagerAgent,
@@ -38,6 +40,12 @@ public:
     MOCK_METHOD1(SetDisplayState, bool(DisplayState state));
     MOCK_METHOD1(GetDisplayState, DisplayState(DisplayId displayId));
     MOCK_METHOD2(SetScreenSwitchState, DMError(ScreenClosedState screenClosedState, bool isScreenOn));
+
+    MOCK_METHOD2(WakeUpBegin, bool(DisplayId displayId, PowerStateChangeReason reason));
+    MOCK_METHOD1(WakeUpEnd, bool(DisplayId displayId));
+    MOCK_METHOD2(SuspendBegin, bool(DisplayId displayId, PowerStateChangeReason reason));
+    MOCK_METHOD1(SuspendEnd, bool(DisplayId displayId));
+    MOCK_METHOD2(SetDisplayState, bool(DisplayId displayId, DisplayState state));
 };
 
 class MockScreenManagerAdapterLite : public ScreenManagerAdapterLite {
@@ -50,6 +58,8 @@ public:
     MOCK_METHOD3(SetSpecifiedScreenPower, bool(ScreenId screenId, ScreenPowerState state,
         PowerStateChangeReason reason));
     MOCK_METHOD2(SetScreenPowerForAll, bool(ScreenPowerState state, PowerStateChangeReason reason));
+    MOCK_METHOD3(SetScreenPowerForSpecifiedId, bool(DisplayId displayId, ScreenPowerState state,
+        PowerStateChangeReason reason));
     MOCK_METHOD1(GetScreenPower, ScreenPowerState(ScreenId dmsScreenId));
 };
 }

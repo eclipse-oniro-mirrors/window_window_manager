@@ -25,6 +25,7 @@
 #include "window.h"
 #include "xcomponent_controller.h"
 #include "float_window_error_msg.h"
+#include "inner/js_pip_manager.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -452,6 +453,8 @@ napi_value JsPipWindowManagerInit(napi_env env, napi_value exportObj)
     BindNativeFunction(env, exportObj, "create", moduleName, JsPipWindowManager::CreatePipController);
     BindNativeFunction(env, exportObj, "isPiPEnabled", moduleName, JsPipWindowManager::IsPipEnabled);
     InitEnums(env, exportObj);
+
+    JsPipManagerInit(env, exportObj);
     return NapiGetUndefined(env);
 }
 }

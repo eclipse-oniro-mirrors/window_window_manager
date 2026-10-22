@@ -27,6 +27,22 @@
 
 namespace OHOS {
 namespace Rosen {
+/**
+ * @brief Density basis for intersecting attached window limits.
+ *
+ * effectiveVpr is the receiver's effective density (independent-density aware, result of
+ * GetVirtualPixelRatio) used to derive its VP view; displayVpr is the raw density of the
+ * current display, used as the conversion basis for snapshot-invalid (0.0f) attached limits:
+ * a provider without an independent density follows the display, and all collaborating
+ * windows sit on the same display, so the receiver's display density equals the density the
+ * provider used for its own base. It must NOT be replaced with the receiver's effective
+ * density, which may come from an independent density.
+ */
+struct AttachDensityBasis {
+    float effectiveVpr = 0.0f;
+    float displayVpr = 0.0f;
+};
+
 class WindowHelper {
 public:
     static inline bool IsMainWindow(WindowType type)
@@ -271,6 +287,12 @@ public:
     static inline bool IsLandscapeRect(const Rect& r)
     {
         return r.width_ > r.height_;
+    }
+
+    static inline bool IsDpiFollowHost(DpiFollowStrategy dpiFollowStrategy)
+    {
+        return (dpiFollowStrategy == DpiFollowStrategy::FOLLOW_HOST_DPI_UEA ||
+            dpiFollowStrategy == DpiFollowStrategy::FOLLOW_HOST_DPI_ALL);
     }
 
     static inline bool IsShowWhenLocked(uint32_t flags)
@@ -532,18 +554,23 @@ public:
             return false;
         }
 
-        int32_t i = 0;
-        if (allowNeg && str.at(i) == '-') {
+        size_t i = 0;
+        if (allowNeg && str[0] == '-') {
             i++;
         }
-
-        for (; i < static_cast<int32_t>(str.size()); i++) {
-            if ((str.at(i) < '0' || str.at(i) > '9') &&
-                (str.at(i) != '.' || std::count(str.begin(), str.end(), '.') > 1)) {
+        bool hasDigit = false;
+        bool hasDot   = false;
+        for (; i < str.size(); i++) {
+            char c = str[i];
+            if (c >= '0' && c <= '9') {
+                hasDigit = true;
+            } else if (c == '.' && !hasDot) {
+                hasDot = true;
+            } else {
                 return false;
             }
         }
-        return true;
+        return hasDigit;
     }
 
     static std::vector<std::string> Split(std::string str, std::string pattern)

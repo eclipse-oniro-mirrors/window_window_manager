@@ -20,6 +20,7 @@
 #include <map>
 #include "refbase.h"
 #include "dm_common.h"
+#include "ws_common.h"
 #include "screen_rotation_property.h"
 #include "session_sensor_plugin.h"
 #include "window_manager_hilog.h"
@@ -43,11 +44,17 @@ enum MotionAction : int32_t {
     MOTION_LANDSCAPE_INVERTED = 3,
 };
 
+enum SmartRotationReason: int16_t {
+    FACE = 0,
+    HAND = 1,
+    MOTION = 2,
+};
+
 class IMotionEventListener {
 public:
     virtual ~IMotionEventListener() = default;
     virtual void OnMotionRotationChanged(float sensorRotation) = 0;
-    virtual void OnMotionSmartRotationChanged(float sensorRotation) = 0;
+    virtual void OnMotionSmartRotationChanged(float sensorRotation, int16_t reason) = 0;
 };
 
 class MotionManager {
@@ -67,7 +74,9 @@ public:
     bool IsInitialized() const;
     void Reset();
     
-    void TestHandleMotionEvent(MotionType motionType, float rotation);
+    void TestHandleMotionEvent(MotionType motionType, float rotation, int16_t reason = -1);
+    WSError SetMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo);
+    WSError SetSmartMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo);
     
 private:
     MotionManager();
@@ -78,16 +87,16 @@ private:
     void UnsubscribeAllMotionSensors();
     bool SubscribeMotionSensorInternal(MotionType motionType);
     bool UnsubscribeMotionSensorInternal(MotionType motionType);
-    void HandleMotionEvent(MotionType motionType, float rotation);
+    void HandleMotionEvent(MotionType motionType, float rotation, int16_t reason = -1);
     void HandleDeviceSensorRotation(float rotation);
-    void HandleSmartSensorRotation(float rotation);
+    void HandleSmartSensorRotation(float rotation, int16_t reason = -1);
+    bool IsValidDigitString(const std::string& str);
     
     static DeviceRotation ConvertMotionActionToDeviceRotation(int32_t motionAction);
     static float ConvertDeviceMotionToFloat(DeviceRotation deviceRotation);
     static void RotationMotionEventCallback(const MotionSensorEvent& motionData);
     static void SmartRotationMotionEventCallback(const MotionSensorEvent& motionData);
     
-    std::mutex mutex_;
     IMotionEventListener* motionEventListener_ = nullptr;
     
     std::map<MotionType, bool> subscribedMotionTypes_;

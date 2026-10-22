@@ -24,6 +24,7 @@
 #include "window.h"
 #include "window_input_channel.h"
 #include "window_input_redistribute_client.h"
+#include "window_session_impl.h"
 
 namespace OHOS {
 const uint32_t GTX_MAX_TOUCH_POINTS_NUMBER = 10;

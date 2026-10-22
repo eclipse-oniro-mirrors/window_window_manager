@@ -30,7 +30,6 @@ ohos_shared_library("pip_napi") {
   }
   sources = [
     "js_pip_manager.cpp",
-    "js_pip_module.cpp",
   ]
 
   configs = [
@@ -57,7 +56,8 @@ ohos_shared_library("pip_napi") {
     "image_framework:image_native",
     "node:node_header_notice",
   ]
-  relative_install_dir = "module"
+
+  innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"
   subsystem_name = "window"
 

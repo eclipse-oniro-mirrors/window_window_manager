@@ -107,7 +107,7 @@ void WindowManagerAgent::NotifyWindowPidVisibilityChanged(const sptr<WindowPidVi
 void WindowManagerAgent::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags,
     const WindowInfoList& windowInfoList)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "userId_=%{public}d", userId_);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "userId_=%{public}d, dirtyFlags=%{public}u", userId_, propertyDirtyFlags);
     WindowManager::GetInstance(userId_).NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
 }
 

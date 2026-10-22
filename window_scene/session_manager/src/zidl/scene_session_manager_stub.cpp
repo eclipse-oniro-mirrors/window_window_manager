@@ -318,6 +318,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetFloatViewLimits(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME):
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_WINDOW_POSITION):
+            return HandleSetWindowPosition(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -335,14 +337,14 @@ int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel
     if (sessionStage == nullptr || eventChannel == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read scene session stage object or event channel object!");
         reply.WriteInt32(static_cast<uint32_t>(WSError::WS_ERROR_IPC_FAILED));
-        reply.WriteString("Failed to read scene session stage object or event channel object!");
+        reply.WriteString("Internal task error, Failed to read scene session stage object or event channel object.");
         return ERR_INVALID_DATA;
     }
     sptr<WindowSessionProperty> property = data.ReadStrongParcelable<WindowSessionProperty>();
     if (property == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "property is nullptr");
         reply.WriteInt32(static_cast<uint32_t>(WSError::WS_ERROR_IPC_FAILED));
-        reply.WriteString("property is nullptr");
+        reply.WriteString("Internal task error, Property is null.");
         return ERR_INVALID_DATA;
     }
 
@@ -2583,9 +2585,14 @@ int SceneSessionManagerStub::HandleSetImageForRecent(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_PATTERN, "Read persistentId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = SetImageForRecent(imgResourceId, static_cast<ImageFit>(imageFit), persistentId);
+    std::string errMsg;
+    WMError errCode = SetImageForRecent(imgResourceId, static_cast<ImageFit>(imageFit), persistentId, errMsg);
     if (!reply.WriteUint32(static_cast<uint32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2608,9 +2615,14 @@ int SceneSessionManagerStub::HandleSetImageForRecentPixelMap(MessageParcel& data
         TLOGE(WmsLogTag::WMS_PATTERN, "Read persistentId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = SetImageForRecentPixelMap(pixelMap, static_cast<ImageFit>(imageFit), persistentId);
+    std::string errMsg;
+    WMError errCode = SetImageForRecentPixelMap(pixelMap, static_cast<ImageFit>(imageFit), persistentId, errMsg);
     if (!reply.WriteUint32(static_cast<uint32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2623,9 +2635,14 @@ int SceneSessionManagerStub::HandleRemoveImageForRecent(MessageParcel& data, Mes
         TLOGE(WmsLogTag::WMS_PATTERN, "Read persistentId failed.");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = RemoveImageForRecent(persistentId);
+    std::string errMsg;
+    WMError errCode = RemoveImageForRecent(persistentId, errMsg);
     if (!reply.WriteUint32(static_cast<uint32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -2789,9 +2806,14 @@ int SceneSessionManagerStub::HandleSetStartWindowBackgroundColor(MessageParcel& 
         TLOGE(WmsLogTag::WMS_PATTERN, "read uid failed");
         return ERR_INVALID_DATA;
     }
-    WMError errCode = SetStartWindowBackgroundColor(moduleName, abilityName, color, uid);
+    std::string errMsg;
+    WMError errCode = SetStartWindowBackgroundColor(moduleName, abilityName, color, uid, errMsg);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Write errCode failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "Write errMsg failed.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -3127,6 +3149,23 @@ int SceneSessionManagerStub::HandleMoveMainWindowToTargetDisplay(MessageParcel& 
     WSError ret = MoveMainWindowToTargetDisplay(displayId, windowId);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write errCode fail");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleSetWindowPosition(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "in");
+    WindowPositionInfo windowPositionInfo;
+    if (!windowPositionInfo.Unmarshalling(data)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "Failed to unmarshalling windowPositionInfo!");
+        reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+        return ERR_INVALID_DATA;
+    }
+    WSError ret = SetWindowPosition(windowPositionInfo);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "Write errCode fail");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

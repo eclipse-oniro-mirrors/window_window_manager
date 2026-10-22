@@ -193,6 +193,7 @@ void PictureInPictureManager::AttachAutoStartController(int32_t handleId,
     EvictOldestControllerIfNeeded(controller);
     std::lock_guard<std::mutex> lock(AutoStartControllerMapMutex_);
     autoStartControllerMap_[handleId] = pipController;
+    TLOGI(WmsLogTag::WMS_PIP, "autoStartControllerMap_.size: %{public}zu", autoStartControllerMap_.size());
     auto it = mainWindowToAutoStartControllersMap_.find(controller->GetMainWindowId());
     if (it != mainWindowToAutoStartControllersMap_.end()) {
         for (const auto& wptr : it->second) {

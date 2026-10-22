@@ -251,7 +251,7 @@ int32_t CJWindowImpl::SetWindowMode(uint32_t mode)
 
 CWindowProperties CJWindowImpl::GetWindowProperties(int32_t* errCode)
 {
-    CWindowProperties wp;
+    CWindowProperties wp = {};
     if (windowToken_ == nullptr) {
         TLOGE(WmsLogTag::WMS_DIALOG, "WindowToken_ is nullptr");
         *errCode = static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);

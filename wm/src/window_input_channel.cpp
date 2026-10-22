@@ -41,17 +41,15 @@ WindowInputChannel::~WindowInputChannel()
 void WindowInputChannel::DispatchKeyEventCallback(std::shared_ptr<MMI::KeyEvent>& keyEvent, bool consumed)
 {
     if (keyEvent == nullptr) {
-        WLOGFW("keyEvent is null");
+        TLOGW(WmsLogTag::WMS_EVENT, "keyEvent is null");
         return;
     }
-
     if (consumed) {
-        WLOGD("Input method has processed key event, id:%{public}d", keyEvent->GetId());
+        TLOGD(WmsLogTag::WMS_EVENT, "input method consumed key event, id=%{public}d", keyEvent->GetId());
         return;
     }
-
     if (window_ != nullptr) {
-        WLOGD("dispatch keyEvent to ACE");
+        TLOGD(WmsLogTag::WMS_EVENT, "dispatch keyEvent to ACE");
         window_->ConsumeKeyEvent(keyEvent);
     } else {
         keyEvent->MarkProcessed();
@@ -62,15 +60,14 @@ __attribute__((no_sanitize("cfi"))) void WindowInputChannel::HandleKeyEvent(
     std::shared_ptr<MMI::KeyEvent>& keyEvent)
 {
     if (keyEvent == nullptr) {
-        WLOGFE("keyEvent is nullptr");
+        TLOGE(WmsLogTag::WMS_EVENT, "keyEvent is null");
         return;
     }
-
     if (window_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "window_ is nullptr");
+        TLOGE(WmsLogTag::WMS_EVENT, "window_ is null");
         return;
     }
-    WLOGFD("Receive key event, Id: %{public}u", window_->GetWindowId());
+    TLOGD(WmsLogTag::WMS_EVENT, "wid=%{public}u, inputId=%{public}d", window_->GetWindowId(), keyEvent->GetId());
     if (window_->GetType() == WindowType::WINDOW_TYPE_DIALOG) {
         if (keyEvent->GetAgentWindowId() != keyEvent->GetTargetWindowId()) {
             window_->NotifyTouchDialogTarget();
@@ -95,25 +92,31 @@ __attribute__((no_sanitize("cfi"))) void WindowInputChannel::HandleKeyEvent(
 #ifdef IMF_ENABLE
     bool isKeyboardEvent = IsKeyboardEvent(keyEvent);
     if (isKeyboardEvent) {
-        WLOGD("Async dispatch keyEvent to input method");
+        auto inputMethodController = MiscServices::InputMethodController::GetInstance();
+        if (inputMethodController == nullptr) {
+            TLOGE(WmsLogTag::WMS_EVENT, "controller is null, id=%{public}d", keyEvent->GetId());
+            DispatchKeyEventCallback(keyEvent, false);
+            return;
+        }
+        TLOGI(WmsLogTag::WMS_EVENT, "send to IMF, id=%{public}d", keyEvent->GetId());
         auto callback = [weakThis = wptr(this)] (std::shared_ptr<MMI::KeyEvent>& keyEvent, bool consumed) {
             auto promoteThis = weakThis.promote();
             if (promoteThis == nullptr) {
                 keyEvent->MarkProcessed();
-                WLOGFW("promoteThis is nullptr");
+                TLOGW(WmsLogTag::WMS_EVENT, "channel is null");
                 return;
             }
             promoteThis->DispatchKeyEventCallback(keyEvent, consumed);
         };
-        auto ret = MiscServices::InputMethodController::GetInstance()->DispatchKeyEvent(keyEvent, callback);
+        auto ret = inputMethodController->DispatchKeyEvent(keyEvent, callback);
         if (ret != 0) {
-            TLOGI(WmsLogTag::WMS_EVENT, "DispatchKeyEvent ret:%{public}d, id:%{public}d", ret, keyEvent->GetId());
             DispatchKeyEventCallback(keyEvent, false);
         }
+        TLOGD(WmsLogTag::WMS_EVENT, "IMF processed end, ret=%{public}d", ret);
         return;
     }
 #endif // IMF_ENABLE
-    WLOGD("dispatch keyEvent to ACE");
+    TLOGD(WmsLogTag::WMS_EVENT, "dispatch to ACE");
     window_->ConsumeKeyEvent(keyEvent);
 }
 

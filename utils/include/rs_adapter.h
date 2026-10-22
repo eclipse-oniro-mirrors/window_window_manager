@@ -17,6 +17,8 @@
 #define OHOS_ROSEN_RS_ADAPTER_H
 
 #include <initializer_list>
+#include <mutex>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <transaction/rs_sync_transaction_controller.h>
@@ -201,12 +203,15 @@ class RSUIContextContainer {
 public:
     static sptr<IRemoteObject> GetRenderSession();
     static void SetRenderSession(sptr<IRemoteObject> renderSessionObj);
-    static std::shared_ptr<RSUIContext> GetRSUIContext();
-    static void SetRSUIContext(std::shared_ptr<RSUIContext> rsUIContextObj);
+    static std::shared_ptr<RSUIContext> GetRSUIContext(int32_t windowId);
+    static void SetRSUIContext(int32_t windowId, const std::shared_ptr<RSUIContext>& rsUIContext);
+    static void RemoveRSUIContext(int32_t windowId);
 
 private:
+    static std::mutex containerMutex_;
     static sptr<IRemoteObject> renderSession;
-    static std::shared_ptr<RSUIContext> rsUIContext;
+    static std::unordered_map<int32_t, std::shared_ptr<RSUIContext>> rsUIContextMap_;
+    // Above guarded by containerMutex_
 };
 } // namespace Rosen
 } // namespace OHOS

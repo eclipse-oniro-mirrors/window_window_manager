@@ -469,6 +469,11 @@ WSError SceneSessionManagerLite::PendingSessionToBackgroundByPersistentId(const 
         shouldBackToCaller);
 }
 
+WSErrorResult SceneSessionManagerLite::RestoreSessionToForeground(int32_t persistentId)
+{
+    return SceneSessionManager::GetInstance().RestoreSessionToForeground(persistentId);
+}
+
 WMError SceneSessionManagerLite::CreateNewInstanceKey(const std::string& bundleName, std::string& instanceKey)
 {
     return SceneSessionManager::GetInstance().CreateNewInstanceKey(bundleName, instanceKey);
@@ -495,9 +500,9 @@ WMError SceneSessionManagerLite::UpdateKioskAppList(const std::vector<std::strin
     return SceneSessionManager::GetInstance().UpdateKioskAppList(kioskAppList);
 }
 
-WMError SceneSessionManagerLite::EnterKioskMode(const sptr<IRemoteObject>& token)
+WMError SceneSessionManagerLite::EnterKioskMode(const sptr<IRemoteObject>& token, KioskType kioskType)
 {
-    return SceneSessionManager::GetInstance().EnterKioskMode(token);
+    return SceneSessionManager::GetInstance().EnterKioskMode(token, kioskType);
 }
 
 WMError SceneSessionManagerLite::ExitKioskMode(const sptr<IRemoteObject>& token)
@@ -559,5 +564,11 @@ WMError SceneSessionManagerLite::GetAppWindowShowingInfosByBundleName(const Appl
 {
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
+}
+
+WMError SceneSessionManagerLite::UpdateRogWindowConfig(const RogWindowConfig& windowConfig)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
 }
 } // namespace OHOS::Rosen

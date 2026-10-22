@@ -38,7 +38,7 @@ public:
     static void Finalizer(ani_env* env, ani_long nativeObj);
     void SetAniRef(const ani_ref& aniRef) { aniRef_ = aniRef; }
     ani_ref GetAniRef() { return aniRef_; }
-    static void DelListener(ani_env* env);
+    static void DelListener(ani_env* env, AniPipController* aniPipController);
 
     static void StartPiPAni(ani_env* env, ani_object obj, ani_long nativeObj);
     static void StopPiPAni(ani_env* env, ani_object obj, ani_long nativeObj);

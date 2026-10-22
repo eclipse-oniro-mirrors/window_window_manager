@@ -69,8 +69,11 @@ group("unittest") {
       ":wm_window_manager_agent_proxy_test",
       ":wm_window_manager_lite_test",
       ":wm_window_manager_test",
+      ":wm_all_users_window_manager_test",
+      ":wm_all_users_window_manager_lite_test",
       ":wm_window_manager_agent_lite_test",
       ":wm_window_scene_effect_test",
+      ":wm_window_scene_session_impl_compatible_mode_test",
       ":wm_window_scene_session_impl_test",
       ":wm_window_scene_session_impl_test2",
       ":wm_window_scene_session_impl_test3",
@@ -87,6 +90,7 @@ group("unittest") {
       ":wm_window_test",
       "animation:wm_window_scene_session_impl_animation_test",
       "attribute:wm_window_scene_session_impl_attribute_test",
+      "attribute:wm_window_session_impl_attribute_test",
       "attribute:wm_window_manager_attribute_test",
       "event_distribution:wm_oh_window_event_test",
       "event_distribution:wm_window_event_test",
@@ -114,6 +118,43 @@ ohos_unittest("wm_window_manager_test") {
 
   deps = [
     ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_all_users_window_manager_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/wm/src",
+    "${window_base_path}/interfaces/innerkits/wm",
+  ]
+
+  sources = [ "all_users_window_manager_test.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+}
+
+ohos_unittest("wm_all_users_window_manager_lite_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/wm/src",
+    "${window_base_path}/interfaces/innerkits/wm",
+  ]
+
+  sources = [ "all_users_window_manager_lite_test.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/wm:libwm_lite",
     "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
   ]
 
@@ -551,6 +592,21 @@ ohos_unittest("wm_window_scene_session_impl_test5") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("wm_window_scene_session_impl_compatible_mode_test") {
+  module_out_path = module_out_path
+  include_dirs = [ "${window_base_path}/test/common/utils/include/" ]
+
+  sources = [ "compatible_mode/window_scene_session_impl_compatible_mode_test.cpp" ]
+
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/test/common/utils:libtestutil",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+
+  external_deps = test_external_deps
+}
+
 ohos_unittest("wm_window_manager_stub_proxy_test") {
   module_out_path = module_out_path
 
@@ -915,6 +971,8 @@ config("wm_unittest_common_public_config") {
     "${window_base_path}/window_scene/session/host/include/zidl",
     "${window_base_path}/window_scene/session_manager/include",
     "${window_base_path}/window_scene/screen_session_manager/include",
+    "${window_base_path}/window_scene/screen_session_manager/include/zidl",
+    "${window_base_path}/window_scene/screen_session_manager_client/include",
     "${dmserver_gen_path}",
   ]
 }

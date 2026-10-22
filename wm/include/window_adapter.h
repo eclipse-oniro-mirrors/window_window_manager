@@ -118,7 +118,7 @@ public:
         std::vector<sptr<RSWindowAnimationTarget>>& targets);
     virtual void SetMaximizeMode(MaximizeMode maximizeMode);
     virtual MaximizeMode GetMaximizeMode();
-    virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+    virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID);
     virtual void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo, const sptr<IRemoteObject>& abilityToken);
     virtual WMError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener);
     virtual WMError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener);
@@ -132,6 +132,7 @@ public:
     virtual WMError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId);
     virtual WMError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex, bool updateMap = true);
     virtual WMError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId);
+    virtual WMError SetWindowPosition(const WindowPositionInfo& windowPositionInfo);
     virtual WMErrorResult CreateAndConnectSpecificSession(const sptr<ISessionStage>& sessionStage,
         const sptr<IWindowEventChannel>& eventChannel, uint64_t nodeId,
         sptr<WindowSessionProperty> property, int32_t& persistentId, sptr<ISession>& session,
@@ -181,6 +182,9 @@ public:
     virtual WMError SetForegroundWindowNum(uint32_t windowNum);
     virtual WMError SetStartWindowBackgroundColor(
         const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid);
+    virtual WMError SetStartWindowBackgroundColor(
+        const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid,
+        std::string& errMsg);
 
     /*
      * Window Recover
@@ -225,9 +229,14 @@ public:
      * Window Pattern
      */
     virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit, int32_t persistentId);
+    virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg);
     virtual WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
         int32_t persistentId);
+    virtual WMError SetImageForRecentPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, ImageFit imageFit,
+        int32_t persistentId, std::string& errMsg);
     virtual WMError RemoveImageForRecent(int32_t persistentId);
+    virtual WMError RemoveImageForRecent(int32_t persistentId, std::string& errMsg);
 
     /*
      * Window Animation
@@ -282,6 +291,9 @@ private:
     /*
      * Multi user and multi screen
      */
+    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this adapter instance's
+    // user; explicit displayId (0 or non-zero) passes through unchanged.
+    DisplayId ResolveDefaultDisplayId(DisplayId displayId);
     void OnUserSwitch();
     const int32_t userId_;
     static std::unordered_map<int32_t, sptr<WindowAdapter>> windowAdapterMap_;

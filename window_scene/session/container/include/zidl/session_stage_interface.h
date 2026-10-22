@@ -135,6 +135,7 @@ public:
     virtual WSError NotifyWindowOcclusionState(const WindowVisibilityState state) = 0;
     virtual WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) = 0;
     virtual WSError GetTopNavDestinationName(std::string& topNavDestName) = 0;
+    virtual WSError NotifyDpiHookScale(float scale) { return WSError::WS_DO_NOTHING; }
     virtual WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) = 0;
     virtual WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) = 0;
     virtual WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode, MaximizeMode maximizeMode,
@@ -301,7 +302,7 @@ public:
     {
         return -1;
     }
-    virtual WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue)
+    virtual WSError NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue)
     {
         return WSError::WS_OK;
     }

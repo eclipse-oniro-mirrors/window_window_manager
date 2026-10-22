@@ -226,6 +226,10 @@ napi_value JsWindowSceneConfig::CreateSystemConfig(napi_env env, const SystemSes
         config.maxMidSceneNum_));
     napi_set_named_property(env, objValue, "maxFloatingWindowSize", CreateJsValue(env,
         config.maxFloatingWindowSize_));
+    napi_set_named_property(env, objValue, "miniWidthOfMainWindow", CreateJsValue(env,
+        config.miniWidthOfMainWindow_));
+    napi_set_named_property(env, objValue, "miniHeightOfMainWindow", CreateJsValue(env,
+        config.miniHeightOfMainWindow_));
     return objValue;
 }
 

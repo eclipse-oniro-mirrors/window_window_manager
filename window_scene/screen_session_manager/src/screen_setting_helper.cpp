@@ -1155,6 +1155,10 @@ void ScreenSettingHelper::UnregisterSettingResolutionEffectObserver()
 
 bool ScreenSettingHelper::GetResolutionEffect(bool& enable, const std::string& serialNumber, const std::string& key)
 {
+    if (serialNumber.empty()) {
+        TLOGW(WmsLogTag::DMS, "serialNumber empty, skip lookup: %{public}s", key.c_str());
+        return false;
+    }
     std::string value = "";
     SettingProvider& settingProvider = SettingProvider::GetInstance(DISPLAY_MANAGER_SERVICE_SA_ID);
     ErrCode ret = settingProvider.GetStringValue(key, value);
@@ -1170,6 +1174,7 @@ bool ScreenSettingHelper::GetResolutionEffect(bool& enable, const std::string& s
         TLOGE(WmsLogTag::DMS, "split failed, data size: %{public}d", dataSize);
         return false;
     }
+    bool serialNumberMatched = false;
     for (auto& infoString : screenResolutionEffectSet) {
         std::vector<std::string> infoVector = {};
         split = SplitString(infoVector, infoString, ' ');
@@ -1180,8 +1185,13 @@ bool ScreenSettingHelper::GetResolutionEffect(bool& enable, const std::string& s
         }
         if (infoVector[INDEX_SCREEN_RESOLUTION_EFFECT_SN] == serialNumber) {
             enable = (infoVector[INDEX_SCREEN_RESOLUTION_EFFECT_EN] == ENABLE_RESOLUTION_EFFECT);
+            serialNumberMatched = true;
             TLOGI(WmsLogTag::DMS, "screenResolutionEffectEn: %{public}d", enable);
         }
+    }
+    if (!serialNumberMatched) {
+        TLOGW(WmsLogTag::DMS, "serialNumber: %{public}s not matched in setting: %{public}s",
+            serialNumber.c_str(), key.c_str());
     }
     return true;
 }

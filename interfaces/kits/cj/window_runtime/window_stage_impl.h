@@ -24,6 +24,7 @@
 namespace OHOS {
 namespace Rosen {
 class CJWindowStageImpl : public OHOS::FFI::FFIData {
+    DECL_TYPE(CJWindowStageImpl, OHOS::FFI::FFIData)
 public:
     explicit CJWindowStageImpl(const std::shared_ptr<WindowScene>& windowScene): windowScene_(windowScene),
         registerManager_(std::make_unique<CjWindowRegisterManager>()) {}

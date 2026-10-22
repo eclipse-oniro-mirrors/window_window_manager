@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include "iremote_object_mocker.h"
 #include "ui/rs_surface_node.h"
 
 using namespace testing;
@@ -417,6 +418,56 @@ HWTEST_F(RSAdapterTest, RSAdapterUtilToStringMethods, Function | SmallTest | Lev
 
     auto directorStr = RSAdapterUtil::RSUIDirectorToStr(rsUIDirector_);
     EXPECT_THAT(directorStr, HasSubstr("RSUIDirector"));
+}
+
+/**
+ * @tc.name: RSUIContextContainerMap
+ * @tc.desc: Verify RSUIContext is stored and queried by window id.
+ *
+ * @tc.type: FUNC
+ */
+HWTEST_F(RSAdapterTest, RSUIContextContainerMap, Function | SmallTest | Level1)
+{
+    if (!rsClientMultiInstanceEnabled_) {
+        GTEST_SKIP() << "Skip test when RS client multi-instance is disabled.";
+    }
+
+    constexpr int32_t FIRST_WINDOW_ID = 100;
+    constexpr int32_t SECOND_WINDOW_ID = 101;
+    auto secondRSUIDirector = RSUIDirector::Create(nullptr);
+    ASSERT_NE(secondRSUIDirector, nullptr);
+    auto secondRSUIContext = secondRSUIDirector->GetRSUIContext();
+    ASSERT_NE(secondRSUIContext, nullptr);
+    RSUIContextContainer::RemoveRSUIContext(FIRST_WINDOW_ID);
+    RSUIContextContainer::RemoveRSUIContext(SECOND_WINDOW_ID);
+
+    RSUIContextContainer::SetRSUIContext(FIRST_WINDOW_ID, rsUIContext_);
+    RSUIContextContainer::SetRSUIContext(SECOND_WINDOW_ID, secondRSUIContext);
+    EXPECT_EQ(RSUIContextContainer::GetRSUIContext(FIRST_WINDOW_ID), rsUIContext_);
+    EXPECT_EQ(RSUIContextContainer::GetRSUIContext(SECOND_WINDOW_ID), secondRSUIContext);
+
+    RSUIContextContainer::RemoveRSUIContext(FIRST_WINDOW_ID);
+    EXPECT_EQ(RSUIContextContainer::GetRSUIContext(FIRST_WINDOW_ID), nullptr);
+    EXPECT_EQ(RSUIContextContainer::GetRSUIContext(SECOND_WINDOW_ID), secondRSUIContext);
+    RSUIContextContainer::RemoveRSUIContext(SECOND_WINDOW_ID);
+}
+
+/**
+ * @tc.name: RSUIContextContainerRenderSession
+ * @tc.desc: Verify render session can be stored and queried.
+ * @tc.type: FUNC
+ */
+HWTEST_F(RSAdapterTest, RSUIContextContainerRenderSession, Function | SmallTest | Level1)
+{
+    auto originalRenderSession = RSUIContextContainer::GetRenderSession();
+    sptr<IRemoteObject> renderSession = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(renderSession, nullptr);
+
+    RSUIContextContainer::SetRenderSession(renderSession);
+    EXPECT_EQ(RSUIContextContainer::GetRenderSession(), renderSession);
+
+    RSUIContextContainer::SetRenderSession(originalRenderSession);
+    EXPECT_EQ(RSUIContextContainer::GetRenderSession(), originalRenderSession);
 }
 } // namespace Rosen
 } // namespace OHOS

@@ -40,6 +40,7 @@ private:
     int HandleShow(MessageParcel& data, MessageParcel& reply);
     int HandleHide(MessageParcel& data, MessageParcel& reply);
     int HandleDrawingCompleted(MessageParcel& data, MessageParcel& reply);
+    int HandleStartWithSnapshot(MessageParcel& data, MessageParcel& reply);
     int HandleRemoveStartingWindow(MessageParcel& data, MessageParcel& reply);
 
     // scene session

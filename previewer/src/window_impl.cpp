@@ -19,7 +19,6 @@
 
 #include "dm_common.h"
 #include "window_manager_hilog.h"
-#include "window_helper.h"
 #include "window_option.h"
 #include "viewport_config.h"
 #include "singleton_container.h"
@@ -618,6 +617,14 @@ WMError WindowImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerki
 
 WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal, MoveConfiguration moveConfiguration)
 {
+    std::string errMsg;
+    return MoveTo(x, y, isMoveToGlobal, moveConfiguration, errMsg);
+}
+
+WMError WindowImpl::MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+    MoveConfiguration moveConfiguration, std::string& errMsg)
+{
+    errMsg.clear();
     return WMError::WM_OK;
 }
 
@@ -722,7 +729,27 @@ WMError WindowImpl::Minimize(std::string& errMsg)
 
 WMError WindowImpl::Recover()
 {
+    std::string errMsg;
+    return Recover(errMsg);
+}
+
+WMError WindowImpl::Recover(std::string& errMsg)
+{
+    errMsg.clear();
     return WMError::WM_OK;
+}
+
+WMError WindowImpl::Recover(uint32_t reason, std::string& errMsg)
+{
+    errMsg.clear();
+    return Recover(errMsg);
+}
+
+WMError WindowImpl::Recover(uint32_t reason, const SnapshotAnimationConfig& snapshotAnimationConfig,
+    std::string& errMsg)
+{
+    errMsg.clear();
+    return Recover(errMsg);
 }
 
 WMError WindowImpl::Close()
@@ -1114,6 +1141,12 @@ WMError WindowImpl::SetTouchHotAreas(const std::vector<Rect>& rects)
 {
     return WMError::WM_OK;
 }
+
+WMError WindowImpl::SetTouchableAreas(const std::vector<Rect>& rects)
+{
+    return WMError::WM_OK;
+}
+
 void WindowImpl::GetRequestedTouchHotAreas(std::vector<Rect>& rects) const
 {
 }
@@ -1332,7 +1365,7 @@ WMError WindowImpl::SetLandscapeMultiWindow(bool isLandscapeMultiWindow)
     return WMError::WM_OK;
 }
 
-void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
+void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom, DvsyncDisableReason disableReason)
 {
 }
 

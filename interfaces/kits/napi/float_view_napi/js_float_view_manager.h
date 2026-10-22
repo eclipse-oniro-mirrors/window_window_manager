@@ -52,6 +52,9 @@ private:
         const sptr<FloatingBallController> &fbController, const FbOption &option);
     napi_value UnBindTask(napi_env env, const sptr<FloatViewController> &fwController,
         const sptr<FloatingBallController> &fbController);
+
+    static WmErrorCode Bind(const sptr<FloatViewController> &fvController,
+        const sptr<FloatingBallController> &fbController, const FbOption &option, std::string& errMsg);
 };
 } // namespace Rosen
 } // namespace OHOS

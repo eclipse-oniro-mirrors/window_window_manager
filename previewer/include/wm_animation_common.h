@@ -239,30 +239,54 @@ struct WindowCreateParams : public Parcelable {
     std::shared_ptr<StartAnimationOptions> animationParams = nullptr;
     std::shared_ptr<StartAnimationSystemOptions> animationSystemParams = nullptr;
     std::shared_ptr<bool> needAnimation = nullptr;
+    std::shared_ptr<bool> excludeFromDock = nullptr;
+    std::shared_ptr<bool> excludeFromRecent = nullptr;
 
     /**
      * @brief Whether application-defined window size limits are allowed to exceed system limits.
      */
     bool isWindowLimitsForcible = false;
+    bool minimizeOnStart = false;
 
     bool Marshalling(Parcel& parcel) const override
     {
         if (!parcel.WriteParcelable(animationParams.get())) {
             return false;
         }
+
         if (!parcel.WriteParcelable(animationSystemParams.get())) {
             return false;
         }
+
         bool hasNeedAnimation = (needAnimation != nullptr);
         if (!parcel.WriteBool(hasNeedAnimation)) {
             return false;
         }
-        if (hasNeedAnimation) {
-            if (!parcel.WriteBool(*needAnimation)) {
-                return false;
-            }
+        if (hasNeedAnimation && !parcel.WriteBool(*needAnimation)) {
+            return false;
         }
+
         if (!parcel.WriteBool(isWindowLimitsForcible)) {
+            return false;
+        }
+
+        if (!parcel.WriteBool(minimizeOnStart)) {
+            return false;
+        }
+
+        bool hasExcludeFromDock = (excludeFromDock != nullptr);
+        if (!parcel.WriteBool(hasExcludeFromDock)) {
+            return false;
+        }
+        if (hasExcludeFromDock && !parcel.WriteBool(*excludeFromDock)) {
+            return false;
+        }
+
+        bool hasExcludeFromRecent = (excludeFromRecent != nullptr);
+        if (!parcel.WriteBool(hasExcludeFromRecent)) {
+            return false;
+        }
+        if (hasExcludeFromRecent && !parcel.WriteBool(*excludeFromRecent)) {
             return false;
         }
         return true;
@@ -275,20 +299,36 @@ struct WindowCreateParams : public Parcelable {
             std::shared_ptr<StartAnimationOptions>(parcel.ReadParcelable<StartAnimationOptions>());
         windowCreateParams->animationSystemParams =
             std::shared_ptr<StartAnimationSystemOptions>(parcel.ReadParcelable<StartAnimationSystemOptions>());
-        bool hasNeedAnimation = false;
-        if (!parcel.ReadBool(hasNeedAnimation)) {
+
+        auto readOptionalBool = [&parcel](std::shared_ptr<bool>& target) -> bool {
+            bool hasValue = false;
+            if (!parcel.ReadBool(hasValue)) {
+                return false;
+            }
+            if (hasValue) {
+                bool value = false;
+                if (!parcel.ReadBool(value)) {
+                    return false;
+                }
+                target = std::make_shared<bool>(value);
+            } else {
+                target = nullptr;
+            }
+            return true;
+        };
+        if (!readOptionalBool(windowCreateParams->needAnimation)) {
             return nullptr;
         }
-        if (hasNeedAnimation) {
-            bool needAnimationValue = false;
-            if (!parcel.ReadBool(needAnimationValue)) {
-                return nullptr;
-            }
-            windowCreateParams->needAnimation = std::make_shared<bool>(needAnimationValue);
-        } else {
-            windowCreateParams->needAnimation = nullptr;
-        }
         if (!parcel.ReadBool(windowCreateParams->isWindowLimitsForcible)) {
+            return nullptr;
+        }
+        if (!parcel.ReadBool(windowCreateParams->minimizeOnStart)) {
+            return nullptr;
+        }
+        if (!readOptionalBool(windowCreateParams->excludeFromDock)) {
+            return nullptr;
+        }
+        if (!readOptionalBool(windowCreateParams->excludeFromRecent)) {
             return nullptr;
         }
         return windowCreateParams.release();

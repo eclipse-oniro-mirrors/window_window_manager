@@ -347,6 +347,74 @@ HWTEST_F(MotionManagerTest, Reset01, TestSize.Level1)
     ASSERT_FALSE(MotionManager::GetInstance().IsInitialized());
     ASSERT_EQ(MotionManager::GetInstance().GetLastMotionRotation(), -1.0f);
 }
+ 
+/**
+ * @tc.name: MotionDump01
+ * @tc.desc: Motion Dump
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, MotionDump01, TestSize.Level1)
+{
+    std::vector<std::string> args;
+    const std::string DUMP_MOTION = "-motion";
+    const std::string DUMP_MOTION_VALUE = "1";
+    std::string dumpInfo = "";
+    args.emplace_back(DUMP_MOTION);
+    args.emplace_back(DUMP_MOTION_VALUE);
+    WSError ret = MotionManager::GetInstance().SetMotionValueByDump(args, dumpInfo);
+    ASSERT_EQ(ret, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: MotionDump02
+ * @tc.desc: Motion Dump
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, MotionDump02, TestSize.Level1)
+{
+    std::vector<std::string> args;
+    const std::string DUMP_MOTION = "-motion";
+    const std::string DUMP_MOTION_VALUE = "4";
+    std::string dumpInfo = "";
+    args.emplace_back(DUMP_MOTION);
+    args.emplace_back(DUMP_MOTION_VALUE);
+    WSError ret = MotionManager::GetInstance().SetMotionValueByDump(args, dumpInfo);
+    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
+}
+ 
+/**
+ * @tc.name: SmartMotionDump01
+ * @tc.desc: Smart Motion Dump
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, SmartMotionDump01, TestSize.Level1)
+{
+    std::vector<std::string> args;
+    const std::string DUMP_MOTION = "-smartmotion";
+    const std::string DUMP_MOTION_VALUE = "1";
+    std::string dumpInfo = "";
+    args.emplace_back(DUMP_MOTION);
+    args.emplace_back(DUMP_MOTION_VALUE);
+    WSError ret = MotionManager::GetInstance().SetSmartMotionValueByDump(args, dumpInfo);
+    ASSERT_EQ(ret, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: SmartMotionDump02
+ * @tc.desc: Smart Motion Dump
+ * @tc.type: FUNC
+ */
+HWTEST_F(MotionManagerTest, SmartMotionDump02, TestSize.Level1)
+{
+    std::vector<std::string> args;
+    const std::string DUMP_MOTION = "-smartmotion";
+    const std::string DUMP_MOTION_VALUE = "4";
+    std::string dumpInfo = "";
+    args.emplace_back(DUMP_MOTION);
+    args.emplace_back(DUMP_MOTION_VALUE);
+    WSError ret = MotionManager::GetInstance().SetSmartMotionValueByDump(args, dumpInfo);
+    ASSERT_EQ(ret, WSError::WS_ERROR_INVALID_PARAM);
+}
 }
 }
 }

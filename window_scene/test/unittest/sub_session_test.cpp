@@ -19,6 +19,7 @@
 #include "common/include/session_permission.h"
 #include "key_event.h"
 #include "mock/mock_session_stage.h"
+#include "mock_session.h"
 #include "mock_sub_session.h"
 #include "pointer_event.h"
 #include "screen_session_manager_client/include/screen_session_manager_client.h"
@@ -65,6 +66,7 @@ void SubSessionTest::SetUp()
     info.bundleName_ = "testMainSession3";
     subSession_ = sptr<SubSession>::MakeSptr(info, specificCallback);
     EXPECT_NE(nullptr, subSession_);
+    subSession_->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
 }
 
 void SubSessionTest::TearDown()
@@ -374,6 +376,117 @@ HWTEST_F(SubSessionTest, NotifySessionRectChange01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConvertToScreenCoordinatesForPcWindow
+ * @tc.desc: Verify a PC window keeps its original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesForPcWindow, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PC_WINDOW;
+    subSession_->SetSystemConfig(systemConfig);
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesInFreeMultiWindowMode
+ * @tc.desc: Verify a subwindow in free multi-window mode keeps its original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesInFreeMultiWindowMode, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = true;
+    systemConfig.freeMultiWindowEnable_ = true;
+    subSession_->SetSystemConfig(systemConfig);
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesWithoutMainSession
+ * @tc.desc: Verify a subwindow without a main session keeps its original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesWithoutMainSession, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PAD_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    subSession_->parentSession_ = nullptr;
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesWithZeroFloatingScale
+ * @tc.desc: Verify a zero main-window scale keeps the original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesWithZeroFloatingScale, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    sptr<SessionMocker> mainSession = sptr<SessionMocker>::MakeSptr(info);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->SetFloatingScale(0.0f);
+    subSession_->SetParentSession(mainSession);
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesWhenGlobalRectQueryFails
+ * @tc.desc: Verify a failed main-window rectangle query keeps the original coordinates.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesWhenGlobalRectQueryFails, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    sptr<SessionMocker> mainSession = sptr<SessionMocker>::MakeSptr(info);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->SetFloatingScale(2.0f);
+    subSession_->SetParentSession(mainSession);
+    EXPECT_CALL(*mainSession, GetGlobalScaledRect(_)).WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), originalRect);
+}
+
+/**
+ * @tc.name: ConvertToScreenCoordinatesForScaledMainWindow
+ * @tc.desc: Verify the position is converted and the size is preserved for a scaled main window.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, ConvertToScreenCoordinatesForScaledMainWindow, TestSize.Level1)
+{
+    const WSRect originalRect = { 140, 260, 50, 60 };
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    systemConfig.freeMultiWindowSupport_ = false;
+    systemConfig.freeMultiWindowEnable_ = false;
+    subSession_->SetSystemConfig(systemConfig);
+    sptr<SessionMocker> mainSession = sptr<SessionMocker>::MakeSptr(info);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    mainSession->SetFloatingScale(2.0f);
+    subSession_->SetParentSession(mainSession);
+    const Rect mainGlobalRect = { 100, 200, 300, 400 };
+    EXPECT_CALL(*mainSession, GetGlobalScaledRect(_))
+        .WillOnce(DoAll(SetArgReferee<0>(mainGlobalRect), Return(WMError::WM_OK)));
+    EXPECT_EQ(subSession_->ConvertToScreenCoordinates(originalRect), WSRect({ 20, 30, 50, 60 }));
+}
+
+/**
  * @tc.name: UpdateSessionRectInner
  * @tc.desc: UpdateSessionRectInner function01
  * @tc.type: FUNC
@@ -567,6 +680,59 @@ HWTEST_F(SubSessionTest, UpdateSessionRectInner04, TestSize.Level1)
     EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent().posY_, 20);
     EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent().width_, 300);
     EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent().height_, 200);
+}
+
+/**
+ * @tc.name: UpdateSessionRectInnerByLimitWhenFollowingParent
+ * @tc.desc: UpdateSessionRectInner handles resize by limit when the sub window follows its parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, UpdateSessionRectInnerByLimitWhenFollowingParent, TestSize.Level1)
+{
+    constexpr DisplayId START_DISPLAY_ID = 0;
+    constexpr DisplayId TARGET_DISPLAY_ID = 1;
+    subSession_->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession_->GetSessionProperty()->SetDisplayId(START_DISPLAY_ID);
+    subSession_->NotifyFollowParentMultiScreenPolicy(true);
+    subSession_->SetSessionRequestRect({ 10, 20, 100, 100 });
+
+    SessionInfo info;
+    info.abilityName_ = "UpdateSessionRectInnerByLimitWhenFollowingParent";
+    info.bundleName_ = "UpdateSessionRectInnerByLimitWhenFollowingParent";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    parentSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(parentSession));
+    parentSession->moveDragController_->isStartMove_ = true;
+    subSession_->SetParentSession(parentSession);
+
+    MoveConfiguration config;
+    config.displayId = TARGET_DISPLAY_ID;
+    WSRect resizeRect = { 50, 60, 300, 200 };
+    subSession_->UpdateSessionRectInner(resizeRect, SizeChangeReason::RESIZE_BY_LIMIT, config);
+
+    EXPECT_EQ(subSession_->GetSessionProperty()->GetDisplayId(), TARGET_DISPLAY_ID);
+    EXPECT_EQ(subSession_->GetRequestRectWhenFollowParent(), (WSRect { 10, 20, 300, 200 }));
+    EXPECT_EQ(subSession_->GetSizeChangeReason(), SizeChangeReason::RESIZE_BY_LIMIT);
+}
+
+/**
+ * @tc.name: UpdateSessionRectInnerByLimitInForeground
+ * @tc.desc: UpdateSessionRectInner marks a foreground sub window as resizing when resized by limit
+ * @tc.type: FUNC
+ */
+HWTEST_F(SubSessionTest, UpdateSessionRectInnerByLimitInForeground, TestSize.Level1)
+{
+    subSession_->SetSessionState(SessionState::STATE_FOREGROUND);
+    subSession_->GetLayoutController()->SetSessionRect({ 10, 20, 100, 100 });
+    subSession_->SetOriPosYBeforeRaisedByKeyboard(50);
+    subSession_->isSubWindowResizingOrMoving_ = false;
+
+    MoveConfiguration config;
+    WSRect resizeRect = { 50, 60, 300, 200 };
+    subSession_->UpdateSessionRectInner(resizeRect, SizeChangeReason::RESIZE_BY_LIMIT, config);
+
+    EXPECT_TRUE(subSession_->isSubWindowResizingOrMoving_);
+    EXPECT_EQ(subSession_->GetOriPosYBeforeRaisedByKeyboard(), 0);
 }
 
 /**

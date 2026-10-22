@@ -35,6 +35,7 @@
 #include "window_option.h"
 #include "scene_board_judgement.h"
 #include "window_histogram_management.h"
+#include "window_focus_error_msg_helper.h"
 #include "../../../../../../wm/include/get_snapshot_callback.h"
 
 namespace OHOS {
@@ -44,6 +45,12 @@ constexpr int32_t MAIN_WINDOW_SNAPSGOT_TIMEOUT = 5000;
 const std::string PIP_WINDOW = "pip_window";
 constexpr int32_t INVALID_COORDINATE = -1;
 constexpr uint32_t API_VERSION_18 = 18;
+
+inline std::string ConcatErrorMsg(const char* apiName, const std::string& errMsg)
+{
+    return errMsg.empty() ? (std::string(apiName) + " failed")
+                          : (std::string(apiName) + " failed: " + errMsg);
+}
 }
 
 AniWindowManager::AniWindowManager() : registerManager_(std::make_unique<AniWindowRegisterManager>())
@@ -152,7 +159,7 @@ ani_ref AniWindowManager::OnGetLastWindow(ani_env* env, ani_object aniContext)
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getLastWindow",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return AniWindowUtils::AniThrowError(env, WMError::WM_ERROR_NULLPTR,
-            "[window][getLastWindow]msg: Get top window failed");
+            "[window][getLastWindow]msg: Top window or main window is not created or destroyed.");
     }
     return CreateAniWindowObject(env, window);
 }
@@ -172,14 +179,75 @@ void AniWindowManager::OnShiftAppWindowFocus(ani_env* env, ani_int sourceWindowI
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "[ANI] sourceWindowId: %{public}d targetWindowId: %{public}d",
         static_cast<int32_t>(sourceWindowId), static_cast<int32_t>(targetWindowId));
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
-        SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourceWindowId, targetWindowId));
-    if (ret != WmErrorCode::WM_OK) {
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", ret);
-        AniWindowUtils::AniThrowError(env, ret,
-            "[window][shiftAppWindowFocus]msg:ShiftAppWindowFocus failed");
+    WMError ret = SingletonContainer::Get<WindowManager>().ShiftAppWindowFocus(sourceWindowId, targetWindowId);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowFocus", wmErrorCode);
+        AniWindowUtils::AniThrowError(env, wmErrorCode,
+            WindowFocusErrorMsgHelper::GetErrorMsg(WindowFocusApiType::SHIFT_APP_WINDOW_FOCUS, ret));
     }
     return ;
+}
+
+void AniWindowManager::SetWindowPosition(ani_env* env, ani_long nativeObj, ani_object list)
+{
+    AniWindowManager* aniWindowManager = reinterpret_cast<AniWindowManager*>(nativeObj);
+    if (aniWindowManager != nullptr) {
+        aniWindowManager->OnSetWindowPosition(env, list);
+    } else {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] aniWindowManager is nullptr");
+    }
+}
+
+void AniWindowManager::OnSetWindowPosition(ani_env* env, ani_object list)
+{
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI]");
+    auto elements = AniWindowUtils::ExtractArrayElements(env, list);
+    if (elements.empty()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowPositions is empty");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWindowPosition]msg: windowPositions is empty");
+        return;
+    }
+    if (elements.size() > MAX_SIZE_WINDOW_POSITION) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowPositions size exceeds max, size: %{public}zu",
+            elements.size());
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][setWindowPosition]msg: The windowPositions list exceeds the maximum size of 50.");
+        return;
+    }
+    WindowPositionInfo windowPositionInfo;
+    for (auto& element : elements) {
+        ani_object elementObj = static_cast<ani_object>(element);
+        WindowPositionParams windowPosition;
+        ani_int aniWindowId = 0;
+        if (env->Object_GetPropertyByName_Int(elementObj, "windowId", &aniWindowId) != ANI_OK ||
+            static_cast<int32_t>(aniWindowId) <= 0) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] failed to convert windowId");
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                "[window][setWindowPosition]msg: failed to convert windowId");
+            return;
+        }
+        ani_int aniInsertAfter = 0;
+        if (env->Object_GetPropertyByName_Int(elementObj, "insertAfter", &aniInsertAfter) != ANI_OK ||
+            static_cast<int32_t>(aniInsertAfter) < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] failed to convert insertAfter");
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                "[window][setWindowPosition]msg: failed to convert insertAfter");
+            return;
+        }
+        windowPosition.windowId = static_cast<int32_t>(aniWindowId);
+        windowPosition.insertAfter = static_cast<int32_t>(aniInsertAfter);
+        windowPositionInfo.windowPositions.emplace_back(windowPosition);
+    }
+    WMError wmError = SingletonContainer::Get<WindowManager>().SetWindowPosition(windowPositionInfo);
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
+    if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowPosition", ret);
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(
+            WindowFocusApiType::SET_WINDOW_POSITION, wmError);
+        AniWindowUtils::AniThrowError(env, ret, errMsg);
+    }
 }
 
 ani_object AniWindowManager::GetAllMainWindowInfo(ani_env* env, ani_long nativeObj, ani_object context)
@@ -415,14 +483,16 @@ void AniWindowManager::OnSetStartWindowBackgroundColor(ani_env* env, ani_string 
         return;
     }
     uint32_t colorValue = static_cast<uint32_t>(color);
+    std::string errMsg;
     auto retCode = SingletonContainer::Get<WindowManager>().SetStartWindowBackgroundColor(
-        moduleNameStr, abilityNameStr, colorValue);
+        moduleNameStr, abilityNameStr, colorValue, errMsg);
     WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(retCode);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] module=%{public}s, ability=%{public}s, color=%{public}u, ret=%{public}d",
             moduleNameStr.c_str(), abilityNameStr.c_str(), colorValue, static_cast<int32_t>(retCode));
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setStartWindowBackgroundColor", ret);
-        AniWindowUtils::AniThrowError(env, ret, "setStartWindowBackgroundColorSync failed.");
+        AniWindowUtils::AniThrowError(env, ret,
+            ConcatErrorMsg("setStartWindowBackgroundColorSync", errMsg));
         return;
     }
 }

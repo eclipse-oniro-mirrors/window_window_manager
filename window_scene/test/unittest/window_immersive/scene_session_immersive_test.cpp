@@ -17,6 +17,7 @@
 
 #include "context.h"
 #include "interfaces/include/ws_common.h"
+#include "mock/mock_session_stage.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/session.h"
 #include "session_info.h"
@@ -565,6 +566,49 @@ HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreas, TestSize.Level1)
     EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
 }
 
+/**
+ * @tc.name: GetAllAvoidAreasFilterTitleButton
+ * @tc.desc: GetAllAvoidAreas should not include TYPE_TITLE_BUTTON
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreasFilterTitleButton, TestSize.Level1)
+{
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    SessionInfo info;
+    info.abilityName_ = "GetAllAvoidAreasFilterTitleButton";
+    info.bundleName_ = "GetAllAvoidAreasFilterTitleButton";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
+    sceneSession->Session::SetIgnoreRotateScale(1, 1);
+    EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
+    EXPECT_EQ(avoidAreas.find(AvoidAreaType::TYPE_TITLE_BUTTON), avoidAreas.end());
+}
+
+/**
+ * @tc.name: UpdateAvoidAreaFilterTitleButton
+ * @tc.desc: UpdateAvoidArea with TYPE_TITLE_BUTTON returns WS_DO_NOTHING
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateAvoidAreaFilterTitleButton, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateAvoidAreaFilterTitleButton";
+    info.bundleName_ = "UpdateAvoidAreaFilterTitleButton";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    WSError ret = sceneSession->UpdateAvoidArea(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+
+    sceneSession->foregroundInteractiveStatus_ = true;
+    ret = sceneSession->UpdateAvoidArea(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+    EXPECT_EQ(ret, WSError::WS_DO_NOTHING);
+}
+
 /*
  * @tc.name: NotifyClientToUpdateRectTask
  * @tc.desc: NotifyClientToUpdateRectTask
@@ -760,6 +804,345 @@ HWTEST_F(SceneSessionImmersiveTest, CheckGetAvoidAreaAvailable, TestSize.Level1)
     session->rotation_ = Rotation::ROTATION_0;
     session->property_->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
     EXPECT_EQ(session->CheckGetAvoidAreaAvailable(AvoidAreaType::TYPE_CUTOUT), false);
+}
+
+/**
+ * @tc.name: CheckAndGetRogScale
+ * @tc.desc: CheckAndGetRogScale when callback is null or set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CheckAndGetRogScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "CheckAndGetRogScale";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    float scale = 0.0f;
+    EXPECT_FALSE(session->CheckAndGetRogScale(scale));
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    ASSERT_NE(nullptr, callBack);
+    session->specificCallback_ = callBack;
+    EXPECT_FALSE(session->CheckAndGetRogScale(scale));
+
+    auto task = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = task;
+    EXPECT_TRUE(session->CheckAndGetRogScale(scale));
+    EXPECT_FLOAT_EQ(scale, 1.5f);
+
+    auto taskFalse = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.0f;
+        return false;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskFalse;
+    EXPECT_FALSE(session->CheckAndGetRogScale(scale));
+}
+
+/**
+ * @tc.name: GetScaleInRog
+ * @tc.desc: GetScaleInRog when app is or is not in ROG config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetScaleInRog, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "GetScaleInRog";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    float scaleX = 0.0f;
+    float scaleY = 0.0f;
+    EXPECT_EQ(session->GetScaleInRog(scaleX, scaleY), WSError::WS_DO_NOTHING);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+    EXPECT_EQ(session->GetScaleInRog(scaleX, scaleY), WSError::WS_OK);
+    EXPECT_FLOAT_EQ(scaleX, 1.5f);
+    EXPECT_FLOAT_EQ(scaleY, 1.5f);
+
+    auto taskNotInRog = [](const std::string bundleName, float& scale) -> bool {
+        return false;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskNotInRog;
+    scaleX = 0.0f;
+    scaleY = 0.0f;
+    EXPECT_EQ(session->GetScaleInRog(scaleX, scaleY), WSError::WS_DO_NOTHING);
+}
+
+/**
+ * @tc.name: GetScale
+ * @tc.desc: GetScale priority test - LS state first, then ROG
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "GetScale";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    float scaleX = 0.0f;
+    float scaleY = 0.0f;
+    EXPECT_EQ(session->GetScale(scaleX, scaleY), WSError::WS_DO_NOTHING);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+    EXPECT_EQ(session->GetScale(scaleX, scaleY), WSError::WS_OK);
+    EXPECT_FLOAT_EQ(scaleX, 1.5f);
+    EXPECT_FLOAT_EQ(scaleY, 1.5f);
+}
+
+/**
+ * @tc.name: GetSystemAvoidAreaWithRogScale
+ * @tc.desc: GetSystemAvoidArea with ROG scale for 720p adaptation
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetSystemAvoidAreaWithRogScale, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "GetSystemAvoidAreaWithRogScale";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    session->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    session->SetSystemConfig(systemConfig);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    session->GetSessionProperty()->SetDisplayId(2025);
+    session->SetIsMidScene(false);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    WSRect rect;
+    AvoidArea avoidAreaWithoutRog;
+    session->GetSystemAvoidArea(rect, avoidAreaWithoutRog);
+    uint32_t heightWithoutRog = avoidAreaWithoutRog.topRect_.height_;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+
+    WSRect rect2;
+    AvoidArea avoidAreaWithRog;
+    session->GetSystemAvoidArea(rect2, avoidAreaWithRog);
+    uint32_t heightWithRog = avoidAreaWithRog.topRect_.height_;
+
+    EXPECT_EQ(heightWithRog, static_cast<uint32_t>(std::ceil(heightWithoutRog / 1.5f)));
+}
+
+/**
+ * @tc.name: CalculateAvoidAreaByScaleWithRog
+ * @tc.desc: CalculateAvoidAreaByScale with ROG scale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CalculateAvoidAreaByScaleWithRog, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "CalculateAvoidAreaByScaleWithRog";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    WSRectF avoidAreaRect = { 0, 0, 150, 60 };
+    Rect resultWithoutRog = session->CalculateAvoidAreaByScale(avoidAreaRect);
+    EXPECT_EQ(resultWithoutRog.posX_, 0);
+    EXPECT_EQ(resultWithoutRog.posY_, 0);
+    EXPECT_EQ(resultWithoutRog.width_, 150);
+    EXPECT_EQ(resultWithoutRog.height_, 60);
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+
+    WSRectF avoidAreaRect2 = { 0, 0, 150, 60 };
+    Rect resultWithRog = session->CalculateAvoidAreaByScale(avoidAreaRect2);
+    EXPECT_EQ(resultWithRog.posX_, 0);
+    EXPECT_EQ(resultWithRog.posY_, 0);
+    EXPECT_EQ(resultWithRog.width_, 100);
+    EXPECT_EQ(resultWithRog.height_, 40);
+}
+
+/**
+ * @tc.name: CalculateAvoidAreaByTypeWithRog
+ * @tc.desc: CalculateAvoidAreaByType with ROG scale for 720p adaptation
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, CalculateAvoidAreaByTypeWithRog, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "CalculateAvoidAreaByTypeWithRog";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, session);
+
+    sptr<SceneSession::SpecificSessionCallback> callBack = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    session->specificCallback_ = callBack;
+
+    auto taskInRog = [](const std::string bundleName, float& scale) -> bool {
+        scale = 1.5f;
+        return true;
+    };
+    callBack->onCheckAndGetRogScaleCallback_ = taskInRog;
+
+    session->GetLayoutController()->SetSessionGlobalRect({ 0, 0, 720, 1560 });
+
+    WSRect winRect = { 0, 0, 720, 1560 };
+    WSRect avoidRect = { 0, 0, 1080, 90 };
+    AvoidArea avoidArea;
+    session->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, avoidRect, avoidArea);
+    EXPECT_NE(avoidArea.topRect_.height_, 0);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea01
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true and no sessionStage_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea01";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = nullptr;
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    AvoidArea area;
+    area.topRect_ = { 0, 0, 100, 50 };
+    avoidAreas[AvoidAreaType::TYPE_SYSTEM] = area;
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, avoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea02
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true, UpdateAvoidArea succeeds
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea02";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea02";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    session->sessionStage_ = mockSessionStage;
+
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    AvoidArea area;
+    area.topRect_ = { 0, 0, 100, 50 };
+    avoidAreas[AvoidAreaType::TYPE_SYSTEM] = area;
+    avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR] = area;
+
+    EXPECT_CALL(*mockSessionStage, UpdateAvoidArea(_, _))
+        .Times(2)
+        .WillRepeatedly(Return(WSError::WS_OK));
+
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, avoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea03
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true, UpdateAvoidArea fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea03";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea03";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    session->sessionStage_ = mockSessionStage;
+
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    AvoidArea area;
+    area.topRect_ = { 0, 0, 100, 50 };
+    avoidAreas[AvoidAreaType::TYPE_SYSTEM] = area;
+
+    EXPECT_CALL(*mockSessionStage, UpdateAvoidArea(_, _))
+        .WillOnce(Return(WSError::WS_ERROR_IPC_FAILED));
+
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, avoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea04
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true and empty avoidAreas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea04";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea04";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    session->sessionStage_ = mockSessionStage;
+
+    std::map<AvoidAreaType, AvoidArea> emptyAvoidAreas;
+    EXPECT_CALL(*mockSessionStage, UpdateAvoidArea(_, _)).Times(0);
+
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, emptyAvoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoPropagateError01
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=false returns error when no sessionStage_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoPropagateError01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoPropagateError01";
+    info.bundleName_ = "UpdateRectWithLayoutInfoPropagateError01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = nullptr;
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, {}, false);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
 }
 }
 }

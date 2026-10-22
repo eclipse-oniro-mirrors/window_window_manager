@@ -105,6 +105,8 @@ private:
         bool isRegister, ani_env* env);
     WmErrorCode ProcessWindowHighlightChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
         bool isRegister, ani_env* env);
+    WmErrorCode ProcessFocusStateChangeRegister(sptr<AniWindowListener> listener, sptr<Window> window,
+        bool isRegister, ani_env* env);
     WmErrorCode ProcessMainWindowCloseRegister(const sptr<AniWindowListener>& listener, const sptr<Window>& window,
         bool isRegister, ani_env* env);
     WmErrorCode ProcessExtensionSecureLimitChangeRegister(const sptr<AniWindowListener>& listener,

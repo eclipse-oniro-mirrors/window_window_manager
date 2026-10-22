@@ -20,6 +20,7 @@
 #include <viewport_config.h>
 
 #include "app_mgr_client.h"
+#include "configuration.h"
 
 #include "dm_common.h"
 #include "display_manager.h"
@@ -40,6 +41,7 @@ namespace Rosen {
 namespace {
 constexpr float MIN_DPI = 1e-6;
 std::atomic<bool> g_ssIsDestroyed = false;
+std::atomic<bool> g_isInputEventListenerRegistered = false;
 const std::string INPUT_AND_VSYNC_THREAD = "InputAndVsyncThread";
 } // namespace
 
@@ -115,7 +117,9 @@ void ScreenScene::LoadContent(const std::string& contentUrl, napi_env env, napi_
     uiContent_->SetFrameLayoutFinishCallback(std::move(frameLayoutFinishCb_));
     wptr<Window> weakWindow(this);
     RootScene::staticRootScene_->AddRootScene(displayId_, weakWindow);
-    RegisterInputEventListener();
+    if (!g_isInputEventListenerRegistered.exchange(true)) {
+        RegisterInputEventListener();
+    }
 }
 
 void ScreenScene::RegisterInputEventListener()
@@ -139,6 +143,13 @@ void ScreenScene::RegisterInputEventListener()
     InputTransferStation::GetInstance().MarkRegisterToMMI();
 }
 
+WMError ScreenScene::UpdateRootDisplayDpi(float dpi, const Rect& rect, WindowSizeChangeReason reason)
+{
+    SetDisplayDensity(dpi);
+    UpdateViewportConfig(rect, reason);
+    return WMError::WM_OK;
+}
+
 void ScreenScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason reason)
 {
     if (g_ssIsDestroyed) {
@@ -147,7 +158,7 @@ void ScreenScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason 
     }
     std::lock_guard<std::mutex> lock(mutex_);
     if (uiContent_ == nullptr) {
-        TLOGE(WmsLogTag::DMS, "uiContent_ is nullptr!");
+        TLOGE(WmsLogTag::DMS, "screen uiContent_ is nullptr: reason=%{public}u", reason);
         return;
     }
     Ace::ViewportConfig config;
@@ -157,6 +168,8 @@ void ScreenScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason 
     config.SetOrientation(orientation_);
     config.SetDisplayId(GetDisplayId());
     uiContent_->UpdateViewportConfig(config, reason);
+    TLOGI(WmsLogTag::DMS, "screen reason=%{public}u, dpi=%{public}f, rect=%{public}s, displayId=%{public}" PRIu64,
+        reason, density_, rect.ToString().c_str(), GetDisplayId());
 }
 
 void ScreenScene::UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration)

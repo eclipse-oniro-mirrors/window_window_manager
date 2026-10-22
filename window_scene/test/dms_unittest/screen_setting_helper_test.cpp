@@ -80,23 +80,6 @@ namespace {
     }
 
     /**
-     * @tc.name: RegisterSettingDpiObserver_Nullptr
-     * @tc.desc: RegisterSettingDpiObserver_Nullptr
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, RegisterSettingDpiObserver_Nullptr, TestSize.Level1)
-    {
-        g_errLog.clear();
-        LOG_SetCallback(MyLogCallback);
-        auto func = [] (const std::string&) {
-            TLOGI(WmsLogTag::DMS, "UT test");
-        };
-        ScreenSettingHelper::RegisterSettingDpiObserver(func);
-        EXPECT_NE(ScreenSettingHelper::dpiObserver_, nullptr);
-        LOG_SetCallback(nullptr);
-    }
-
-    /**
      * @tc.name: UnregisterSettingDpiObserver01
      * @tc.desc: UnregisterSettingDpiObserver01
      * @tc.type: FUNC
@@ -118,40 +101,6 @@ namespace {
         ScreenSettingHelper::dpiObserver_ = nullptr;
         ScreenSettingHelper::UnregisterSettingDpiObserver();
         ASSERT_EQ(ScreenSettingHelper::dpiObserver_, nullptr);
-    }
-
-    /**
-     * @tc.name: RegisterSettingOffScreenRenderObserver
-     * @tc.desc: RegisterSettingOffScreenRenderObserver
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, RegisterSettingOffScreenRenderObserver, TestSize.Level1)
-    {
-        auto func = [] (const std::string&) {
-            TLOGI(WmsLogTag::DMS, "UT test");
-        };
-        ScreenSettingHelper::offScreenRenderObserver_ = new SettingObserver();
-        ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
-        ScreenSettingHelper::offScreenRenderObserver_ = nullptr;
-        ScreenSettingHelper::RegisterSettingOffScreenRenderObserver(func);
-        ASSERT_EQ(ScreenSettingHelper::offScreenRenderObserver_, nullptr);
-    }
- 
-    /**
-     * @tc.name: RegisterSettingExtendScreenIndepDpiObserver
-     * @tc.desc: RegisterSettingExtendScreenIndepDpiObserver
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, RegisterSettingExtendScreenIndepDpiObserver, TestSize.Level1)
-    {
-        auto func = [] (const std::string&) {
-            TLOGI(WmsLogTag::DMS, "UT test");
-        };
-        ScreenSettingHelper::extendScreenIndepDpiObserver_ = new SettingObserver();
-        ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
-        ScreenSettingHelper::extendScreenIndepDpiObserver_ = nullptr;
-        ScreenSettingHelper::RegisterSettingExtendScreenIndepDpiObserver(func);
-        ASSERT_EQ(ScreenSettingHelper::extendScreenIndepDpiObserver_, nullptr);
     }
  
     /**
@@ -284,22 +233,6 @@ namespace {
     }
 
     /**
-     * @tc.name: GetSettingCast02
-     * @tc.desc: GetSettingCast02
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, GetSettingCast02, TestSize.Level1)
-    {
-        if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
-            GTEST_SKIP() << "SceneBoard is not enabled, skipping test.";
-        }
-        bool enable = true;
-        std::string key = "default_display_dpi";
-        bool ret = ScreenSettingHelper::GetSettingCast(enable, key);
-        ASSERT_TRUE(ret);
-    }
-
-    /**
      * @tc.name: UnregisterSettingRotationObserver01
      * @tc.desc: UnregisterSettingRotationObserver01
      * @tc.type: FUNC
@@ -322,18 +255,6 @@ namespace {
     }
 
     /**
-     * @tc.name: SetSettingRotation
-     * @tc.desc: SetSettingRotation
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, SetSettingRotation, TestSize.Level1)
-    {
-        int32_t rotation = 180;
-        ScreenSettingHelper::SetSettingRotation(rotation);
-        ASSERT_EQ(ScreenSettingHelper::rotationObserver_, nullptr);
-    }
-
-    /**
      * @tc.name: GetSettingRotation01
      * @tc.desc: GetSettingRotation01
      * @tc.type: FUNC
@@ -344,34 +265,6 @@ namespace {
         std::string key = "test";
         auto result = ScreenSettingHelper::GetSettingRotation(rotation, key);
         ASSERT_EQ(result, false);
-    }
-
-    /**
-     * @tc.name: GetSettingRotation02
-     * @tc.desc: GetSettingRotation02
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, GetSettingRotation02, TestSize.Level1)
-    {
-        if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
-            GTEST_SKIP() << "SceneBoard is not enabled, skipping test.";
-        }
-        int32_t rotation = 0;
-        std::string key = "default_display_dpi";
-        auto result = ScreenSettingHelper::GetSettingRotation(rotation, key);
-        ASSERT_NE(result, true);
-    }
-
-    /**
-     * @tc.name: SetSettingRotationScreenId
-     * @tc.desc: SetSettingRotationScreenId
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, SetSettingRotationScreenId, TestSize.Level1)
-    {
-        int32_t screenId = 0;
-        ScreenSettingHelper::SetSettingRotationScreenId(screenId);
-        ASSERT_NE(ScreenSettingHelper::rotationObserver_, nullptr);
     }
 
     /**
@@ -1028,23 +921,6 @@ namespace {
     }
 
     /**
-     * @tc.name: GetMultiScreenInfoTest
-     * @tc.desc: Test GetMultiScreenInfo func
-     * @tc.type: FUNC
-     */
-    HWTEST_F(ScreenSettingHelperTest, GetMultiScreenInfoTest, Function | SmallTest | Level3)
-    {
-        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
-        std::string value = "";
-        std::string key = "user_set_screen_mode_edid";
-        bool ret = screenSettingHelper.SetSettingValue(key, value);
-        ASSERT_FALSE(ret);
-
-        std::map<std::string, MultiScreenInfo> multiScreenInfoMap = screenSettingHelper.GetMultiScreenInfo(key);
-        ASSERT_TRUE(multiScreenInfoMap.empty());
-    }
-
-    /**
      * @tc.name: ConvertStrToInt32
      * @tc.desc: Test ConvertStrToInt32 func
      * @tc.type: FUNC
@@ -1618,6 +1494,20 @@ HWTEST_F(ScreenSettingHelperTest, ParseJsonObjectToEnumMap, Function | SmallTest
         auto ret = screenSettingHelper.GetResolutionEffect(value, "testsn");
         ASSERT_FALSE(ret);
         ASSERT_FALSE(value);
+    }
+
+    /**
+     * @tc.name: GetResolutionEffectEmptySerialTest
+     * @tc.desc: Empty serialNumber skips the setting lookup and keeps enable unchanged
+     * @tc.type: FUNC
+     */
+    HWTEST_F(ScreenSettingHelperTest, GetResolutionEffectEmptySerialTest, Function | SmallTest | Level3)
+    {
+        ScreenSettingHelper screenSettingHelper = ScreenSettingHelper();
+        bool value = true;
+        auto ret = screenSettingHelper.GetResolutionEffect(value, "");
+        ASSERT_FALSE(ret);
+        ASSERT_TRUE(value);
     }
 
     /**

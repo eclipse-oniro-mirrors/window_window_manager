@@ -42,6 +42,7 @@ public:
         const std::function<void(std::string, std::string)>& saveStartWindowCallback);
 
     void SetSnapshotCapacity(SnapshotStatus capacity);
+    void SetIsPcWindow(bool isPcWindow);
     static void InitAstcEnabled();
     static bool IsAstcEnabled();
     void SetHasSnapshot(bool hasSnapshot, SnapshotStatus key = defaultStatus);
@@ -111,7 +112,6 @@ private:
     float snapshotScaleLow_ = 0.5;
     bool enablePersistentScaledSnapshot_ = false;
 
-    static std::shared_ptr<WSFFRTHelper> snapshotFfrtHelper_;
     mutable std::mutex savingSnapshotMutex_;
     mutable std::mutex hasSnapshotMutex_;
     mutable std::mutex snapshotSizeMutex_;

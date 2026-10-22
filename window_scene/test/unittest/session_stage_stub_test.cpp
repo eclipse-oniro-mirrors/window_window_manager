@@ -864,6 +864,23 @@ HWTEST_F(SessionStageStubTest, HandleNotifyWindowVisibilityChange, TestSize.Leve
 }
 
 /**
+ * @tc.name: HandleNotifyDpiHookScale
+ * @tc.desc: test function : HandleNotifyDpiHookScale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleNotifyDpiHookScale, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DPI_HOOK_SCALE);
+    data.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data.WriteFloat(1.0f);
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    EXPECT_NE(sessionStageStub_->OnRemoteRequest(code, data, reply, option), ERR_NULL_OBJECT);
+}
+
+/**
  * @tc.name: HandleNotifyWindowOcclusionState
  * @tc.desc: test function : HandleNotifyWindowOcclusionState
  * @tc.type: FUNC

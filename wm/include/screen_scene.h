@@ -41,6 +41,7 @@ public:
 
     void LoadContent(const std::string& contentUrl, napi_env env, napi_value storage,
         AbilityRuntime::Context* context);
+    WMError UpdateRootDisplayDpi(float dpi, const Rect& rect, WindowSizeChangeReason reason) override;
     void UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason reason);
     void UpdateConfiguration(const std::shared_ptr<AppExecFwk::Configuration>& configuration) override;
 

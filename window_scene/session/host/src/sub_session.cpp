@@ -117,12 +117,16 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
     if (moveConfiguration.displayId != DISPLAY_ID_INVALID) {
         SetShouldFollowParentWhenShow(false);
     }
+    const bool isMoveReason = reason == SizeChangeReason::MOVE;
+    const bool isResizeReason = reason == SizeChangeReason::RESIZE ||
+                                reason == SizeChangeReason::RESIZE_BY_LIMIT;
+
     if (IsNeedCrossDisplayRendering()) {
         auto newRequestRect = GetSessionRequestRect();
-        if (reason == SizeChangeReason::MOVE) {
+        if (isMoveReason) {
             newRequestRect.posX_ = rect.posX_;
             newRequestRect.posY_ = rect.posY_;
-        } else if (reason == SizeChangeReason::RESIZE && rect.width_ > 0 && rect.height_ > 0) {
+        } else if (isResizeReason && rect.width_ > 0 && rect.height_ > 0) {
             newRequestRect.width_ = rect.width_;
             newRequestRect.height_ = rect.height_;
         }
@@ -146,18 +150,52 @@ void SubSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason rea
         return;
     }
 
-    if (IsLifecycleForeground() && (reason == SizeChangeReason::MOVE || reason == SizeChangeReason::RESIZE)) {
+    if (IsLifecycleForeground() && (isMoveReason || isResizeReason)) {
         SetOriPosYBeforeRaisedByKeyboard(0);
         const WSRect& winRect = GetSessionRect();
-        if (reason == SizeChangeReason::MOVE && (rect.posX_ != winRect.posX_ || rect.posY_ != winRect.posY_)) {
+        if (isMoveReason && (rect.posX_ != winRect.posX_ || rect.posY_ != winRect.posY_)) {
             isSubWindowResizingOrMoving_ = true;
         }
-        if (reason == SizeChangeReason::RESIZE && (rect.width_ != winRect.width_ || rect.height_ != winRect.height_)) {
+        if (isResizeReason && (rect.width_ != winRect.width_ || rect.height_ != winRect.height_)) {
             isSubWindowResizingOrMoving_ = true;
         }
     }
 
     SceneSession::UpdateSessionRectInner(rect, reason, moveConfiguration);
+}
+
+WSRect SubSession::ConvertToScreenCoordinates(const WSRect& rect)
+{
+    const bool needConvertToScreenCoordinates =
+        (systemConfig_.IsPhoneWindow() || systemConfig_.IsPadWindow()) && !IsFreeMultiWindowMode();
+    if (!needConvertToScreenCoordinates) {
+        return rect;
+    }
+
+    auto mainSession = GetMainSession();
+    if (!mainSession) {
+        return rect;
+    }
+
+    const float floatingScale = mainSession->GetFloatingScale();
+    if (floatingScale == 0.0f) {
+        return rect;
+    }
+
+    // In this mode, the subwindow rect uses the top-left corner of the main window as its origin.
+    // Convert its position to the screen coordinate system.
+    Rect mainGlobalRect;
+    const WMError ret = mainSession->GetGlobalScaledRect(mainGlobalRect);
+    if (ret != WMError::WM_OK) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Failed to get main window global scaled rect, id: %{public}d, ret: %{public}d",
+              GetPersistentId(), ret);
+        return rect;
+    }
+
+    WSRect convertedRect = rect;
+    convertedRect.posX_ = static_cast<int32_t>((rect.posX_ - mainGlobalRect.posX_) / floatingScale);
+    convertedRect.posY_ = static_cast<int32_t>((rect.posY_ - mainGlobalRect.posY_) / floatingScale);
+    return convertedRect;
 }
 
 WSError SubSession::Hide()
@@ -403,8 +441,12 @@ WSError SubSession::RequestUpdateAttachedWindowLimits(int32_t sourcePersistentId
     }
 
     // Sub window: only update own limits
-    TLOGD(WmsLogTag::WMS_LAYOUT, "Sub window id=%{public}d updating limits from source id=%{public}d",
-        GetPersistentId(), sourcePersistentId);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Sub window id=%{public}d updating limits from source id=%{public}d: "
+        "maxW=%{public}u, maxH=%{public}u, minW=%{public}u, minH=%{public}u, pixelUnit=%{public}u, "
+        "densitySnapshot=%{public}f", GetPersistentId(), sourcePersistentId,
+        attachedWindowLimits.maxWidth_, attachedWindowLimits.maxHeight_, attachedWindowLimits.minWidth_,
+        attachedWindowLimits.minHeight_, static_cast<uint32_t>(attachedWindowLimits.pixelUnit_),
+        attachedWindowLimits.vpRatio_);
     const auto& property = GetSessionProperty();
     property->SetAttachedWindowLimits(sourcePersistentId, attachedWindowLimits);
     AttachLimitOptions limitOptions;

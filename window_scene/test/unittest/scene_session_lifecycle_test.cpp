@@ -37,6 +37,14 @@ using namespace testing;
 using namespace testing::ext;
 namespace OHOS {
 namespace Rosen {
+namespace {
+    std::string g_logMsg;
+    void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char *tag,
+        const char *msg)
+    {
+        g_logMsg += msg;
+    }
+}
 class SceneSessionLifecycleTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -271,6 +279,74 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground07, TestSize.Level0)
     MockAccesstokenKit::MockAccessTokenKitRet(-1);
     EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, session->Foreground(property, false));
     MockAccesstokenKit::MockAccessTokenKitRet(0);
+}
+
+/**
+ * @tc.name: Foreground08
+ * @tc.desc: Foreground with isAlreadyShown true and session state is STATE_FOREGROUND
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground08, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "Foreground08";
+    info.bundleName_ = "Foreground08";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_ = property;
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+    session->isActive_ = true;
+    auto result = session->Foreground(property, false, "", true);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: Foreground09
+ * @tc.desc: Foreground with isAlreadyShown true and session state is STATE_CONNECT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground09, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "Foreground09";
+    info.bundleName_ = "Foreground09";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_ = property;
+    session->Session::SetSessionState(SessionState::STATE_CONNECT);
+    session->isActive_ = true;
+    auto result = session->Foreground(property, false, "", true);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: Foreground10
+ * @tc.desc: Foreground with isAlreadyShown false and session state is STATE_FOREGROUND
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
+{
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+
+    SessionInfo info;
+    info.abilityName_ = "Foreground10";
+    info.bundleName_ = "Foreground10";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    session->property_ = property;
+    session->Session::SetSessionState(SessionState::STATE_FOREGROUND);
+    session->Foreground(property, false, "", false);
+    std::string resultLog = "Foreground state invalid! state:";
+    EXPECT_TRUE(g_logMsg.find(resultLog) != std::string::npos);
+ 
+    LOG_SetCallback(nullptr);
 }
 
 /**

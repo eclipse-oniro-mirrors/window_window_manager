@@ -413,16 +413,6 @@ float WindowOption::GetDensity() const
     return density_;
 }
 
-void WindowOption::SetIsDensityFollowHost(bool isDensityFollowHost)
-{
-    isDensityFollowHost_ = isDensityFollowHost;
-}
-
-bool WindowOption::GetIsDensityFollowHost() const
-{
-    return isDensityFollowHost_;
-}
-
 void WindowOption::SetDefaultDensityEnabled(bool defaultDensityEnabled)
 {
     defaultDensityEnabled_ = defaultDensityEnabled;
@@ -501,6 +491,16 @@ void WindowOption::SetIsCrossProcessWindow(bool isCrossProcessWindow)
 bool WindowOption::IsCrossProcessWindow() const
 {
     return isCrossProcessWindow_;
+}
+
+void WindowOption::SetCallerPid(int32_t callerPid)
+{
+    callerPid_ = callerPid;
+}
+
+int32_t WindowOption::GetCallerPid() const
+{
+    return callerPid_;
 }
 } // namespace Rosen
 } // namespace OHOS

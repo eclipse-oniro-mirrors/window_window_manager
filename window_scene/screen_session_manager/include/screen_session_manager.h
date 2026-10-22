@@ -140,7 +140,7 @@ public:
     ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent) override;
     std::vector<uint64_t> FilterMissionIdsBySurfaceNodeIds(const std::vector<uint64_t>& missionIds,
         const std::vector<uint64_t>& surfaceNodeIds);
-    void SetVirtualScreenUser(sptr<ScreenSession> screenSession, int32_t userId);
+    bool SetVirtualScreenUser(ScreenId screenId, int32_t userId);
     ScreenId GetAssociatedScreenId(const VirtualScreenOption& option);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface) override;
     virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface,
@@ -163,6 +163,7 @@ public:
         bool forceMirror = false) override;
     virtual DMError MakeMirrorForRecord(const std::vector<ScreenId>& mainScreenIds,
         std::vector<ScreenId>& mirrorScreenIds, ScreenId& screenGroupId) override;
+    virtual void GetVirtualScreenUser(int32_t& userId, ScreenId screenId);
     virtual DMError QueryMultiScreenCapture(const std::vector<ScreenId>& displayIdList, DMRect& rect) override;
     std::vector<DisplayId> GetAllValidDisplayIds(const std::vector<DisplayId>& displayIds);
     virtual DMError MakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
@@ -301,6 +302,9 @@ public:
     /**
      * On/Off screen
      */
+    bool WakeUpBegin(DisplayId displayId, PowerStateChangeReason reason) override;
+    bool DoWakeUpBegin(DisplayId displayId, PowerStateChangeReason reason);
+    bool WakeUpEnd(DisplayId displayId) override;
     bool WakeUpBegin(PowerStateChangeReason reason) override;
     bool DoWakeUpBegin(PowerStateChangeReason reason);
     bool WakeUpEnd() override;
@@ -308,6 +312,9 @@ public:
     bool SuspendBegin(PowerStateChangeReason reason) override;
     bool DoSuspendBegin(PowerStateChangeReason reason);
     bool SuspendEnd() override;
+    bool SuspendBegin(DisplayId displayId, PowerStateChangeReason reason) override;
+    bool DoSuspendBegin(DisplayId displayId, PowerStateChangeReason reason);
+    bool SuspendEnd(DisplayId displayId) override;
     bool IsPreBright(PowerStateChangeReason reason);
     void BlockScreenOnByCV(void);
     void BlockScreenOffByCV(void);
@@ -320,9 +327,15 @@ public:
     bool DoSetDisplayState(DisplayState state);
     bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason) override;
     bool DoSetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason, bool isApAod = false);
+    bool SetScreenPowerForSpecifiedId(DisplayId displayId, ScreenPowerState state,
+        PowerStateChangeReason reason) override;
+    bool SetDisplayState(DisplayId displayId, DisplayState state) override;
+    bool DoSetDisplayState(DisplayId displayId, DisplayState state);
     ScreenPowerState GetScreenPower(ScreenId screenId) override;
     void NotifyDisplayEvent(DisplayEvent event) override;
     bool NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status, PowerStateChangeReason reason);
+    bool NotifySpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status,
+        PowerStateChangeReason reason);
     bool TryToCancelScreenOff() override;
 
     void DisablePowerOffRenderControl(ScreenId screenId) override;
@@ -383,6 +396,9 @@ public:
     void TriggerDisplayModeUpdate(FoldDisplayMode targetDisplayMode);
     void CallRsSetScreenPowerStatusSync(ScreenId screenId, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
+    void CallRsSetScreenPowerStatusSyncWithFallback(ScreenId screenId, ScreenPowerStatus status,
+        PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
+    void CallRsSetScreenPowerStatusForConcurrent(ScreenId screenId, ScreenPowerStatus status);
     void CallRsSetScreenPowerStatusSyncForFold(ScreenPowerStatus status, bool isApAod = false);
     void TryToRecoverFoldDisplayMode(ScreenPowerStatus status);
     bool GetScreenLcdStatus(ScreenId screenId, PanelPowerStatus& status);
@@ -413,6 +429,8 @@ public:
     void InitExtendScreenDpiOptions();
     void RegisterSettingRotationObserver();
     void NotifyBrightnessInfoChanged(ScreenId screenId, const BrightnessInfo& info);
+    void NotifyBrightnessInfoChangedDefault(ScreenId screenId, const BrightnessInfo& info);
+    void NotifyBrightnessInfoChangedForConcurrrentUser(ScreenId screenId, const BrightnessInfo& info);
 
     void OnConnect(ScreenId screenId) override {}
     void OnDisconnect(ScreenId screenId) override {}
@@ -635,6 +653,11 @@ public:
     // mirror screen
     bool HandleResolutionEffectChange();
     bool RecoveryResolutionEffect();
+    void RecoveryResolutionEffectOnOwnerExit(const std::vector<ScreenId>& screenIds);
+    // Complete the mirror-group teardown for a cast virtual screen whose mirror is ended by a
+    // non-ChangeScreenGroup path (multi-screen mode change); physical screens and non-members
+    // are deliberately untouched.
+    void RemoveScreenFromMirrorGroup(ScreenId screenId);
     bool HandleCastVirtualScreenMirrorRegion();
     bool IsFirstSCBConnect() const;
     void SetFirstSCBConnect(bool firstSCBConnect);
@@ -648,12 +671,16 @@ public:
         int32_t pid;
     };
     const std::map<DisplayId, std::map<int32_t, UserInfo>> GetDisplayConcurrentUserMap() const;
-    int32_t GetForegroundConcurrentUser(DisplayId displayId) const;
+    int32_t GetForegroundConcurrentUser(DisplayId displayId);
     void GetForegroundConcurrentUser(int32_t uid, std::shared_ptr<UserInfo>& uInfo) const;
+    int32_t GetForegroundConcurrentUserWithVirtualScreen(DisplayId displayId);
+    bool IsDisplayAccessAllowed(const DisplayId& displayId);
+    bool CheckVirtualScreenUser(const sptr<ScreenSession>& screenSession, int32_t userId);
     void SetDisplayConcurrentUserMap(DisplayId displayId, int32_t userId, bool isForeground, int32_t pid);
     void RemoveUserByPid(int32_t pid);
     bool CheckPidInDeathPidVector(int32_t pid) const;
     void NotifyRSCoordination(bool isEnterCoordination) const;
+    void NotifyRSCoordination(ScreenId id, bool isEnterCoordination) const;
     void CalculateStartWhenTransferState(sptr<ScreenSession> staticSession, sptr<ScreenSession> dynamicSession,
         uint32_t borderingAreaPercent);
     void AdjustTheBorderingAreaPercent(uint32_t adjacentPercent, uint32_t length, uint32_t& adjacentStart);
@@ -848,6 +875,9 @@ private:
         const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type);
     void NotifyCaptureStatusChanged();
     void NotifyCaptureStatusChanged(bool isCapture);
+    void NotifyCaptureWhenSnapShot(bool isCapture, DisplayId displayId);
+    void NotifyCaptureStatusChangedForDisplay(bool isCapture, DisplayId displayId);
+    void NotifyPrivateWindowStateChangedForDisplay(bool hasPrivate, DisplayId displayId);
     DMError DoMakeMirror(ScreenId mainScreenId, std::vector<ScreenId> mirrorScreenIds,
         DMRect mainScreenRegion, ScreenId& screenGroupId,
         const RotationOption& rotationOption = {Rotation::ROTATION_0, false},
@@ -902,6 +932,7 @@ private:
     DMError ValidateVirtualScreenId(ScreenId screenId);
     void RemoveScreenFromAgentMap(ScreenId screenId);
     void ProcessVirtualScreenDestroy(ScreenId screenId, ScreenId rsScreenId, sptr<ScreenSession> screen);
+    void VirtualScreenDestroyForConcurrentUser(ScreenId screenId);
     void SetMultiScreenRelativePositionInner(sptr<ScreenSession>& firstScreenSession,
         sptr<ScreenSession>& secondScreenSession, MultiScreenPositionOptions mainScreenOptions,
         MultiScreenPositionOptions secondScreenOption);
@@ -921,10 +952,6 @@ private:
 #endif // DEVICE_STATUS_ENABLE
     void NotifyUnfreezed(const std::set<int32_t>& unfreezedPidList, const sptr<ScreenSession>& screenSession);
     void SubmitUnfreezeBatch();
-    void NotifyUnfreezedAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
-        const std::set<DisplayManagerAgentType>& pidAgentTypes, const sptr<ScreenSession>& screenSession);
-    void NotifyUnfreezedAttributeAgents(const int32_t& pid, const std::set<int32_t>& unfreezedPidList,
-        const sptr<ScreenSession>& screenSession);
     int NotifyPowerEventForDualDisplay(DisplayPowerEvent event, EventStatus status,
         PowerStateChangeReason reason);
     bool IsExtendMode();
@@ -938,12 +965,18 @@ private:
      */
     void SetGotScreenOffAndWakeUpBlock();
     void WakeUpPictureFrameBlock(DisplayEvent event);
+    void SetTpFeatureWhenScreenConnect(sptr<ScreenSession> screenSession);
+    void SetTpFeatureWhenScreenDisconnect();
 
     /**
      * multi user concurrency
      */
     bool ActiveUser(int32_t newUserId, int32_t& oldUserId, int32_t newScbPid);
     DisplayId GetUserDisplayId(int32_t targetUserId) const;
+    std::vector<DisplayId> GetUserDisplayIds(int32_t targetUserId) const;
+    DisplayId GetUserDefaultDisplayIdForConcurrentUser(int32_t targetUserId) const;
+    std::vector<DisplayId> GetUserVirtualDisplayIds(int32_t targetUserId) const;
+    DMError DoMakeMirrorConcurrentUserCheck(const ScreenId& mainScreenId, std::vector<ScreenId>& mirrorScreenIds);
 
     void GetRotationCorrectionWhiteListFromDatabase();
     bool GetRotationCorrectionWhiteConfigByBundleName(const std::string& bundleName,
@@ -1144,6 +1177,12 @@ private:
      */
     std::map<DisplayId, std::map<int32_t, UserInfo>> displayConcurrentUserMap_;
     mutable std::mutex displayConcurrentUserMapMutex_;
+
+    std::map<int32_t, std::vector<DisplayId>> concurrentUserVirtualScreenMap_;
+    mutable std::mutex concurrentUserVirtualScreenMapMutex_;
+ 
+    mutable std::mutex saUserVirtualScreensMutex_;
+    std::vector<DisplayId> SAUserVirtualScreens_;
     std::vector<int32_t> deathPidVector_ {};
 
     std::map<int32_t, sptr<IScreenSessionManagerClient>> clientProxyMap_;
@@ -1230,6 +1269,10 @@ private:
     bool dozeNotifyFinish_ = false;
     bool pictureFrameReady_ = false;
     bool pictureFrameBreak_ = false;
+    // Set when a wake-up power event could not be dispatched because screenSessionMap_
+    // was empty (race with screen hot-plug on PC). Checked by OneScreenConnect so the
+    // dropped event can be replayed after the physical screen takes over SCREEN_ID_DEFAULT.
+    std::atomic<bool> wakeupPowerEventDropped_ {false};
 
     std::mutex scbBufferAvailableMutex_;
     std::condition_variable scbBufferAvailableCV_;
@@ -1315,6 +1358,7 @@ private:
     void CallRsSetScreenPowerStatusSyncForExtend(
         const std::vector<ScreenId>& screenIds, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN);
+    bool isNeedSkipPowerOn(ScreenId screenId);
     void SetRsSetScreenPowerStatusSync(std::vector<ScreenId>& screenIds, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
     DisplayState lastDisplayState_ { DisplayState::UNKNOWN };
@@ -1357,7 +1401,7 @@ private:
     LowTempMode lowTemp_ {LowTempMode::UNKNOWN};
     std::mutex lowTempMutex_;
     std::mutex pcModeSwitchMutex_;
-    std::atomic<DisplayGroupId> displayGroupNum_ { 1 };
+    std::atomic<DisplayGroupId> displayGroupNum_ { DISPLAY_GROUP_ID_SECONDARY + 1 };
     std::unordered_map<FoldDisplayMode, int32_t> rotationCorrectionMap_;
     std::shared_mutex ssmRotationCorrectionMutex_;
     std::atomic<bool> firstSCBConnect_ = false;
@@ -1413,10 +1457,12 @@ private:
     // mirror screen
     DMError SyncScreenPropertyChangedToServer(ScreenId screenId, const ScreenProperty& screenProperty) override;
     void HandleResolutionEffectChangeWhenRotate(ScreenPropertyChangeType type, int rotation, ScreenId screenId);
-    void CalculateTargetResolution(const sptr<ScreenSession>& internalSession,
+    // Pure ratio calculation: returns whether the external ratio differs from the internal one
+    // (i.e. the soft resolution is actually needed). Does not touch the effect state.
+    bool CalculateTargetResolution(const sptr<ScreenSession>& internalSession,
         const sptr<ScreenSession>& externalSession, const bool& effectFlag,
         uint32_t& targetWidth, uint32_t& targetHeight);
-    bool SetResolutionEffect(ScreenId screenId,  uint32_t width, uint32_t height);
+    bool SetResolutionEffect(ScreenId screenId, uint32_t width, uint32_t height, bool effectNeeded);
     void RegisterSettingOsSwitchStatusObserver();
     void HandleOsSwitchStatusChange();
     void HandleOsSwitchResolutionStatusChange(const std::string& status);
@@ -1427,7 +1473,22 @@ private:
     void SetInternalScreenResolutionEffect(const sptr<ScreenSession>& internalSession, DMRect& toRect);
     void SetExternalScreenResolutionEffect(const sptr<ScreenSession>& externalSession, DMRect& toRect);
     void GetCastVirtualMirrorSession(sptr<ScreenSession>& virtualSession);
+    void GetMirrorExternalSession(sptr<ScreenSession>& externalSession);
+    bool IsActiveMirrorTarget(const sptr<ScreenSession>& screenSession);
+    // Resolution-effect bookkeeping: the two members below form ONE logical state and must only
+    // be touched through the Mark*/Is*/Get* helpers, never directly.
+    // Invariant at rest: enabled == true  <=>  ownerId is the mirror target (physical external or
+    // cast virtual screen, sms id) the effect is currently keyed on;
+    //                    enabled == false <=>  ownerId == SCREEN_ID_INVALID.
+    // The owner id is compared against exiting screen ids on mirror-exit hooks instead of probing
+    // mirror state, which is spread across per-screen and group fields no single path maintains.
+    bool IsResolutionEffectActive() const;
+    ScreenId GetResolutionEffectOwner() const;
+    bool IsResolutionEffectOwnedByAnyOf(const std::vector<ScreenId>& screenIds) const;
+    void MarkResolutionEffectApplied(ScreenId ownerId);
+    void MarkResolutionEffectIdle();
     std::atomic<bool> curResolutionEffectEnable_ = false;
+    std::atomic<ScreenId> resolutionEffectOwnerId_ { SCREEN_ID_INVALID };
     void SetOptionConfig(ScreenId screenId, VirtualScreenOption option);
     void InitScreenActiveModeRectMap();
     void SetScreenSessionScale(const sptr<ScreenSession>& screenSession, float scaleX, float scaleY);
@@ -1438,12 +1499,16 @@ private:
     void ScreenDisconnectWakeUpDevice();
     DMError SetFoldDisplayModeForSuperMultiDevice(const FoldDisplayMode displayMode, std::string& reason);
 
+    void NotifyWMSScreenConnected(int32_t userId, DisplayId defaultId, bool isColdStart);
+
     // custom resolution
     void RegisterSettingCustomResolutionObserver();
     void HandleCustomResolutionChange();
     void SetCustomResolutionEffect(ScreenId screenId, uint32_t width, uint32_t height);
     void RecoveryCustomResolutionEffect();
     void RestoreCustomResolution();
+    ScreenPowerState GetFoldScreenPowerState();
+
     uint32_t customResolutionWidth_ = 0;
     uint32_t customResolutionHeight_ = 0;
 

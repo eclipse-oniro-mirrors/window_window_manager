@@ -117,7 +117,7 @@ using RequestVsyncFunc = std::function<void(const std::shared_ptr<VsyncCallback>
 using NotifyWindowMovingFunc = std::function<void(DisplayId displayId, int32_t pointerX, int32_t pointerY)>;
 using UpdateTransitionAnimationFunc = std::function<void(WindowTransitionType type, TransitionAnimation animation)>;
 using NofitySessionLabelAndIconUpdatedFunc = std::function<void(const std::string& label,
-    const std::shared_ptr<Media::PixelMap>& icon, const std::string& updatedIconPath)>;
+    const std::shared_ptr<Media::PixelMap>& icon, const std::string& updatedIconPath, const std::string& groupId)>;
 using NotifySessionGetTargetOrientationConfigInfoFunc = std::function<void(uint32_t targetOrientation)>;
 using NotifyKeyboardStateChangeFunc = std::function<void(SessionState state, const KeyboardEffectOption& effectOption,
     const uint32_t callingSessionId, const DisplayId targetDisplayId)>;
@@ -224,7 +224,7 @@ public:
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         int32_t pid = -1, int32_t uid = -1, const std::string& identityToken = "") REQUIRES(SCENE_GUARD);
     WSError Foreground(sptr<WindowSessionProperty> property, bool isFromClient = false,
-        const std::string& identityToken = "") override;
+        const std::string& identityToken = "", bool isAlreadyShown = false) override;
     WSError Background(bool isFromClient = false, const std::string& identityToken = "",
         bool isFromInnerkits = false) override;
     WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
@@ -232,9 +232,11 @@ public:
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError DrawingCompleted() override;
+    WSError StartWithSnapshot() override;
     void ResetSessionConnectState() REQUIRES(SCENE_GUARD);
     void ResetIsActive();
-    WSError PendingSessionToForeground();
+    void SetIsGamePrelaunch(bool isGamePrelaunch);
+    WSError PendingSessionToForeground(SessionInfo& info);
     WSError PendingSessionToBackground(const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(bool shouldBackToCaller,
         LifeCycleChangeReason reason = LifeCycleChangeReason::DEFAULT);
@@ -289,7 +291,7 @@ public:
     void NotifyRemoveBlank();
     void NotifyAddSnapshot(bool useFfrt = false, bool needPersist = false, bool needSaveSnapshot = true,
         std::function<void()>&& callback = nullptr);
-    void NotifyRemoveSnapshot();
+    void NotifyRemoveSnapshot(bool forceRemove = false);
     void NotifyUpdateSnapshotWindow();
     void NotifyPreLoadStartingWindowFinished();
     void NotifyRestart();
@@ -382,6 +384,7 @@ public:
      */
     std::shared_ptr<Media::PixelMap> Snapshot() const;
     std::shared_ptr<Media::PixelMap> Snapshot(const SnapshotOptions& options) const;
+    virtual bool CheckAndGetRogScale(float& scale) const { return false; }
     void ResetSnapshot();
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
@@ -415,6 +418,8 @@ public:
     };
     bool GetAppLockControl() const { return isAppLockControl_.load(); };
     void SetAppLockControl(bool control) { isAppLockControl_.store(control); };
+    bool GetStartWithSnapshot() const { return startWithSnapshot_.load(); }
+    void SetStartWithSnapshot(bool startWithSnapshot) { startWithSnapshot_.store(startWithSnapshot); }
     void SetSaveSnapshotCallback(Task&& task)
     {
         if (task) {
@@ -520,9 +525,12 @@ public:
     bool IsDraggingReason(SizeChangeReason reason) const;
     virtual WSError UpdateRect(const WSRect& rect, SizeChangeReason reason,
         const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr);
-    virtual WSError UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+    WSError UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeReason reason,
         const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {});
+    virtual WSError UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+        const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
+        const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {}, bool onlyUpdateAvoidArea = false);
     void IsNeedNotifySubSessionParentSizeChange(const WSRect& rect);
     virtual void NotifySubSessionParentSizeChange(Rect rect){};
     virtual void NotifySubSessionParentStatusChange(WindowMode mode){};
@@ -694,6 +702,7 @@ public:
     bool IsSystemSession() const;
     bool IsTerminated() const;
     bool IsLifecycleForeground() const;
+    bool IsForegroundPreState() const;
     bool IsSessionNotBackground() const;
     virtual bool IsAnco() const { return false; }
     virtual void SetBlank(bool isAddBlank) {}
@@ -706,6 +715,7 @@ public:
     int32_t GetAppIndex() const;
     void SetCallingPid(int32_t id) REQUIRES(SCENE_GUARD);
     void SetCallingUid(int32_t id);
+    void SetPendingAppHookDisplayInfo(const HookInfo& hookInfo, bool enable);
     int32_t GetCallingPid() const;
     int32_t GetCallingUid() const;
     void SetAbilityToken(sptr<IRemoteObject> token);
@@ -716,6 +726,7 @@ public:
     void SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdChangeFunc&& func);
     void SetSceneLastUsedPosition(const std::string& position);
     const std::string GetSceneLastUsedPosition() const;
+    void UpdateCallerPersistentId(int32_t callerPersistentId);
 
     /*
      * Window ZOrder
@@ -836,6 +847,7 @@ public:
      * Starting Window
      */
     WSError RemoveStartingWindow() override;
+    WSError RemoveStartingWindow(std::string& errMsg) override;
     void SetEnableRemoveStartingWindow(bool enableRemoveStartingWindow);
     bool GetEnableRemoveStartingWindow() const;
     void SetAppBufferReady(bool appBufferReady);
@@ -1001,7 +1013,7 @@ public:
     /*
      * RS Client Multi Instance
      */
-    std::shared_ptr<RSUIContext> GetRSUIContext(const char* caller = "");
+    virtual std::shared_ptr<RSUIContext> GetRSUIContext(const char* caller = "");
 
     /*
      * Window highligt outline
@@ -1358,6 +1370,15 @@ private:
     WSRect preRect_;
     int32_t callingPid_ = -1;
     int32_t callingUid_ = -1;
+    std::mutex pendingAppHookDisplayInfoMutex_;
+    HookInfo pendingAppHookDisplayInfo_;
+    bool pendingAppHookDisplayInfoEnable_ = false;
+    bool hasPendingAppHookDisplayInfo_ = false;
+
+    // Indicates whether the game prelaunch display hook has been successfully set
+    // for this session and has not yet been cleared.
+    bool prelaunchDisplayHookEnabled_ = false;
+
     int32_t appIndex_ = { 0 };
     std::string callingBundleName_ { "unknown" };
     std::string sceneLastUsedPosition_;
@@ -1422,14 +1443,29 @@ private:
     void HandleInitialRect(const PrelayoutContext& ctx);
 
     /**
-     * @brief Apply prelayout display info to application via hook.
+     * @brief Apply the prelayout display info for game prelaunch.
      *
-     * Updates display parameters (size, density, rotation) when prelayout is enabled
-     * and hook function is available.
+     * Hooks the display size, density, and rotation for the application UID
+     * when prelayout is enabled, allowing the application to obtain the expected
+     * display information during background prelaunch. A successful update is
+     * recorded so the hook can be cleared when game prelaunch ends.
      *
      * @param ctx Prelayout context containing display info.
+     * @return true if the display hook is enabled successfully; otherwise false.
      */
-    void HandleHookDisplay(const PrelayoutContext& ctx);
+    bool HandlePrelaunchDisplayHook(const PrelayoutContext& ctx);
+
+    /**
+     * @brief Clear the display hook installed for game prelaunch.
+     *
+     * Disables the display hook for the application UID so subsequent display
+     * queries return the real display information.
+     *
+     * @return true if the display hook is cleared successfully; otherwise false.
+     */
+    bool ClearPrelaunchDisplayHook();
+
+    void NotifyPendingAppHookDisplayInfo();
 
     std::optional<bool> clientDragEnable_;
     uint32_t dragActivatedBitmap_ = DRAG_ACTIVATE_ALL_MASK;
@@ -1457,6 +1493,7 @@ private:
     /*
      * Window Pattern
      */
+    std::atomic<bool> startWithSnapshot_ { false };
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
     std::atomic<bool> preloadingStartingWindow_ { false };

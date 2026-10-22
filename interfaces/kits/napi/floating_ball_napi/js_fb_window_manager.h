@@ -17,7 +17,7 @@
 
 #include "js_runtime_utils.h"
 #include "window_histogram_management.h"
-
+#include "floating_ball_controller.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -33,6 +33,8 @@ private:
     napi_value OnCreateFbController(napi_env env, napi_callback_info info);
     napi_value NapiSendTask(napi_env env, void* contextPtr);
     napi_value OnIsFbEnabled(napi_env env, napi_callback_info info);
+    WmErrorCode ValidateAndSetupMainWindow(void* contextPtr,
+        const sptr<FloatingBallController>& fbController, std::string& errMsg);
 };
 }
 }

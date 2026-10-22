@@ -883,7 +883,7 @@ bool BaseAdapter::InitDMSProxy()
         return false;
     }
 
-    sptr<IRemoteObject> remoteObject = systemAbilityManager->GetSystemAbility(DISPLAY_MANAGER_SERVICE_SA_ID);
+    sptr<IRemoteObject> remoteObject = systemAbilityManager->CheckSystemAbility(DISPLAY_MANAGER_SERVICE_SA_ID);
     if (!remoteObject) {
         TLOGE(WmsLogTag::DMS, "Failed to get display manager service.");
         return false;

@@ -192,6 +192,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
         case static_cast<uint32_t>(
             SceneSessionManagerLiteMessage::TRANS_ID_PENDING_SESSION_TO_BACKGROUND_BY_PERSISTENTID):
             return HandlePendingSessionToBackgroundByPersistentId(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_RESTORE_SESSION_TO_FOREGROUND):
+            return HandleRestoreSessionToForeground(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_CREATE_NEW_INSTANCE_KEY):
             return HandleCreateNewInstanceKey(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_ROUTER_STACK_INFO):
@@ -227,6 +229,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
         case static_cast<uint32_t>(
             SceneSessionManagerLiteMessage::TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME):
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_ROG_WINDOW_CONFIG):
+            return HandleUpdateRogWindowConfig(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1802,6 +1806,20 @@ int SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(
     return ERR_NONE;
 }
 
+int SceneSessionManagerLiteStub::HandleRestoreSessionToForeground(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    int32_t persistentId;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "read persistentId failed");
+        return ERR_INVALID_DATA;
+    }
+    WSErrorResult result = RestoreSessionToForeground(persistentId);
+    reply.WriteInt32(static_cast<int32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
+    return ERR_NONE;
+}
+
 int SceneSessionManagerLiteStub::HandleCreateNewInstanceKey(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "in");
@@ -1894,7 +1912,18 @@ int SceneSessionManagerLiteStub::HandleEnterKioskMode(MessageParcel& data, Messa
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to read token");
         return ERR_INVALID_DATA;
     }
-    WMError ret = EnterKioskMode(token);
+    int32_t kioskTypeValue = 0;
+    if (!data.ReadInt32(kioskTypeValue)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "read kioskTypeValue failed");
+        return ERR_INVALID_DATA;
+    }
+    if (kioskTypeValue < static_cast<int32_t>(KioskType::DEFAULT) ||
+        kioskTypeValue >= static_cast<int32_t>(KioskType::END)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Invalid kioskType");
+        return ERR_INVALID_DATA;
+    }
+    auto kioskType = static_cast<KioskType>(kioskTypeValue);
+    WMError ret = EnterKioskMode(token, kioskType);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write ret failed");
         return ERR_INVALID_DATA;
@@ -2082,6 +2111,26 @@ int SceneSessionManagerLiteStub::HandleGetAppWindowShowingInfosByBundleName(Mess
                 return ERR_INVALID_DATA;
             }
         }
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleUpdateRogWindowConfig(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "in");
+    RogWindowConfig windowConfig;
+    if (!data.ReadUint32(windowConfig.width) ||
+        !data.ReadUint32(windowConfig.height) ||
+        !data.ReadUint32(windowConfig.dpi) ||
+        !data.ReadFloat(windowConfig.scale) ||
+        !data.ReadStringVector(&windowConfig.xhdpiAppList)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "read windowConfig failed");
+        return ERR_INVALID_DATA;
+    }
+    WMError ret = UpdateRogWindowConfig(windowConfig);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "write ret failed");
+        return ERR_INVALID_DATA;
     }
     return ERR_NONE;
 }

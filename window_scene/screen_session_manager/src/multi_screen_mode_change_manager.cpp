@@ -342,10 +342,19 @@ void MultiScreenModeChangeManager::ScreenChangeToMirrorMode(sptr<IScreenSessionM
 void MultiScreenModeChangeManager::ScreenChangeToExtendMode(sptr<IScreenSessionManagerClient> ssmClient,
     sptr<ScreenSession>& screenSession)
 {
-    /* step1: create external screen mirror */
+    /* step1: exit the mirror group first if the screen is still a member: RemoveChild releases
+     * the mirror display node and CreateExtendSession below rebuilds it in expand mode, the
+     * same order ChangeScreenGroup uses. Without this the group keeps reporting mirror after
+     * the mode change and the resolution-effect re-evaluation at its end still sees the screen
+     * as an active mirror target. */
+    if (screenSession != nullptr) {
+        ScreenSessionManager::GetInstance().RemoveScreenFromMirrorGroup(screenSession->GetScreenId());
+    }
+
+    /* step2: create external screen extend session */
     MultiScreenChangeUtils::CreateExtendSession(screenSession);
 
-    /* step2: notify client external screen connect */
+    /* step3: notify client external screen connect */
     MultiScreenChangeUtils::ScreenConnectionChange(ssmClient, screenSession, ScreenEvent::CONNECTED);
 }
 

@@ -84,6 +84,18 @@ public:
     using UserSwitchCallbackFunc = std::function<void()>;
     void RegisterUserSwitchListener(const UserSwitchCallbackFunc& callbackFunc);
 
+    using UserAddedCallbackFunc = std::function<void(int32_t userId)>;
+    void RegisterUserAddedListener(const UserAddedCallbackFunc& callbackFunc);
+
+    using UserRemovedCallbackFunc = std::function<void(int32_t userId)>;
+    void RegisterUserRemovedListener(const UserRemovedCallbackFunc& callbackFunc);
+
+    /*
+     * Active User IDs Management
+     */
+    void GetActiveUserIds(std::vector<int32_t>& userIds);
+    void UpdateActiveUserIds(int32_t userId, bool isConnected);
+
     /*
      * Window Recover
      */
@@ -104,6 +116,9 @@ private:
     void InitSessionManagerServiceProxy();
     WMError InitMockSMSProxy();
     void InitSceneSessionManagerProxy();
+    
+    void InitializeActiveUserIds();
+    void SetAllActiveUserIds(const std::vector<int32_t>& userIds);
 
     /*
      * Window Recover
@@ -138,6 +153,10 @@ private:
     static std::unordered_map<int32_t, sptr<SessionManager>> sessionManagerMap_;
     static std::mutex sessionManagerMapMutex_;
 
+    static std::unordered_set<int32_t> activeUserIds_;
+    static std::mutex activeUserIdsMutex_;
+    static bool activeUserIdsInitialized_;
+    
     struct ScreenUserInfo {
         int32_t userId;
         int32_t screenId;
@@ -146,12 +165,18 @@ private:
 
     UserSwitchCallbackFunc userSwitchCallbackFunc_ = nullptr;
     std::mutex userSwitchCallbackFuncMutex_;
+
+    UserAddedCallbackFunc userAddedCallbackFunc_ = nullptr;
+    std::mutex userAddedCallbackFuncMutex_;
+
+    UserRemovedCallbackFunc userRemovedCallbackFunc_ = nullptr;
+    std::mutex userRemovedCallbackFuncMutex_;
+
     std::mutex wmsConnectionMutex_;
     bool isWMSConnected_ = false;
     ScreenUserInfo currentServer_ = { INVALID_USER_ID, INVALID_SCREEN_ID_INT32, INVALID_PID };
     WMSConnectionChangedCallbackFunc wmsConnectionChangedFunc_ = nullptr;
-    // above guarded by wmsConnectionMutex_, among OnWMSConnectionChanged for wms connection event, user switched,
-    // register WMSConnectionChangedListener.
+    // above guarded by wmsConnectionMutex_
 };
 } // namespace OHOS::Rosen
 

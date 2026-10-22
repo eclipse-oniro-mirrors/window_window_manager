@@ -157,6 +157,36 @@ std::optional<bool> GetOptionalBoolProp(ani_env* env, ani_object aniObject, cons
     return static_cast<bool>(boolValue);
 }
 
+std::shared_ptr<bool> GetOptionalSharedBoolProp(ani_env* env, ani_object aniObject, const char* propName)
+{
+    RETURN_IF_NULL(env, nullptr);
+    RETURN_IF_NULL(aniObject, nullptr);
+    RETURN_IF_NULL(propName, nullptr);
+
+    ani_ref propRef = nullptr;
+    ani_status status = env->Object_GetPropertyByName_Ref(aniObject, propName, &propRef);
+    if (status != ANI_OK) {
+        return nullptr;
+    }
+
+    ani_boolean isUndefined = ANI_TRUE;
+    if (env->Reference_IsUndefined(propRef, &isUndefined) != ANI_OK || isUndefined) {
+        return nullptr;
+    }
+
+    ani_boolean boolValue = ANI_FALSE;
+    ani_status boolStatus = env->Object_CallMethodByName_Boolean(static_cast<ani_object>(propRef), "toBoolean", ":z",
+        &boolValue);
+    if (boolStatus != ANI_OK) {
+        boolStatus = env->Object_GetPropertyByName_Boolean(aniObject, propName, &boolValue);
+        if (boolStatus != ANI_OK) {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] Failed to convert %{public}s to boolean.", propName);
+            return nullptr;
+        }
+    }
+    return std::make_shared<bool>(static_cast<bool>(boolValue));
+}
+
 std::string GetAnimationCurveItemName(WindowAnimationCurve curve)
 {
     std::string name = "LINEAR";
@@ -679,28 +709,22 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
     } else {
         TLOGW(WmsLogTag::WMS_ANIMATION, "[ANI] There is no systemAnimationParams.");
     }
-    ani_ref aniNeedAnimation = nullptr;
-    ani_status status = env->Object_GetPropertyByName_Ref(aniObject, "needAnimation", &aniNeedAnimation);
-    if (status == ANI_OK) {
-        ani_boolean isUndefined = true;
-        if (env->Reference_IsUndefined(aniNeedAnimation, &isUndefined) == ANI_OK && !isUndefined) {
-            ani_boolean isNeeded = false;
-            ani_status boolStatus = env->Object_CallMethodByName_Boolean(static_cast<ani_object>(aniNeedAnimation),
-                "toBoolean", ":z", &isNeeded);
-            if (boolStatus != ANI_OK) {
-                boolStatus = env->Object_GetPropertyByName_Boolean(aniObject, "needAnimation", &isNeeded);
-            }
-            if (boolStatus == ANI_OK) {
-                windowCreateParams.needAnimation = std::make_shared<bool>(static_cast<bool>(isNeeded));
-            }
-        }
-    }
+    windowCreateParams.needAnimation = GetOptionalSharedBoolProp(env, aniObject, "needAnimation");
     if (isSystemCalling) {
         windowCreateParams.isWindowLimitsForcible =
             GetOptionalBoolProp(env, aniObject, "isWindowLimitsForcible").value_or(false);
     } else {
         windowCreateParams.isWindowLimitsForcible = false;
     }
+
+    windowCreateParams.minimizeOnStart =
+        GetOptionalBoolProp(env, aniObject, "minimizeOnStart").value_or(false);
+
+    windowCreateParams.excludeFromDock =
+        GetOptionalSharedBoolProp(env, aniObject, "excludeFromDock");
+
+    windowCreateParams.excludeFromRecent =
+        GetOptionalSharedBoolProp(env, aniObject, "excludeFromRecent");
     return true;
 }
 

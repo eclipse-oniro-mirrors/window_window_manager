@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import pip from '@ohos.pip';
+import pip from '@ohos.PiPWindow';
 
 const TAG: string = 'WebPiPContent';
 

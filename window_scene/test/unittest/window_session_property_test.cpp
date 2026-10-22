@@ -1323,6 +1323,7 @@ HWTEST_F(WindowSessionPropertyTest, Read, TestSize.Level1)
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_MODE);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_DECOR_ENABLE);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
     property->Read(parcel, WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
@@ -1367,6 +1368,7 @@ HWTEST_F(WindowSessionPropertyTest, Write, TestSize.Level1)
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_MODE);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_ANIMATION_FLAG);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_DECOR_ENABLE);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
     property->Write(parcel, WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
@@ -2096,6 +2098,58 @@ HWTEST_F(WindowSessionPropertyTest, SetCombinedCompatibleConfig, TestSize.Level1
     EXPECT_EQ(result.size(), config.size());
     bool isEqual = std::equal(result.begin(), result.end(), config.begin());
     EXPECT_TRUE(isEqual);
+}
+
+/**
+ * @tc.name: SetHookSceneMessage
+ * @tc.desc: SetHookSceneMessage and GetHookSceneMessage
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, SetHookSceneMessage, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    EXPECT_TRUE(property->GetHookSceneMessage().empty());
+    std::string hookSceneMessage = "hookSceneMessage";
+    property->SetHookSceneMessage(hookSceneMessage);
+    EXPECT_EQ(property->GetHookSceneMessage(), hookSceneMessage);
+    property->SetHookSceneMessage("");
+    EXPECT_TRUE(property->GetHookSceneMessage().empty());
+}
+
+/**
+ * @tc.name: HookSceneMessageMarshalling
+ * @tc.desc: hookSceneMessage round-trip through Marshalling and Unmarshalling
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, HookSceneMessageMarshalling, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    std::string hookSceneMessage = "hookSceneMessage";
+    property->SetHookSceneMessage(hookSceneMessage);
+    Parcel parcel = Parcel();
+    ASSERT_TRUE(property->Marshalling(parcel));
+    sptr<WindowSessionProperty> property2 = property->Unmarshalling(parcel);
+    ASSERT_NE(nullptr, property2);
+    EXPECT_EQ(property2->GetHookSceneMessage(), hookSceneMessage);
+}
+
+/**
+ * @tc.name: HookSceneMessageCopyFrom
+ * @tc.desc: hookSceneMessage is copied by CopyFrom
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionPropertyTest, HookSceneMessageCopyFrom, TestSize.Level1)
+{
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property);
+    std::string hookSceneMessage = "hookSceneMessage";
+    property->SetHookSceneMessage(hookSceneMessage);
+    sptr<WindowSessionProperty> property2 = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(nullptr, property2);
+    property2->CopyFrom(property);
+    EXPECT_EQ(property2->GetHookSceneMessage(), hookSceneMessage);
 }
 
 /**

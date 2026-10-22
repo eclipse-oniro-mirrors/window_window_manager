@@ -32,6 +32,7 @@ namespace OHOS {
 namespace Rosen {
 const std::string SYSTEM_AVOID_AREA_CHANGE_CB = "systemAvoidAreaChange";
 const std::string AVOID_AREA_CHANGE_CB = "avoidAreaChange";
+const std::string WINDOW_FOCUS_STATE_CHANGE_CB = "windowFocusStateChange";
 
 class JsWindowListener : public IAvoidAreaChangedListener {
 public:

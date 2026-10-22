@@ -59,6 +59,7 @@ public:
     WSError NotifyWindowOcclusionState(const WindowVisibilityState state) override;
     WSError UpdateWindowMode(const WindowModeInfo& windowModeInfo) override;
     WSError GetTopNavDestinationName(std::string& topNavDestName) override;
+    WSError NotifyDpiHookScale(float scale) override;
     WSError NotifyLayoutFinishAfterWindowModeChange(WindowMode mode) override;
     WSError NotifySubWindowAfterParentWindowSizeChange(Rect rect) override;
     WSError NotifySubWindowAfterParentWindowStatusChange(WindowMode mode, MaximizeMode maximizeMode,
@@ -68,7 +69,7 @@ public:
     WSError UpdateMaximizeMode(MaximizeMode mode) override;
     void NotifySessionForeground(uint32_t reason, bool withAnimation) override;
     void NotifySessionBackground(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
-    WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue) override;
+    WSError NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue) override;
     WSError UpdateTitleInTargetPos(bool isShow, int32_t height) override;
     void NotifyTransformChange(const Transform& transform) override;
     void NotifySingleHandTransformChange(const SingleHandTransform& singleHandTransform) override;

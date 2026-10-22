@@ -22,9 +22,15 @@
 namespace OHOS::Rosen {
 ani_status AniErrUtils::ThrowBusinessError(ani_env* env, WMError error, std::string message)
 {
-    ani_object aniError;
-    CreateBusinessError(env, static_cast<int32_t>(error), message == "" ? GetErrorMsg(error) : message, &aniError);
-    ani_status status = env->ThrowError(static_cast<ani_error>(aniError));
+    ani_object aniError = nullptr;
+    ani_status status = CreateBusinessError(env, static_cast<int32_t>(error),
+                                            message == "" ? GetErrorMsg(error) : message,
+                                            &aniError);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] fail to create error, status:%{public}d", static_cast<int32_t>(status));
+        return status;
+    }
+    status = env->ThrowError(static_cast<ani_error>(aniError));
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] fail to throw err, status:%{public}d", static_cast<int32_t>(status));
         return status;
@@ -34,9 +40,15 @@ ani_status AniErrUtils::ThrowBusinessError(ani_env* env, WMError error, std::str
 
 ani_status AniErrUtils::ThrowBusinessError(ani_env* env, WmErrorCode error, std::string message)
 {
-    ani_object aniError;
-    CreateBusinessError(env, static_cast<int32_t>(error), message == "" ? GetErrorMsg(error) : message, &aniError);
-    ani_status status = env->ThrowError(static_cast<ani_error>(aniError));
+    ani_object aniError = nullptr;
+    ani_status status = CreateBusinessError(env, static_cast<int32_t>(error),
+                                            message == "" ? GetErrorMsg(error) : message,
+                                            &aniError);
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] fail to create error, status:%{public}d", static_cast<int32_t>(status));
+        return status;
+    }
+    status = env->ThrowError(static_cast<ani_error>(aniError));
     if (status != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] fail to throw err, status:%{public}d", static_cast<int32_t>(status));
         return status;

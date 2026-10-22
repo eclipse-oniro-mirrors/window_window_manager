@@ -396,6 +396,7 @@ WmErrorCode JsExtensionWindowRegisterManager::AtomicServiceUnregisterListener(sp
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     if (value == nullptr) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto it = jsCbMap_[type].begin(); it != jsCbMap_[type].end();) {
             WmErrorCode ret = ProcessRegister(caseType, it->second, window, type, false);
             if (ret != WmErrorCode::WM_OK) {
@@ -448,6 +449,7 @@ WmErrorCode JsExtensionWindowRegisterManager::UnregisterListener(sptr<Window> wi
         return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
     }
     if (value == nullptr) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto it = jsCbMap_[type].begin(); it != jsCbMap_[type].end();) {
             WmErrorCode ret = ProcessRegister(caseType, it->second, window, type, false);
             if (ret != WmErrorCode::WM_OK) {

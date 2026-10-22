@@ -40,6 +40,7 @@ public:
         ani_long displayId, ani_int excludeWindowId);
     static void ShiftAppWindowFocus(ani_env* env, ani_long nativeObj,
         ani_int sourceWindowId, ani_int targetWindowId);
+    static void SetWindowPosition(ani_env* env, ani_long nativeObj, ani_object list);
     static ani_object GetAllMainWindowInfo(ani_env* env, ani_long nativeObj, ani_object context);
     static ani_object GetMainWindowSnapshot(
         ani_env* env, ani_long nativeObj, ani_object windowId, ani_object config);
@@ -78,6 +79,7 @@ private:
     ani_ref OnFindWindow(ani_env* env, ani_string windowName);
     void OnMinimizeAll(ani_env* env, ani_long displayId, ani_int excludeWindowId = 0);
     void OnShiftAppWindowFocus(ani_env* env, ani_int sourceWindowId, ani_int targetWindowId);
+    void OnSetWindowPosition(ani_env* env, ani_object list);
     ani_object GetTopWindowTask(ani_env* env, void* contextPtr, bool newApi);
     ani_object OnGetAllMainWindowInfo(ani_env* env, ani_object context);
     ani_object OnGetMainWindowSnapshot(

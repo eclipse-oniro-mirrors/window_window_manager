@@ -55,7 +55,8 @@ public:
         sptr<WindowSessionProperty> property = nullptr, sptr<IRemoteObject> token = nullptr,
         const std::string& identityToken = "") { return WSError::WS_OK; }
     virtual WSError Foreground(
-        sptr<WindowSessionProperty> property, bool isFromClient = false, const std::string& identityToken = "") = 0;
+        sptr<WindowSessionProperty> property, bool isFromClient = false, const std::string& identityToken = "",
+        bool isAlreadyShown = false) = 0;
     virtual WSError Background(bool isFromClient = false, const std::string& identityToken = "",
         bool isFromInnerkits = false) = 0;
     virtual WSError Disconnect(bool isFromClient = false, const std::string& identityToken = "",
@@ -63,7 +64,9 @@ public:
     virtual WSError Show(sptr<WindowSessionProperty> property) = 0;
     virtual WSError Hide() = 0;
     virtual WSError DrawingCompleted() = 0;
+    virtual WSError StartWithSnapshot() = 0;
     virtual WSError RemoveStartingWindow() = 0;
+    virtual WSError RemoveStartingWindow(std::string& errMsg) = 0;
 
     // scene session
     /**
@@ -555,7 +558,7 @@ public:
      * @scene 15
      */
     virtual WSError SetSessionLabelAndIcon(const std::string& label,
-        const std::shared_ptr<Media::PixelMap>& icon) { return WSError::WS_OK; }
+        const std::shared_ptr<Media::PixelMap>& icon, const std::string& groupId = "") { return WSError::WS_OK; }
 
     virtual WSError ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption) { return WSError::WS_OK; };
 

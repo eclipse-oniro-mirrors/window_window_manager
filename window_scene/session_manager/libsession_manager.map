@@ -16,6 +16,9 @@
         extern "C++" {
             OHOS::Rosen::SessionManager::GetInstance*;
             OHOS::Rosen::SessionManager::RegisterUserSwitchListener*;
+            OHOS::Rosen::SessionManager::RegisterUserAddedListener*;
+            OHOS::Rosen::SessionManager::RegisterUserRemovedListener*;
+            OHOS::Rosen::SessionManager::GetActiveUserIds*;
             OHOS::Rosen::SessionManager::GetSceneSessionManagerProxy*;
             OHOS::Rosen::SessionManager::RegisterWMSConnectionChangedListener*;
             OHOS::Rosen::SessionManager::UnregisterWMSConnectionChangedListener*;

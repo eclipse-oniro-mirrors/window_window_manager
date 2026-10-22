@@ -45,6 +45,7 @@ ohos_shared_library("pipwindow_kit") {
   ]
 
   deps = [
+    "inner:pip_napi",
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",
     "../../../../wm:libwm",

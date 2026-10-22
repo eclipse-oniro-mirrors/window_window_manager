@@ -338,11 +338,15 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     {
         return WMError::WM_OK;
     }
-    WMError EnterKioskMode(const sptr<IRemoteObject>& token) override
+    WMError EnterKioskMode(const sptr<IRemoteObject>& token, KioskType kioskType = KioskType::DEFAULT) override
     {
         return WMError::WM_OK;
     }
     WMError ExitKioskMode(const sptr<IRemoteObject>& token) override
+    {
+        return WMError::WM_OK;
+    }
+    WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override
     {
         return WMError::WM_OK;
     }
@@ -1670,6 +1674,7 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleEnterKioskMode, Function | Small
     MessageParcel reply;
     const sptr<IRemoteObject> token = sptr<MockIRemoteObject>::MakeSptr();
     data.WriteRemoteObject(token);
+    data.WriteInt32(0);
     auto res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandleEnterKioskMode(data, reply);
     EXPECT_EQ(ERR_NONE, res);
@@ -1989,6 +1994,117 @@ HWTEST_F(SceneSessionManagerLiteStubTest,
     data.WriteString("com.test.app");
     data.WriteInt32(0);
     EXPECT_EQ(sceneSessionManagerLiteStub_->HandleGetAppWindowShowingInfosByBundleName(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateRogWindowConfig_Success
+ * @tc.desc: Test HandleUpdateRogWindowConfig with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateRogWindowConfig_Success, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.app1", "com.test.app2"};
+    windowConfig.width = 1920;
+    windowConfig.height = 1080;
+    windowConfig.dpi = 480;
+    windowConfig.scale = 1.5f;
+    data.WriteUint32(windowConfig.width);
+    data.WriteUint32(windowConfig.height);
+    data.WriteUint32(windowConfig.dpi);
+    data.WriteFloat(windowConfig.scale);
+    data.WriteStringVector(windowConfig.xhdpiAppList);
+    int res = sceneSessionManagerLiteStub_->HandleUpdateRogWindowConfig(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t ret = 0;
+    EXPECT_TRUE(reply.ReadInt32(ret));
+    EXPECT_EQ(static_cast<WMError>(ret), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: HandleUpdateRogWindowConfig_ReadParcelableFailed
+ * @tc.desc: Test HandleUpdateRogWindowConfig when ReadParcelable failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateRogWindowConfig_ReadParcelableFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleUpdateRogWindowConfig(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateRogWindowConfig02
+ * @tc.desc: Test HandleUpdateRogWindowConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateRogWindowConfig02, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    RogWindowConfig windowConfig;
+    windowConfig.xhdpiAppList = {"com.test.app"};
+    windowConfig.width = 1920;
+    data.WriteUint32(windowConfig.width);
+    data.WriteUint32(windowConfig.height);
+    data.WriteUint32(windowConfig.dpi);
+    data.WriteFloat(windowConfig.scale);
+    data.WriteStringVector(windowConfig.xhdpiAppList);
+    int res = sceneSessionManagerLiteStub_->HandleUpdateRogWindowConfig(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t ret = 0;
+    EXPECT_TRUE(reply.ReadInt32(ret));
+    EXPECT_EQ(static_cast<WMError>(ret), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: HandleUpdateRogWindowConfig03
+ * @tc.desc: Test HandleUpdateRogWindowConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateRogWindowConfig03, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    RogWindowConfig windowConfig;
+    data.WriteUint32(windowConfig.width);
+    data.WriteUint32(windowConfig.height);
+    data.WriteUint32(windowConfig.dpi);
+    data.WriteFloat(windowConfig.scale);
+    data.WriteStringVector(windowConfig.xhdpiAppList);
+    int res = sceneSessionManagerLiteStub_->HandleUpdateRogWindowConfig(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t ret = 0;
+    EXPECT_TRUE(reply.ReadInt32(ret));
+}
+
+/**
+ * @tc.name: HandleRestoreSessionToForeground
+ * @tc.desc: test function : HandleRestoreSessionToForeground
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleRestoreSessionToForeground, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100);
+    int res = sceneSessionManagerLiteStub_->HandleRestoreSessionToForeground(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleRestoreSessionToForeground_ReadFailed
+ * @tc.desc: test function : HandleRestoreSessionToForeground when read persistentId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleRestoreSessionToForeground_ReadFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->HandleRestoreSessionToForeground(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
 }
 } // namespace
 } // namespace Rosen

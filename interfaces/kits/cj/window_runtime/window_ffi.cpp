@@ -31,7 +31,7 @@ RetDataI64 FfiOHOSCreateWindow(char* name, uint32_t windowType, OHOS::AbilityRun
 {
     TLOGI(WmsLogTag::WMS_DIALOG, "[Window] CreateWindow start");
     std::string nm = name;
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     WindowParameters window;
     window.name = nm;
     window.winType = windowType;
@@ -63,7 +63,7 @@ int32_t FfiOHOSWindowMinimizeAll(int64_t displayId)
 RetDataI64 FfiOHOSGetLastWindow(OHOS::AbilityRuntime::Context* ctx)
 {
     TLOGI(WmsLogTag::WMS_DIALOG, "[Window] GetLastWindow start");
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     ret.code = OHOS::Rosen::WindowManagerImpl::GetLastWindow(ctx, ret.data);
     TLOGI(WmsLogTag::WMS_DIALOG, "[Window] GetLastWindow success");
     return ret;
@@ -185,7 +185,7 @@ int32_t FfiOHOSWindowSetWindowMode(int64_t id, uint32_t mode)
 CWindowProperties FfiOHOSWindowGetWindowProperties(int64_t id, int32_t* errCode)
 {
     TLOGI(WmsLogTag::WMS_DIALOG, "[Window] GetWindowProperties start");
-    CWindowProperties res;
+    CWindowProperties res = {};
     auto instance = FFIData::GetData<CJWindowImpl>(id);
     if (instance == nullptr) {
         TLOGE(WmsLogTag::WMS_DIALOG, "[Window] instance not exist %{public}" PRId64, id);
@@ -334,7 +334,7 @@ bool FfiOHOSWindowIsWindowShowing(int64_t id, int32_t* errCode)
 RetDataI64 FFiOHOSWindowFindWindow(char* name)
 {
     TLOGI(WmsLogTag::WMS_DIALOG, "[Window] FFiOHOSWindowFindWindow start");
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     ret.code = WindowManagerImpl::FindWindow(name, ret.data);
     TLOGI(WmsLogTag::WMS_DIALOG, "[Window] FFiOHOSWindowFindWindow success");
     return ret;
@@ -1123,7 +1123,7 @@ RetDataI64 FfiOHOSCreateSubWindowWithOptions(int64_t id, char* name,
                                              CSubWindowOptions option)
 {
     TLOGI(WmsLogTag::WMS_SUB, "CreateSubWindowWithOptions start");
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     std::string nm = name;
     auto instance = FFIData::GetData<CJWindowImpl>(id);
     if (instance == nullptr) {
@@ -1139,7 +1139,7 @@ RetDataI64 FfiOHOSCreateSubWindowWithOptions(int64_t id, char* name,
 RetDataI64 FfiOHOSBindWindowStage(int64_t windowStageImplPtr)
 {
     TLOGI(WmsLogTag::WMS_DIALOG, "[WindowStage] bind to created WindowStage");
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     auto actualWs = reinterpret_cast<CJWindowStageImpl*>(windowStageImplPtr);
     if (actualWs == nullptr) {
         TLOGE(WmsLogTag::WMS_DIALOG, "[WindowStage] Bind null obj");
@@ -1154,7 +1154,7 @@ RetDataI64 FfiOHOSBindWindowStage(int64_t windowStageImplPtr)
 RetDataI64 FfiOHOSGetMainWindow(int64_t id)
 {
     TLOGI(WmsLogTag::WMS_DIALOG, "[WindowStage] getMainWindow start");
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     auto instance = FFIData::GetData<CJWindowStageImpl>(id);
     if (instance == nullptr) {
         ret.code = WM_ERROR_STATE_ABNORMALLY;
@@ -1167,7 +1167,7 @@ RetDataI64 FfiOHOSGetMainWindow(int64_t id)
 RetDataI64 FfiOHOSCreateSubWindow(int64_t id, char* name)
 {
     TLOGI(WmsLogTag::WMS_DIALOG, "[WindowStage] createSubWindow start");
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     std::string nm = name;
     auto instance = FFIData::GetData<CJWindowStageImpl>(id);
     if (instance == nullptr) {
@@ -1267,7 +1267,7 @@ RetDataI64 FfiOHOSCreateSubWindowWithOptionsStage(int64_t id, const char* name,
     const char* title, bool decorEnabled, bool isModal)
 {
     TLOGI(WmsLogTag::WMS_SUB, "CreateSubWindowWithOptionsStage start");
-    RetDataI64 ret;
+    RetDataI64 ret = {};
     const std::string nameStr = name;
     const std::string titleStr = title;
     auto instance = FFIData::GetData<CJWindowStageImpl>(id);

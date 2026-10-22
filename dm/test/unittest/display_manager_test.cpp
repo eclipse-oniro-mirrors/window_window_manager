@@ -24,6 +24,7 @@
 #include "display_manager_proxy.h"
 #include "dm_common.h"
 #include "mock_display_manager_adapter.h"
+#include "fold_screen_state_internel.h"
 #include "scene_board_judgement.h"
 #include "singleton_mocker.h"
 #include "window_scene.h"
@@ -64,6 +65,9 @@ class DmMockDisplayAttributeListener : public DisplayManager::IDisplayAttributeL
 class DmMockDisplayPowerEventListener : public IDisplayPowerEventListener {
 public:
     void OnDisplayPowerEvent(DisplayPowerEvent, EventStatus) override {}
+    void OnSpecifiedDisplayPowerEvent(DisplayId, DisplayPowerEvent, EventStatus) override {
+        return;
+    }
 };
 
 class DisplayManagerTest : public testing::Test {
@@ -3829,6 +3833,67 @@ HWTEST_F(DisplayManagerTest, FoldDisplayModeTrans_UnknownMode, TestSize.Level1)
 
     FoldDisplayMode result = impl.FoldDisplayModeTrans(FoldDisplayMode::UNKNOWN);
     EXPECT_EQ(result, FoldDisplayMode::UNKNOWN);
+}
+
+/**
+ * @tc.name: GetAllDisplaysFilterSpnOuterScreen
+ * @tc.desc: Test GetAllDisplays filters SPN outer screen when device is SPN multi-display
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, GetAllDisplaysFilterSpnOuterScreen, TestSize.Level1)
+{
+    if (!FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        GTEST_SKIP() << "not spn device, skipping test.";
+    }
+    auto displays = DisplayManager::GetInstance().GetAllDisplays();
+    for (auto display : displays) {
+        ASSERT_NE(display, nullptr);
+        EXPECT_NE(display->GetScreenId(), 5);
+    }
+}
+ 
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_EmptyListeners
+ * @tc.desc: Test NotifySpecifiedDisplayPowerEvent with no listeners - should not crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifySpecifiedDisplayPowerEvent_EmptyListeners, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+    ASSERT_NO_FATAL_FAILURE(impl.NotifySpecifiedDisplayPowerEvent(DEFAULT_DISPLAY,
+        DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN));
+}
+ 
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_SingleListener
+ * @tc.desc: Test NotifySpecifiedDisplayPowerEvent with listener notified
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifySpecifiedDisplayPowerEvent_SingleListener, TestSize.Level1)
+{
+    std::recursive_mutex mutex;
+    DisplayManager::Impl impl(mutex);
+ 
+    sptr<IDisplayPowerEventListener> listener = new DmMockDisplayPowerEventListener();
+    impl.powerEventListeners_.insert(listener);
+    impl.NotifySpecifiedDisplayPowerEvent(DEFAULT_DISPLAY, DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN);
+ 
+    ASSERT_EQ(impl.powerEventListeners_.size(), 1);
+    impl.powerEventListeners_.clear();
+}
+
+/**
+ * @tc.name: on_specified_display_power_event_001
+ * @tc.desc: Test on specified display power event_001
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, on_specified_display_power_event_001, TestSize.Level1)
+{
+    bool isNotified = true;
+    sptr<IDisplayPowerEventListener> testListener = new DmMockDisplayPowerEventListener();
+    testListener->OnSpecifiedDisplayPowerEvent(0, DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN);
+    ASSERT_EQ(isNotified, true);
 }
 } // namespace Rosen
 } // namespace OHOS

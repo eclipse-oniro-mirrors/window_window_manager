@@ -24,7 +24,7 @@ void GetSnapshotCallbackProxy::OnReceived(WMError errCode,
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option;
+    MessageOption option(MessageOption::TF_ASYNC);
  
     if (!data.WriteInterfaceToken(IGetSnapshotCallback::GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write interface token failed.");

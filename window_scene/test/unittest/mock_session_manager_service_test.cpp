@@ -19,6 +19,9 @@
 #undef private
 #undef protected
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <algorithm>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -28,6 +31,7 @@
 #include "mock_accesstoken_kit.h"
 #include "scene_session_manager.h"
 #include "scene_session_manager_lite.h"
+#include "session_manager/include/zidl/scene_session_manager_proxy.h"
 #include "session_manager_service_proxy.h"
 #include "wm_common.h"
 
@@ -62,6 +66,19 @@ public:
                       int32_t fromUserId,
                       int32_t fromPid,
                       const sptr<IRemoteObject>& sessionManagerService));
+};
+
+class LocalInterfaceRemoteMocker : public IRemoteObjectMocker {
+public:
+    explicit LocalInterfaceRemoteMocker(const sptr<IRemoteBroker>& broker) : broker_(broker) {}
+
+    sptr<IRemoteBroker> QueryLocalInterface(const std::u16string& descriptor) override
+    {
+        return broker_;
+    }
+
+private:
+    sptr<IRemoteBroker> broker_;
 };
 
 namespace {
@@ -927,28 +944,267 @@ HWTEST(MockSessionManagerServiceTest, DumpSessionInfo, TestSize.Level1)
     std::string info;
     int ret;
 
-    // branch 1
+    // branch 1: empty args
     ret = mockMockSms.DumpSessionInfo(args, info);
     EXPECT_EQ(-1, ret);
 
-    // branch 2
-    args.emplace_back("test");
-    EXPECT_CALL(mockMockSms, GetSessionManagerServiceInner(_)).WillOnce(Return(nullptr));
+    // branch 2: no -user, GetSceneSessionManagerByUserId returns nullptr
+    args.emplace_back("-a");
+    mockMockSms.defaultWMSUserId_ = 100;
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_)).WillOnce(Return(nullptr));
     ret = mockMockSms.DumpSessionInfo(args, info);
     EXPECT_EQ(-1, ret);
 
-    // branch 3
-    auto mockSessionManagerService = sptr<IRemoteObjectMocker>::MakeSptr();
-    EXPECT_CALL(mockMockSms, GetSessionManagerServiceInner(_)).WillRepeatedly(Return(mockSessionManagerService));
-    EXPECT_CALL(mockMockSms, GetSceneSessionManager()).WillOnce(Return(nullptr));
-    ret = mockMockSms.DumpSessionInfo(args, info);
-    EXPECT_EQ(-1, ret);
-
-    // branch 4：set defaultSSMRemote is not null
+    // branch 3: no -user, GetSceneSessionManagerByUserId returns remote, iface_cast fails
     auto sceneSessionManagerRemote = sptr<IRemoteObjectMocker>::MakeSptr();
-    EXPECT_CALL(mockMockSms, GetSceneSessionManager()).WillOnce(Return(sceneSessionManagerRemote));
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_)).WillOnce(Return(sceneSessionManagerRemote));
     ret = mockMockSms.DumpSessionInfo(args, info);
     EXPECT_EQ(-1, ret);
+}
+
+/**
+ * @tc.name: DumpSessionInfoWithUser
+ * @tc.desc: test the function of DumpSessionInfo with -user parameter
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, DumpSessionInfoWithUser, TestSize.Level1)
+{
+    MockMockSessionManagerService mockMockSms;
+    std::string info;
+    int ret;
+
+    // branch 1: -user without value
+    std::vector<std::string> args1 = {"-user"};
+    ret = mockMockSms.DumpSessionInfo(args1, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 2: -user with illegal value (non-digit)
+    std::vector<std::string> args2 = {"-user", "abc", "-a"};
+    ret = mockMockSms.DumpSessionInfo(args2, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 3: -user all with no active users
+    mockMockSms.screenId2UserId_.clear();
+    std::vector<std::string> args3 = {"-user", "all", "-a"};
+    ret = mockMockSms.DumpSessionInfo(args3, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 4: -user all with active users, GetSceneSessionManagerByUserId returns nullptr
+    mockMockSms.screenId2UserId_[0] = 100;
+    std::vector<std::string> args4 = {"-user", "all", "-a"};
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_)).WillOnce(Return(nullptr));
+    ret = mockMockSms.DumpSessionInfo(args4, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 5: -user with specified user id, GetSceneSessionManagerByUserId returns nullptr
+    std::vector<std::string> args5 = {"-user", "100", "-a"};
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_)).WillOnce(Return(nullptr));
+    ret = mockMockSms.DumpSessionInfo(args5, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 6: -user only (no dump command after stripping -user)
+    std::vector<std::string> args6 = {"-user", "100"};
+    ret = mockMockSms.DumpSessionInfo(args6, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 7: -user with user id not in foreground
+    std::vector<std::string> args7 = {"-user", "101", "-a"};
+    ret = mockMockSms.DumpSessionInfo(args7, info);
+    EXPECT_NE(0, ret);
+    EXPECT_NE(info.find("not in foreground"), std::string::npos);
+
+    // branch 8: -user with foreground user id, dump success with user header
+    auto innerRemote = sptr<IRemoteObjectMocker>::MakeSptr();
+    auto ssmProxy = sptr<SceneSessionManagerProxy>::MakeSptr(innerRemote);
+    auto remoteWithLocalInterface = sptr<LocalInterfaceRemoteMocker>::MakeSptr(ssmProxy);
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_))
+        .WillOnce(Return(remoteWithLocalInterface));
+    std::vector<std::string> args8 = {"-user", "100", "-a"};
+    info.clear();
+    ret = mockMockSms.DumpSessionInfo(args8, info);
+    EXPECT_EQ(0, ret);
+    EXPECT_NE(info.find("user ID: 100"), std::string::npos);
+}
+
+/**
+ * @tc.name: Dump
+ * @tc.desc: test the function of Dump with all branches
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, Dump, TestSize.Level1)
+{
+    MockMockSessionManagerService mockMockSms;
+    int fd = open("/dev/null", O_WRONLY);
+    ASSERT_GE(fd, 0);
+    int ret;
+
+    // case 1: invalid fd
+    ret = mockMockSms.Dump(-1, {u"-a"});
+    EXPECT_EQ(-1, ret);
+
+    // case 2: empty params, show help info
+    ret = mockMockSms.Dump(fd, {});
+    EXPECT_EQ(0, ret);
+
+    // case 3: -h, show help info
+    ret = mockMockSms.Dump(fd, {u"-h"});
+    EXPECT_EQ(0, ret);
+
+    // case 4: illegal args, errCode == -1 arm
+    ret = mockMockSms.Dump(fd, {u"-user", u"abc", u"-a"});
+    EXPECT_EQ(0, ret);
+
+    // case 5: user not in foreground, errCode == -2 arm
+    mockMockSms.screenId2UserId_[0] = 100;
+    ret = mockMockSms.Dump(fd, {u"-user", u"101", u"-a"});
+    EXPECT_EQ(0, ret);
+
+    // case 6: dump success, errCode == 0 arm
+    auto innerRemote = sptr<IRemoteObjectMocker>::MakeSptr();
+    auto ssmProxy = sptr<SceneSessionManagerProxy>::MakeSptr(innerRemote);
+    auto remoteWithLocalInterface = sptr<LocalInterfaceRemoteMocker>::MakeSptr(ssmProxy);
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_))
+        .WillOnce(Return(remoteWithLocalInterface));
+    ret = mockMockSms.Dump(fd, {u"-user", u"100", u"-a"});
+    EXPECT_EQ(0, ret);
+
+    close(fd);
+}
+
+/**
+ * @tc.name: ShowHelpInfo
+ * @tc.desc: test the function of ShowHelpInfo
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, ShowHelpInfo, TestSize.Level1)
+{
+    MockMockSessionManagerService mockMockSms;
+    std::string info;
+    mockMockSms.ShowHelpInfo(info);
+    EXPECT_NE(info.find("Usage:"), std::string::npos);
+    EXPECT_NE(info.find(" -h"), std::string::npos);
+    EXPECT_NE(info.find(" -a"), std::string::npos);
+    EXPECT_NE(info.find(" -w {window id}"), std::string::npos);
+    EXPECT_NE(info.find(" -user {all|id}"), std::string::npos);
+    EXPECT_NE(info.find("-user all -a"), std::string::npos);
+    EXPECT_NE(info.find("-user 100 -a"), std::string::npos);
+}
+
+/**
+ * @tc.name: ShowIllegalArgsInfo
+ * @tc.desc: test the function of ShowIllegalArgsInfo
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, ShowIllegalArgsInfo, TestSize.Level1)
+{
+    MockMockSessionManagerService mockMockSms;
+    std::string info;
+    mockMockSms.ShowIllegalArgsInfo(info);
+    EXPECT_NE(info.find("The arguments are illegal"), std::string::npos);
+    EXPECT_NE(info.find("'-h'"), std::string::npos);
+}
+
+/**
+ * @tc.name: DumpSessionInfoByUserId
+ * @tc.desc: test the function of DumpSessionInfoByUserId
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, DumpSessionInfoByUserId, TestSize.Level1)
+{
+    MockMockSessionManagerService mockMockSms;
+    std::vector<std::string> args = {"-a"};
+    std::string info;
+    int ret;
+
+    // branch 1: GetSceneSessionManagerByUserId returns nullptr
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_)).WillOnce(Return(nullptr));
+    ret = mockMockSms.DumpSessionInfoByUserId(100, args, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 2: GetSceneSessionManagerByUserId returns remote, iface_cast fails
+    auto sceneSessionManagerRemote = sptr<IRemoteObjectMocker>::MakeSptr();
+    EXPECT_CALL(mockMockSms, GetSceneSessionManagerByUserId(_)).WillOnce(Return(sceneSessionManagerRemote));
+    ret = mockMockSms.DumpSessionInfoByUserId(100, args, info);
+    EXPECT_EQ(-1, ret);
+}
+
+/**
+ * @tc.name: ParseUserArg
+ * @tc.desc: test the function of ParseUserArg
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, ParseUserArg, TestSize.Level1)
+{
+    MockMockSessionManagerService mockMockSms;
+    std::vector<int32_t> targetUserIds;
+    std::vector<std::string> dumpArgs;
+    std::string info;
+    bool hasUserArg = false;
+    int ret;
+
+    // branch 1: -user without value
+    std::vector<std::string> args1 = {"-user"};
+    ret = mockMockSms.ParseUserArg(args1, targetUserIds, dumpArgs, hasUserArg, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 2: -user all with no active users
+    mockMockSms.screenId2UserId_.clear();
+    std::vector<std::string> args2 = {"-user", "all", "-a"};
+    ret = mockMockSms.ParseUserArg(args2, targetUserIds, dumpArgs, hasUserArg, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 3: -user all with active users
+    mockMockSms.screenId2UserId_[0] = 100;
+    std::vector<std::string> args3 = {"-user", "all", "-a"};
+    ret = mockMockSms.ParseUserArg(args3, targetUserIds, dumpArgs, hasUserArg, info);
+    EXPECT_EQ(0, ret);
+    EXPECT_TRUE(hasUserArg);
+    EXPECT_EQ(dumpArgs.size(), 1u);
+    EXPECT_EQ(dumpArgs[0], "-a");
+
+    // branch 4: -user with invalid id
+    std::vector<std::string> args4 = {"-user", "abc", "-a"};
+    targetUserIds.clear();
+    dumpArgs.clear();
+    hasUserArg = false;
+    ret = mockMockSms.ParseUserArg(args4, targetUserIds, dumpArgs, hasUserArg, info);
+    EXPECT_EQ(-1, ret);
+
+    // branch 5: -user with valid id
+    std::vector<std::string> args5 = {"-user", "100", "-a"};
+    targetUserIds.clear();
+    dumpArgs.clear();
+    hasUserArg = false;
+    ret = mockMockSms.ParseUserArg(args5, targetUserIds, dumpArgs, hasUserArg, info);
+    EXPECT_EQ(0, ret);
+    EXPECT_TRUE(hasUserArg);
+    EXPECT_EQ(targetUserIds[0], 100);
+
+    // branch 6: -user with user id not in foreground
+    std::vector<std::string> args6 = {"-user", "101", "-a"};
+    targetUserIds.clear();
+    dumpArgs.clear();
+    info.clear();
+    hasUserArg = false;
+    ret = mockMockSms.ParseUserArg(args6, targetUserIds, dumpArgs, hasUserArg, info);
+    EXPECT_NE(0, ret);
+    EXPECT_TRUE(targetUserIds.empty());
+    EXPECT_NE(info.find("not in foreground"), std::string::npos);
+}
+
+/**
+ * @tc.name: IsDigitString
+ * @tc.desc: test the function of IsDigitString
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, IsDigitString, TestSize.Level1)
+{
+    MockMockSessionManagerService mockMockSms;
+    EXPECT_FALSE(mockMockSms.IsDigitString(""));
+    EXPECT_FALSE(mockMockSms.IsDigitString("abc"));
+    EXPECT_FALSE(mockMockSms.IsDigitString("12a3"));
+    EXPECT_TRUE(mockMockSms.IsDigitString("100"));
+    EXPECT_TRUE(mockMockSms.IsDigitString("0"));
 }
 
 /**

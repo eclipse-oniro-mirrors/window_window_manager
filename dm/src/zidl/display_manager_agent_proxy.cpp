@@ -55,6 +55,42 @@ void DisplayManagerAgentProxy::NotifyDisplayPowerEvent(DisplayPowerEvent event, 
     }
 }
 
+void DisplayManagerAgentProxy::NotifySpecifiedDisplayPowerEvent(DisplayId displayId,
+    DisplayPowerEvent event, EventStatus status)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+ 
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return;
+    }
+ 
+    if (!data.WriteUint32(static_cast<uint32_t>(event))) {
+        TLOGE(WmsLogTag::DMS, "Write event failed");
+        return;
+    }
+ 
+    if (!data.WriteUint32(static_cast<uint32_t>(status))) {
+        TLOGE(WmsLogTag::DMS, "Write status failed");
+        return;
+    }
+ 
+    if (remote->SendRequest(TRANS_ID_NOTIFY_SPECIFIED_DISPLAY_POWER_EVENT, data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+    }
+}
+
 void DisplayManagerAgentProxy::NotifyDisplayStateChanged(DisplayId id, DisplayState state)
 {
     sptr<IRemoteObject> remote = Remote();
@@ -82,6 +118,37 @@ void DisplayManagerAgentProxy::NotifyDisplayStateChanged(DisplayId id, DisplaySt
     }
 
     if (remote->SendRequest(TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED, data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+    }
+}
+
+void DisplayManagerAgentProxy::NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return;
+    }
+
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return;
+    }
+
+    if (!data.WriteUint32(static_cast<uint32_t>(state))) {
+        TLOGE(WmsLogTag::DMS, "Write DisplayState failed");
+        return;
+    }
+
+    if (remote->SendRequest(TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED_BY_ID, data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::DMS, "SendRequest failed");
     }
 }

@@ -1327,6 +1327,46 @@ ani_object AniWindowUtils::CreateAniSystemBarTintState(ani_env* env, DisplayId d
     return state;
 }
 
+ani_object AniWindowUtils::CreateAniWindowFocusState(ani_env* env, bool isFocused,
+    WindowFocusChangeReason reason, int32_t nextFocusedWindowId, int32_t prevFocusedWindowId)
+{
+    TLOGI(WmsLogTag::WMS_FOCUS, "[ANI]");
+    ani_class aniClass;
+    if (env->FindClass("@ohos.window.window.WindowFocusStateInternal", &aniClass) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "[ANI] class not found");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    ani_method aniCtor;
+    if (env->Class_FindMethod(aniClass, "<ctor>", nullptr, &aniCtor) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "[ANI] ctor not found");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    ani_object focusState;
+    if (env->Object_New(aniClass, aniCtor, &focusState) != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "[ANI] fail to new obj");
+        return AniWindowUtils::CreateAniUndefined(env);
+    }
+    CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("isFocused").c_str(), nullptr,
+        static_cast<ani_boolean>(isFocused));
+    ani_enum reasonEnum {};
+    ani_enum_item reasonItem = nullptr;
+    if (env->FindEnum("@ohos.window.window.FocusChangeReason", &reasonEnum) == ANI_OK) {
+        env->Enum_GetEnumItemByName(reasonEnum,
+            reason == WindowFocusChangeReason::CLICK ? "CLICK" : "DEFAULT", &reasonItem);
+    }
+    CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("focusChangeReason").c_str(), nullptr,
+        reasonItem);
+    if (!isFocused && nextFocusedWindowId != INVALID_WINDOW_ID) {
+        CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("nextFocusedWindowId").c_str(),
+            nullptr, AniWindowUtils::CreateOptionalInt(env, static_cast<ani_int>(nextFocusedWindowId)));
+    }
+    if (isFocused && prevFocusedWindowId != INVALID_WINDOW_ID) {
+        CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("prevFocusedWindowId").c_str(),
+            nullptr, AniWindowUtils::CreateOptionalInt(env, static_cast<ani_int>(prevFocusedWindowId)));
+    }
+    return focusState;
+}
+
 ani_object AniWindowUtils::CreateAniSystemBarRegionTint(ani_env* env, const SystemBarRegionTint& tint)
 {
     ani_class regionTintCls;

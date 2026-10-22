@@ -107,6 +107,7 @@ private:
     int HandleUnregisterSessionLifecycleListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetRecentMainSessionInfoList(MessageParcel& data, MessageParcel& reply);
     int HandlePendingSessionToBackgroundByPersistentId(MessageParcel& data, MessageParcel& reply);
+    int HandleRestoreSessionToForeground(MessageParcel& data, MessageParcel& reply);
     int HandleCreateNewInstanceKey(MessageParcel& data, MessageParcel& reply);
     int HandleGetRouterStackInfo(MessageParcel& data, MessageParcel& reply);
     int HandleRemoveInstanceKey(MessageParcel& data, MessageParcel& reply);
@@ -122,6 +123,7 @@ private:
     int HandleRegisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateRogWindowConfig(MessageParcel& data, MessageParcel& reply);
     int ProcessRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option);
 };
 } // namespace OHOS::Rosen

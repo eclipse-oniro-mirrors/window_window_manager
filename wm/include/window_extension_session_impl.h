@@ -50,7 +50,10 @@ public:
         bool isModuleAbilityHookEnd = false, bool isBlockSubwindow = false) override;
     WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal = false,
         MoveConfiguration moveConfiguration = {}) override;
+    WMError MoveTo(int32_t x, int32_t y, bool isMoveToGlobal,
+        MoveConfiguration moveConfiguration, std::string& errMsg) override;
     WMError Resize(uint32_t width, uint32_t height) override;
+    WMError Resize(uint32_t width, uint32_t height, std::string& errMsg) override;
     WMError TransferAbilityResult(uint32_t resultCode, const AAFwk::Want& want) override;
     WMError TransferExtensionData(const AAFwk::WantParams& wantParams) override;
     WSError NotifyTransferComponentData(const AAFwk::WantParams& wantParams) override;
@@ -77,6 +80,7 @@ public:
     WindowMode GetWindowMode() const override;
     WindowMode GetWindowModeCompat() const override;
     WMError SetWindowMode(WindowMode mode) override;
+    WMError SetWindowMode(WindowMode mode, std::string& errMsg) override;
 
     /*
      * Window Privacy
@@ -145,7 +149,7 @@ public:
         int32_t requestId = INVALID_REQUEST_ID, int32_t scbRequestId = INVALID_REQUEST_ID) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     WMError Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach) override;
-    WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue) override;
+    WSError NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue) override;
     WMError SetUIExtCustomDensity(const float density) override;
     float GetVirtualPixelRatio(const sptr<DisplayInfo>& displayInfo) override;
     float GetDefaultDensity(const sptr<DisplayInfo>& displayInfo);
@@ -154,6 +158,7 @@ public:
     Rect GetHostWindowRect(int32_t hostWindowId) override;
     Rect GetHostWindowRect(int32_t hostWindowId, bool useHookedSize) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = false) override;
+    WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize, std::string& errMsg) override;
     bool IsComponentFocused() const override;
 
     /*
@@ -226,11 +231,13 @@ public:
     WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
     uint32_t GetHostStatusBarContentColor() const override;
+    float GetExtensionCustomDensity() override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
     WMError SetStatusBarColorForExtension(uint32_t color) override;
     WMError SetStatusBarColorForExtensionInner(uint32_t color);
     bool IsBlockSubwindow() const override;
     WMError GetWindowStatus(WindowStatus& windowStatus) override;
+    WMError GetWindowStatus(WindowStatus& windowStatus, std::string& errMsg) override;
 
 protected:
     NotifyTransferComponentDataFunc notifyTransferComponentDataFunc_;
@@ -289,7 +296,7 @@ private:
     std::shared_ptr<Extension::DataHandler> dataHandler_;
     std::unordered_map<uint32_t, DataConsumeCallback> dataConsumers_;  // Read only after init
     sptr<IRemoteObject> abilityToken_ { nullptr };
-    std::atomic<bool> isDensityFollowHost_ { false };
+    std::atomic<DpiFollowStrategy> dpiFollowStrategy_ { DpiFollowStrategy::NONE };
     std::optional<std::atomic<float>> hostDensityValue_ = std::nullopt;
     std::optional<std::atomic<bool>> focusState_ = std::nullopt;
     std::optional<AccessibilityChildTreeInfo> accessibilityChildTreeInfo_ = std::nullopt;

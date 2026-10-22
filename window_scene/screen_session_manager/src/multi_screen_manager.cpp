@@ -163,6 +163,7 @@ DMError MultiScreenManager::PhysicalScreenUniqueSwitch(const std::vector<ScreenI
     TLOGW(WmsLogTag::DMS, "enter screen size: %{public}u",
         static_cast<uint32_t>(screenIds.size()));
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "dms:PhysicalScreenUniqueSwitch start");
+    ScreenSessionManager::GetInstance().RecoveryResolutionEffectOnOwnerExit(screenIds);
     for (ScreenId physicalScreenId : screenIds) {
         auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(physicalScreenId);
         if (screenSession == nullptr) {
@@ -216,6 +217,7 @@ DMError MultiScreenManager::VirtualScreenUniqueSwitch(sptr<ScreenSession> screen
     Point point;
     std::vector<Point> startPoints;
     startPoints.insert(startPoints.begin(), screenIds.size(), point);
+    ScreenSessionManager::GetInstance().RecoveryResolutionEffectOnOwnerExit(screenIds);
     ScreenSessionManager::GetInstance().ChangeScreenGroup(group, screenIds, startPoints,
         true, ScreenCombination::SCREEN_UNIQUE);
 

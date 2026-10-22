@@ -1939,6 +1939,231 @@ HWTEST_F(SceneSessionManagerTest8, RemoveSessionFromBlackListInfoSet01, TestSize
     ssm_->sessionRSBlackListConfigSet_.clear();
     ssm_->sessionBlackListInfoMap_.clear();
 }
+
+/**
+ * @tc.name: HandleKeepScreenOnInvalidDisplayId
+ * @tc.desc: invalid displayId falls back to UINT64_MAX
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, HandleKeepScreenOnInvalidDisplayId, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "HandleKeepScreenOnInvalidDisplayId";
+    sessionInfo.abilityName_ = "HandleKeepScreenOnInvalidDisplayId";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(DISPLAY_ID_INVALID);
+
+    ssm_->HandleKeepScreenOn(sceneSession, true, WINDOW_SCREEN_LOCK_PREFIX,
+        sceneSession->keepScreenLock_);
+    ssm_->HandleKeepScreenOn(sceneSession, false, WINDOW_SCREEN_LOCK_PREFIX,
+        sceneSession->keepScreenLock_);
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: HandleKeepScreenOnCrossScreenMoveUnlock
+ * @tc.desc: cross-screen move: UnLock old lock
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, HandleKeepScreenOnCrossScreenMoveUnlock, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "HandleKeepScreenOnCrossScreenMoveUnlock";
+    sessionInfo.abilityName_ = "HandleKeepScreenOnCrossScreenMoveUnlock";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    sceneSession->SetKeepScreenOn(true);
+
+    ssm_->HandleKeepScreenOn(sceneSession, true, WINDOW_SCREEN_LOCK_PREFIX,
+        sceneSession->keepScreenLock_);
+
+    sceneSession->GetSessionProperty()->SetDisplayId(1);
+    ssm_->HandleKeepScreenOn(sceneSession, false, WINDOW_SCREEN_LOCK_PREFIX,
+        sceneSession->keepScreenLock_);
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: HandleKeepScreenOnCrossScreenMoveLock
+ * @tc.desc: cross-screen move: reset and Lock new lock
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, HandleKeepScreenOnCrossScreenMoveLock, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "HandleKeepScreenOnCrossScreenMoveLock";
+    sessionInfo.abilityName_ = "HandleKeepScreenOnCrossScreenMoveLock";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(1);
+    sceneSession->SetKeepScreenOn(true);
+
+    sceneSession->keepScreenLock_.reset();
+    ssm_->HandleKeepScreenOn(sceneSession, true, WINDOW_SCREEN_LOCK_PREFIX,
+        sceneSession->keepScreenLock_);
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: HandleKeepScreenOnForeground
+ * @tc.desc: foreground restores lock based on IsKeepScreenOn
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, HandleKeepScreenOnForeground, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "HandleKeepScreenOnForeground";
+    sessionInfo.abilityName_ = "HandleKeepScreenOnForeground";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    sceneSession->SetKeepScreenOn(true);
+
+    ssm_->HandleKeepScreenOn(sceneSession, sceneSession->IsKeepScreenOn(), WINDOW_SCREEN_LOCK_PREFIX,
+        sceneSession->keepScreenLock_);
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: HandleKeepScreenOnBackground
+ * @tc.desc: background forces unlock
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, HandleKeepScreenOnBackground, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "HandleKeepScreenOnBackground";
+    sessionInfo.abilityName_ = "HandleKeepScreenOnBackground";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+
+    ssm_->HandleKeepScreenOn(sceneSession, false, WINDOW_SCREEN_LOCK_PREFIX,
+        sceneSession->keepScreenLock_);
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: HandleKeepScreenOnViewLock
+ * @tc.desc: view lock is always global, not affected by screen id
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, HandleKeepScreenOnViewLock, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "HandleKeepScreenOnViewLock";
+    sessionInfo.abilityName_ = "HandleKeepScreenOnViewLock";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+
+    ssm_->HandleKeepScreenOn(sceneSession, true, VIEW_SCREEN_LOCK_PREFIX,
+        sceneSession->viewKeepScreenLock_);
+    ssm_->HandleKeepScreenOn(sceneSession, false, VIEW_SCREEN_LOCK_PREFIX,
+        sceneSession->viewKeepScreenLock_);
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: HandleKeepScreenOnNullSession
+ * @tc.desc: handle keep screen on with null session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, HandleKeepScreenOnNullSession, TestSize.Level1)
+{
+    std::shared_ptr<PowerMgr::RunningLock> nullLock;
+    ssm_->HandleKeepScreenOn(nullptr, true, WINDOW_SCREEN_LOCK_PREFIX, nullLock);
+    ssm_->HandleKeepScreenOn(nullptr, false, WINDOW_SCREEN_LOCK_PREFIX, nullLock);
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: UpdateSessionDisplayIdKeepScreenOn
+ * @tc.desc: cross-screen move triggers lock migration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, UpdateSessionDisplayIdKeepScreenOn, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "UpdateSessionDisplayIdKeepScreenOn";
+    sessionInfo.abilityName_ = "UpdateSessionDisplayIdKeepScreenOn";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    sceneSession->SetScreenId(0);
+    sceneSession->SetKeepScreenOn(true);
+    EXPECT_TRUE(sceneSession->IsKeepScreenOn());
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+
+    ssm_->UpdateSessionDisplayId(sceneSession->GetPersistentId(), 1);
+    ssm_->sceneSessionMap_.clear();
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: UpdateSessionDisplayIdSameScreen
+ * @tc.desc: same screen id does not trigger lock migration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, UpdateSessionDisplayIdSameScreen, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "UpdateSessionDisplayIdSameScreen";
+    sessionInfo.abilityName_ = "UpdateSessionDisplayIdSameScreen";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    sceneSession->SetScreenId(0);
+    sceneSession->SetKeepScreenOn(true);
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+
+    ssm_->UpdateSessionDisplayId(sceneSession->GetPersistentId(), 0);
+    ssm_->sceneSessionMap_.clear();
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
+
+/**
+ * @tc.name: UpdateSessionDisplayIdNotKeepScreenOn
+ * @tc.desc: session without keepScreenOn does not trigger lock migration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest8, UpdateSessionDisplayIdNotKeepScreenOn, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "UpdateSessionDisplayIdNotKeepScreenOn";
+    sessionInfo.abilityName_ = "UpdateSessionDisplayIdNotKeepScreenOn";
+    sessionInfo.windowType_ = static_cast<uint32_t>(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    EXPECT_NE(nullptr, sceneSession);
+    sceneSession->GetSessionProperty()->SetDisplayId(0);
+    sceneSession->SetScreenId(0);
+    EXPECT_FALSE(sceneSession->IsKeepScreenOn());
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+
+    ssm_->UpdateSessionDisplayId(sceneSession->GetPersistentId(), 1);
+    ssm_->sceneSessionMap_.clear();
+    bool enable = true;
+    EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(enable));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

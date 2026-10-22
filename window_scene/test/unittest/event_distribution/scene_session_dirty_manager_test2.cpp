@@ -488,6 +488,51 @@ HWTEST_F(SceneSessionDirtyManagerTest2, GetWindowInfoWithzOrderDiff, TestSize.Le
 }
 
 /**
+ * @tc.name: CheckNeedUpdateScreenInfosChanged
+ * @tc.desc: screen infos size/content changed and short-circuit refreshes all unchanged caches
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionDirtyManagerTest2, CheckNeedUpdateScreenInfosChanged, TestSize.Level1)
+{
+    MMI::ScreenInfo screenInfo;
+    screenInfo.id = 1;
+    MMI::DisplayInfo displayInfo;
+    displayInfo.id = 10;
+    MMI::WindowInfo windowInfo;
+    windowInfo.id = 100;
+    std::vector<MMI::ScreenInfo> screenInfos;
+    screenInfos.emplace_back(screenInfo);
+    std::vector<MMI::DisplayInfo> displayInfos;
+    displayInfos.emplace_back(displayInfo);
+    std::vector<MMI::WindowInfo> windowInfoList;
+    windowInfoList.emplace_back(windowInfo);
+    int32_t focusedSession = 100;
+    sim_->focusedSessionId_ = focusedSession;
+    sim_->lastFocusId_ = focusedSession;
+    ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID)->SetFocusedSessionId(focusedSession);
+
+    sim_->lastScreenInfos_ = screenInfos;
+    sim_->lastDisplayInfos_ = displayInfos;
+    sim_->lastWindowInfoList_ = windowInfoList;
+
+    // screen infos size changed.
+    std::vector<MMI::ScreenInfo> multiScreenInfos;
+    multiScreenInfos.emplace_back(screenInfo);
+    MMI::ScreenInfo secondScreenInfo;
+    secondScreenInfo.id = 2;
+    multiScreenInfos.emplace_back(secondScreenInfo);
+    ASSERT_TRUE(sim_->CheckNeedUpdate(multiScreenInfos, displayInfos, windowInfoList));
+    ASSERT_EQ(sim_->lastScreenInfos_.size(), 2);
+
+    // screen content changed short-circuits and refreshes unchanged caches too.
+    multiScreenInfos[0].id = 3;
+    ASSERT_TRUE(sim_->CheckNeedUpdate(multiScreenInfos, displayInfos, windowInfoList));
+    ASSERT_EQ(sim_->lastScreenInfos_[0].id, 3);
+    ASSERT_EQ(sim_->lastDisplayInfos_[0].id, displayInfo.id);
+    ASSERT_EQ(sim_->lastWindowInfoList_[0].id, windowInfo.id);
+}
+
+/**
  * @tc.name: GetWindowInfoWithoutHotArea
  * @tc.desc: windowInfo without hotAreas information
  * @tc.type: FUNC

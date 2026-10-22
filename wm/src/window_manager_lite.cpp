@@ -1074,7 +1074,8 @@ WMError WindowManagerLite::UnregisterWindowModeInfoChangedListenerForPropertyCha
 
 void WindowManagerLite::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "lite flags=%{public}u", propertyDirtyFlags);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "lite dirtyFlags=%{public}u, infoSize=%{public}u",
+        propertyDirtyFlags, static_cast<uint32_t>(windowInfoList.size()));
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::DISPLAY_ID)) {
         pImpl_->NotifyDisplayIdChange(windowInfoList);
     }
@@ -1161,7 +1162,7 @@ void WindowManagerLite::UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focus
         WLOGFE("focusChangeInfo is nullptr.");
         return;
     }
-    WLOGFD("[WMSFocus]window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
+    TLOGI(WmsLogTag::WMS_FOCUS, "window focus change: %{public}d, id: %{public}u", focused, focusChangeInfo->windowId_);
     if (focused) {
         pImpl_->NotifyFocused(focusChangeInfo);
     } else {
@@ -2001,13 +2002,14 @@ WMError WindowManagerLite::SetAppKeyFramePolicy(const std::string& bundleName, c
 WMError WindowManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos) const
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
-        static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+        "lite: userId: %{public}d windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
+        userId_, static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),
         windowInfoOption.displayId, windowInfoOption.windowId);
     WMError ret = WindowAdapterLite::GetInstance(userId_).ListWindowInfo(windowInfoOption, infos);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: ret=%{public}d", static_cast<int32_t>(ret));
     }
     return ret;
 }
