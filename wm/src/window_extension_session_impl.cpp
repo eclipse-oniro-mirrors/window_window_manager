@@ -238,7 +238,7 @@ void WindowExtensionSessionImpl::UpdateConfiguration(const std::shared_ptr<AppEx
             GetWindowId(), GetDisplayId());
     }
     UpdateDefaultStatusBarColor();
-    if (context_ && (context_->GetBrandColorStrategy() == AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
+    if (context_ && (context_->GetBrandColorStrategy() == AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
         std::vector<sptr<WindowSessionImpl>> subWindows;
         GetSubWindows(GetPersistentId(), subWindows);
         for (auto& subWindowSession : subWindows) {
@@ -269,7 +269,7 @@ void WindowExtensionSessionImpl::UpdateConfigurationForSpecified(
         specifiedColorMode_ = configuration->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE);
         UpdateDefaultStatusBarColor();
     }
-    if (context_ && (context_->GetBrandColorStrategy() == AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
+    if (context_ && (context_->GetBrandColorStrategy() == AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
         std::vector<sptr<WindowSessionImpl>> subWindows;
         GetSubWindows(GetPersistentId(), subWindows);
         for (auto& subWindowSession : subWindows) {
@@ -318,7 +318,7 @@ void WindowExtensionSessionImpl::UpdateConfigurationSync(
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "uiContent null, ext win=%{public}u, display=%{public}" PRIu64,
             GetWindowId(), GetDisplayId());
     }
-    if (context_ && (context_->GetBrandColorStrategy() == AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
+    if (context_ && (context_->GetBrandColorStrategy() == AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
         std::vector<sptr<WindowSessionImpl>> subWindows;
         GetSubWindows(GetPersistentId(), subWindows);
         for (auto& subWindowSession : subWindows) {

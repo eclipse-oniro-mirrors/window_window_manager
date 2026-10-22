@@ -329,7 +329,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationWithBrandColorFollow
     ASSERT_NE(nullptr, window_);
     auto context = std::make_shared<MockAbilityContextImpl>();
     ASSERT_NE(nullptr, context);
-    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
+    context->brandColorStrategy_ = AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
     window_->context_ = context;
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
@@ -358,7 +358,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationWithBrandColorFollow
     ASSERT_NE(nullptr, window_);
     auto context = std::make_shared<MockAbilityContextImpl>();
     ASSERT_NE(nullptr, context);
-    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
+    context->brandColorStrategy_ = AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
     window_->context_ = context;
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
@@ -411,7 +411,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForSpecifiedWithBran
     ASSERT_NE(nullptr, window_);
     auto context = std::make_shared<MockAbilityContextImpl>();
     ASSERT_NE(nullptr, context);
-    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
+    context->brandColorStrategy_ = AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
     window_->context_ = context;
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
@@ -441,7 +441,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForSpecifiedWithBran
     ASSERT_NE(nullptr, window_);
     auto context = std::make_shared<MockAbilityContextImpl>();
     ASSERT_NE(nullptr, context);
-    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
+    context->brandColorStrategy_ = AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
     window_->context_ = context;
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
@@ -496,7 +496,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationSyncWithBrandColorFo
     ASSERT_NE(nullptr, window_);
     auto context = std::make_shared<MockAbilityContextImpl>();
     ASSERT_NE(nullptr, context);
-    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
+    context->brandColorStrategy_ = AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC;
     window_->context_ = context;
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
@@ -525,7 +525,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationSyncWithBrandColorFo
     ASSERT_NE(nullptr, window_);
     auto context = std::make_shared<MockAbilityContextImpl>();
     ASSERT_NE(nullptr, context);
-    context->brandColorStrategy_ = AAFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
+    context->brandColorStrategy_ = AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
     window_->context_ = context;
 
     sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
