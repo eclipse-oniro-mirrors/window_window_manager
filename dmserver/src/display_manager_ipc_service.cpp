@@ -191,6 +191,11 @@ ErrCode DisplayManagerIpcService::SetScreenColorTransform(uint64_t screenId)
 ErrCode DisplayManagerIpcService::RegisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     uint32_t type, int32_t& dmError)
 {
+    if (type >= static_cast<uint32_t>(DisplayManagerAgentType::DISPLAY_MANAGER_MAX_AGENT_TYPE)) {
+        TLOGE(WmsLogTag::DMS, "RegisterDisplayManagerAgent invalid type: %{public}u", type);
+        dmError = static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM);
+        return ERR_OK;
+    }
     dmError = static_cast<int32_t>(displayManagerService_.RegisterDisplayManagerAgent(displayManagerAgent,
         static_cast<DisplayManagerAgentType>(type)));
     return ERR_OK;
@@ -199,6 +204,11 @@ ErrCode DisplayManagerIpcService::RegisterDisplayManagerAgent(const sptr<IDispla
 ErrCode DisplayManagerIpcService::UnregisterDisplayManagerAgent(const sptr<IDisplayManagerAgent>& displayManagerAgent,
     uint32_t type, int32_t& dmError)
 {
+    if (type >= static_cast<uint32_t>(DisplayManagerAgentType::DISPLAY_MANAGER_MAX_AGENT_TYPE)) {
+        TLOGE(WmsLogTag::DMS, "UnregisterDisplayManagerAgent invalid type: %{public}u", type);
+        dmError = static_cast<int32_t>(DMError::DM_ERROR_INVALID_PARAM);
+        return ERR_OK;
+    }
     dmError = static_cast<int32_t>(displayManagerService_.UnregisterDisplayManagerAgent(displayManagerAgent,
         static_cast<DisplayManagerAgentType>(type)));
     return ERR_OK;

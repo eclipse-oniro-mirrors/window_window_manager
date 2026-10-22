@@ -349,6 +349,19 @@ HWTEST_F(DisplayManagerServiceTest, RegisterDisplayManagerAgent, TestSize.Level1
 }
 
 /**
+ * @tc.name: RegisterDisplayManagerAgentScreenshotType
+ * @tc.desc: Test RegisterDisplayManagerAgent with SCREENSHOT_EVENT_LISTENER type (previously ungated).
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerServiceTest, RegisterDisplayManagerAgentScreenshotType, TestSize.Level1)
+{
+    DisplayManagerAgentType type = DisplayManagerAgentType::SCREENSHOT_EVENT_LISTENER;
+
+    ASSERT_EQ(DMError::DM_ERROR_NULLPTR, dms_->RegisterDisplayManagerAgent(nullptr, type));
+    ASSERT_EQ(DMError::DM_ERROR_NULLPTR, dms_->UnregisterDisplayManagerAgent(nullptr, type));
+}
+
+/**
  * @tc.name: ScreenPower
  * @tc.desc: DMS screen power
  * @tc.type: FUNC
@@ -753,12 +766,24 @@ HWTEST_F(DisplayManagerServiceTest, GetAllDisplayPhysicalResolution03, TestSize.
 
 /**
  * @tc.name: SetVirtualScreenAsDefault
- * @tc.desc: Test GetAllDisplayPhysicalResolution function when default display info is null.
+ * @tc.desc: Test SetVirtualScreenAsDefault with invalid screenId.
  * @tc.type: FUNC
  */
 HWTEST_F(DisplayManagerServiceTest, SetVirtualScreenAsDefault, TestSize.Level1)
 {
     ScreenId screenId = 0;
+    auto res = dms_->SetVirtualScreenAsDefault(screenId);
+    EXPECT_FALSE(res);
+}
+
+/**
+ * @tc.name: SetVirtualScreenAsDefaultPermissionDenied
+ * @tc.desc: Test SetVirtualScreenAsDefault is denied without ACCESS_VIRTUAL_SCREEN permission.
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerServiceTest, SetVirtualScreenAsDefaultPermissionDenied, TestSize.Level1)
+{
+    ScreenId screenId = 1;
     auto res = dms_->SetVirtualScreenAsDefault(screenId);
     EXPECT_FALSE(res);
 }

@@ -687,8 +687,8 @@ DMError AbstractScreenController::DestroyVirtualScreen(ScreenId screenId)
     screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId);
 
     if (rsScreenId == defaultRsScreenId_) {
-        TLOGE(WmsLogTag::DMS, "Not destroy default virtual screen");
-        return DMError::DM_ERROR_INVALID_PARAM;
+        TLOGI(WmsLogTag::DMS, "Restore physical default before destroying virtual default");
+        defaultRsScreenId_ = rsInterface_.GetDefaultScreenId();
     }
     sptr<IDisplayManagerAgent> displayManagerAgent = nullptr;
     bool agentFound = false;
@@ -1559,19 +1559,6 @@ bool AbstractScreenController::SetVirtualScreenAsDefault(ScreenId screenId)
         return false;
     }
     defaultRsScreenId_ = rsScreenId;
-    // Erase default virtual screen in screenAgentMap_
-    for (auto it = screenAgentMap_.begin(); it != screenAgentMap_.end(); it++) {
-        auto& screenIds = it->second;
-        auto iter = std::find(screenIds.begin(), screenIds.end(), screenId);
-        if (iter == screenIds.end()) {
-            continue;
-        }
-        screenIds.erase(iter);
-        if (screenIds.empty()) {
-            screenAgentMap_.erase(it);
-        }
-        break;
-    }
     abstractScreenCallback_->onConnect_(absScreen);
     return true;
 }
