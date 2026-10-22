@@ -23,11 +23,13 @@
 #include <vector>
 
 #include "ffrt_inner.h"
+#include "parameters.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
 namespace {
-constexpr uint32_t FFRT_STAT_MAX_COUNT = 5000;
+const uint32_t FFRT_STAT_MAX_COUNT =
+    static_cast<uint32_t>(system::GetIntParameter<int32_t>("const.ffrt_stat_max_count", 5000));
 constexpr uint64_t FFRT_STAT_INTERVAL_MS = 5 * 60 * 1000;
 constexpr const char* DIGITS = "0123456789";
 constexpr char XPOWER_HISYSEVENT_DOMAIN[] = "POWERTHERMAL";
@@ -85,8 +87,8 @@ void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& ag
     if (ret != 0) {
         TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower: HiSysEventWrite failed, ret=%{public}d", ret);
     } else {
-        TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower: HiSysEventWrite success,
-            events=%{public}zu, ret=%{public}d", aggregated.size(), ret);
+        TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: ReportXpower: HiSysEventWrite success, "
+            "events=%{public}zu, ret=%{public}d", aggregated.size(), ret);
     }
 }
 } // namespace
