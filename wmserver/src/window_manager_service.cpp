@@ -966,6 +966,14 @@ WMError WindowManagerService::CreateWindow(sptr<IWindow>& window, sptr<WindowPro
         WLOGFE("create system window permission denied!");
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
+    if (WindowHelper::IsSubWindow(property->GetWindowType()) &&
+        property->GetParentId() != INVALID_WINDOW_ID &&
+        !Permission::IsSystemCalling() &&
+        !accessTokenIdMaps_.isExist(property->GetParentId(), IPCSkeleton::GetCallingTokenID())) {
+        WLOGFE("CreateWindow rejected, sub window parent not owned by caller, parentId: %{public}u",
+            property->GetParentId());
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
     int pid = IPCSkeleton::GetCallingRealPid();
     int uid = IPCSkeleton::GetCallingUid();
     property->isSystemCalling_ = Permission::IsSystemCalling();
@@ -990,6 +998,14 @@ WMError WindowManagerService::AddWindow(sptr<WindowProperty>& property)
     if (!CheckSystemWindowPermission(property) || !CheckAnimationPermission(property)) {
         WLOGFE("add window permission denied!");
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
+    }
+    if (WindowHelper::IsSubWindow(property->GetWindowType()) &&
+        property->GetParentId() != INVALID_WINDOW_ID &&
+        !Permission::IsSystemCalling() &&
+        !accessTokenIdMaps_.isExist(property->GetParentId(), IPCSkeleton::GetCallingTokenID())) {
+        WLOGFE("AddWindow rejected, sub window parent not owned by caller, parentId: %{public}u",
+            property->GetParentId());
+        return WMError::WM_ERROR_INVALID_PARENT;
     }
     auto task = [this, &property]() {
         windowShowPerformReport_->start();
@@ -1262,6 +1278,11 @@ void WindowManagerService::NotifyServerReadyToMoveOrDrag(uint32_t windowId, sptr
 
 void WindowManagerService::ProcessPointDown(uint32_t windowId, bool isPointDown)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        WLOGFE("ProcessPointDown operation rejected, windowId: %{public}u", windowId);
+        return;
+    }
     auto task = [this, windowId, isPointDown]() {
         windowController_->ProcessPointDown(windowId, isPointDown);
     };
@@ -1270,6 +1291,11 @@ void WindowManagerService::ProcessPointDown(uint32_t windowId, bool isPointDown)
 
 void WindowManagerService::ProcessPointUp(uint32_t windowId)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        WLOGFE("ProcessPointUp operation rejected, windowId: %{public}u", windowId);
+        return;
+    }
     auto task = [this, windowId]() {
         WindowInnerManager::GetInstance().NotifyWindowEndUpMovingOrDragging(windowId);
         windowController_->RecoverInputEventToClient(windowId);
@@ -1318,6 +1344,11 @@ WMError WindowManagerService::ToggleShownStateForAllAppWindows()
 
 WMError WindowManagerService::GetTopWindowId(uint32_t mainWinId, uint32_t& topWinId)
 {
+    if (!accessTokenIdMaps_.isExist(mainWinId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "GetTopWindowId operation rejected");
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
     auto task = [this, &topWinId, mainWinId]() {
         return windowController_->GetTopWindowId(mainWinId, topWinId);
     };
@@ -1422,6 +1453,15 @@ WMError WindowManagerService::UpdateProperty(sptr<WindowProperty>& windowPropert
 
 WMError WindowManagerService::SetWindowGravity(uint32_t windowId, WindowGravity gravity, uint32_t percent)
 {
+    if (!Permission::IsStartByInputMethod() && !Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("SetWindowGravity permission denied!");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+    constexpr uint32_t MAX_GRAVITY_PERCENT = 100;
+    if (percent > MAX_GRAVITY_PERCENT) {
+        WLOGFE("SetWindowGravity invalid percent: %{public}u", percent);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
     auto task = [this, windowId, gravity, percent]() {
         WMError res = windowController_->SetWindowGravity(windowId, gravity, percent);
         return res;
@@ -1456,6 +1496,10 @@ WMError WindowManagerService::GetUnreliableWindowInfo(int32_t windowId,
 
 WMError WindowManagerService::GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("get visibility window info permission denied!");
+        return WMError::WM_ERROR_NOT_SYSTEM_APP;
+    }
     auto task = [this, &infos]() {
         return windowController_->GetVisibilityWindowInfo(infos);
     };
@@ -1485,6 +1529,11 @@ std::shared_ptr<Media::PixelMap> WindowManagerService::GetSnapshot(int32_t windo
 
 void WindowManagerService::DispatchKeyEvent(uint32_t windowId, std::shared_ptr<MMI::KeyEvent> event)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        WLOGFE("DispatchKeyEvent operation rejected, windowId: %{public}u", windowId);
+        return;
+    }
     auto task = [this, windowId, event]() {
         windowController_->DispatchKeyEvent(windowId, event);
     };
@@ -1494,7 +1543,8 @@ void WindowManagerService::DispatchKeyEvent(uint32_t windowId, std::shared_ptr<M
 void WindowManagerService::NotifyDumpInfoResult(const std::vector<std::string>& info)
 {
     if (windowDumper_) {
-        windowDumper_->dumpInfoFuture_.SetValue(info);
+        windowDumper_->CompleteDumpInfoRequest(IPCSkeleton::GetCallingRealPid(),
+            IPCSkeleton::GetCallingUid(), info);
     }
 }
 
@@ -1560,6 +1610,10 @@ WMError WindowManagerService::UpdateAvoidAreaListener(uint32_t windowId, bool ha
 
 void WindowManagerService::SetAnchorAndScale(int32_t x, int32_t y, float scale)
 {
+    if ((!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) || !std::isfinite(scale)) {
+        WLOGFE("SetAnchorAndScale permission denied or invalid scale");
+        return;
+    }
     auto task = [this, x, y, scale]() {
         windowController_->SetAnchorAndScale(x, y, scale);
     };
@@ -1568,6 +1622,10 @@ void WindowManagerService::SetAnchorAndScale(int32_t x, int32_t y, float scale)
 
 void WindowManagerService::SetAnchorOffset(int32_t deltaX, int32_t deltaY)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("SetAnchorOffset permission denied!");
+        return;
+    }
     auto task = [this, deltaX, deltaY]() {
         windowController_->SetAnchorOffset(deltaX, deltaY);
     };
@@ -1576,6 +1634,10 @@ void WindowManagerService::SetAnchorOffset(int32_t deltaX, int32_t deltaY)
 
 void WindowManagerService::OffWindowZoom()
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("OffWindowZoom permission denied!");
+        return;
+    }
     auto task = [this]() {
         windowController_->OffWindowZoom();
     };
@@ -1584,6 +1646,11 @@ void WindowManagerService::OffWindowZoom()
 
 WMError WindowManagerService::UpdateRsTree(uint32_t windowId, bool isAdd)
 {
+    if (!accessTokenIdMaps_.isExist(windowId, IPCSkeleton::GetCallingTokenID()) &&
+        !Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "UpdateRsTree operation rejected");
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
     auto task = [this, windowId, isAdd]() {
         return windowRoot_->UpdateRsTree(windowId, isAdd);
     };
@@ -1639,6 +1706,10 @@ void WindowInfoQueriedListener::HasPrivateWindow(DisplayId displayId, bool& hasP
 
 void WindowManagerService::SetMaximizeMode(MaximizeMode maximizeMode)
 {
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        WLOGFE("SetMaximizeMode permission denied!");
+        return;
+    }
     maximizeMode_ = maximizeMode;
     int32_t storageMode = -1;
     if (PersistentStorage::HasKey("maximize_state", PersistentStorageType::MAXIMIZE_STATE)) {
@@ -1657,6 +1728,11 @@ MaximizeMode WindowManagerService::GetMaximizeMode()
 
 void WindowManagerService::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
+    focusInfo = FocusChangeInfo();
+    if (!Permission::IsSystemCalling() && !Permission::IsStartByHdcd()) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "GetFocusWindowInfo permission denied");
+        return;
+    }
     WLOGFD("Get Focus window info in wms");
     windowController_->GetFocusWindowInfo(focusInfo);
 }

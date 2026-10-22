@@ -92,6 +92,9 @@ void StartingWindow::RegisterStartingWindowShowInfo(const sptr<WindowNode>& node
             }
         }
         state.frameCount = (resInfo->pixelMaps.size() > 1) ? resInfo->pixelMaps.size() : 1;
+        if (state.frameCount > state.delay.size()) {
+            state.frameCount = static_cast<uint32_t>(state.delay.size());
+        }
         state.next = now;
     }
     startingWindowShowInfo_ = std::move(startingWindowShowInfo);
