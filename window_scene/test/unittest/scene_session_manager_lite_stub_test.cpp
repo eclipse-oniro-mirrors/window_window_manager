@@ -313,7 +313,7 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     WMError GetRouterStackInfo(int32_t persistentId, const sptr<ISessionRouterStackListener>& listener)
         override { return WMError::WM_OK; }
     WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-        bool shouldBackToCaller) override
+        bool shouldBackToCaller, uint32_t reason) override
     {
         return WSError::WS_OK;
     }
@@ -1574,6 +1574,7 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandlePendingSessionToBackgroundByPers
     MessageParcel data2;
     data2.WriteInt32(1);
     data2.WriteBool(true);
+    data2.WriteUint32(0);
     res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(data2, reply);
     EXPECT_EQ(ERR_NONE, res);

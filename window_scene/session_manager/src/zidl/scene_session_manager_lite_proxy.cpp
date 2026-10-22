@@ -2729,7 +2729,7 @@ WSError SceneSessionManagerLiteProxy::GetRecentMainSessionInfoList(
 }
 
 WSError SceneSessionManagerLiteProxy::PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-    bool shouldBackToCaller)
+    bool shouldBackToCaller, uint32_t reason)
 {
     TLOGD(WmsLogTag::WMS_LIFE, "in");
     MessageParcel data;
@@ -2745,6 +2745,10 @@ WSError SceneSessionManagerLiteProxy::PendingSessionToBackgroundByPersistentId(c
     }
     if (!data.WriteBool(shouldBackToCaller)) {
         TLOGE(WmsLogTag::WMS_LIFE, "Write shouldBackToCaller failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(reason)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Write reason failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();

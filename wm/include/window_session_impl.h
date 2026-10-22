@@ -762,6 +762,10 @@ public:
     WSError UpdateLSState(bool isLSState) override;
     bool GetLSState() const;
 
+    /**
+     * Background reason
+     */
+    uint32_t backgroundReason_ = 0;
 protected:
     RSSurfaceNodeType GetRSSurfaceNodeType(WindowType type);
     WMError Connect();

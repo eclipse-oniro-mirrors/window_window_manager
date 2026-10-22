@@ -2410,6 +2410,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         UpdateSubWindowStateAndNotify(GetPersistentId(), WindowState::STATE_SHOWN);
         state_ = WindowState::STATE_SHOWN;
         requestState_ = WindowState::STATE_SHOWN;
+        backgroundReason_ = 0;
         NotifyAfterForeground(true, true, waitAttach);
         NotifyAfterDidForeground(reason);
         NotifyFreeMultiWindowModeResume();
@@ -2523,6 +2524,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
 
 WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach)
 {
+    backgroundReason_ = reason;
     if (reason == static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH)) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Switch to another user, NotifyAfterBackground");
         NotifyAfterBackground(true, false);
