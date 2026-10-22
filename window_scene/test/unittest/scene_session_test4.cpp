@@ -1144,6 +1144,43 @@ HWTEST_F(SceneSessionTest4, SetWindowFlags03, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetWindowFlags04
+ * @tc.desc: SetWindowFlags rejects protected flag change mixed with other flags
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest4, SetWindowFlags04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetWindowFlags04";
+    info.bundleName_ = "SetWindowFlags04";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> sessionProperty = sptr<WindowSessionProperty>::MakeSptr();
+    sessionProperty->SetWindowFlags(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID));
+    sceneSession->SetSessionProperty(sessionProperty);
+
+    // non-system caller flips protected flags together with another flag in one call: must be rejected
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint32_t mixedFlags = static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED) |
+        static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK) |
+        static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_HANDWRITING);
+    property->SetWindowFlags(mixedFlags);
+    property->SetSystemCalling(false);
+    sceneSession->SetWindowFlags(property);
+    ASSERT_EQ(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID),
+        sceneSession->GetSessionProperty()->GetWindowFlags());
+
+    // system caller may change protected flags together with other flags
+    property->SetSystemCalling(true);
+    sceneSession->SetWindowFlags(property);
+    ASSERT_EQ(mixedFlags, sceneSession->GetSessionProperty()->GetWindowFlags());
+
+    // null property must not crash
+    sceneSession->SetWindowFlags(nullptr);
+    ASSERT_EQ(mixedFlags, sceneSession->GetSessionProperty()->GetWindowFlags());
+}
+
+/**
  * @tc.name: UpdateSessionPropertyByAction02
  * @tc.desc: UpdateSessionPropertyByAction function
  * @tc.type: FUNC
