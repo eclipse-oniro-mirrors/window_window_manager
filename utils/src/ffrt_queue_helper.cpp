@@ -34,6 +34,7 @@ constexpr uint64_t FFRT_STAT_INTERVAL_MS = 5 * 60 * 1000;
 constexpr const char* DIGITS = "0123456789";
 constexpr char XPOWER_HISYSEVENT_DOMAIN[] = "POWERTHERMAL";
 constexpr uint64_t US_PER_MS = 1000;
+constexpr uint64_t US_PER_SEC = 1000 * 1000;
 
 struct TaskStatAggregation {
     uint64_t totalTime = 0;
@@ -45,7 +46,7 @@ inline uint64_t ConvertCntvctToUs(uint64_t ticks)
 #if defined(__aarch64__)
     uint64_t freq = 1;
     asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
-    return (ticks * 1000000) / freq;
+    return (ticks * US_PER_SEC) / freq;
 #else
     return ticks;
 #endif
