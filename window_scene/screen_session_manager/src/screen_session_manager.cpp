@@ -8948,6 +8948,10 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         }
         screenSession->SetVirtualScreenFlag(option.virtualScreenFlag_);
         TLOGNFI(WmsLogTag::DMS, "virtualScreenFlag: %{public}d", option.virtualScreenFlag_);
+        if (option.hdrMode_ != HDRMode::NONE) {
+            rsInterface_.SetVirtualScreenHDRMode(rsId, option.hdrMode_);
+        }
+        TLOGNFI(WmsLogTag::DMS, "hdrMode: %{public}d", option.hdrMode_);
         NotifyScreenConnected(screenSession->ConvertToScreenInfo());
         TLOGNFW(WmsLogTag::DMS, "create success. ScreenId: %{public}" PRIu64", rsId: %{public}" PRIu64"",
             smsScreenId, rsId);
