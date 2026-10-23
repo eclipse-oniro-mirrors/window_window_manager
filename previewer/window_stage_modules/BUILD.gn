@@ -29,7 +29,7 @@ template("gen_js_src_binary") {
   gen_obj(target_name + "_js") {
     input = invoker.js_source
 
-    if (is_mac || is_mingw) {
+    if (is_mac || is_mingw || is_linux) {
       output = target_out_dir + "/" + invoker.target_name + "_js.c"
     } else {
       output = target_out_dir + "/" + invoker.target_name + "_js.o"
@@ -60,6 +60,8 @@ gen_js_src_binary("window_stage") {
 ohos_shared_library("windowstage") {
   if (is_mingw) {
     defines = [ "WINDOWS_PLATFORM" ]
+  } else if(is_linux) {
+    defines = [ "LINUX_PLATFORM" ]
   } else {
     defines = [ "MAC_PLATFORM" ]
   }
