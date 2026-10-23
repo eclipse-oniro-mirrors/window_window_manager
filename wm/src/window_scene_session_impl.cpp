@@ -6423,7 +6423,7 @@ WMError WindowSceneSessionImpl::SetWindowCornerRadius(float cornerRadius)
         return WMError::WM_ERROR_INVALID_CALLING;
     }
 
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Set id %{public}u corner radius %{public}f.", GetWindowId(), cornerRadius);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}u, cornerRadius: %{public}f", GetWindowId(), cornerRadius);
     if (MathHelper::LessNotEqual(cornerRadius, 0.0f)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "The corner radius is less than zero.");
         return WMError::WM_ERROR_INVALID_PARAM;
@@ -6516,7 +6516,7 @@ WMError WindowSceneSessionImpl::SetWindowShadowRadius(float radius)
         return WMError::WM_ERROR_INVALID_CALLING;
     }
 
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Set id %{public}u shadow radius %{public}f.", GetWindowId(), radius);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}u, shadowRadius: %{public}f", GetWindowId(), radius);
     if (MathHelper::LessNotEqual(radius, 0.0f)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "The shadow radius is less than zero.");
         return WMError::WM_ERROR_INVALID_PARAM;

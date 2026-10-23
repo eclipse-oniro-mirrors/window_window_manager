@@ -467,7 +467,7 @@ WMError WindowAdapter::CleanScreenWatermarkImage(const std::shared_ptr<Media::Pi
         screenWatermarkBundleName_ = "";
         screenWatermarkPriority_ = 0;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", static_cast<int32_t>(errCode));
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", static_cast<int32_t>(errCode));
     return errCode;
 }
 

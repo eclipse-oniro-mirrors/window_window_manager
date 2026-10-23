@@ -5825,7 +5825,7 @@ bool WindowSessionImpl::InitWaterfallMode()
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed winId: %{public}u", GetWindowId());
         return false;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u", GetWindowId());
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u", GetWindowId());
     isFullScreenWaterfallMode_.store(isWaterfallMode);
     NotifyWaterfallModeChange(isWaterfallMode);
     return true;

@@ -771,7 +771,6 @@ WMError WindowManagerLite::UnregisterVisibilityChangedListener(const sptr<IVisib
 
 WMError WindowManagerLite::RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite in");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -849,7 +848,6 @@ WMError WindowManagerLite::RegisterDisplayIdChangedListener(const sptr<IWindowIn
 
 WMError WindowManagerLite::UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite in");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;

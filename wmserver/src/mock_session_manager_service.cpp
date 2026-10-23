@@ -944,7 +944,7 @@ void MockSessionManagerService::SetScreenPrivacyWindowTagSwitch(
     }
     WMError ret = sceneSessionManagerProxy->SetScreenPrivacyWindowTagSwitch(screenId, privacyWindowTags, enable);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "remove virtual screen black list failed!");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "set screen privacy window tag switch failed!");
     }
 }
 
