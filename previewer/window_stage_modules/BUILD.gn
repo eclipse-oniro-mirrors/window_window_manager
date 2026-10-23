@@ -60,7 +60,7 @@ gen_js_src_binary("window_stage") {
 ohos_shared_library("windowstage") {
   if (is_mingw) {
     defines = [ "WINDOWS_PLATFORM" ]
-  } else if(is_linux) {
+  } else if (is_linux) {
     defines = [ "LINUX_PLATFORM" ]
   } else {
     defines = [ "MAC_PLATFORM" ]
