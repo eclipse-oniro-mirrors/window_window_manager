@@ -1609,14 +1609,6 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
-    if (argc < ARG_COUNT_TWO) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Mandatory parameters are left unspecified");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
-            WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][createSubWindowWithOptions]msg: Mandatory parameters are left unspecified"));
-        return NapiGetUndefined(env);
-    }
     std::string windowName;
     if (!ConvertFromJsValue(env, argv[0], windowName)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Failed to convert parameter to windowName");
