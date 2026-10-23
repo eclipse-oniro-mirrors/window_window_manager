@@ -61,6 +61,7 @@ struct VirtualScreenOption {
     uint32_t renderHeight_ { 0 };
     VirtualScreenCaller caller_ {VirtualScreenCaller::UNKNOWN};
     HDRMode hdrMode_ {HDRMode::NONE};
+    std::vector<RecordPolicy> recordPolicies_ {};
 };
 
 struct ScreenCapability {

@@ -340,6 +340,7 @@ public:
 
     void DisablePowerOffRenderControl(ScreenId screenId) override;
     bool SetVirtualScreenStatus(ScreenId screenId, VirtualScreenStatus screenStatus) override;
+    void PauseMirrorByRecordPolicy();
     sptr<ScreenSession> GetOrCreateFakeScreenSession(sptr<ScreenSession> screenSession,
         sptr<IRemoteObject> connectToRenderToken = nullptr);
     void InitFakeScreenSession(sptr<ScreenSession> screenSession, sptr<IRemoteObject> connectToRenderToken = nullptr);

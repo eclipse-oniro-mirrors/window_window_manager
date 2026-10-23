@@ -1335,6 +1335,16 @@ void ScreenSession::SetVirtualScreenFlag(VirtualScreenFlag screenFlag)
     screenFlag_ = screenFlag;
 }
 
+std::vector<RecordPolicy> ScreenSession::GetRecordPolicies() const
+{
+    return recordPolicies_;
+}
+
+void ScreenSession::SetRecordPolicies(const std::vector<RecordPolicy>& recordPolicies)
+{
+    recordPolicies_ = recordPolicies;
+}
+
 VirtualScreenType ScreenSession::GetVirtualScreenType()
 {
     return screenType_;

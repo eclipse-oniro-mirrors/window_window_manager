@@ -391,6 +391,13 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             int32_t screenIdParam = data.ReadInt32();
             VirtualScreenCaller caller = static_cast<VirtualScreenCaller>(data.ReadUint32());
             HDRMode hdrMode = static_cast<HDRMode>(data.ReadUint32());
+            std::vector<uint32_t> recordPolicyValues;
+            data.ReadUInt32Vector(&recordPolicyValues);
+            std::vector<RecordPolicy> recordPolicies;
+            recordPolicies.reserve(recordPolicyValues.size());
+            for (const auto& recordPolicy : recordPolicyValues) {
+                recordPolicies.push_back(static_cast<RecordPolicy>(recordPolicy));
+            }
             bool isSurfaceValid = data.ReadBool();
             sptr<Surface> surface = nullptr;
             if (isSurfaceValid) {
@@ -421,7 +428,8 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .renderHeight_ = renderHeight,
                 .screenId_ = screenIdParam,
                 .caller_ = caller,
-                .hdrMode_ = hdrMode
+                .hdrMode_ = hdrMode,
+                .recordPolicies_ = recordPolicies
             };
             ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
             reply.WriteUint64(static_cast<uint64_t>(screenId));
