@@ -432,7 +432,7 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo001, TestSize.Level1)
     uint32_t hookHeight = 200;
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
     controller->HookCutoutInfo(hookWidth, hookHeight, boundaryRects, displayInfo);
     EXPECT_EQ(boundaryRects, boundaryRects);
     displayInfo->SetActualPosX(0);
@@ -463,7 +463,7 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo002, TestSize.Level1)
     uint32_t hookHeight = 200;
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
     EXPECT_EQ(boundaryRects, boundaryRects);
     displayInfo->SetActualPosX(0);
     displayInfo->SetActualPosY(0);
@@ -497,7 +497,7 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo003, TestSize.Level1)
     uint32_t hookHeight = 200;
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
     displayInfo->SetActualPosX(0);
     displayInfo->SetActualPosY(0);
     displayInfo->SetActualWidth(100);
@@ -540,7 +540,7 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverRealScreenSize_Normal, TestSize.Leve
     displayInfo->SetScreenId(0);
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
 
 
     controller->RecoverRealScreenSize(dwidth, dheight, displayInfo);
@@ -571,7 +571,7 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverRealScreenSize_Rotation90_NoSwap, Te
     displayInfo->SetScreenId(0);
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
 
     controller->RecoverRealScreenSize(dwidth, dheight, displayInfo);
     // ROTATION_90 does not trigger swap; dwidth/dheight should equal original bounds values
@@ -622,7 +622,7 @@ HWTEST_F(ScreenCutoutControllerTest, RecoverRealScreenSize_NullDisplayInfo, Test
     sptr<DisplayInfo> displayInfo = nullptr;
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
 
     controller->RecoverRealScreenSize(dwidth, dheight, displayInfo);
     // Should return early on nullptr displayInfo without crash
@@ -656,7 +656,7 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_SecondarySuperFold_NormalSca
     uint32_t hookHeight = 200;
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
     displayInfo->SetActualPosX(0);
     displayInfo->SetActualPosY(0);
     displayInfo->SetActualWidth(100);
@@ -687,7 +687,7 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_SecondarySuperFold_ZeroHookD
     sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
 
     controller->HookCutoutInfo(0, 200, boundaryRects, displayInfo);
     // hookWidth is zero → should return early, boundaryRects unchanged
@@ -739,7 +739,7 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_NonSuperFoldDevice_Noop, Tes
     sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
 
     controller->HookCutoutInfo(200, 200, boundaryRects, displayInfo);
     // On non-super-fold device, guard returns early; rects unchanged
@@ -772,7 +772,7 @@ HWTEST_F(ScreenCutoutControllerTest, HookCutoutInfo_SecondarySuperFold_AllRectsO
     uint32_t hookHeight = 200;
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_.displayHookMap_[uid] = dmHookInfo;
+    ssm_.displayHookMap_[uid][0] = dmHookInfo;
     displayInfo->SetActualPosX(0);
     displayInfo->SetActualPosY(0);
     displayInfo->SetActualWidth(100);

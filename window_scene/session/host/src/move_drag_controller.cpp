@@ -1158,7 +1158,7 @@ std::pair<int32_t, int32_t> MoveDragController::ComputeOffsetFromStart(
     int32_t deltaY = curUnifiedY - originUnifiedY;
 
     // NOTE: Intrusive modification, should be optimized.
-    if (isAdaptToProportionalScale_ || isAdaptToDragScale_) {
+    if (isAdaptToProportionalScale_ || isAdaptToDragScale_ || GetIsDpiForceScale()) {
         return std::make_pair(deltaX, deltaY);
     }
 
@@ -1575,12 +1575,28 @@ float MoveDragController::GetVirtualPixelRatio(const std::shared_ptr<MMI::Pointe
     return display ? display->GetVirtualPixelRatio() : defaultVpr;
 }
 
+bool MoveDragController::GetIsDpiForceScale() const
+{
+    return CallSceneSession(&SceneSession::GetIsDpiForceScale, false);
+}
+
+float MoveDragController::GetDpiForceScale() const
+{
+    auto dpiForceScale = CallSceneSession(&SceneSession::GetDpiForceScale, 1.0f);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "dpiForceScale scale ratio is %{public}f", dpiForceScale);
+    return dpiForceScale;
+}
+
 WSRect MoveDragController::CalcFirstOriginalRectPos(const WSRect& windowRect) const
 {
     // Calculate the original position of a window rect (in parent coordinates).
     WSRect originalRect;
     if (MathHelper::NearZero(moveDragProperty_.scaleX_) || MathHelper::NearZero(moveDragProperty_.scaleY_)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "scale ratio is 0");
+        return windowRect;
+    }
+    if (GetIsDpiForceScale()) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "dpiForceScale");
         return windowRect;
     }
     // For system windows the position is independent of the parent and must not be adjusted
@@ -1602,6 +1618,12 @@ WSRect MoveDragController::CalcFreeformTargetRect(AreaType type, int32_t tranX, 
     WSRect targetRect = originalRect;
     if (!isAdaptToDragScale_) {
         FixTranslateByLimits(tranX, tranY);
+    }
+    // Special compatible scale: map resize delta from physical to logical coordinates
+    float scale = GetDpiForceScale();
+    if (GetIsDpiForceScale() && scale > 0) {
+        tranX  = static_cast<int32_t>(tranX / scale);
+        tranY = static_cast<int32_t>(tranY / scale);
     }
     TLOGD(WmsLogTag::WMS_LAYOUT, "areaType:%{public}u", type);
     if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::LEFT)) {

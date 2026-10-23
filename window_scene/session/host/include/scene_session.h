@@ -186,6 +186,8 @@ using NotifyRecoverWindowEffectFunc = std::function<void(bool recoverCorner, boo
 using NotifySessionBlackListFunc = std::function<WMError(int32_t persistentId,
     const std::unordered_set<std::string>& privacyWindowTags)>;
 using NotifyPreCalcWindowPropertyFunc = std::function<void()>;
+using NotifyDpiForceScaleChangeFunc = std::function<void(float dpiForceScale, bool isDpiForceScale,
+    float windowStartDensity)>;
 using CheckAndGetRogScaleFunc = std::function<bool(const std::string bundleName,
     float& scale)>;
 
@@ -1173,6 +1175,24 @@ public:
 
     WSError NotifyClientToUpdateLSState(bool isLSState);
 
+    /*
+     * dpi force scale for PC Window
+     */
+    void UpdateDpiForceScale();
+    void SetDpiForceScaleChangeNotifyFunc(const NotifyDpiForceScaleChangeFunc& func);
+    // Notify client (app process) of dpiForceScale change for coordinate conversion.
+    void NotifyDpiForceScaleToClient();
+    // Notify TS (SCB) of dpiForceScale change so it can update scale/hookInfo.
+    void NotifyDpiForceScaleToTs();
+    bool GetIsDpiForceScale() const { return isDpiForceScale_; }
+    float GetDpiForceScale() const { return dpiForceScale_; }
+    float GetWindowStartDensity() const { return windowStartDensity_; }
+    void SetDpiForceScale(float scale) { dpiForceScale_ = scale; }
+    void SetIsDpiForceScale(bool isDpiForceScale) { isDpiForceScale_ = isDpiForceScale; }
+    void SetWindowStartDensity(float density) { windowStartDensity_ = density; }
+    float GetScreenDensityById(DisplayId displayId);
+    float GetCoordinateScaleFactor() const override;
+
 protected:
     void NotifyIsCustomAnimationPlaying(bool isPlaying);
     std::string GetRatioPreferenceKey();
@@ -1839,6 +1859,13 @@ private:
     bool isLayoutFullScreen_ { false };
     bool isDefaultDensityEnabled_ = false;
 
+    /*
+     * dpi force scale for PC Window
+     */
+    bool isDpiForceScale_ {false};
+    float dpiForceScale_ {1.0f};
+    float windowStartDensity_ {0.0f};
+    NotifyDpiForceScaleChangeFunc dpiForceScaleChangeFunc_ = nullptr;
     /**
      * Window pattern
      */

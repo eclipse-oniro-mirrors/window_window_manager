@@ -475,6 +475,8 @@ public:
     DMError GetAvailableArea(DisplayId displayId, DMRect& area) override;
     DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area) override;
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
+    void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId);
+    void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid);
     void NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId);
     void NotifyFoldToExpandCompletion(bool foldToExpand) override;
     void NotifyScreenConnectCompletion(ScreenId screenId) override;
@@ -901,6 +903,8 @@ private:
     int Dump(int fd, const std::vector<std::u16string>& args) override;
     sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession,
         int32_t uid = INVALID_UID);
+    void ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo, const sptr<ScreenSession>& screenSession,
+        const DMHookInfo& info);
     bool IsValidDisplayOrientation(uint32_t displayOrientation);
     sptr<DisplayInfo> FindDisplayInfoInSession(const sptr<ScreenSession>& screenSession, DisplayId displayId,
         bool isGetActualInfo = false);
@@ -1217,7 +1221,7 @@ private:
     std::atomic<ScreenId> defaultRsScreenId_ { SCREEN_ID_INVALID };
     std::map<sptr<IRemoteObject>, std::vector<ScreenId>> screenAgentMap_;
     std::map<ScreenId, sptr<ScreenSessionGroup>> smsScreenGroupMap_;
-    std::map<uint32_t, DMHookInfo> displayHookMap_;
+    std::map<uint32_t, std::map<DisplayId, DMHookInfo>> displayHookMap_;
     std::map<int32_t, int32_t> uidAndPidMap_;
 
     bool userSwitching_ = false;

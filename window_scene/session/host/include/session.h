@@ -1036,6 +1036,8 @@ public:
      */
     WSError UpdateLSStateInfo(bool isLSState);
 
+    virtual float GetCoordinateScaleFactor() const { return 1.0f; }
+
     /**
      * Background Running display hook
      */

@@ -128,6 +128,7 @@ enum class ListenerFuncType : uint32_t {
     FLOAT_VIEW_STOP_CB,
     FLOAT_VIEW_UPDATE_CB,
     SPLIT_RATIO_CHANGE_CB,
+    DPI_FORCE_SCALE_CHANGE_CB,
 };
 
 class SceneSession;
@@ -217,6 +218,7 @@ private:
     static napi_value NotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info);
     static napi_value CallingWindowStateChange(napi_env env, napi_callback_info info);
     static napi_value SetScale(napi_env env, napi_callback_info info);
+    static napi_value SetDpiForceScale(napi_env env, napi_callback_info info);
     static napi_value SetWindowLastSafeRect(napi_env env, napi_callback_info info);
     static napi_value SetMovable(napi_env env, napi_callback_info info);
     static napi_value SetSplitButtonVisible(napi_env env, napi_callback_info info);
@@ -348,6 +350,7 @@ private:
     napi_value OnNotifyKeyboardAnimationCompleted(napi_env env, napi_callback_info info);
     napi_value OnNotifyKeyboardAnimationWillBegin(napi_env env, napi_callback_info info);
     napi_value OnSetScale(napi_env env, napi_callback_info info);
+    napi_value OnSetDpiForceScale(napi_env env, napi_callback_info info);
     napi_value OnSetWindowLastSafeRect(napi_env env, napi_callback_info info);
     napi_value OnSetMovable(napi_env env, napi_callback_info info);
     napi_value OnSetSplitButtonVisible(napi_env env, napi_callback_info info);
@@ -503,6 +506,7 @@ private:
     void ProcessCallingSessionIdChangeRegister();
     void ProcessKeyboardEffectOptionChangeRegister();
     void ProcessSetHighlightChangeRegister();
+    void ProcessDpiForceScaleChangeRegister();
     void ProcessWindowAnchorInfoChangeRegister();
     void ProcessFollowParentRectRegister();
     void ProcessGetTargetOrientationConfigInfoRegister();
@@ -622,6 +626,7 @@ private:
     void OnUpdateFollowScreenChange(bool isFollowScreenChange);
     void OnUseImplicitAnimationChange(bool useImplicit);
     void NotifySetSubWindowSource(SubWindowSource source);
+    void NotifyDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale, float windowStartDensity);
     void OnAnimateToTargetProperty(const WindowAnimationProperty& animationProperty,
         const WindowAnimationOption& animationOption);
     void OnOutlineParamsChange(bool isOutlineEnabled, const OutlineStyleParams& outlineStyleParams);

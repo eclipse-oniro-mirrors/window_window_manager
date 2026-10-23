@@ -600,7 +600,7 @@ HWTEST_F(ScreenSessionManagerTest, GetVisibleAreaDisplayInfoById05, Function | S
     hookInfo.displayOrientation_ = static_cast<uint32_t>(DisplayOrientation::UNKNOWN);
     hookInfo.enableHookDisplayOrientation_ = false;
     hookInfo.isFullScreenInForceSplit_ = false;
-    ssm_->displayHookMap_[uid] = hookInfo;
+    ssm_->displayHookMap_[uid][0] = hookInfo;
 
     ssm_->screenSessionMap_.insert(std::make_pair(id, screenSession));
     auto res = ssm_->GetVisibleAreaDisplayInfoById(DISPLAY_ID_FAKE);

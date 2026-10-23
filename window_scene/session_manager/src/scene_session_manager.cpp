@@ -5411,6 +5411,20 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
         }
         newSession->SetClientDisplayId(initClientDisplayId);
         property->SetSystemCalling(isSystemCalling);
+        // Inherit dpiForceScale from parent window
+        if (parentSession) {
+            auto prop = parentSession->GetSessionProperty();
+            if(parentSession->GetIsDpiForceScale() && prop && prop->GetSessionInfo().bundleName_ == info.bundleName_) {
+                newSession->SetDpiForceScale(parentSession->GetDpiForceScale());
+                newSession->SetIsDpiForceScale(true);
+                newSession->SetWindowStartDensity(parentSession->GetWindowStartDensity());
+                TLOGNI(WmsLogTag::WMS_LIFE, "SubWindow inherit dpiForceScale, id=%{public}d, parentId=%{public}d, "
+                "dpiForceScale=%{public}f, windowStartDensity=%{public}f, bundleName:%{public}s, "
+                "parentname:%{public}s, screenId:%{public}" PRIu64, persistentId, parentSession->GetPersistentId(),
+                parentSession->GetDpiForceScale(), parentSession->GetWindowStartDensity(), info.bundleName_.c_str(),
+                prop->GetSessionInfo().bundleName_.c_str(), info.screenId_);
+            }
+        }
         auto errCode = newSession->ConnectInner(
             sessionStage, eventChannel, nodeId, systemConfig_, renderSession, surfaceNode, property, token, pid, uid);
         systemConfig = systemConfig_;
@@ -15748,6 +15762,7 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
                     sceneSession->GetPersistentId(), sceneSession->GetWindowType(),
                     sceneSession->GetSessionState(), sceneSession->IsVisible());
             }
+            sceneSession->UpdateDpiForceScale();
         }
         UpdateDisplayRegion(displayInfo);
         return WSError::WS_OK;
@@ -16567,6 +16582,7 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
 #endif
     sceneSession->NotifyRemoveAppLockSnapshot();
     sceneSession->UpdateDensity();
+    sceneSession->UpdateDpiForceScale();
     if (fromScreenId != screenId) {
         sceneSession->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));
         sceneSession->MarkAvoidAreaAsDirty();
@@ -19638,6 +19654,7 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
         return WMError::WM_ERROR_INVALID_PARAM;
     }
     DMHookInfo dmHookInfo;
+    dmHookInfo.displayId_ = hookInfo.displayId_;
     dmHookInfo.width_ = hookInfo.width_;
     dmHookInfo.height_ = hookInfo.height_;
     dmHookInfo.density_ = hookInfo.density_;
@@ -19645,7 +19662,8 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
     dmHookInfo.enableHookRotation_ = enable ? hookInfo.enableHookRotation_ : false;
     dmHookInfo.displayOrientation_ = hookInfo.displayOrientation_;
     dmHookInfo.enableHookDisplayOrientation_ = enable ? hookInfo.enableHookDisplayOrientation_ : false;
-    dmHookInfo.actualRect_ = { 
+    dmHookInfo.dpiForceScale_ = hookInfo.dpiForceScale_;
+    dmHookInfo.actualRect_ = {
         .posX_ = hookInfo.actualRect_.posX_, .posY_ = hookInfo.actualRect_.posY_,
     .width_ = hookInfo.actualRect_.width_, .height_ = hookInfo.actualRect_.height_};
     {

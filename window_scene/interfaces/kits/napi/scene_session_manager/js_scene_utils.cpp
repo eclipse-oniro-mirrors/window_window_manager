@@ -1133,6 +1133,8 @@ bool ConvertRectInfoFromJs(napi_env env, napi_value jsObject, WSRect& rect)
 
 bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo)
 {
+    napi_value jsDisplayId = nullptr;
+    napi_get_named_property(env, jsObject, "displayId", &jsDisplayId);
     napi_value jsWidth = nullptr;
     napi_get_named_property(env, jsObject, "width", &jsWidth);
     napi_value jsHeight = nullptr;
@@ -1147,8 +1149,18 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
     napi_get_named_property(env, jsObject, "displayOrientation", &jsDisplayOrientation);
     napi_value jsEnableHookDisplayOrientation = nullptr;
     napi_get_named_property(env, jsObject, "enableHookDisplayOrientation", &jsEnableHookDisplayOrientation);
+    napi_value jsDpiForceScale = nullptr;
+    napi_get_named_property(env, jsObject, "dpiForceScale", &jsDpiForceScale);
     napi_value jsActualRect = nullptr;
     napi_get_named_property(env, jsObject, "actualRect", &jsActualRect);
+
+    int64_t displayId = 0;
+    if (jsDisplayId != nullptr && ConvertFromJsValue(env, jsDisplayId, displayId)) {
+        hookInfo.displayId_ = static_cast<DisplayId>(displayId);
+    } else {
+        hookInfo.displayId_ = 0;
+    }
+
     uint32_t width = 0;
     if (jsWidth == nullptr || !ConvertFromJsValue(env, jsWidth, width)) {
         TLOGE(WmsLogTag::WMS_COMPAT, "Failed to convert parameter to width");
@@ -1197,6 +1209,13 @@ bool ConvertHookInfoFromJs(napi_env env, napi_value jsObject, HookInfo& hookInfo
         hookInfo.enableHookDisplayOrientation_ = enableHookDisplayOrientation;
     } else {
         hookInfo.enableHookDisplayOrientation_ = false;
+    }
+
+    double_t dpiForceScale = 1.0;
+    if (jsDpiForceScale != nullptr && ConvertFromJsValue(env, jsDpiForceScale, dpiForceScale)) {
+        hookInfo.dpiForceScale_ = static_cast<float_t>(dpiForceScale);
+    } else {
+        hookInfo.dpiForceScale_ = 1.0f;
     }
 
     Rect actualRect;

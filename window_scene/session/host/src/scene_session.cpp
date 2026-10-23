@@ -257,6 +257,7 @@ WSError SceneSession::ConnectInner(const sptr<ISessionStage>& sessionStage,
         }
         session->NotifySingleHandTransformChange(session->GetSingleHandTransform());
         session->NotifyGlobalScaledRectChange();
+        session->NotifyDpiForceScaleToClient();
         session->NotifyPropertyWhenConnect();
         if (session->pcFoldScreenController_) {
             session->pcFoldScreenController_->OnConnect();
@@ -2425,28 +2426,82 @@ WMError SceneSession::IsPiPActive(bool& status)
     return WMError::WM_OK;
 }
 
+float SceneSession::GetScreenDensityById(DisplayId displayId)
+{
+    auto display = DisplayManager::GetInstance().GetDisplayById(displayId);
+    if (display == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Failed to get display by id: %{public}" PRIu64, displayId);
+        return 0.0f;
+    }
+    return display->GetVirtualPixelRatio();
+}
+
+float SceneSession::GetCoordinateScaleFactor() const
+{
+    if (isDpiForceScale_) {
+        return dpiForceScale_;
+    }
+    return 1.0f;
+}
+
+void SceneSession::UpdateDpiForceScale()
+{
+    // Recalculate dpiForceScale when density changes or session crosses screens.
+    // C++ is authoritative for DPI change / cross-screen scenarios; TS only
+    // computes the initial value during session creation and pushes it via
+    // setDpiForceScale NAPI.
+    if (GetIsDpiForceScale()) {
+        auto property = GetSessionProperty();
+        if (property == nullptr) {
+            return;
+        }
+        float currScreenDensity = GetScreenDensityById(property->GetDisplayId());
+        float windowStartDensity = GetWindowStartDensity();
+        if (currScreenDensity > 0.0f && windowStartDensity > 0.0f) {
+            float newScale = currScreenDensity / windowStartDensity;
+            SetDpiForceScale(newScale);
+            TLOGNI(WmsLogTag::WMS_MAIN, "new dpiforcescale, id=%{public}d, dpiForceScale=%{public}f, "
+                "windowStartDensity=%{public}f, screenId:%{public}" PRIu64, GetPersistentId(),
+                GetDpiForceScale(), GetWindowStartDensity(), GetScreenId());
+            // DPI change / cross-screen: notify both client and TS.
+            NotifyDpiForceScaleToClient();
+            NotifyDpiForceScaleToTs();
+        }
+    }
+}
+
 /** @note @window.layout */
 // set rect info and notify rect change who is register call back
 void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
     const MoveConfiguration& moveConfiguration)
 {
+    // [DpiForceScale] For SpecialCompatible, incoming rect posX/Y are in app-perceived (logical) space.
+    // Convert to physical space to match session rect storage. Width/height are unchanged.
+    WSRect convertedRect = rect;
+    if (GetIsDpiForceScale()) {
+        float scale = GetDpiForceScale();
+        convertedRect.posX_ = static_cast<int32_t>(convertedRect.posX_ * scale);
+        convertedRect.posY_ = static_cast<int32_t>(convertedRect.posY_ * scale);
+        TLOGD(WmsLogTag::WMS_LAYOUT, "[DpiForceScale] id=%{public}d, physical outRect=%{public}s, scale=%{public}f",
+            GetPersistentId(), convertedRect.ToString().c_str(), scale);
+    }
     auto newWinRect = GetSessionRect();
     auto newRequestRect = GetSessionRequestRect();
     bool isScbCoreEnabled = Session::IsScbCoreEnabled();
     if (reason == SizeChangeReason::MOVE) {
-        newWinRect.posX_ = rect.posX_;
-        newWinRect.posY_ = rect.posY_;
+        newWinRect.posX_ = convertedRect.posX_;
+        newWinRect.posY_ = convertedRect.posY_;
         newRequestRect.posX_ = rect.posX_;
         newRequestRect.posY_ = rect.posY_;
         if (!isScbCoreEnabled && !WindowHelper::IsMainWindow(GetWindowType())) {
             SetSessionRect(newWinRect);
         }
         SetSessionRequestRect(newRequestRect);
-        NotifySessionRectChange(newRequestRect, reason, moveConfiguration.displayId);
+        NotifySessionRectChange(newWinRect, reason, moveConfiguration.displayId);
     } else if (reason == SizeChangeReason::RESIZE || reason == SizeChangeReason::RESIZE_BY_LIMIT) {
-        if (rect.width_ > 0 && rect.height_ > 0) {
-            newWinRect.width_ = rect.width_;
-            newWinRect.height_ = rect.height_;
+        if (convertedRect.width_ > 0 && convertedRect.height_ > 0) {
+            newWinRect.width_ = convertedRect.width_;
+            newWinRect.height_ = convertedRect.height_;
             newRequestRect.width_ = rect.width_;
             newRequestRect.height_ = rect.height_;
         }
@@ -2455,15 +2510,15 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
         }
         auto notifyRect = newRequestRect;
         if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId())) {
-            notifyRect = rect;
+            notifyRect = convertedRect;
         }
         SetSessionRequestRect(notifyRect);
         NotifySessionRectChange(notifyRect, reason);
     } else {
         if (!isScbCoreEnabled) {
-            SetSessionRect(rect);
+            SetSessionRect(convertedRect);
         }
-        NotifySessionRectChange(rect, reason);
+        NotifySessionRectChange(convertedRect, reason);
     }
     TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetPersistentId(), WmsLogTag::WMS_LAYOUT,
         "Id:%{public}d reason:%{public}d cfg:%{public}s rects:in=%{public}s "
@@ -9332,6 +9387,29 @@ void SceneSession::SetHighlightChangeNotifyFunc(const NotifyHighlightChangeFunc&
 {
     std::lock_guard lock(highlightChangeFuncMutex_);
     highlightChangeFunc_ = func;
+}
+
+void SceneSession::SetDpiForceScaleChangeNotifyFunc(const NotifyDpiForceScaleChangeFunc& func)
+{
+    dpiForceScaleChangeFunc_ = func;
+}
+
+void SceneSession::NotifyDpiForceScaleToClient()
+{
+    if (sessionStage_ != nullptr) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[DpiForceScale] sync to client, "
+            "pid=%{public}d, newScale=%{public}f", GetPersistentId(), GetDpiForceScale());
+        sessionStage_->UpdateDpiForceScaleChange(GetDpiForceScale(), GetIsDpiForceScale(), GetWindowStartDensity());
+    }
+}
+
+void SceneSession::NotifyDpiForceScaleToTs()
+{
+    if (dpiForceScaleChangeFunc_) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[DpiForceScale] notify TS, "
+            "pid=%{public}d, newScale=%{public}f", GetPersistentId(), GetDpiForceScale());
+        dpiForceScaleChangeFunc_(GetDpiForceScale(), GetIsDpiForceScale(), GetWindowStartDensity());
+    }
 }
 
 void SceneSession::RegisterNotifySurfaceBoundsChangeFunc(int32_t sessionId, NotifySurfaceBoundsChangeFunc&& func)

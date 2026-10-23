@@ -151,6 +151,7 @@ public:
     // Window Property
     WSError UpdateBrightness(float brightness) override;
     void UpdateDensity() override;
+    void UpdateDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale, float windowStartDensity) override;
     WSError UpdateWindowUIType(WindowUIType windowUIType) override;
     WSError UpdatePropertyWhenTriggerMode(const sptr<WindowSessionProperty>& property) override;
     WSError SetIsStartMoving(bool isStartMoving) override;
