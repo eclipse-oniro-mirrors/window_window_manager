@@ -2510,7 +2510,7 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
         }
         auto notifyRect = newWinRect;
         if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId())) {
-            notifyRect = newWinRect;
+            notifyRect = rect;
         }
         SetSessionRequestRect(newRequestRect);
         NotifySessionRectChange(notifyRect, reason);
