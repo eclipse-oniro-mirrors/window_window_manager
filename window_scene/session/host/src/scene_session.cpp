@@ -2508,11 +2508,11 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
         if (!isScbCoreEnabled && GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
             SetSessionRect(newWinRect);
         }
-        auto notifyRect = newRequestRect;
+        auto notifyRect = newWinRect;
         if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId())) {
-            notifyRect = convertedRect;
+            notifyRect = newWinRect;
         }
-        SetSessionRequestRect(notifyRect);
+        SetSessionRequestRect(newRequestRect);
         NotifySessionRectChange(notifyRect, reason);
     } else {
         if (!isScbCoreEnabled) {
