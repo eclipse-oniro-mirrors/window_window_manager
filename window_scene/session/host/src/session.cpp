@@ -1595,7 +1595,7 @@ WSError Session::UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeRea
         GetLayoutController()->ConvertGlobalRectToRelative(rect, GetDisplayId()) : rect;
     // Special compatible scale: convert physical coordinates to logical coordinates for the client
     float scaleFactor = GetCoordinateScaleFactor();
-    if (!MathHelper::NearEqual(scaleFactor, 1.0f)) {
+    if (!MathHelper::NearEqual(scaleFactor, 1.0f) && scaleFactor > 0) {
         updateRect.posX_ = static_cast<int32_t>(updateRect.posX_ / scaleFactor);
         updateRect.posY_ = static_cast<int32_t>(updateRect.posY_ / scaleFactor);
         TLOGI(WmsLogTag::WMS_LAYOUT, "dpiforcescale update client rect: id: %{public}d, rect:%{public}s, "
