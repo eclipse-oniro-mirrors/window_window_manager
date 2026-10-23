@@ -2678,21 +2678,57 @@ bool AniWindowUtils::GetUint8ArrayBufferData(ani_env* env, ani_object uint8Array
     return true;
 }
 
-WmErrorCode AniWindowUtils::ParseTouchableAreas(ani_env* env, ani_array rects, const Rect& windowRect,
-    std::vector<Rect>& touchableAreas)
+bool AniWindowUtils::ParseRawRect(ani_env* env, ani_object rect, Rect& touchableRect)
 {
-    WmErrorCode errCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
+    int32_t data = 0;
+    if (GetIntObject(env, "left", rect, data)) {
+        touchableRect.posX_ = data;
+    } else {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:left");
+        return false;
+    }
+    if (GetIntObject(env, "top", rect, data)) {
+        touchableRect.posY_ = data;
+    } else {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:top");
+        return false;
+    }
+    if (GetIntObject(env, "width", rect, data)) {
+        touchableRect.width_ = static_cast<uint32_t>(data);
+    } else {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:width");
+        return false;
+    }
+    if (GetIntObject(env, "height", rect, data)) {
+        touchableRect.height_ = static_cast<uint32_t>(data);
+    } else {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:height");
+        return false;
+    }
+    return true;
+}
+
+bool AniWindowUtils::CheckRectInWindow(const Rect& touchableRect, const Rect& windowRect)
+{
+    return !(touchableRect.posX_ < 0 || touchableRect.posY_ < 0 ||
+        touchableRect.posX_ > static_cast<int32_t>(windowRect.width_) ||
+        touchableRect.posY_ > static_cast<int32_t>(windowRect.height_) ||
+        touchableRect.width_ > (windowRect.width_ - static_cast<uint32_t>(touchableRect.posX_)) ||
+        touchableRect.height_ > (windowRect.height_ - static_cast<uint32_t>(touchableRect.posY_)));
+}
+
+WmErrorCode AniWindowUtils::ParseRawTouchableAreas(ani_env* env, ani_array rects, std::vector<Rect>& rawRects)
+{
     ani_size size;
     ani_status aniRet = env->Array_GetLength(rects, &size);
     if (aniRet != ANI_OK) {
         TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Get rects size failed, ret: %{public}u", aniRet);
-        return errCode;
+        return WmErrorCode::WM_ERROR_INVALID_PARAM;
     }
     if (size > static_cast<ani_size>(MAX_TOUCHABLE_AREAS)) {
         TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Exceed maximum rects limit, rects size: %{public}zu", size);
-        return errCode;
+        return WmErrorCode::WM_ERROR_INVALID_PARAM;
     }
-    errCode = WmErrorCode::WM_OK;
     for (ani_size i = 0; i < size; i++) {
         ani_ref rectRef;
         aniRet = env->Array_Get(rects, i, &rectRef);
@@ -2701,56 +2737,12 @@ WmErrorCode AniWindowUtils::ParseTouchableAreas(ani_env* env, ani_array rects, c
             return WmErrorCode::WM_ERROR_INVALID_PARAM;
         }
         Rect touchableArea;
-        if (ParseAndCheckRect(env, static_cast<ani_object>(rectRef), windowRect, touchableArea)) {
-            touchableAreas.emplace_back(touchableArea);
-        } else {
-            errCode = WmErrorCode::WM_ERROR_INVALID_PARAM;
-            break;
+        if (!ParseRawRect(env, static_cast<ani_object>(rectRef), touchableArea)) {
+            return WmErrorCode::WM_ERROR_INVALID_PARAM;
         }
+        rawRects.emplace_back(touchableArea);
     }
-    return errCode;
-}
-
-bool AniWindowUtils::ParseAndCheckRect(ani_env* env, ani_object rect, const Rect& windowRect, Rect& touchableRect)
-{
-    int32_t data = 0;
-    if (AniWindowUtils::GetIntObject(env, "left", rect, data)) {
-        touchableRect.posX_ = data;
-    } else {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:left");
-        return false;
-    }
-    if (AniWindowUtils::GetIntObject(env, "top", rect, data)) {
-        touchableRect.posY_ = data;
-    } else {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:top");
-        return false;
-    }
-    if (AniWindowUtils::GetIntObject(env, "width", rect, data)) {
-        touchableRect.width_ = static_cast<uint32_t>(data);
-    } else {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:width");
-        return false;
-    }
-    if (AniWindowUtils::GetIntObject(env, "height", rect, data)) {
-        touchableRect.height_ = static_cast<uint32_t>(data);
-    } else {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Failed to parse rect:height");
-        return false;
-    }
-    if ((touchableRect.posX_ < 0) || (touchableRect.posY_ < 0) ||
-        (touchableRect.posX_ > static_cast<int32_t>(windowRect.width_)) ||
-        (touchableRect.posY_ > static_cast<int32_t>(windowRect.height_)) ||
-        (touchableRect.width_ > (windowRect.width_ - static_cast<uint32_t>(touchableRect.posX_))) ||
-        (touchableRect.height_ > (windowRect.height_ - static_cast<uint32_t>(touchableRect.posY_)))) {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]Outside the window area, "
-            "touchRect:[%{public}d %{public}d %{public}u %{public}u], "
-            "windowRect:[%{public}d %{public}d %{public}u %{public}u]",
-            touchableRect.posX_, touchableRect.posY_, touchableRect.width_, touchableRect.height_,
-            windowRect.posX_, windowRect.posY_, windowRect.width_, windowRect.height_);
-        return false;
-    }
-    return true;
+    return WmErrorCode::WM_OK;
 }
 
 bool AniWindowUtils::IsUndefined(ani_env* env, ani_object obj)

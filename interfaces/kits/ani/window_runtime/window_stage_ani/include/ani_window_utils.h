@@ -269,9 +269,9 @@ public:
         std::vector<std::vector<uint32_t>>& windowMask);
     static bool ParseWindowMaskInnerValue(ani_env* env, ani_array innerArray, std::vector<uint32_t>& elementArray);
     static bool GetUint8ArrayBufferData(ani_env* env, ani_object uint8Array, void*& data, ani_size& byteLength);
-    static WmErrorCode ParseTouchableAreas(ani_env* env, ani_array rects, const Rect& windowRect,
-        std::vector<Rect>& touchableAreas);
-    static bool ParseAndCheckRect(ani_env* env, ani_object rect, const Rect& windowRect, Rect& touchableRect);
+    static bool ParseRawRect(ani_env* env, ani_object rect, Rect& touchableRect);
+    static bool CheckRectInWindow(const Rect& touchableRect, const Rect& windowRect);
+    static WmErrorCode ParseRawTouchableAreas(ani_env* env, ani_array rects, std::vector<Rect>& rawRects);
     static ani_object CreateOptionalBool(ani_env *env, ani_boolean value);
     static ani_object CreateOptionalInt(ani_env *env, ani_int value);
     static bool GetWindowSnapshotConfiguration(ani_env* env, ani_object config,

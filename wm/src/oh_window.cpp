@@ -1117,7 +1117,7 @@ int32_t OH_WindowManager_SetWindowTouchable(int32_t windowId, bool touchable)
             errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL;
             return;
         }
-        errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->SetTouchable(touchable));
+        errCode = ConvertWMErrorToWindowErrorCode(window->SetTouchable(touchable));
     }, __func__);
     if (errCode != WindowManager_ErrorCode::OK) {
         HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_SetWindowTouchable", errCode);

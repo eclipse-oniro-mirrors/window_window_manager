@@ -3348,7 +3348,7 @@ napi_value JsWindow::OnSetDialogBackGestureEnabled(napi_env env, napi_callback_i
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->SetDialogBackGestureEnabled(isEnabled));
+        *errCodePtr = ConvertErrorToCode(window->SetDialogBackGestureEnabled(isEnabled));
         TLOGI(WmsLogTag::WMS_DIALOG, "Window [%{public}u, %{public}s] set dialog window end",
             window->GetWindowId(), window->GetWindowName().c_str());
     };
@@ -5928,7 +5928,7 @@ napi_value JsWindow::OnSetTouchable(napi_env env, napi_callback_info info)
         if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
-            WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+            WmErrorCode wmErrorCode = ConvertErrorToCode(ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTouchable", wmErrorCode);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window set touchable failed"));
         }
@@ -5975,7 +5975,7 @@ napi_value JsWindow::OnSetTouchableAreas(napi_env env, napi_callback_info info)
         if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
-            WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+            WmErrorCode wmErrorCode = ConvertErrorToCode(ret);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTouchableAreas", wmErrorCode);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "OnSetTouchableAreas failed"));
         }
@@ -6566,7 +6566,7 @@ napi_value JsWindow::OnSetWindowTouchable(napi_env env, napi_callback_info info)
                     "[window][setWindowTouchable]msg: The window is not created or destroyed"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->SetTouchable(touchable));
+        WmErrorCode ret = ConvertErrorToCode(weakWindow->SetTouchable(touchable));
         if (ret != WmErrorCode::WM_OK) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTouchable", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][setWindowTouchable]"));
@@ -10152,7 +10152,7 @@ napi_value JsWindow::OnSetWindowMask(napi_env env, napi_callback_info info)
                 "Invalid window type. Only subwindows and float windows are supported"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetWindowMask(windowMask));
+        WmErrorCode ret = ConvertErrorToCode(window->SetWindowMask(windowMask));
         if (ret != WmErrorCode::WM_OK) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowMask", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][setWindowMask]"));
@@ -10269,7 +10269,7 @@ napi_value JsWindow::OnClearWindowMask(napi_env env, napi_callback_info info)
                 "[window][clearWindowMask]msg: invalid type"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->ClearWindowMask());
+        WmErrorCode ret = ConvertErrorToCode(window->ClearWindowMask());
         if (ret != WmErrorCode::WM_OK) {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.clearWindowMask", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][clearWindowMask]msg: clear mask failed"));
@@ -11784,7 +11784,7 @@ napi_value JsWindow::OnSetReceiveDragEventEnabled(napi_env env, napi_callback_in
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->SetReceiveDragEventEnabled(enabled));
+        *errCodePtr = ConvertErrorToCode(window->SetReceiveDragEventEnabled(enabled));
         TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s winId: %{public}u, set enable: %{public}u",
             where, window->GetWindowId(), enabled);
     };
@@ -11847,7 +11847,7 @@ napi_value JsWindow::OnSetSeparationTouchEnabled(napi_env env, napi_callback_inf
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSeparationTouchEnabled(enabled));
+        *errCodePtr = ConvertErrorToCode(window->SetSeparationTouchEnabled(enabled));
         TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s winId: %{public}u, set enable: %{public}u",
             where, window->GetWindowId(), enabled);
     };
@@ -11858,7 +11858,7 @@ napi_value JsWindow::OnSetSeparationTouchEnabled(napi_env env, napi_callback_inf
             TLOGNE(WmsLogTag::WMS_EVENT, "%{public}s set failed, result: %{public}d", where, *errCodePtr);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSeparationTouchEnabled", *errCodePtr);
             task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                "[window][setSeparationTouchEnabled]msg: set window receive drag failed"));
+                "[window][setSeparationTouchEnabled]msg: set separation touch failed"));
         }
     };
     napi_value result = nullptr;

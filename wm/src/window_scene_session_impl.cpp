@@ -6954,8 +6954,9 @@ WMError WindowSceneSessionImpl::SetDialogBackGestureEnabled(bool isEnabled)
         return WMError::WM_ERROR_NULLPTR;
     }
     WMError ret = static_cast<WMError>(hostSession->SetDialogSessionBackGestureEnabled(isEnabled));
-    dialogSessionBackGestureEnabled_ = isEnabled;
-    if (ret != WMError::WM_OK) {
+    if (ret == WMError::WM_OK) {
+        dialogSessionBackGestureEnabled_ = isEnabled;
+    } else {
         TLOGE(WmsLogTag::WMS_DIALOG, "set window failed with errCode:%{public}d", static_cast<int32_t>(ret));
     }
     return ret;
@@ -8135,7 +8136,7 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
     std::shared_ptr<Media::PixelMap> mask = HandleWindowMask(windowMask);
     if (mask == nullptr) {
         TLOGE(WmsLogTag::WMS_PC, "Failed to create pixelMap of window mask");
-        return WMError::WM_ERROR_INVALID_WINDOW;
+        return WMError::WM_ERROR_INVALID_OPERATION;
     }
     return ApplyWindowMask(mask);
 }
