@@ -2457,50 +2457,19 @@ void AniWindow::OnSetTouchableAreas(ani_env* env, ani_array rects)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    std::vector<Rect> rawRects;
-    WmErrorCode errCode = AniWindowUtils::ParseRawTouchableAreas(env, rects, rawRects);
+    Rect windowRect = window->GetRect();
+    std::vector<Rect> touchableAreas;
+    WmErrorCode errCode = AniWindowUtils::ParseTouchableAreas(env, rects, windowRect, touchableAreas);
     if (errCode != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTouchableAreas", errCode);
         AniWindowUtils::AniThrowError(env, errCode);
         return;
     }
-
-    auto mainRunner = AppExecFwk::EventRunner::GetMainEventRunner();
-    if (mainRunner == nullptr) {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]main event runner is nullptr!");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        return;
-    }
-    wptr<Window> weakWindow = window;
-    WmErrorCode ret = WmErrorCode::WM_OK;
-    auto task = [weakWindow, rawRects, &ret]() {
-        auto win = weakWindow.promote();
-        if (win == nullptr) {
-            ret = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
-            return;
-        }
-        Rect windowRect = win->GetRect();
-        std::vector<Rect> touchableAreas;
-        for (const auto& r : rawRects) {
-            if (!AniWindowUtils::CheckRectInWindow(r, windowRect)) {
-                ret = WmErrorCode::WM_ERROR_INVALID_PARAM;
-                return;
-            }
-            touchableAreas.emplace_back(r);
-        }
-        ret = AniWindowUtils::ToErrorCode(win->SetTouchableAreas(touchableAreas));
-    };
-    if (mainRunner->IsCurrentRunnerThread()) {
-        task();
-    } else {
-        auto eventHandler = std::make_shared<AppExecFwk::EventHandler>(mainRunner);
-        eventHandler->PostSyncTask(task, __func__, AppExecFwk::EventQueue::Priority::IMMEDIATE);
-    }
+    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->SetTouchableAreas(touchableAreas));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_EVENT, "[ANI]SetTouchableAreas failed, ret: %{public}d", ret);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTouchableAreas", ret);
         AniWindowUtils::AniThrowError(env, ret, "SetTouchableAreas failed!");
-        return;
     }
     TLOGI(WmsLogTag::WMS_EVENT, "[ANI]Window [%{public}u, %{public}s] OnSetTouchableAreas end",
         window->GetWindowId(), window->GetWindowName().c_str());

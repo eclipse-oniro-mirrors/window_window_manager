@@ -134,7 +134,7 @@ HWTEST_F(WindowSceneSessionImplTest3, SetWindowMask, TestSize.Level1)
     windowSceneSessionImpl->hostSession_ = session;
     windowSceneSessionImpl->state_ = WindowState::STATE_SHOWN;
     ret = windowSceneSessionImpl->SetWindowMask(windowMask);
-    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, ret);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_OPERATION, ret);
     windowMask = { { 1, 1, 1 }, { 2, 2, 2 }, { 3, 3, 3 } };
     ret = windowSceneSessionImpl->SetWindowMask(windowMask);
     EXPECT_EQ(WMError::WM_OK, ret);
