@@ -677,18 +677,20 @@ void JsWindowListener::OnFocusStateChanged(bool isFocused, WindowFocusChangeReas
 
 void JsWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
 {
-    auto jsCallback = [self = weakRef_, isVisible, eng = env_] {
+    const char* const where = __func__;
+    auto jsCallback = [self = weakRef_, isVisible, where, eng = env_] {
         auto thisListener = self.promote();
         if (thisListener == nullptr || eng == nullptr) {
-            WLOGFE("This listener or eng is nullptr");
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: listener or eng is null", where);
             return;
         }
         napi_value argv[] = { CreateJsValue(eng, isVisible) };
         thisListener->CallJsMethod(WINDOW_VISIBILITY_CHANGE_CB.c_str(), argv, ArraySize(argv));
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: isVisible=%{public}u", where, isVisible);
     };
     napi_status status = napi_send_event(env_, jsCallback, napi_eprio_high, "OnWindowVisibilityChangedCallback");
     if (status != napi_status::napi_ok) {
-        TLOGE(WmsLogTag::WMS_IMMS, "Failed to send event");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed to send event: status=%{public}d", static_cast<int32_t>(status));
     }
 }
 

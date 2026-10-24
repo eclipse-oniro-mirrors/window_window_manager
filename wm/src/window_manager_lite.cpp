@@ -246,9 +246,10 @@ void WindowManagerLite::Impl::NotifyWindowVisibilityInfoChanged(
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         visibilityChangeListeners.assign(windowVisibilityListeners_.begin(), windowVisibilityListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(visibilityChangeListeners.size()));
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "lite: size=%{public}u", static_cast<uint32_t>(visibilityChangeListeners.size()));
     for (auto& listener : visibilityChangeListeners) {
         if (listener == nullptr) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "lite: listener is null");
             continue;
         }
         listener->OnWindowVisibilityChanged(windowVisibilityInfos);
@@ -719,7 +720,7 @@ WMError WindowManagerLite::UnregisterAllGroupInfoChangedListener(const sptr<IAll
 WMError WindowManagerLite::RegisterVisibilityChangedListener(const sptr<IVisibilityChangedListener>& listener)
 {
     if (listener == nullptr) {
-        WLOGFE("listener could not be null");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "lite: listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
     std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
@@ -729,6 +730,7 @@ WMError WindowManagerLite::RegisterVisibilityChangedListener(const sptr<IVisibil
         ret = WindowAdapterLite::GetInstance(userId_).RegisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
             pImpl_->windowVisibilityListenerAgent_);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: ret=%{public}d", ret);
         if (ret == WMError::WM_ERROR_SAMGR) {
             ret = ActiveFaultAgentReregister(
                 WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
@@ -736,11 +738,11 @@ WMError WindowManagerLite::RegisterVisibilityChangedListener(const sptr<IVisibil
         }
     }
     if (ret != WMError::WM_OK) {
-        WLOGFW("RegisterWindowManagerAgent failed !");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "lite: register failed, ret=%{public}d", ret);
         pImpl_->windowVisibilityListenerAgent_ = nullptr;
     } else {
         if (pImpl_->windowVisibilityListeners_.count(listener)) {
-            WLOGFW("Listener is already registered.");
+            TLOGW(WmsLogTag::WMS_ATTRIBUTE, "lite: registered");
             return WMError::WM_OK;
         }
         pImpl_->windowVisibilityListeners_.insert(listener);
@@ -751,14 +753,16 @@ WMError WindowManagerLite::RegisterVisibilityChangedListener(const sptr<IVisibil
 WMError WindowManagerLite::UnregisterVisibilityChangedListener(const sptr<IVisibilityChangedListener>& listener)
 {
     if (listener == nullptr) {
-        WLOGFE("listener could not be null");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "lite: listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
     std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     pImpl_->windowVisibilityListeners_.erase(listener);
 
     WMError ret = WMError::WM_OK;
+    bool hasListeners = false;
     if (pImpl_->windowVisibilityListeners_.empty() && pImpl_->windowVisibilityListenerAgent_ != nullptr) {
+        hasListeners = true;
         ret = WindowAdapterLite::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
             pImpl_->windowVisibilityListenerAgent_);
@@ -766,6 +770,7 @@ WMError WindowManagerLite::UnregisterVisibilityChangedListener(const sptr<IVisib
             pImpl_->windowVisibilityListenerAgent_ = nullptr;
         }
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "lite: ret=%{public}d, hasListeners=%{public}d", ret, hasListeners);
     return ret;
 }
 
@@ -2003,10 +2008,10 @@ WMError WindowManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOpti
     std::vector<sptr<WindowInfo>>& infos) const
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE,
-        "lite: userId: %{public}d windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
+        "lite: userId=%{public}d, filter=%{public}u, type=%{public}u, winId=%{public}d, displayId=%{public}" PRIu64,
         userId_, static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),
-        windowInfoOption.displayId, windowInfoOption.windowId);
+        windowInfoOption.windowId, windowInfoOption.displayId);
     WMError ret = WindowAdapterLite::GetInstance(userId_).ListWindowInfo(windowInfoOption, infos);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: ret=%{public}d", static_cast<int32_t>(ret));

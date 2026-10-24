@@ -2953,10 +2953,10 @@ WMError SessionProxy::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
         TLOGE(WmsLogTag::DEFAULT, "remote is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    if (remote->SendRequest(static_cast<uint32_t>(
-        SessionInterfaceCode::TRANS_ID_UPDATE_SESSION_PROPERTY),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::DEFAULT, "SendRequest failed");
+    auto sendCode = remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_SESSION_PROPERTY),
+        data, reply, option)
+    if (sendCode != ERR_NONE) {
+        TLOGE(WmsLogTag::DEFAULT, "SendRequest failed, code: %{public}d", sendCode);
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = reply.ReadInt32();

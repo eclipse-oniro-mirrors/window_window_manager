@@ -163,10 +163,22 @@ void SessionManagerAgentController::NotifyWaterMarkFlagChangedResult(bool hasWat
 void SessionManagerAgentController::UpdateWindowVisibilityInfo(
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos)
 {
-    for (auto& agent : smAgentContainer_.GetAgentsByType(
-        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY)) {
+    std::ostringstream pidStream;
+    auto agents = smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY);
+    for (auto& agent : agents) {
+        if (agent == nullptr) {
+            continue;
+        }
         agent->UpdateWindowVisibilityInfo(windowVisibilityInfos);
+        std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
+        auto it = windowManagerAgentPairMap_.find(agent->AsObject());
+        if (it != windowManagerAgentPairMap_.end()) {
+            pidStream << std::get<0>(it->second) << ",";
+        }
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "#agents=%{public}u, pids=[%{public}s]",
+        static_cast<uint32_t>(agents.size()), pidStream.str().c_str());
 }
 
 void SessionManagerAgentController::UpdateVisibleWindowNum(

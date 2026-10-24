@@ -7792,13 +7792,13 @@ WSError WindowSessionImpl::NotifyTouchOutside()
 WMError WindowSessionImpl::RegisterWindowVisibilityChangeListener(const IWindowVisibilityListenerSptr& listener)
 {
     auto persistentId = GetPersistentId();
-    WLOGFD("Start, persistentId=%{public}d.", persistentId);
     WMError ret = WMError::WM_OK;
     bool isFirstRegister = false;
     {
         std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
         ret = RegisterListener(windowVisibilityChangeListeners_[persistentId], listener);
         if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
             return ret;
         }
         isFirstRegister = windowVisibilityChangeListeners_[persistentId].size() == 1;
@@ -7806,20 +7806,26 @@ WMError WindowSessionImpl::RegisterWindowVisibilityChangeListener(const IWindowV
 
     if (isFirstRegister) {
         ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionWindowVisibilityListener(persistentId, true);
+        if (ret != WMError::WM_OK) {
+            std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
+            UnregisterListenerInMap(windowVisibilityChangeListeners_, persistentId, listener);
+        }
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isFirstRegister=%{public}d, ret=%{public}d",
+        persistentId, isFirstRegister, ret);
     return ret;
 }
 
 WMError WindowSessionImpl::UnregisterWindowVisibilityChangeListener(const IWindowVisibilityListenerSptr& listener)
 {
     auto persistentId = GetPersistentId();
-    WLOGFD("Start, persistentId=%{public}d.", persistentId);
     WMError ret = WMError::WM_OK;
     bool isLastUnregister = false;
     {
         std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
         ret = UnregisterListenerInMap(windowVisibilityChangeListeners_, persistentId, listener);
         if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
             return ret;
         }
         isLastUnregister = windowVisibilityChangeListeners_[persistentId].empty();
@@ -7827,7 +7833,13 @@ WMError WindowSessionImpl::UnregisterWindowVisibilityChangeListener(const IWindo
 
     if (isLastUnregister) {
         ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionWindowVisibilityListener(persistentId, false);
+        if (ret != WMError::WM_OK) {
+            std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
+            RegisterListener(windowVisibilityChangeListeners_[persistentId], listener);
+        }
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isLastUnregister=%{public}d, ret=%{public}d",
+        persistentId, isLastUnregister, ret);
     return ret;
 }
 
@@ -7853,7 +7865,7 @@ WMError WindowSessionImpl::RegisterOcclusionStateChangeListener(const sptr<IOccl
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
             persistentId, static_cast<int32_t>(ret));
         std::lock_guard<std::mutex> lockListener(occlusionStateChangeListenerMutex_);
-        ret = UnregisterListenerInMap(occlusionStateChangeListeners_, persistentId, listener);
+        UnregisterListenerInMap(occlusionStateChangeListeners_, persistentId, listener);
     }
     return ret;
 }
@@ -7883,7 +7895,7 @@ WMError WindowSessionImpl::UnregisterOcclusionStateChangeListener(const sptr<IOc
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
             persistentId, static_cast<int32_t>(ret));
         std::lock_guard<std::mutex> lockListener(occlusionStateChangeListenerMutex_);
-        ret = RegisterListener(occlusionStateChangeListeners_[persistentId], listener);
+        RegisterListener(occlusionStateChangeListeners_[persistentId], listener);
     }
     return ret;
 }
@@ -7906,7 +7918,7 @@ WSError WindowSessionImpl::NotifyWindowOcclusionState(const WindowVisibilityStat
         visibilityState = WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION;
     }
     if (visibilityState == lastVisibilityState_) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, sameVisibilityState=%{public}u",
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, sameVisibilityState=%{public}u",
             persistentId, static_cast<uint32_t>(visibilityState));
         return WSError::WS_OK;
     }
@@ -7918,7 +7930,7 @@ WSError WindowSessionImpl::NotifyWindowOcclusionState(const WindowVisibilityStat
             notifyCounter++;
         }
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, visibilityState=%{public}u, notifyCounter=%{public}u",
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, visibilityState=%{public}u, notifyCounter=%{public}u",
         persistentId, static_cast<uint32_t>(visibilityState), notifyCounter);
     return WSError::WS_OK;
 }
@@ -8336,15 +8348,20 @@ bool WindowSessionImpl::IsStageDefaultDensityEnabled()
 
 WSError WindowSessionImpl::NotifyWindowVisibility(bool isVisible)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "window: name=%{public}s, id=%{public}u, isVisible=%{public}d",
-        GetWindowName().c_str(), GetPersistentId(), isVisible);
-    std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
-    auto windowVisibilityListeners = GetListeners<IWindowVisibilityChangedListener>();
+    std::vector<IWindowVisibilityListenerSptr> windowVisibilityListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
+        windowVisibilityListeners = GetListeners<IWindowVisibilityChangedListener>();
+    }
+    uint32_t notifyCounter = 0;
     for (auto& listener : windowVisibilityListeners) {
         if (listener != nullptr) {
             listener->OnWindowVisibilityChangedCallback(isVisible);
+            notifyCounter++;
         }
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}d, isVisible=%{public}d, notifyCounter=%{public}u",
+        GetPersistentId(), isVisible, notifyCounter);
     return WSError::WS_OK;
 }
 
