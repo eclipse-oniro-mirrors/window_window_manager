@@ -9684,6 +9684,8 @@ WSError SceneSessionManager::RequestSessionFocusImmediately(int32_t persistentId
         }
     } else if (!sceneSession->GetSessionInfo().isSystem_ && !sceneSession->IsLifecycleForeground()) {
         focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(true);
+    } else {
+        focusGroup->SetNeedBlockNotifyFocusStatusUntilForeground(false);
     }
     ShiftFocus(displayId, sceneSession, false, reason);
     return WSError::WS_OK;
