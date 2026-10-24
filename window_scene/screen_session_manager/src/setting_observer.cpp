@@ -37,6 +37,16 @@ const std::string& SettingObserver::GetKey()
     return key_;
 }
 
+void SettingObserver::SetRegisteredUri(const std::string& uri)
+{
+    registeredUri_ = uri;
+}
+
+const std::string& SettingObserver::GetRegisteredUri()
+{
+    return registeredUri_;
+}
+
 void SettingObserver::SetUpdateFunc(UpdateFunc& func)
 {
     update_ = func;

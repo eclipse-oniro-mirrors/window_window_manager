@@ -29,7 +29,7 @@ constexpr uint32_t SLEEP_TIME_US = 100000;
 class MockMotionEventListener : public IMotionEventListener {
 public:
     MockMotionEventListener() : rotationCalled_(false), smartRotationCalled_(false),
-        lastRotation_(0.0f), lastSmartRotation_(0.0f) {}
+        lastRotation_(0.0f), lastSmartRotation_(0.0f), lastSmartRotation_(-1) {}
     ~MockMotionEventListener() override = default;
 
     void OnMotionRotationChanged(float sensorRotation) override
@@ -38,10 +38,11 @@ public:
         lastRotation_ = sensorRotation;
     }
 
-    void OnMotionSmartRotationChanged(float sensorRotation) override
+    void OnMotionSmartRotationChanged(float sensorRotation, int16_t reason) override
     {
         smartRotationCalled_ = true;
         lastSmartRotation_ = sensorRotation;
+        lastSmartRotation_ = reason;
     }
 
     void Reset()
@@ -50,12 +51,14 @@ public:
         smartRotationCalled_ = false;
         lastRotation_ = 0.0f;
         lastSmartRotation_ = 0.0f;
+        lastSmartRotation_ = -1;
     }
 
     bool rotationCalled_;
     bool smartRotationCalled_;
     float lastRotation_;
     float lastSmartRotation_;
+    int16_t lastSmartRotation_;
 };
 }
 
@@ -178,16 +181,19 @@ HWTEST_F(SceneSessionManagerMotionTest, OnMotionSmartRotationChanged01, TestSize
 {
     bool callbackCalled = false;
     float receivedRotation = 0.0f;
+    int16_t receivedReason = -1;
     SceneSessionManager::GetInstance().SetSmartSensorRotationChangeListener(
-        [&callbackCalled, &receivedRotation](float rotation) {
+        [&callbackCalled, &receivedRotation, &receivedReason](float rotation, int16_t reason) {
             callbackCalled = true;
             receivedRotation = rotation;
+            receivedReason = reason;
         });
     usleep(SLEEP_TIME_US);
 
-    SceneSessionManager::GetInstance().OnMotionSmartRotationChanged(180.0f);
+    SceneSessionManager::GetInstance().OnMotionSmartRotationChanged(180.0f, SmartRotationReason::FACE);
     EXPECT_TRUE(callbackCalled);
     EXPECT_EQ(receivedRotation, 180.0f);
+    EXPECT_EQ(receivedReason, SmartRotationReason:FACE);
 }
 
 HWTEST_F(SceneSessionManagerMotionTest, OnMotionSmartRotationChanged02, TestSize.Level1)
@@ -196,7 +202,7 @@ HWTEST_F(SceneSessionManagerMotionTest, OnMotionSmartRotationChanged02, TestSize
     usleep(SLEEP_TIME_US);
 
     bool callbackCalled = false;
-    SceneSessionManager::GetInstance().OnMotionSmartRotationChanged(180.0f);
+    SceneSessionManager::GetInstance().OnMotionSmartRotationChanged(180.0f, SmartRotationReason::HAND);
     EXPECT_FALSE(callbackCalled);
 }
 
@@ -216,11 +222,11 @@ HWTEST_F(SceneSessionManagerMotionTest, SetSmartSensorRotationChangeListener01, 
 {
     bool callbackCalled = false;
     SceneSessionManager::GetInstance().SetSmartSensorRotationChangeListener(
-        [&callbackCalled](float) {
+        [&callbackCalled](float, int16_t) {
             callbackCalled = true;
         });
     usleep(SLEEP_TIME_US);
-    SceneSessionManager::GetInstance().OnMotionSmartRotationChanged(0.0f);
+    SceneSessionManager::GetInstance().OnMotionSmartRotationChanged(0.0f, SmartRotationReason::MOTION);
     EXPECT_TRUE(callbackCalled);
 }
 

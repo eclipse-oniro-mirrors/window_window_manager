@@ -116,7 +116,7 @@ public:
      * @param focusInfo Focus window info.
      * @return FocusChangeInfo object about focus window.
      */
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID);
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID);
 
     /**
      * @brief Get all group infomation.

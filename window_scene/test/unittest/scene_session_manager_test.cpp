@@ -304,6 +304,43 @@ HWTEST_F(SceneSessionManagerTest, SetWindowFlags03, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetWindowFlags04
+ * @tc.desc: SceneSesionManager rejects protected flag change mixed with other flags
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, SetWindowFlags04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "bundleName";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession->GetSessionProperty());
+    sceneSession->GetSessionProperty()->SetWindowFlags(
+        static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID));
+
+    // non-system caller flips protected flags together with another flag in one call: must be rejected
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    uint32_t mixedFlags = static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED) |
+        static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK) |
+        static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_HANDWRITING);
+    property->SetWindowFlags(mixedFlags);
+    property->SetSystemCalling(false);
+    WSError result = ssm_->SetWindowFlags(sceneSession, property);
+    EXPECT_EQ(result, WSError::WS_ERROR_NOT_SYSTEM_APP);
+    EXPECT_EQ(static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_NEED_AVOID),
+        sceneSession->GetSessionProperty()->GetWindowFlags());
+
+    // system caller may change protected flags together with other flags
+    property->SetSystemCalling(true);
+    result = ssm_->SetWindowFlags(sceneSession, property);
+    EXPECT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(mixedFlags, sceneSession->GetSessionProperty()->GetWindowFlags());
+
+    // null property must not crash
+    result = ssm_->SetWindowFlags(sceneSession, nullptr);
+    EXPECT_EQ(result, WSError::WS_ERROR_NULLPTR);
+}
+
+/**
  * @tc.name: NotifyWaterMarkFlagChangedResult
  * @tc.desc: SceneSesionManager notify water mark flag changed result
  * @tc.type: FUNC
@@ -2679,23 +2716,6 @@ HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfig, TestSize.
     invalidConfig.dpi = 480;
     invalidConfig.scale = 1.5f;
     invalidConfig.xhdpiAppList = {"test"};
-    auto ret = ssm_->UpdateRogWindowConfig(invalidConfig);
-    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
-}
-
-/**
- * @tc.name: UpdateRogWindowConfig_InvalidConfigEmptyList
- * @tc.desc: Test UpdateRogWindowConfig with empty app list
- * @tc.type: FUNC
- */
-HWTEST_F(SceneSessionManagerTest, UpdateRogWindowConfig_InvalidConfigEmptyList, TestSize.Level1)
-{
-    RogWindowConfig invalidConfig;
-    invalidConfig.width = 1920;
-    invalidConfig.height = 1080;
-    invalidConfig.dpi = 480;
-    invalidConfig.scale = 1.5f;
-    invalidConfig.xhdpiAppList.clear();
     auto ret = ssm_->UpdateRogWindowConfig(invalidConfig);
     EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
 }

@@ -34,6 +34,7 @@
 #include "image_source.h"
 #include "rs_adapter.h"
 #include "session_helper.h"
+#include "session/persistent_id/include/persistent_id_allocator.h"
 #include "surface_capture_future.h"
 #include "window_helper.h"
 #include "window_manager_hilog.h"
@@ -50,9 +51,6 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "Session" };
-std::atomic<int32_t> g_persistentId = INVALID_SESSION_ID;
-std::set<int32_t> g_persistentIdSet;
-std::mutex g_persistentIdSetMutex;
 constexpr float INNER_BORDER_VP = 5.0f;
 constexpr float OUTSIDE_BORDER_VP = 4.0f;
 constexpr float INNER_ANGLE_VP = 16.0f;
@@ -1543,7 +1541,7 @@ bool Session::SessionIsSingleHandMode()
 WSError Session::UpdateRect(const WSRect& rect, SizeChangeReason reason,
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction)
 {
-    return UpdateRectWithLayoutInfo(rect, reason, updateReason, rsTransaction, {});
+    return UpdateRectWithLayoutInfoInner(rect, reason, updateReason, rsTransaction, {});
 }
 
 void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
@@ -1557,6 +1555,28 @@ void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
 }
 
 WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+    const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
+    const std::map<AvoidAreaType, AvoidArea>& avoidAreas, bool onlyUpdateAvoidArea)
+{
+    if (!sessionStage_) {
+        TLOGE(WmsLogTag::WMS_IMMS, "sessionStage_ is nullptr, id: %{public}d", GetPersistentId());
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (onlyUpdateAvoidArea) {
+        for (const auto& [type, avoidArea] : avoidAreas) {
+            auto ret = sessionStage_->UpdateAvoidArea(new AvoidArea(avoidArea), type);
+            if (ret != WSError::WS_OK) {
+                TLOGE(WmsLogTag::WMS_IMMS, "UpdateAvoidArea failed, type: %{public}u, ret: %{public}u",
+                    static_cast<uint32_t>(type), static_cast<uint32_t>(ret));
+            }
+        }
+    } else {
+        return UpdateRectWithLayoutInfoInner(rect, reason, updateReason, rsTransaction, avoidAreas);
+    }
+    return WSError::WS_OK;
+}
+
+WSError Session::UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeReason reason,
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
@@ -2031,6 +2051,28 @@ void Session::SetIsGamePrelaunch(bool isGamePrelaunch)
     }, __func__);
 }
 
+void Session::SetIsGameBackgroundRunning(bool isGameBackgroundRunning)
+{
+    PostTask([weakThis = wptr(this), isGameBackgroundRunning, where = __func__]() {
+        auto session = weakThis.promote();
+        if (session == nullptr) {
+            TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s: session is null", where);
+            return;
+        }
+
+        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id: %{public}d, isGameBackgroundRunning: %{public}d",
+               where, session->GetPersistentId(), isGameBackgroundRunning);
+        {
+            std::lock_guard<std::recursive_mutex> lock(session->sessionInfoMutex_);
+            session->sessionInfo_.isGameBackgroundRunning_ = isGameBackgroundRunning;
+        }
+
+        if (!isGameBackgroundRunning) {
+            session->ClearGameBackgroundRunningDisplayHook();
+        }
+    }, __func__);
+}
+
 WSError Session::Disconnect(bool isFromClient, const std::string& identityToken, bool isFromInnerkits)
 {
     auto state = GetSessionState();
@@ -2103,6 +2145,17 @@ WSError Session::DrawingCompleted()
             listenerPtr->OnDrawingCompleted();
         }
     }
+    return WSError::WS_OK;
+}
+
+WSError Session::StartWithSnapshot()
+{
+    TLOGI(WmsLogTag::WMS_PATTERN, "id: %{public}d", GetPersistentId());
+    if (!SessionPermission::IsSystemAppCall()) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "permission denied!");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    SetStartWithSnapshot(true);
     return WSError::WS_OK;
 }
 
@@ -3287,6 +3340,10 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     auto callback = std::make_shared<SurfaceCaptureFuture>();
     auto scaleValue = (options.scaleParam < 0.0f || std::fabs(options.scaleParam) < std::numeric_limits<float>::min()) ?
         snapshotScale_ : options.scaleParam;
+    float rogScale = 0.0f;
+    if (CheckAndGetRogScale(rogScale)) {
+        scaleValue = 1.0f;
+    }
     scaleValue = needBlurSnapshot ? scaleValue * BLUR_SNAPSHOT_SCALE : scaleValue;
     RSSurfaceCaptureConfig config = {
         .scaleX = scaleValue,
@@ -3305,7 +3362,8 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     bool ret = false;
     if (needBlurSnapshot) {
-        config.backGroundColor = blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() ?
+        config.backGroundColor =
+            (blurBackgroundColor_ == std::numeric_limits<uint32_t>::max() || IsExitSplitOnBackground()) ?
             GetBackgroundColor() : blurBackgroundColor_;
         ret = rsUICtx->GetRSRenderInterface()->TakeSurfaceCaptureWithBlur(surfaceNode, callback, config, blurRadius_);
     } else {
@@ -3936,6 +3994,7 @@ void Session::InitSnapshotCapacity()
     }
     if (scenePersistence_) {
         scenePersistence_->SetSnapshotCapacity(capacity_);
+        scenePersistence_->SetIsPcWindow(systemConfig_.IsPcWindow());
     }
 }
 
@@ -5215,33 +5274,7 @@ WSError Session::ProcessBackEvent()
 
 void Session::GeneratePersistentId(bool isExtension, int32_t persistentId)
 {
-    std::lock_guard lock(g_persistentIdSetMutex);
-    if (persistentId != INVALID_SESSION_ID  && !g_persistentIdSet.count(persistentId)) {
-        g_persistentIdSet.insert(persistentId);
-        persistentId_ = persistentId;
-        return;
-    }
-
-    if (g_persistentId == INVALID_SESSION_ID) {
-        g_persistentId++; // init non system session id from 2
-    }
-
-    g_persistentId++;
-    while (g_persistentIdSet.count(g_persistentId)) {
-        g_persistentId++;
-    }
-    if (isExtension) {
-        constexpr uint32_t pidLength = 18;
-        constexpr uint32_t pidMask = (1 << pidLength) - 1;
-        constexpr uint32_t persistentIdLength = 12;
-        constexpr uint32_t persistentIdMask = (1 << persistentIdLength) - 1;
-        uint32_t assembledPersistentId = ((static_cast<uint32_t>(getpid()) & pidMask) << persistentIdLength) |
-            (static_cast<uint32_t>(g_persistentId.load()) & persistentIdMask);
-        persistentId_ = assembledPersistentId | 0x40000000;
-    } else {
-        persistentId_ = static_cast<uint32_t>(g_persistentId.load()) & 0x3fffffff;
-    }
-    g_persistentIdSet.insert(g_persistentId);
+    persistentId_ = PersistentIdAllocator::GetInstance().Acquire(isExtension, persistentId);
     TLOGI(WmsLogTag::WMS_LIFE,
           "persistentId: %{public}d, persistentId_: %{public}d", persistentId, persistentId_);
 }
@@ -6575,6 +6608,48 @@ bool Session::HandlePrelaunchDisplayHook(const PrelayoutContext& ctx)
     return true;
 }
 
+bool Session::HandleGameBackgroundRunningDisplayHook()
+{
+    const auto windowId = GetWindowId();
+
+    if (!updateAppHookDisplayInfoFunc_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Failed to set prelaunch display hook: func is null. id: %{public}d, uid: %{public}d",
+              windowId, callingUid_);
+        return false;
+    }
+    auto sessionProperty = GetSessionProperty();
+    if (sessionProperty == nullptr) {
+        return false;
+    }
+    const auto displayId = sessionProperty->GetDisplayId();
+    auto screenSession = ScreenSessionManagerClient::GetInstance()
+        .GetScreenSession(displayId);
+    const float density = screenSession ?
+        screenSession->GetScreenProperty().GetDensity() : 1.0f; // 1.0: default density
+
+    const auto preCalc = PreCalcWindowProperty();
+    const HookInfo hookInfo = {
+        .width_ = preCalc.width,
+        .height_ = preCalc.height,
+        .density_ = density,
+        .rotation_ = preCalc.rotation,
+        .enableHookRotation_ = true
+    };
+
+    const auto ret = updateAppHookDisplayInfoFunc_(callingUid_, hookInfo, true);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+              "Failed to update app hook display info. id: %{public}d, uid: %{public}d, ret: %{public}d",
+              windowId, callingUid_, ret);
+        return false;
+    }
+    gameBackgroundRunningDisplayHookEnabled_ = true;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Update prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
+          windowId, callingUid_);
+    return true;
+}
+
 bool Session::ClearPrelaunchDisplayHook()
 {
     auto windowId = GetWindowId();
@@ -6597,6 +6672,34 @@ bool Session::ClearPrelaunchDisplayHook()
         return false;
     }
     prelaunchDisplayHookEnabled_ = false;
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Clear prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
+          windowId, callingUid_);
+    return true;
+}
+
+
+bool Session::ClearGameBackgroundRunningDisplayHook()
+{
+    auto windowId = GetWindowId();
+    if (!gameBackgroundRunningDisplayHookEnabled_) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Prelaunch display hook is not enabled. id: %{public}d", windowId);
+        return false;
+    }
+    if (!updateAppHookDisplayInfoFunc_) {
+        TLOGW(WmsLogTag::WMS_LAYOUT,
+              "Failed to clear prelaunch display hook: func is null. id: %{public}d, uid: %{public}d",
+              windowId, callingUid_);
+        return false;
+    }
+
+    const auto ret = updateAppHookDisplayInfoFunc_(callingUid_, HookInfo {}, false);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LAYOUT,
+              "Failed to clear prelaunch display hook. id: %{public}d, uid: %{public}d, ret: %{public}d",
+              windowId, callingUid_, ret);
+        return false;
+    }
+    gameBackgroundRunningDisplayHookEnabled_ = false;
     TLOGI(WmsLogTag::WMS_LAYOUT, "Clear prelaunch display hook successfully. id: %{public}d, uid: %{public}d",
           windowId, callingUid_);
     return true;

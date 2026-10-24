@@ -131,7 +131,7 @@ using NotifyCreateSubSessionFunc = std::function<void(const sptr<SceneSession>& 
 using NotifyRecoverSceneSessionFunc =
     std::function<void(const sptr<SceneSession>& session, const SessionInfo& sessionInfo)>;
 using NotifyRestoreSessionToForegroundFunc =
-    std::function<void(int32_t persistentId, DisplayId screenId)>;
+    std::function<void(int32_t persistentId)>;
 using ProcessStatusBarEnabledChangeFunc = std::function<void(bool enable, const std::string& bundleName)>;
 using ProcessGestureNavigationEnabledChangeFunc = std::function<void(bool enable, const std::string& bundleName,
     GestureBackType type)>;
@@ -163,7 +163,7 @@ using NotifyRootSceneAvoidAreaChangeFunc = std::function<void(const sptr<AvoidAr
     const sptr<OccupiedAreaChangeInfo>& info)>;
 using NotifySupportRotationRegisteredFunc = std::function<void()>;
 using NotifySensorRotationChangeFunc = std::function<void(float sensorRotation)>;
-using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation)>;
+using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation, int16_t reason)>;
 using NotifyWatchGestureConsumeResultFunc = std::function<void(int32_t keyCode, bool isConsumed)>;
 using NotifyWatchFocusActiveChangeFunc = std::function<void(bool isActive)>;
 using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(const std::string& id)>;
@@ -189,6 +189,7 @@ using NotifySetSpecificWindowZIndexFunc = std::function<void(WindowType windowTy
     SetSpecificZIndexReason reason)>;
 using NotifyMoveMainWindowToTargetDisplayFunc = std::function<void(DisplayId displayId, int32_t windowId,
     bool isFromScreenVirtual, bool isToScreenVirtual)>;
+using NotifySetWindowPositionFunc = std::function<void(const WindowPositionInfo& windowPositionInfo)>;
 using MinimizeAllFunc = std::function<void(DisplayId displayId, int32_t excludeWindlowId)>;
 using PageEnableFunc = std::function<void(const std::string& bundleName, int32_t windowId,
     const std::string& action, const std::string& message)>;
@@ -360,13 +361,13 @@ public:
         bool byForeground = true, FocusChangeReason reason = FocusChangeReason::SA_REQUEST) override;
     void RequestAllAppSessionUnfocus();
     WSError ShiftAppWindowFocus(int32_t sourcePersistentId, int32_t targetPersistentId) override;
-    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
         const sptr<IRemoteObject>& abilityToken) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                          std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override;
-    WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
-    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DEFAULT_DISPLAY_ID) override;
+    WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DISPLAY_ID_INVALID) override;
+    WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent);
     WSError AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
     WSError RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
@@ -378,8 +379,10 @@ public:
     WSError SetSpecificWindowZIndex(WindowType windowType, int32_t zIndex) override;
     WSError ResetSpecificWindowZIndex(int32_t pid) override;
     WSError MoveMainWindowToTargetDisplay(DisplayId displayId, int32_t windowId) override;
+    WSError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override;
     void SetSpecificWindowZIndexListener(const NotifySetSpecificWindowZIndexFunc& func);
     void SetMoveMainWindowToTargetDisplayListener(NotifyMoveMainWindowToTargetDisplayFunc&& func);
+    void SetWindowPositionListener(NotifySetWindowPositionFunc&& listener);
 
     WSError UpdateWindowMode(int32_t persistentId, const WindowModeInfo& windowModeInfo);
     WSError SendTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, uint32_t zIndex);
@@ -941,7 +944,8 @@ public:
     int32_t GenerateScbRequestId();
     void NotifyAmsPendingSessionWhenFail(uint32_t resultCode, std::string resultMessage,
         int32_t requestId, int32_t persistentId);
-    WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId, bool shouldBackToCaller = true);
+    WSError PendingSessionToBackgroundByPersistentId(const int32_t persistentId, bool shouldBackToCaller = true,
+        uint32_t reason = 0);
     WMError UpdateKioskAppList(const std::vector<std::string>& kioskAppList);
     WMError EnterKioskMode(const sptr<IRemoteObject>& token, KioskType kioskType = KioskType::DEFAULT);
     WMError ExitKioskMode();
@@ -1002,7 +1006,7 @@ public:
     bool RegisterMotionSensor(int32_t motionType);
     bool UnregisterMotionSensor(int32_t motionType);
     void OnMotionRotationChanged(float sensorRotation) override;
-    void OnMotionSmartRotationChanged(float sensorRotation) override;
+    void OnMotionSmartRotationChanged(float sensorRotation, int16_t reason) override;
 
     std::vector<sptr<SceneSession>> GetSceneSessions(ScreenId screenId);
     WMError UpdateScreenLockState(int32_t persistentId);
@@ -1492,6 +1496,7 @@ private:
         const sptr<ISessionStage>& sessionStage);
     void ReportSubWindowCreationFailure(int32_t pid, const std::string& abilityName,
         const std::string& parentBundleName, const std::string& hostBundleName);
+    void ReportScbSystemSceneSubWindowCreate(const std::string& bundleName, const std::string& abilityName);
 
     /*
      * Multi User
@@ -1629,10 +1634,25 @@ private:
     bool needBlockNotifyUnfocusStatus_ { false };
 
     /*
+     * Set Window Position Validation
+     */
+    WSError CheckSetWindowPositionPermission(const std::vector<WindowPositionParams>& windowPositions,
+        const uint32_t callingTokenId);
+    WSError CheckSetWindowPositionWindowId(const WindowPositionParams& position, const int32_t callingPid,
+        bool& needTopmostOnRemove);
+    WSError CheckSetWindowPositionInsertAfter(const WindowPositionParams& position);
+    WSError CheckSetWindowPositionDisplaySupport(const sptr<SceneSession>& sceneSession,
+        const std::string& targetName, const int32_t targetId);
+    WSError CheckSetWindowPositionSessions(const WindowPositionInfo& windowPositionInfo,
+        const int32_t callingPid, const uint32_t callingTokenId);
+    void UpdateMainWindowTopmostState(const std::vector<WindowPositionParams>& windowPositions);
+
+    /*
      * Window Hierarchy
      */
     NotifySetSpecificWindowZIndexFunc setSpecificWindowZIndexFunc_;
     NotifyMoveMainWindowToTargetDisplayFunc moveMainWindowToTargetDisplayFunc_;
+    NotifySetWindowPositionFunc setWindowPositionFunc_;
     std::unordered_map<WindowType, int32_t> specificZIndexByPidMap_;
     std::mutex specificZIndexByPidMapMutex_;
 
@@ -1667,6 +1687,10 @@ private:
     /*
      * Multi User
      */
+    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this SCB instance's user;
+    // explicit displayId (0 or non-zero) passes through unchanged. Must be called on the IPC
+    // thread (GetCallingUid() only reliable there), before PostSyncTask.
+    DisplayId ResolveDefaultDisplayId(DisplayId displayId);
     static constexpr int32_t DEFAULT_USERID = -1;
     std::atomic<int32_t> currentUserId_ { DEFAULT_USERID };
     std::atomic<bool> isUserBackground_ { false };

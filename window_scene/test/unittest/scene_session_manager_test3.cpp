@@ -738,10 +738,12 @@ HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity05, TestSize.
     sceneSession->property_->SetWindowLimits(base);
     sceneSession->property_->SetLimitsForAttachedWindows(base);
     sceneSession->property_->SetUserWindowLimits(base);
-    // src 10: VP-unit, height-only intersect.
+    // src 10: VP-unit, height-only intersect. vpRatio_ = 0 (no independent density snapshot),
+    // so the intersection converts it with the query targetDensity.
     WindowLimits attachedVp; // VP [100,500,300,800]
     attachedVp.maxWidth_ = 500; attachedVp.maxHeight_ = 800; attachedVp.minWidth_ = 100; attachedVp.minHeight_ = 300;
     attachedVp.pixelUnit_ = PixelUnit::VP;
+    attachedVp.vpRatio_ = 0.0f;
     sceneSession->property_->SetAttachedWindowLimits(10, attachedVp);
     sceneSession->property_->SetAttachedLimitOptions(10, AttachLimitOptions { true, false }); // h only
     // src 20: PX-unit, width-only intersect.
@@ -854,6 +856,309 @@ HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity07, TestSize.
     EXPECT_EQ(out.maxWidth_, 1000u);
     EXPECT_EQ(out.minHeight_, 200u);
     EXPECT_EQ(out.maxHeight_, 1000u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity08
+ * @tc.desc: Attached VP limits carry an independent density snapshot (vpRatio_ = 3.0) which differs
+ *           from the query targetDensity (2.0): the intersection must convert the source with its
+ *           own snapshot so the PX result matches what the provider computed.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity08, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WindowLimits base; // PX [200,1000,200,1000]
+    base.maxWidth_ = 1000; base.maxHeight_ = 1000; base.minWidth_ = 200; base.minHeight_ = 200;
+    base.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // src 50: VP-unit with independent density snapshot 3.0 -> PX [300,1800,150,900].
+    WindowLimits attachedVp; // VP [200,600,100,300] computed at density 3.0
+    attachedVp.maxWidth_ = 600; attachedVp.maxHeight_ = 300; attachedVp.minWidth_ = 200;
+    attachedVp.minHeight_ = 100;
+    attachedVp.pixelUnit_ = PixelUnit::VP;
+    attachedVp.vpRatio_ = 3.0f;
+    sceneSession->property_->SetAttachedWindowLimits(50, attachedVp);
+    sceneSession->property_->SetAttachedLimitOptions(50, AttachLimitOptions { true, true });
+    const uint64_t displayId = 104;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 10;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // Convert with snapshot 3.0 (NOT targetDensity 2.0):
+    // src PX [maxW=1800, maxH=900, minW=600, minH=300] -> intersect [600,1000,300,900].
+    EXPECT_EQ(out.minWidth_, 600u);
+    EXPECT_EQ(out.maxWidth_, 1000u);
+    EXPECT_EQ(out.minHeight_, 300u);
+    EXPECT_EQ(out.maxHeight_, 900u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity09
+ * @tc.desc: VP result is derived from the PX intersection in the query density (px-only commit
+ *           rule); source snapshot 3.0 differs from targetDensity 2.0.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity09, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WindowLimits base; // VP [200,500,100,400] (VP-user)
+    base.maxWidth_ = 500; base.maxHeight_ = 400; base.minWidth_ = 200; base.minHeight_ = 100;
+    base.pixelUnit_ = PixelUnit::VP;
+    base.vpRatio_ = 0.0f; // no independent density: recalc uses the query density as own density
+    sceneSession->property_->SetWindowLimitsVP(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // src 60: VP-unit with snapshot 1.0 -> PX [100,500,50,250].
+    WindowLimits attachedVp; // VP [100,500,50,250] computed at density 1.0
+    attachedVp.maxWidth_ = 500; attachedVp.maxHeight_ = 250; attachedVp.minWidth_ = 100;
+    attachedVp.minHeight_ = 50;
+    attachedVp.pixelUnit_ = PixelUnit::VP;
+    attachedVp.vpRatio_ = 1.0f;
+    sceneSession->property_->SetAttachedWindowLimits(60, attachedVp);
+    sceneSession->property_->SetAttachedLimitOptions(60, AttachLimitOptions { true, true });
+    const uint64_t displayId = 105;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 11;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // PX base = VP * 2.0 = [400,1000,200,800]; PX src = VP * 1.0 = [100,500,50,250];
+    // PX intersect = [400,500,200,250]; VP-user output derived = round(PX / 2.0) = [200,250,100,125].
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::VP);
+    EXPECT_EQ(out.minWidth_, 200u);
+    EXPECT_EQ(out.maxWidth_, 250u);
+    EXPECT_EQ(out.minHeight_, 100u);
+    EXPECT_EQ(out.maxHeight_, 125u);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity10
+ * @tc.desc: VP-user carrying an independent density snapshot (vpRatio_ = 3.0): the recalc keeps
+ *           the window's own density (snapshot) instead of the query targetDensity (2.0), so the
+ *           returned values and the vpRatio label match what the client computed.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity10, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    // VP-user base limits computed at the independent density 3.0 (snapshot 3.0)
+    WindowLimits base; // VP [200,500,100,400]
+    base.maxWidth_ = 500; base.maxHeight_ = 400; base.minWidth_ = 200; base.minHeight_ = 100;
+    base.pixelUnit_ = PixelUnit::VP;
+    base.vpRatio_ = 3.0f; // independent density snapshot
+    sceneSession->property_->SetWindowLimitsVP(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+
+    int32_t windowId = 12;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // No attached limits: base returned unchanged, but labelled with the own (snapshot) density,
+    // NOT the query density: v1 labelled the result with targetDensity 2.0.
+    EXPECT_EQ(out.minWidth_, 200u);
+    EXPECT_EQ(out.maxWidth_, 500u);
+    EXPECT_EQ(out.minHeight_, 100u);
+    EXPECT_EQ(out.maxHeight_, 400u);
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::VP);
+    EXPECT_FLOAT_EQ(out.vpRatio_, 3.0f);
+
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity11
+ * @tc.desc: Mirror consistency: for a non-independent VP-user with targetDensity equal to the
+ *           current display density, the server recalc reproduces the client-side numbers
+ *           (own base converted at the display density, PX source intersected as-is, VP view
+ *           derived at the display density).
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity11, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WindowLimits base; // VP [500,800,200,300] (VP-user, no independent density)
+    base.maxWidth_ = 500; base.maxHeight_ = 800; base.minWidth_ = 200; base.minHeight_ = 300;
+    base.pixelUnit_ = PixelUnit::VP;
+    base.vpRatio_ = 0.0f;
+    sceneSession->property_->SetWindowLimitsVP(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // src 70: PX-unit source (absolute), intersected as-is.
+    WindowLimits attachedPx;
+    attachedPx.maxWidth_ = 900; attachedPx.maxHeight_ = 700; attachedPx.minWidth_ = 250;
+    attachedPx.minHeight_ = 350;
+    attachedPx.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetAttachedWindowLimits(70, attachedPx);
+    sceneSession->property_->SetAttachedLimitOptions(70, AttachLimitOptions { true, true });
+    const uint64_t displayId = 106;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 13;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // Own base VP x 2.0 -> PX [1000, 1600, 400, 600]; intersect src PX [900, 700, 250, 350]
+    // -> PX [minW 400, maxW 900, minH 600, maxH 700]; VP view = PX / 2.0.
+    // These are exactly the numbers the client computes for the same bases.
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::VP);
+    EXPECT_FLOAT_EQ(out.vpRatio_, 2.0f);
+    EXPECT_EQ(out.minWidth_, 200u);  // round(400 / 2)
+    EXPECT_EQ(out.maxWidth_, 450u);  // round(900 / 2)
+    EXPECT_EQ(out.minHeight_, 300u); // round(600 / 2)
+    EXPECT_EQ(out.maxHeight_, 350u); // round(700 / 2)
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity12
+ * @tc.desc: Dual-density recalc: a VP-user with an independent density snapshot 3.0 converts its
+ *           own base with the snapshot, while a snapshot-invalid (0) VP source is converted with
+ *           the query display density (targetDensity 2.0) - each density serves its own purpose.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity12, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    WindowLimits base; // VP [200,500,100,400] computed at the independent density 3.0
+    base.maxWidth_ = 500; base.maxHeight_ = 400; base.minWidth_ = 200; base.minHeight_ = 100;
+    base.pixelUnit_ = PixelUnit::VP;
+    base.vpRatio_ = 3.0f;
+    sceneSession->property_->SetWindowLimitsVP(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // src 80: VP-unit without snapshot (non-independent provider) -> converted with screenVpr 2.0
+    WindowLimits attachedVp; // VP [450,350,100,150] at display density 2.0
+    attachedVp.maxWidth_ = 450; attachedVp.maxHeight_ = 350; attachedVp.minWidth_ = 100;
+    attachedVp.minHeight_ = 150;
+    attachedVp.pixelUnit_ = PixelUnit::VP;
+    attachedVp.vpRatio_ = 0.0f;
+    sceneSession->property_->SetAttachedWindowLimits(80, attachedVp);
+    sceneSession->property_->SetAttachedLimitOptions(80, AttachLimitOptions { true, true });
+    const uint64_t displayId = 107;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 14;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // Own base VP x ownVpr 3.0 -> PX [1500, 1200, 600, 300];
+    // src VP x screenVpr 2.0 -> PX [900, 700, 200, 300];
+    // intersect -> PX [minW 600, maxW 900, minH 300, maxH 700]; VP view = PX / 3.0.
+    // (v1 converted the own base with 2.0 as well, producing different numbers.)
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::VP);
+    EXPECT_FLOAT_EQ(out.vpRatio_, 3.0f);
+    EXPECT_EQ(out.minWidth_, 200u);  // round(600 / 3)
+    EXPECT_EQ(out.maxWidth_, 300u);  // round(900 / 3)
+    EXPECT_EQ(out.minHeight_, 100u); // round(300 / 3)
+    EXPECT_EQ(out.maxHeight_, 233u); // round(700 / 3)
+
+    ssm_->sceneSessionMap_.erase(windowId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetDensity13
+ * @tc.desc: Sub-window query: the intersect flags must come from the SceneSession anchor info
+ *           (server-side authoritative attach state), not from the property copy, which stays at
+ *           its default after attach. The property anchor info is intentionally left default as
+ *           a negative control: with the stale-copy bug every source was skipped and the
+ *           intersection never applied for sub windows.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity13, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    // Sub window: the anchor branch (not the per-source options branch) decides the flags
+    sceneSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    // Attach state lives ONLY in the SceneSession member; the property copy is left default
+    sceneSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    sceneSession->windowAnchorInfo_.attachOptions.isIntersectedHeightLimit = true;
+    sceneSession->windowAnchorInfo_.attachOptions.isIntersectedWidthLimit = true;
+    WindowLimits base; // PX [200,1000,200,1000]
+    base.maxWidth_ = 1000; base.maxHeight_ = 1000; base.minWidth_ = 200; base.minHeight_ = 200;
+    base.pixelUnit_ = PixelUnit::PX;
+    base.vpRatio_ = 0.0f;
+    sceneSession->property_->SetWindowLimits(base);
+    sceneSession->property_->SetLimitsForAttachedWindows(base);
+    sceneSession->property_->SetUserWindowLimits(base);
+    // src 90: PX-unit source (absolute), intersected as-is.
+    WindowLimits attachedPx;
+    attachedPx.maxWidth_ = 800; attachedPx.maxHeight_ = 800; attachedPx.minWidth_ = 300;
+    attachedPx.minHeight_ = 300;
+    attachedPx.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetAttachedWindowLimits(90, attachedPx);
+    const uint64_t displayId = 108;
+    sceneSession->property_->SetDisplayId(displayId);
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(displayId);
+
+    int32_t windowId = 15;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    // The session anchor flags drive the intersection: [200,1000]x[200,1000] n [300,800]x[300,800]
+    // -> [300, 800]x[300, 800]. With the stale property copy the base would be returned unchanged.
+    EXPECT_EQ(out.minWidth_, 300u);
+    EXPECT_EQ(out.maxWidth_, 800u);
+    EXPECT_EQ(out.minHeight_, 300u);
+    EXPECT_EQ(out.maxHeight_, 800u);
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::PX);
 
     ssm_->sceneSessionMap_.erase(windowId);
     ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);

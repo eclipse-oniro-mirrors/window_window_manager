@@ -261,6 +261,41 @@ public:
     bool SuspendEnd();
 
     /**
+     * @brief Begin to wake up screen.
+     *
+     * @param displayId display id
+     * @param reason Reason for power state change.
+     * @return True means begin success, false means begin failed.
+     */
+    bool WakeUpBegin(DisplayId displayId, PowerStateChangeReason reason);
+
+    /**
+     * @brief Wake up screen end.
+     *
+     * @param displayId display id
+     * @return True means end success, false means end failed.
+     */
+    bool WakeUpEnd(DisplayId displayId);
+
+    /**
+     * @brief Begin to suspend the screen.
+     *
+     * @param displayId display id
+     * @param reason Reason for power state change.
+     * @return True means begin success, false means begin failed.
+     */
+    bool SuspendBegin(DisplayId displayId, PowerStateChangeReason reason);
+
+    /**
+     * @brief Suspend screen end.
+     *
+     * @param displayId display id
+     * @return True means suspend screen end success.
+     * @return False means suspend screen end failed.
+     */
+    bool SuspendEnd(DisplayId displayId);
+
+    /**
      * @brief Set the open/close lid status.
      *
      * @param screenClosedState open or close state.
@@ -293,6 +328,16 @@ public:
      * @return True means set success, false means set failed.
      */
     bool SetDisplayState(DisplayState state, DisplayStateCallback callback);
+
+        /**
+     * @brief Set the Display State object
+     *
+     * @param screenId screen id
+     * @param state State of display.
+     * @param callback Callback for display state.
+     * @return True means set success, false means set failed.
+     */
+    bool SetDisplayState(DisplayId displayId, DisplayState state, DisplayStateCallback callback);
 
     /**
      * @brief Get the state of the target display.

@@ -125,6 +125,7 @@ const std::string WATERFALL_WINDOW_EVENT = "scb_waterfall_window_event";
 const std::string BACK_WINDOW_EVENT = "scb_back_window_event";
 const std::string COMPATIBLE_MAX_WINDOW_EVENT = "win_compatible_max_event";
 const std::string COMPATIBLE_RECOVER_WINDOW_EVENT = "win_compatible_recover_event";
+const std::string HOOK_SCENE_ACTION = "hookscene";
 const std::string NAME_LANDSCAPE_2_3_CLICK = "win_change_to_2_3_landscape";
 const std::string NAME_LANDSCAPE_1_1_CLICK = "win_change_to_1_1_landscape";
 const std::string NAME_LANDSCAPE_18_9_CLICK = "win_change_to_18_9_landscape";
@@ -1711,7 +1712,8 @@ void WindowSceneSessionImpl::ApplyConfiguredMinSizeToLimits(WindowLimits& system
 void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
                                                         WindowLimits& newLimitsVP,
                                                         WindowLimits& customizedLimits,
-                                                        float& virtualPixelRatio)
+                                                        float& virtualPixelRatio,
+                                                        float& displayPixelRatio)
 {
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(property_->GetDisplayId());
     if (display == nullptr) {
@@ -1737,6 +1739,10 @@ void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
     if (MathHelper::NearZero(virtualPixelRatio)) {
         return;
     }
+    // The raw display density differs from the effective density when an independent density is
+    // set; snapshot-invalid attached limits must be converted with this one (see
+    // CalculateAttachedWindowLimitsIntersection), so thread it out from the same displayInfo.
+    displayPixelRatio = displayInfo->GetVirtualPixelRatio();
 
     // systemLimits: physical pixels, systemLimitsVP: virtual pixels
     const auto& [systemLimits, systemLimitsVP] = GetSystemSizeLimits(displayWidth, displayHeight, virtualPixelRatio);
@@ -1901,6 +1907,20 @@ void WindowSceneSessionImpl::RecalculateSizeLimitsWithRatios(WindowLimits& limit
     }
 }
 
+float WindowSceneSessionImpl::GetDensitySnapshotForAttachedWindows(float effectiveVpr)
+{
+    const float customDensity = GetMainWindowCustomDensity();
+    const bool defaultEnabled = IsDefaultDensityEnabled();
+    const bool hasIndependentDensity = defaultEnabled || useUniqueDensity_ ||
+        (customDensity >= MINIMUM_CUSTOM_DENSITY && customDensity <= MAXIMUM_CUSTOM_DENSITY);
+    const float snapshot = hasIndependentDensity ? effectiveVpr : 0.0f;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, density snapshot for attached windows: "
+        "independent=%{public}d (default=%{public}d, unique=%{public}d, custom=%{public}f), "
+        "effectiveVpr=%{public}f, snapshot=%{public}f", GetPersistentId(), hasIndependentDensity,
+        defaultEnabled, useUniqueDensity_, customDensity, effectiveVpr, snapshot);
+    return snapshot;
+}
+
 /** @note @window.layout */
 void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
 {
@@ -1910,8 +1930,9 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     WindowLimits newLimits;
     WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
     float virtualPixelRatio = 0.0f;
+    float displayVpr = 0.0f;
 
-    CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio);
+    CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, virtualPixelRatio, displayVpr);
     if (MathHelper::NearZero(virtualPixelRatio)) {
         TLOGE(WmsLogTag::WMS_LAYOUT,
             "[WindowLimitsUpdate:CalcLimits] vpr is zero, id:%{public}u", GetWindowId());
@@ -1951,9 +1972,17 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     // Notify session side about window limits change before calculating attached windows intersection
     // Save the limits regardless of needNotifySession flag
     // Determine which limits to notify based on user's pixelUnit setting
-    const WindowLimits& limitsToNotify =
+    WindowLimits limitsToNotify =
         (property_->GetUserWindowLimits().pixelUnit_ == PixelUnit::VP) ? newLimitsVP : newLimits;
+    // Carry the density snapshot with the shared limits so attached windows convert them with the
+    // provider's density instead of their own (invalid marker when density is not independent).
+    limitsToNotify.vpRatio_ = GetDensitySnapshotForAttachedWindows(virtualPixelRatio);
     property_->SetLimitsForAttachedWindows(limitsToNotify);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, save shared limits for attached windows: unit=%{public}u, "
+        "densitySnapshot=%{public}f, [minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+        GetPersistentId(), static_cast<uint32_t>(limitsToNotify.pixelUnit_), limitsToNotify.vpRatio_,
+        limitsToNotify.minWidth_, limitsToNotify.minHeight_, limitsToNotify.maxWidth_,
+        limitsToNotify.maxHeight_);
 
     // Only notify session side when triggered by SetWindowLimits
     if (needNotifySession) {
@@ -1961,7 +1990,7 @@ void WindowSceneSessionImpl::UpdateWindowSizeLimits(bool needNotifySession)
     }
 
     // Calculate intersection with attached windows' limits if configured
-    CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, virtualPixelRatio);
+    CalculateAttachedWindowLimitsIntersection(newLimits, newLimitsVP, { virtualPixelRatio, displayVpr });
 
     TLOGI_LMTBYID(TEN_SECONDS, RECORD_100_TIMES, GetPersistentId(), WmsLogTag::WMS_LAYOUT,
         "[WindowLimitsUpdate:CalcLimits] SaveLimits id:%{public}d, "
@@ -2073,16 +2102,26 @@ float WindowSceneSessionImpl::GetEffectiveAspectRatio(const WindowLimits& limits
 
 /** @note @window.layout */
 void WindowSceneSessionImpl::CalculateAttachedWindowLimitsIntersection(
-    WindowLimits& newLimits, WindowLimits& newLimitsVP, float virtualPixelRatio)
+    WindowLimits& newLimits, WindowLimits& newLimitsVP, const AttachDensityBasis& density)
 {
     if (!IsPcOrPadFreeMultiWindowMode()) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, not in PC or free multi-window mode",
             GetPersistentId());
         return;
     }
-    if (MathHelper::NearZero(virtualPixelRatio)) {
+    if (MathHelper::NearZero(density.effectiveVpr)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "windowId:%{public}u, virtual pixel ratio is zero", GetWindowId());
         return;
+    }
+    // The display density is the conversion basis for snapshot-invalid (0) attached limits. It is
+    // the RAW display density, not this window's effective density: an independent-density
+    // receiver must still convert non-independent sources with the density those sources actually
+    // use. Degraded fallback keeps the previous behaviour when the display is unresolvable.
+    AttachDensityBasis basis = density;
+    if (MathHelper::NearZero(basis.displayVpr)) {
+        TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, display density unavailable, fallback to effective vpr",
+            GetPersistentId());
+        basis.displayVpr = basis.effectiveVpr;
     }
 
     auto attachedLimitsList = property_->GetAttachedWindowLimitsList();
@@ -2092,8 +2131,10 @@ void WindowSceneSessionImpl::CalculateAttachedWindowLimitsIntersection(
     }
 
     const bool isMainWindow = WindowHelper::IsMainWindow(GetType());
-    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc with %{public}zu wins, type=%{public}u",
-        GetPersistentId(), attachedLimitsList.size(), static_cast<uint32_t>(GetType()));
+    TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc with %{public}zu wins, type=%{public}u, "
+        "effectiveVpr=%{public}f, displayVpr=%{public}f",
+        GetPersistentId(), attachedLimitsList.size(), static_cast<uint32_t>(GetType()),
+        basis.effectiveVpr, basis.displayVpr);
 
     for (const auto& [sourceId, attachedLimits] : attachedLimitsList) {
         AttachLimitOptions limitOptions = isMainWindow ? property_->GetAttachedLimitOptions(sourceId) :
@@ -2102,11 +2143,10 @@ void WindowSceneSessionImpl::CalculateAttachedWindowLimitsIntersection(
         if (!limitOptions.isIntersectedHeightLimit && !limitOptions.isIntersectedWidthLimit) {
             continue;
         }
-        auto result = CalcSingleWinIntersect(
-            newLimits, newLimitsVP, attachedLimits, limitOptions, virtualPixelRatio);
-        if (!result.pxValid || !result.vpValid) {
-            TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, no intersect srcId=%{public}d (%{public}s)",
-                GetPersistentId(), sourceId, !result.pxValid ? "PX" : "VP");
+        auto result = CalcSingleWinIntersect(newLimits, newLimitsVP, attachedLimits, limitOptions, basis);
+        if (!result.pxValid) {
+            TLOGW(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, no intersect srcId=%{public}d (PX)",
+                GetPersistentId(), sourceId);
             continue;
         }
 
@@ -2126,16 +2166,30 @@ WindowSceneSessionImpl::WinIntersectResult WindowSceneSessionImpl::CalcSingleWin
     const WindowLimits& currentLimitsVP,
     const WindowLimits& attachedLimits,
     const AttachLimitOptions& limitOptions,
-    float virtualPixelRatio)
+    const AttachDensityBasis& density)
 {
     WinIntersectResult result;
     const bool intersectHeight = limitOptions.isIntersectedHeightLimit;
     const bool intersectWidth = limitOptions.isIntersectedWidthLimit;
 
-    // Convert to PX and calculate intersection
+    // Convert the attached limits to PX with the density snapshot they carry (the provider's
+    // effective density when it computed them); fall back to the raw display density when the
+    // snapshot is invalid: a snapshot-invalid provider follows the display, and all collaborating
+    // windows sit on the same display, so the receiver's display density equals the density the
+    // provider used for its own base. The effective density must NOT be used here, because an
+    // independent-density receiver would convert the source with a density the source never used.
+    const float attachedVpr = attachedLimits.vpRatio_ > 0.0f ? attachedLimits.vpRatio_ : density.displayVpr;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc single intersect basis: effectiveVpr=%{public}f, "
+        "displayVpr=%{public}f, attachedDensitySnapshot=%{public}f, useSnapshot=%{public}d, "
+        "attachedVpr=%{public}f, attachedUnit=%{public}u, "
+        "attached[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+        GetPersistentId(), density.effectiveVpr, density.displayVpr, attachedLimits.vpRatio_,
+        attachedLimits.vpRatio_ > 0.0f, attachedVpr, static_cast<uint32_t>(attachedLimits.pixelUnit_),
+        attachedLimits.minWidth_, attachedLimits.minHeight_, attachedLimits.maxWidth_,
+        attachedLimits.maxHeight_);
     WindowLimits attachedLimitsPX;
     if (attachedLimits.pixelUnit_ == PixelUnit::VP) {
-        RecalculatePxLimitsByVp(attachedLimits, attachedLimitsPX, virtualPixelRatio);
+        RecalculatePxLimitsByVp(attachedLimits, attachedLimitsPX, attachedVpr);
     } else {
         attachedLimitsPX = attachedLimits;
     }
@@ -2143,16 +2197,18 @@ WindowSceneSessionImpl::WinIntersectResult WindowSceneSessionImpl::CalcSingleWin
         intersectWidth);
     result.pxValid = IsLimitsIntersectionValid(result.pxLimits, intersectHeight, intersectWidth);
 
-    // Convert to VP and calculate intersection
-    WindowLimits attachedLimitsVP;
-    if (attachedLimits.pixelUnit_ == PixelUnit::PX) {
-        RecalculateVpLimitsByPx(attachedLimits, attachedLimitsVP, virtualPixelRatio);
-    } else {
-        attachedLimitsVP = attachedLimits;
-    }
-    result.vpLimits = CalculateLimitsIntersection(currentLimitsVP, attachedLimitsVP, intersectHeight,
-        intersectWidth);
-    result.vpValid = IsLimitsIntersectionValid(result.vpLimits, intersectHeight, intersectWidth);
+    // Derive the VP view from the PX result in the local density. PX is the absolute unit shared
+    // by all collaborating windows, so only the PX validity decides whether the intersection is
+    // committed; rounding is monotonic, keeping the derived VP result valid whenever PX is valid.
+    result.vpLimits = currentLimitsVP;
+    RecalculateVpLimitsByPx(result.pxLimits, result.vpLimits, density.effectiveVpr);
+    result.vpValid = result.pxValid;
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, calc single intersect result: pxValid=%{public}d, "
+        "px[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u], "
+        "vp[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]", GetPersistentId(),
+        result.pxValid, result.pxLimits.minWidth_, result.pxLimits.minHeight_,
+        result.pxLimits.maxWidth_, result.pxLimits.maxHeight_, result.vpLimits.minWidth_,
+        result.vpLimits.minHeight_, result.vpLimits.maxWidth_, result.vpLimits.maxHeight_);
 
     return result;
 }
@@ -2198,9 +2254,9 @@ void WindowSceneSessionImpl::NotifySessionSideLimitsChanged(const WindowLimits& 
     GetHostSession()->NotifyAttachedWindowsLimitsChanged(limitsToNotify);
     TLOGI(WmsLogTag::WMS_LAYOUT, "Notified session side about window limits change for window "
         "id=%{public}u, limitsToNotify: maxW=%{public}u, maxH=%{public}u, minW=%{public}u, minH=%{public}u, "
-        "pixelUnit=%{public}u", GetWindowId(), limitsToNotify.maxWidth_, limitsToNotify.maxHeight_,
-        limitsToNotify.minWidth_, limitsToNotify.minHeight_,
-        static_cast<uint32_t>(limitsToNotify.pixelUnit_));
+        "pixelUnit=%{public}u, densitySnapshot=%{public}f", GetWindowId(), limitsToNotify.maxWidth_,
+        limitsToNotify.maxHeight_, limitsToNotify.minWidth_, limitsToNotify.minHeight_,
+        static_cast<uint32_t>(limitsToNotify.pixelUnit_), limitsToNotify.vpRatio_);
 }
 
 void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<DisplayInfo>& info)
@@ -2354,6 +2410,7 @@ WMError WindowSceneSessionImpl::Show(uint32_t reason, bool withAnimation, bool w
         UpdateSubWindowStateAndNotify(GetPersistentId(), WindowState::STATE_SHOWN);
         state_ = WindowState::STATE_SHOWN;
         requestState_ = WindowState::STATE_SHOWN;
+        backgroundReason_ = 0;
         NotifyAfterForeground(true, true, waitAttach);
         NotifyAfterDidForeground(reason);
         NotifyFreeMultiWindowModeResume();
@@ -2467,6 +2524,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
 
 WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool isFromInnerkits, bool waitDetach)
 {
+    backgroundReason_ = reason;
     if (reason == static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH)) {
         TLOGI(WmsLogTag::WMS_MULTI_USER, "Switch to another user, NotifyAfterBackground");
         NotifyAfterBackground(true, false);
@@ -2587,6 +2645,23 @@ WMError WindowSceneSessionImpl::NotifyDrawingCompleted()
                   WMError::WM_ERROR_INVALID_WINDOW;
     if (res == WMError::WM_OK) {
         TLOGI(WmsLogTag::WMS_LIFE, "success id:%{public}d, type:%{public}d",
+            GetPersistentId(), type);
+    }
+    return res;
+}
+
+WMError WindowSceneSessionImpl::NotifyStartWithSnapshot()
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "session is invalid, id:%{public}d", GetPersistentId());
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    const auto type = GetType();
+    WMError res = WindowHelper::IsMainWindow(type) ?
+                  static_cast<WMError>(hostSession_->StartWithSnapshot()) :
+                  WMError::WM_ERROR_INVALID_WINDOW;
+    if (res == WMError::WM_OK) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "success id:%{public}d, type:%{public}d",
             GetPersistentId(), type);
     }
     return res;
@@ -4861,7 +4936,7 @@ WMError WindowSceneSessionImpl::MaximizeWithOptions(MaximizePresentation present
         return checkRet;
     }
 
-    if (!IsPcOrPadFreeMultiWindowMode() || property_->IsFullScreenDisabled()) {
+    if (!IsDisplayInFreeMultiWindow() || property_->IsFullScreenDisabled()) {
         TLOGW(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         RETURN_ERR(errMsg, "Device not supported in compatible mode", WMError::WM_OK);
     }
@@ -6888,13 +6963,23 @@ WMError WindowSceneSessionImpl::SetDialogBackGestureEnabled(bool isEnabled)
 
 WMError WindowSceneSessionImpl::SetTouchHotAreas(const std::vector<Rect>& rects)
 {
+    return SetTouchHotAreasImpl(rects, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+}
+
+WMError WindowSceneSessionImpl::SetTouchableAreas(const std::vector<Rect>& rects)
+{
+    return SetTouchHotAreasImpl(rects, WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION);
+}
+
+WMError WindowSceneSessionImpl::SetTouchHotAreasImpl(const std::vector<Rect>& rects, WSPropertyChangeAction action)
+{
     std::vector<Rect> lastTouchHotAreas;
     property_->GetTouchHotAreas(lastTouchHotAreas);
     property_->SetTouchHotAreas(rects);
-    WMError result = UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    WMError result = UpdateProperty(action);
     if (result != WMError::WM_OK) {
         property_->SetTouchHotAreas(lastTouchHotAreas);
-        WLOGFE("errCode:%{public}d", static_cast<int32_t>(result));
+        TLOGE(WmsLogTag::WMS_EVENT, "errCode:%{public}d", static_cast<int32_t>(result));
         return result;
     }
     for (uint32_t i = 0; i < rects.size(); i++) {
@@ -7065,7 +7150,8 @@ bool WindowSceneSessionImpl::ShouldSkipSupportWindowModeCheck(uint32_t windowMod
     bool isCompatibleWindow = mode == WindowMode::WINDOW_MODE_FLOATING ||
                               mode == WindowMode::WINDOW_MODE_FULLSCREEN;
     bool isDragScale = property_->IsAdaptToDragScale();
-    if (windowSystemConfig_.IsPcOrPcMode() && isCompatibleWindow && isDragScale) {
+    if ((windowSystemConfig_.IsPcOrPcMode() || isFreeMultiWindowMode) &&
+        isCompatibleWindow && isDragScale) {
         return true;
     }
 
@@ -7275,7 +7361,7 @@ void WindowSceneSessionImpl::UpdateEnableDragWhenSwitchMultiWindow(bool enable)
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
 }
 
-void WindowSceneSessionImpl::UpdateSubWindowDragEnabledByDecorVisible(bool decorVisible)
+void WindowSceneSessionImpl::UpdateSubWindowDragEnabled(bool freeMultiWindowEnable)
 {
     if (hasSetEnableDrag_.load() || property_->IsDragResizeDisabled()) {
         return;
@@ -7283,9 +7369,13 @@ void WindowSceneSessionImpl::UpdateSubWindowDragEnabledByDecorVisible(bool decor
     if (!WindowHelper::IsSubWindow(GetType())) {
         return;
     }
-    property_->SetDragEnabled(decorVisible);
+    const bool decorEnabled = property_->IsDecorEnable();
+    const bool dragEnabled = decorEnabled && freeMultiWindowEnable;
+    property_->SetDragEnabled(dragEnabled);
     UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_DRAGENABLED);
-    TLOGI(WmsLogTag::WMS_LAYOUT, "id: %{public}d, decorVisible: %{public}d", GetPersistentId(), decorVisible);
+    TLOGI(WmsLogTag::WMS_LAYOUT,
+          "id: %{public}d, dragEnabled: %{public}d, decorEnabled: %{public}d, freeMultiWindowEnable: %{public}d",
+          GetPersistentId(), dragEnabled, decorEnabled, freeMultiWindowEnable);
 }
 
 WSError WindowSceneSessionImpl::SwitchFreeMultiWindow(bool enable,
@@ -7517,6 +7607,9 @@ WMError WindowSceneSessionImpl::NotifyPageEnable(const std::string& action, cons
     if (IsWindowSessionInvalid()) {
         TLOGE(WmsLogTag::WMS_COMPAT, "window session invalid!");
         return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (action == HOOK_SCENE_ACTION) {
+        property_->SetHookSceneMessage(message);
     }
     auto hostSession = GetHostSession();
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_INVALID_WINDOW);
@@ -7899,6 +7992,12 @@ float WindowSceneSessionImpl::GetVirtualPixelRatio(const sptr<DisplayInfo>& disp
         return virtualPixelRatio_;
     }
     auto vpr = GetMainWindowCustomDensity();
+    if (MathHelper::NearZero(vpr - UNDEFINED_DENSITY) && (GetIsUIExtAnySubWindow() || GetIsUIExtFirstSubWindow())) {
+        vpr = GetExtensionWindowCustomDensity();
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}u, type=%{public}u, isUecAnySubWin=%{public}d, "
+            "isUecFirstSubWin=%{public}d, uecDpi=%{public}f, displayId=%{public}" PRIu64, GetWindowId(), GetType(),
+            GetIsUIExtAnySubWindow(), GetIsUIExtFirstSubWindow(), vpr, displayInfo->GetDisplayId());
+    }
     auto hookedDpi = (vpr >= MINIMUM_CUSTOM_DENSITY && vpr <= MAXIMUM_CUSTOM_DENSITY ?
         vpr : AdaptToHookedDensity(displayInfo->GetVirtualPixelRatio()));
     TLOGD(WmsLogTag::WMS_ATTRIBUTE,
@@ -8181,11 +8280,29 @@ void WindowSceneSessionImpl::UpdateDensityInner(const sptr<DisplayInfo>& info)
             }
         }
     }
+    const WindowLimits oldSharedLimits = property_->GetLimitsForAttachedWindows();
     if (property_->GetUserWindowLimits().pixelUnit_ == PixelUnit::VP) {
         UpdateWindowSizeLimits();
         UpdateNewSize();
     } else {
-        RecalcPxLimitsOnDensity();
+        RecalcPxLimitsOnDensity(info);
+    }
+    // Re-notify attached windows when the shared limits actually changed: the density snapshot
+    // (independent density gained, lost, or re-valued), or the shared values themselves (e.g. a
+    // system-density change flipping the system-bound clamps of a VP user). Ordinary density
+    // changes of non-independent windows keep the shared limits identical, so no traffic is sent.
+    const WindowLimits& newSharedLimits = property_->GetLimitsForAttachedWindows();
+    const bool snapshotChanged = !MathHelper::NearZero(oldSharedLimits.vpRatio_ - newSharedLimits.vpRatio_);
+    const bool valuesChanged = oldSharedLimits.minWidth_ != newSharedLimits.minWidth_ ||
+        oldSharedLimits.minHeight_ != newSharedLimits.minHeight_ ||
+        oldSharedLimits.maxWidth_ != newSharedLimits.maxWidth_ ||
+        oldSharedLimits.maxHeight_ != newSharedLimits.maxHeight_ ||
+        oldSharedLimits.pixelUnit_ != newSharedLimits.pixelUnit_;
+    if (snapshotChanged || valuesChanged) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, shared limits for attached windows changed "
+            "(snapshot %{public}f -> %{public}f, valuesChanged=%{public}d), re-notify attached windows",
+            GetPersistentId(), oldSharedLimits.vpRatio_, newSharedLimits.vpRatio_, valuesChanged);
+        NotifySessionSideLimitsChanged(newSharedLimits);
     }
     WMError ret = UpdateProperty(WSPropertyChangeAction::ACTION_UPDATE_WINDOW_LIMITS);
     if (ret != WMError::WM_OK) {
@@ -8202,14 +8319,19 @@ void WindowSceneSessionImpl::UpdateDensityInner(const sptr<DisplayInfo>& info)
 }
 
 /** @note @window.layout */
-void WindowSceneSessionImpl::RecalcPxLimitsOnDensity()
+void WindowSceneSessionImpl::RecalcPxLimitsOnDensity(const sptr<DisplayInfo>& info)
 {
     float vpr = 1.0f;
-    WMError ret = GetVirtualPixelRatio(vpr);
+    sptr<DisplayInfo> displayInfo = info;
+    WMError ret = GetVirtualPixelRatio(vpr, &displayInfo);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::DEFAULT, "Id:%{public}d, get vpr failed", GetPersistentId());
         return;
     }
+    // Resolve the raw display density for converting snapshot-invalid attached limits; it is
+    // NOT the effective density (see CalculateAttachedWindowLimitsIntersection). Stays 0 when
+    // the display info is unavailable so the intersection falls back to the effective density.
+    const float displayVpr = displayInfo != nullptr ? displayInfo->GetVirtualPixelRatio() : 0.0f;
     bool hasIntersectedLimits = HasIntersectedAttachLimits();
     WindowLimits limitsPx = hasIntersectedLimits ?
         property_->GetLimitsForAttachedWindows() : property_->GetWindowLimits();
@@ -8218,8 +8340,19 @@ void WindowSceneSessionImpl::RecalcPxLimitsOnDensity()
     limitsPx.vpRatio_ = vpr;
     limitsVp.vpRatio_ = vpr;
     isMinLimitsAdjusted_ = AdjustMinLimitsByWorkArea(limitsPx, limitsVp, vpr);
+    // Refresh the density snapshot carried by the shared limits; the shared values themselves
+    // are density-stable so only the snapshot needs to be updated in place.
+    const float newSnapshot = GetDensitySnapshotForAttachedWindows(vpr);
+    WindowLimits sharedLimits = property_->GetLimitsForAttachedWindows();
+    if (!MathHelper::NearZero(sharedLimits.vpRatio_ - newSnapshot)) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, density changed, refresh snapshot of shared "
+            "limits %{public}f -> %{public}f (effectiveVpr=%{public}f)", GetPersistentId(),
+            sharedLimits.vpRatio_, newSnapshot, vpr);
+        sharedLimits.vpRatio_ = newSnapshot;
+        property_->SetLimitsForAttachedWindows(sharedLimits);
+    }
     if (hasIntersectedLimits) {
-        CalculateAttachedWindowLimitsIntersection(limitsPx, limitsVp, vpr);
+        CalculateAttachedWindowLimitsIntersection(limitsPx, limitsVp, { vpr, displayVpr });
     }
     property_->SetWindowLimits(limitsPx);
     property_->SetWindowLimitsVP(limitsVp);
@@ -9005,6 +9138,12 @@ float WindowSceneSessionImpl::GetMainWindowCustomDensity()
     return mainWindow ? mainWindow->GetCustomDensity() : UNDEFINED_DENSITY;
 }
 
+float WindowSceneSessionImpl::GetExtensionWindowCustomDensity()
+{
+    auto extWindow = FindExtensionWindowWithContext();
+    return extWindow ? extWindow->GetExtensionCustomDensity() : UNDEFINED_DENSITY;
+}
+
 float WindowSceneSessionImpl::GetCustomDensity() const
 {
     return customDensity_;
@@ -9438,8 +9577,12 @@ WSError WindowSceneSessionImpl::UpdateAttachedWindowLimits(int32_t sourcePersist
     bool isIntersectedWidthLimit)
 {
     TLOGI(WmsLogTag::WMS_LAYOUT, "called for window id=%{public}u, sourcePersistentId=%{public}d, "
-        "isIntersectedHeightLimit=%{public}d, isIntersectedWidthLimit=%{public}d",
-        GetWindowId(), sourcePersistentId, isIntersectedHeightLimit, isIntersectedWidthLimit);
+        "isIntersectedHeightLimit=%{public}d, isIntersectedWidthLimit=%{public}d, "
+        "limits[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u], unit=%{public}u, "
+        "sourceDensitySnapshot=%{public}f", GetWindowId(), sourcePersistentId,
+        isIntersectedHeightLimit, isIntersectedWidthLimit, attachedWindowLimits.minWidth_,
+        attachedWindowLimits.minHeight_, attachedWindowLimits.maxWidth_, attachedWindowLimits.maxHeight_,
+        static_cast<uint32_t>(attachedWindowLimits.pixelUnit_), attachedWindowLimits.vpRatio_);
 
     const auto& property = GetProperty();
 
@@ -9474,6 +9617,10 @@ WSError WindowSceneSessionImpl::SyncAllAttachedLimitsToChild(
     property->ClearAttachedLimitOptionsList();
 
     for (const auto& [sourceId, limits] : limitsList) {
+        TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, sync attached entry srcId=%{public}d, unit=%{public}u, "
+            "sourceDensitySnapshot=%{public}f, [minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+            GetWindowId(), sourceId, static_cast<uint32_t>(limits.pixelUnit_), limits.vpRatio_,
+            limits.minWidth_, limits.minHeight_, limits.maxWidth_, limits.maxHeight_);
         property->SetAttachedWindowLimits(sourceId, limits);
     }
 
@@ -9947,14 +10094,23 @@ void WindowSceneSessionImpl::AddRSNodeModifier(bool isDark, const std::shared_pt
         TLOGE(WmsLogTag::WMS_PC, "rsNode is nullptr");
         return;
     }
+    bool isFullScreen = GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN;
+    float darkRadius = isFullScreen ? SIDEBAR_MAXIMIZE_RADIUS_DARK : SIDEBAR_DEFAULT_RADIUS_DARK;
+    float lightRadius = isFullScreen ? SIDEBAR_MAXIMIZE_RADIUS_LIGHT : SIDEBAR_DEFAULT_RADIUS_LIGHT;
+    float darkSaturation = isFullScreen ? SIDEBAR_MAXIMIZE_SATURATION_DARK : SIDEBAR_DEFAULT_SATURATION_DARK;
+    float lightSaturation = isFullScreen ? SIDEBAR_MAXIMIZE_SATURATION_LIGHT : SIDEBAR_DEFAULT_SATURATION_LIGHT;
+    float darkBrightness = isFullScreen ? SIDEBAR_MAXIMIZE_BRIGHTNESS_DARK : SIDEBAR_DEFAULT_BRIGHTNESS_DARK;
+    float lightBrightness = isFullScreen ? SIDEBAR_MAXIMIZE_BRIGHTNESS_LIGHT : SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT;
+    uint32_t darkMaskColor = isFullScreen ? SIDEBAR_MAXIMIZE_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_DARK;
+    uint32_t lightMaskColor = isFullScreen ? SIDEBAR_MAXIMIZE_MASKCOLOR_LIGHT : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT;
     blurRadiusValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
-        isDark ? SIDEBAR_DEFAULT_RADIUS_DARK : SIDEBAR_DEFAULT_RADIUS_LIGHT);
+        isDark ? darkRadius : lightRadius);
     blurSaturationValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
-        isDark ? SIDEBAR_DEFAULT_SATURATION_DARK : SIDEBAR_DEFAULT_SATURATION_LIGHT);
+        isDark ? darkSaturation : lightSaturation);
     blurBrightnessValue_ = std::make_shared<Rosen::RSAnimatableProperty<float>>(
-        isDark ? SIDEBAR_DEFAULT_BRIGHTNESS_DARK : SIDEBAR_DEFAULT_BRIGHTNESS_LIGHT);
+        isDark ? darkBrightness : lightBrightness);
     blurMaskColorValue_ = std::make_shared<RSAnimatableProperty<Rosen::RSColor>>(
-        Rosen::RSColor::FromArgbInt(isDark ? SIDEBAR_DEFAULT_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT));
+        Rosen::RSColor::FromArgbInt(isDark ? darkMaskColor : lightMaskColor));
     auto modifier = std::make_shared<Rosen::ModifierNG::RSBehindWindowFilterModifier>();
     modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_RADIUS, blurRadiusValue_);
     modifier->AttachProperty(ModifierNG::RSPropertyType::BEHIND_WINDOW_FILTER_SATURATION, blurSaturationValue_);
@@ -9999,23 +10155,11 @@ void WindowSceneSessionImpl::UpdateSidebarBlurStyleWhenColorModeChange()
     bool isDark = (colorMode_ == AppExecFwk::ConfigurationInner::COLOR_MODE_DARK);
     SidebarBlurType type = (GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) ?
         SidebarBlurType::DEFAULT_MAXIMIZE : SidebarBlurType::DEFAULT_FLOAT;
-    ModifySidebarBlurProperty(isDark, type);
+    ModifySidebarBlurProperty(isDark, type, false);
 }
 
-void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurType type)
+void WindowSceneSessionImpl::SetSidebarBlurValues(bool isDark, SidebarBlurType type)
 {
-    TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(),
-        isDark, static_cast<uint32_t>(type));
-    auto rsUIContext = GetRSUIContext();
-    AutoRSTransaction trans(rsUIContext);
-    if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
-        Rosen::RSAnimationTimingProtocol timingProtocol;
-        timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
-        timingProtocol.SetDirection(true);
-        timingProtocol.SetFillMode(Rosen::FillMode::FORWARDS);
-        timingProtocol.SetFinishCallbackType(Rosen::FinishCallbackType::LOGICALLY);
-        RSNode::OpenImplicitAnimation(rsUIContext, timingProtocol, Rosen::RSAnimationTimingCurve::LINEAR, nullptr);
-    }
     switch (type) {
         case SidebarBlurType::NONE:
             blurRadiusValue_->Set(SIDEBAR_BLUR_NUMBER_ZERO);
@@ -10033,6 +10177,7 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
                 isDark ? SIDEBAR_DEFAULT_MASKCOLOR_DARK : SIDEBAR_DEFAULT_MASKCOLOR_LIGHT));
             break;
         }
+        case SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE:
         case SidebarBlurType::DEFAULT_MAXIMIZE: {
             blurRadiusValue_->Set(isDark ? SIDEBAR_MAXIMIZE_RADIUS_DARK : SIDEBAR_MAXIMIZE_RADIUS_LIGHT);
             blurSaturationValue_->Set(isDark ? SIDEBAR_MAXIMIZE_SATURATION_DARK : SIDEBAR_MAXIMIZE_SATURATION_LIGHT);
@@ -10044,8 +10189,36 @@ void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurT
         default:
             break;
     }
-    if (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE) {
+}
+ 
+void WindowSceneSessionImpl::ApplySidebarBlurWithAnimation(bool isDark, SidebarBlurType type)
+{
+    auto rsUIContext = GetRSUIContext();
+    bool needAnimate = (type == SidebarBlurType::DEFAULT_FLOAT || type == SidebarBlurType::DEFAULT_MAXIMIZE);
+    if (needAnimate) {
+        Rosen::RSAnimationTimingProtocol timingProtocol;
+        timingProtocol.SetDuration(SIDEBAR_BLUR_ANIMATION_DURATION);
+        timingProtocol.SetDirection(true);
+        timingProtocol.SetFillMode(Rosen::FillMode::FORWARDS);
+        timingProtocol.SetFinishCallbackType(Rosen::FinishCallbackType::LOGICALLY);
+        RSNode::OpenImplicitAnimation(rsUIContext, timingProtocol, Rosen::RSAnimationTimingCurve::LINEAR, nullptr);
+    }
+    SetSidebarBlurValues(isDark, type);
+    if (needAnimate) {
         RSNode::CloseImplicitAnimation(rsUIContext);
+    }
+}
+ 
+void WindowSceneSessionImpl::ModifySidebarBlurProperty(bool isDark, SidebarBlurType type, const bool needTransition)
+{
+    TLOGI(WmsLogTag::WMS_PC, "persistentId=%{public}d, isDark: %{public}d, type: %{public}u", GetPersistentId(), isDark,
+        static_cast<uint32_t>(type));
+    auto rsUIContext = GetRSUIContext();
+    if (needTransition) {
+        AutoRSTransaction trans(rsUIContext);
+        ApplySidebarBlurWithAnimation(isDark, type);
+    } else {
+        ApplySidebarBlurWithAnimation(isDark, type);
     }
 }
 

@@ -19,7 +19,6 @@
 
 #include "dm_common.h"
 #include "window_manager_hilog.h"
-#include "window_helper.h"
 #include "window_option.h"
 #include "viewport_config.h"
 #include "singleton_container.h"
@@ -1142,6 +1141,12 @@ WMError WindowImpl::SetTouchHotAreas(const std::vector<Rect>& rects)
 {
     return WMError::WM_OK;
 }
+
+WMError WindowImpl::SetTouchableAreas(const std::vector<Rect>& rects)
+{
+    return WMError::WM_OK;
+}
+
 void WindowImpl::GetRequestedTouchHotAreas(std::vector<Rect>& rects) const
 {
 }
@@ -1360,7 +1365,7 @@ WMError WindowImpl::SetLandscapeMultiWindow(bool isLandscapeMultiWindow)
     return WMError::WM_OK;
 }
 
-void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom)
+void WindowImpl::SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom, DvsyncDisableReason disableReason)
 {
 }
 

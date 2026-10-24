@@ -42,6 +42,7 @@ public:
         const std::function<void(std::string, std::string)>& saveStartWindowCallback);
 
     void SetSnapshotCapacity(SnapshotStatus capacity);
+    void SetIsPcWindow(bool isPcWindow);
     static void InitAstcEnabled();
     static bool IsAstcEnabled();
     void SetHasSnapshot(bool hasSnapshot, SnapshotStatus key = defaultStatus);

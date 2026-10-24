@@ -1996,6 +1996,12 @@ HWTEST_F(SceneSessionTest6, SetSidebarBlur2, Function | SmallTest | Level1)
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
     session->sessionStage_ = sessionStageMocker;
+    // Default SceneSession property has WINDOW_MODE_FULLSCREEN; set non-fullscreen
+    // to test the DEFAULT_FLOAT / INITIAL branches (fullscreen branches covered by
+    // SetSidebarBlur3 and SetSidebarBlur4).
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->property_ = property;
 
     EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::NONE)).Times(2);
     session->SetSidebarBlur(false, false);
@@ -2004,6 +2010,86 @@ HWTEST_F(SceneSessionTest6, SetSidebarBlur2, Function | SmallTest | Level1)
     session->SetSidebarBlur(true, false);
     EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_FLOAT)).Times(1);
     session->SetSidebarBlur(true, true);
+}
+
+/**
+ * @tc.name: SetSidebarBlur3
+ * @tc.desc: SetSidebarBlur with fullscreen + needAnimation -> DEFAULT_MAXIMIZE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur3, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_MAXIMIZE)).Times(1);
+    session->SetSidebarBlur(true, true);
+}
+
+/**
+ * @tc.name: SetSidebarBlur4
+ * @tc.desc: SetSidebarBlur with fullscreen + no animation -> DEFAULT_MAXIMIZE_NOANIMATE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur4, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_MAXIMIZE_NOANIMATE))
+        .Times(1);
+    session->SetSidebarBlur(true, false);
+}
+
+/**
+ * @tc.name: SetSidebarBlur5
+ * @tc.desc: SetSidebarBlur with fullscreen + not default -> NONE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur5, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::NONE)).Times(2);
+    session->SetSidebarBlur(false, true);
+    session->SetSidebarBlur(false, false);
+}
+
+/**
+ * @tc.name: SetSidebarBlur6
+ * @tc.desc: SetSidebarBlur with non-fullscreen + needAnimation -> DEFAULT_FLOAT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetSidebarBlur6, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
+    session->property_ = property;
+
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::DEFAULT_FLOAT)).Times(1);
+    session->SetSidebarBlur(true, true);
+    EXPECT_CALL(*sessionStageMocker, SetSidebarBlurStyleWithType(SidebarBlurType::INITIAL)).Times(1);
+    session->SetSidebarBlur(true, false);
 }
 
 /**

@@ -307,6 +307,68 @@ HWTEST_F(ScreenSessionManagerAdapterTest, NotifyAbnormalScreenConnectChange_Agen
     adapter.NotifyAbnormalScreenConnectChange(screenId);
     EXPECT_TRUE(g_errLog.find("agent is null") != std::string::npos);
 }
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_Agents_Empty
+ * @tc.desc: NotifyDisplayStateChangedById when no agents registered returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerAdapterTest, NotifyDisplayStateChangedById_Agents_Empty, TestSize.Level1)
+{
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::ON;
+    ScreenSessionManagerAdapter adapter;
+    bool ret = adapter.NotifyDisplayStateChangedById(displayId, state);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(g_errLog.find("agent is null") != std::string::npos);
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById_WhenAgentsExist
+ * @tc.desc: NotifyDisplayStateChangedById notifies registered agents successfully
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerAdapterTest, NotifyDisplayStateChangedById_WhenAgentsExist, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> agent = new DisplayManagerAgentDefault();
+    ScreenSessionManagerAdapter adapter;
+    adapter.dmAgentContainer_.RegisterAgent(agent, DisplayManagerAgentType::DISPLAY_STATE_LISTENER);
+
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::OFF;
+    bool ret = adapter.NotifyDisplayStateChangedById(displayId, state);
+    EXPECT_TRUE(ret);
+    EXPECT_TRUE(g_errLog.find("agent is null") == std::string::npos);
+}
+
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_Agents_Empty
+ * @tc.desc: NotifySpecifiedDisplayPowerEvent when no agents registered returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerAdapterTest, NotifySpecifiedDisplayPowerEvent_Agents_Empty, TestSize.Level1)
+{
+    ScreenSessionManagerAdapter adapter;
+    bool ret = adapter.NotifySpecifiedDisplayPowerEvent(0, DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(g_errLog.find("agent is null") != std::string::npos);
+}
+
+/**
+ * @tc.name: NotifySpecifiedDisplayPowerEvent_WhenAgentsExist
+ * @tc.desc: NotifySpecifiedDisplayPowerEvent notifies registered agents successfully
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerAdapterTest, NotifySpecifiedDisplayPowerEvent_WhenAgentsExist, TestSize.Level1)
+{
+    sptr<IDisplayManagerAgent> agent = new DisplayManagerAgentDefault();
+    ScreenSessionManagerAdapter adapter;
+    adapter.dmAgentContainer_.RegisterAgent(agent, DisplayManagerAgentType::DISPLAY_POWER_EVENT_LISTENER);
+
+    bool ret = adapter.NotifySpecifiedDisplayPowerEvent(0, DisplayPowerEvent::WAKE_UP, EventStatus::BEGIN);
+    EXPECT_TRUE(ret);
+    EXPECT_TRUE(g_errLog.find("agent is null") == std::string::npos);
+}
 }
 }
 }

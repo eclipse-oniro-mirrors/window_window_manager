@@ -1801,7 +1801,12 @@ int SceneSessionManagerLiteStub::HandlePendingSessionToBackgroundByPersistentId(
         TLOGE(WmsLogTag::WMS_LIFE, "Read shouldBackToCaller failed");
         return ERR_INVALID_DATA;
     }
-    WSError errCode = PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller);
+    uint32_t reason = static_cast<uint32_t>(LifeCycleChangeReason::DEFAULT);
+    if (!data.ReadUint32(reason)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read reason failed");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = PendingSessionToBackgroundByPersistentId(persistentId, shouldBackToCaller, reason);
     reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }

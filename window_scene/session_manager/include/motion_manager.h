@@ -44,11 +44,17 @@ enum MotionAction : int32_t {
     MOTION_LANDSCAPE_INVERTED = 3,
 };
 
+enum SmartRotationReason: int16_t {
+    FACE = 0,
+    HAND = 1,
+    MOTION = 2,
+};
+
 class IMotionEventListener {
 public:
     virtual ~IMotionEventListener() = default;
     virtual void OnMotionRotationChanged(float sensorRotation) = 0;
-    virtual void OnMotionSmartRotationChanged(float sensorRotation) = 0;
+    virtual void OnMotionSmartRotationChanged(float sensorRotation, int16_t reason) = 0;
 };
 
 class MotionManager {
@@ -68,7 +74,7 @@ public:
     bool IsInitialized() const;
     void Reset();
     
-    void TestHandleMotionEvent(MotionType motionType, float rotation);
+    void TestHandleMotionEvent(MotionType motionType, float rotation, int16_t reason = -1);
     WSError SetMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo);
     WSError SetSmartMotionValueByDump(const std::vector<std::string>& args, std::string& dumpInfo);
     
@@ -81,9 +87,9 @@ private:
     void UnsubscribeAllMotionSensors();
     bool SubscribeMotionSensorInternal(MotionType motionType);
     bool UnsubscribeMotionSensorInternal(MotionType motionType);
-    void HandleMotionEvent(MotionType motionType, float rotation);
+    void HandleMotionEvent(MotionType motionType, float rotation, int16_t reason = -1);
     void HandleDeviceSensorRotation(float rotation);
-    void HandleSmartSensorRotation(float rotation);
+    void HandleSmartSensorRotation(float rotation, int16_t reason = -1);
     bool IsValidDigitString(const std::string& str);
     
     static DeviceRotation ConvertMotionActionToDeviceRotation(int32_t motionAction);

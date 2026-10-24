@@ -829,7 +829,7 @@ HWTEST_F(SessionStageProxyTest, NotifyDpiHookScale, TestSize.Level1)
 HWTEST_F(SessionStageProxyTest, NotifyDensityFollowHost, TestSize.Level1)
 {
     ASSERT_TRUE((sessionStage_ != nullptr));
-    ASSERT_EQ(WSError::WS_OK, sessionStage_->NotifyDensityFollowHost(true, 1.0f));
+    ASSERT_EQ(WSError::WS_OK, sessionStage_->NotifyDensityFollowHost(DpiFollowStrategy::FOLLOW_HOST_DPI_UEA, 1.0f));
 }
 
 /**

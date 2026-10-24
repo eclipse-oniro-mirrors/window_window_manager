@@ -28,6 +28,7 @@ constexpr const char* LIMITS_THRESHOLD_PERCENTAGE_PARAM_KEY =
     "persist.windowlayout.windowLimitsThreshold.limitsthresholdpercentage";
 } // namespace
 
+std::mutex WindowLimitsThreshold::limitsThresholdConfigMutex_;
 std::optional<WindowLimitsThresholdConfig> WindowLimitsThreshold::limitsThresholdConfig_;
 
 template<typename T>
@@ -57,7 +58,10 @@ void WindowLimitsThreshold::SaveLimitsThresholdConfig(const WindowLimitsThreshol
     system::SetParameter(LIMITS_THRESHOLD_ENABLED_PARAM_KEY, config.enable ? "true" : "false");
     system::SetParameter(LIMITS_THRESHOLD_PERCENTAGE_PARAM_KEY,
                          std::to_string(config.limitsThresholdPercentage));
-    limitsThresholdConfig_ = config;
+    {
+        std::lock_guard<std::mutex> lock(limitsThresholdConfigMutex_);
+        limitsThresholdConfig_ = config;
+    }
     TLOGD(WmsLogTag::WMS_LAYOUT, "%{public}s", config.ToString().c_str());
 }
 
@@ -74,6 +78,7 @@ WindowLimitsThresholdConfig WindowLimitsThreshold::LoadLimitsThresholdConfig()
 
 WindowLimitsThresholdConfig WindowLimitsThreshold::GetLimitsThresholdConfig()
 {
+    std::lock_guard<std::mutex> lock(limitsThresholdConfigMutex_);
     if (!limitsThresholdConfig_.has_value()) {
         limitsThresholdConfig_ = LoadLimitsThresholdConfig();
     }

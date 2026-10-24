@@ -254,6 +254,8 @@ public:
 
     VirtualScreenFlag GetVirtualScreenFlag();
     void SetVirtualScreenFlag(VirtualScreenFlag screenFlag);
+    std::vector<RecordPolicy> GetRecordPolicies() const;
+    void SetRecordPolicies(const std::vector<RecordPolicy>& recordPolicies);
     void SetSecurity(bool isSecurity);
 
     VirtualScreenType GetVirtualScreenType();
@@ -505,6 +507,7 @@ private:
     ScreenCombination combination_ { ScreenCombination::SCREEN_ALONE };
     mutable std::mutex combinationMutex_; // above guarded by clientProxyMutex_
     VirtualScreenFlag screenFlag_ { VirtualScreenFlag::DEFAULT };
+    std::vector<RecordPolicy> recordPolicies_ {};
     MirrorScreenType mirrorScreenType_ { MirrorScreenType::VIRTUAL_MIRROR };
     VirtualScreenType screenType_ { VirtualScreenType::UNKNOWN };
     bool isFakeInUse_ = false;  // is fakeScreenSession can be used

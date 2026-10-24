@@ -526,6 +526,101 @@ HWTEST_F(DisplayManagerAdapterLiteTest, GetCurrentFoldCreaseRegion02, TestSize.L
         ASSERT_TRUE(creaseRects.size() <= 20);
     }
 }
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId
+ * @tc.desc: WakeUpBegin with screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, WakeUpBeginWithScreenId, TestSize.Level1)
+{
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    auto proxyBak = adapter.displayManagerServiceProxy_;
+    adapter.displayManagerServiceProxy_ = nullptr;
+    adapter.isProxyValid_ = false;
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = adapter.WakeUpBegin(displayId, reason);
+    EXPECT_NE(ret, false);
+    adapter.displayManagerServiceProxy_ = proxyBak;
+    adapter.isProxyValid_ = (proxyBak != nullptr);
+}
+
+/**
+ * @tc.name: WakeUpEndWithScreenId
+ * @tc.desc: WakeUpEnd with screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, WakeUpEndWithScreenId, TestSize.Level1)
+{
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    auto proxyBak = adapter.displayManagerServiceProxy_;
+    adapter.displayManagerServiceProxy_ = nullptr;
+    adapter.isProxyValid_ = false;
+    DisplayId displayId = 0;
+    bool ret = adapter.WakeUpEnd(displayId);
+    EXPECT_NE(ret, false);
+    adapter.displayManagerServiceProxy_ = proxyBak;
+    adapter.isProxyValid_ = (proxyBak != nullptr);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId
+ * @tc.desc: SuspendBegin with screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, SuspendBeginWithScreenId, TestSize.Level1)
+{
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    auto proxyBak = adapter.displayManagerServiceProxy_;
+    adapter.displayManagerServiceProxy_ = nullptr;
+    adapter.isProxyValid_ = false;
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = adapter.SuspendBegin(displayId, reason);
+    EXPECT_NE(ret, false);
+    adapter.displayManagerServiceProxy_ = proxyBak;
+    adapter.isProxyValid_ = (proxyBak != nullptr);
+}
+
+/**
+ * @tc.name: SuspendEndWithScreenId
+ * @tc.desc: SuspendEnd with screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, SuspendEndWithScreenId, TestSize.Level1)
+{
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    auto proxyBak = adapter.displayManagerServiceProxy_;
+    adapter.displayManagerServiceProxy_ = nullptr;
+    adapter.isProxyValid_ = false;
+    DisplayId displayId = 0;
+    bool ret = adapter.SuspendEnd(displayId);
+    EXPECT_NE(ret, false);
+    adapter.displayManagerServiceProxy_ = proxyBak;
+    adapter.isProxyValid_ = (proxyBak != nullptr);
+}
+
+/**
+ * @tc.name: SetDisplayStateWithScreenId
+ * @tc.desc: SetDisplayState with screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterLiteTest, SetDisplayStateWithScreenId, TestSize.Level1)
+{
+    auto& adapter = SingletonContainer::Get<DisplayManagerAdapterLite>();
+    auto proxyBak = adapter.displayManagerServiceProxy_;
+    adapter.displayManagerServiceProxy_ = nullptr;
+    adapter.isProxyValid_ = false;
+
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::ON;
+    bool ret = adapter.SetDisplayState(displayId, state);
+    EXPECT_FALSE(ret);
+
+    adapter.displayManagerServiceProxy_ = proxyBak;
+    adapter.isProxyValid_ = (proxyBak != nullptr);
+}
 }
 }
 }

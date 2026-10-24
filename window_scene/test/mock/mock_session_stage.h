@@ -60,7 +60,7 @@ public:
     MOCK_METHOD2(NotifySessionForeground, void(uint32_t reason, bool withAnimation));
     MOCK_METHOD3(NotifySessionBackground, void(uint32_t reason, bool withAnimation, bool isFromInnerkits));
     MOCK_METHOD2(UpdateTitleInTargetPos, WSError(bool isShow, int32_t height));
-    MOCK_METHOD2(NotifyDensityFollowHost, WSError(bool isFollowHost, float densityValue));
+    MOCK_METHOD2(NotifyDensityFollowHost, WSError(DpiFollowStrategy dpiFollowStrategy, float densityValue));
     MOCK_METHOD1(NotifyWindowVisibility, WSError(bool isVisible));
     MOCK_METHOD1(NotifyWindowOcclusionState, WSError(const WindowVisibilityState state));
     MOCK_METHOD4(UpdateAttachedWindowLimits, WSError(int32_t sourcePersistentId,

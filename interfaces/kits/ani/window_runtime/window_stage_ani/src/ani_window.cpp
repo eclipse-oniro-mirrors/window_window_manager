@@ -91,6 +91,7 @@ AniWindow::AniWindow(const sptr<Window>& window, ani_vm* vm)
             TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
         windowToken_ = nullptr;
+        isDestroyed_ = true;
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in ani window", windowName.c_str());
     };
     windowToken_->RegisterWindowDestroyedListener(func);
@@ -2441,15 +2442,9 @@ void AniWindow::OnSetTouchableAreas(ani_env* env, ani_array rects)
         AniWindowUtils::AniThrowError(env, errCode);
         return;
     }
-    if (!Permission::IsSystemCalling() && !Permission::CheckSelfPermission("ohos.permission.SET_WINDOW_TOUCH_AREAS")) {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]OnSetTouchableAreas permission denied!");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTouchableAreas", WmErrorCode::WM_ERROR_NO_PERMISSION);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_NO_PERMISSION);
-        return;
-    }
-    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->SetTouchHotAreas(touchableAreas));
+    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->SetTouchableAreas(touchableAreas));
     if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]SetTouchHotAreas failed, ret: %{public}d", ret);
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]SetTouchableAreas failed, ret: %{public}d", ret);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setTouchableAreas", ret);
         AniWindowUtils::AniThrowError(env, ret, "SetTouchableAreas failed!");
     }
@@ -2818,8 +2813,12 @@ void AniWindow::OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_re
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     auto window = GetWindow();
     if (window == nullptr) {
-        TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        if (isDestroyed_) {
+            TLOGI(WmsLogTag::WMS_LIFE, "window is already destroy, ignore.");
+        } else {
+            TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        }
         return;
     }
     std::string cbType;

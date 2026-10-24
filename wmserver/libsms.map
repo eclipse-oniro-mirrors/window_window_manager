@@ -22,6 +22,9 @@
             OHOS::Rosen::MockSessionManagerService::GetProcessSurfaceNodeIdByPersistentId*;
             OHOS::Rosen::MockSessionManagerService::AddSkipSelfWhenShowOnVirtualScreenList*;
             OHOS::Rosen::MockSessionManagerService::RemoveSkipSelfWhenShowOnVirtualScreenList*;
+            OHOS::Rosen::PersistentIdManager::GetInstance*;
+            OHOS::Rosen::PersistentIdManager::AcquireKeyId*;
+            OHOS::Rosen::PersistentIdManager::SyncKeyId*;
         };
     local:
     *;

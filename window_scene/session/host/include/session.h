@@ -232,9 +232,11 @@ public:
     WSError Show(sptr<WindowSessionProperty> property) override;
     WSError Hide() override;
     WSError DrawingCompleted() override;
+    WSError StartWithSnapshot() override;
     void ResetSessionConnectState() REQUIRES(SCENE_GUARD);
     void ResetIsActive();
     void SetIsGamePrelaunch(bool isGamePrelaunch);
+    void SetIsGameBackgroundRunning(bool isGameBackgroundRunning);
     WSError PendingSessionToForeground(SessionInfo& info);
     WSError PendingSessionToBackground(const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(bool shouldBackToCaller,
@@ -383,6 +385,7 @@ public:
      */
     std::shared_ptr<Media::PixelMap> Snapshot() const;
     std::shared_ptr<Media::PixelMap> Snapshot(const SnapshotOptions& options) const;
+    virtual bool CheckAndGetRogScale(float& scale) const { return false; }
     void ResetSnapshot();
     void RenameSnapshotFromOldPersistentId(int32_t oldPersistentId);
     void SaveSnapshot(bool useFfrt, bool needPersist = true,
@@ -416,6 +419,8 @@ public:
     };
     bool GetAppLockControl() const { return isAppLockControl_.load(); };
     void SetAppLockControl(bool control) { isAppLockControl_.store(control); };
+    bool GetStartWithSnapshot() const { return startWithSnapshot_.load(); }
+    void SetStartWithSnapshot(bool startWithSnapshot) { startWithSnapshot_.store(startWithSnapshot); }
     void SetSaveSnapshotCallback(Task&& task)
     {
         if (task) {
@@ -521,9 +526,12 @@ public:
     bool IsDraggingReason(SizeChangeReason reason) const;
     virtual WSError UpdateRect(const WSRect& rect, SizeChangeReason reason,
         const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr);
-    virtual WSError UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+    WSError UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeReason reason,
         const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {});
+    virtual WSError UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason reason,
+        const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
+        const std::map<AvoidAreaType, AvoidArea>& avoidAreas = {}, bool onlyUpdateAvoidArea = false);
     void IsNeedNotifySubSessionParentSizeChange(const WSRect& rect);
     virtual void NotifySubSessionParentSizeChange(Rect rect){};
     virtual void NotifySubSessionParentStatusChange(WindowMode mode){};
@@ -940,11 +948,7 @@ public:
     void SetClientDisplayIdChangeListener(const NotifyClientDisplayIdChangeFunc& func);
     uint32_t GetPropertyDirtyFlags() const { return propertyDirtyFlags_; };
     void SetPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ = dirtyFlags; }
-    void AddPropertyDirtyFlags(uint32_t dirtyFlags)
-    {
-        propertyDirtyFlags_ |= dirtyFlags;
-        NotifySessionPropertyChange(static_cast<WindowInfoKey>(dirtyFlags));
-    }
+    void AddPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ |= dirtyFlags; }
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
     void SetSurfaceNodeAlpha(float alpha) { property_->SetSurfaceNodeAlpha(alpha); }
@@ -1031,6 +1035,12 @@ public:
      * update luoshu state
      */
     WSError UpdateLSStateInfo(bool isLSState);
+
+    /**
+     * Background Running display hook
+     */
+    bool HandleGameBackgroundRunningDisplayHook();
+    bool ClearGameBackgroundRunningDisplayHook();
 
 protected:
     void GeneratePersistentId(bool isExtension, int32_t persistentId);
@@ -1376,6 +1386,8 @@ private:
     // for this session and has not yet been cleared.
     bool prelaunchDisplayHookEnabled_ = false;
 
+    bool gameBackgroundRunningDisplayHookEnabled_ = false;
+
     int32_t appIndex_ = { 0 };
     std::string callingBundleName_ { "unknown" };
     std::string sceneLastUsedPosition_;
@@ -1490,6 +1502,7 @@ private:
     /*
      * Window Pattern
      */
+    std::atomic<bool> startWithSnapshot_ { false };
     std::atomic<bool> isSnapshotBlur_ { false };
     std::atomic<bool> isAppLockControl_ { false };
     std::atomic<bool> preloadingStartingWindow_ { false };

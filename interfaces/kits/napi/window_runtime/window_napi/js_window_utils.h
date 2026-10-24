@@ -305,6 +305,7 @@ std::unique_ptr<WsNapiAsyncTask> CreateEmptyWsNapiAsyncTask(napi_env env, napi_v
     napi_value ExtensionWindowAttributeInit(napi_env env);
     napi_value WindowPostureModeInit(napi_env env);
     napi_value ModalityTypeInit(napi_env env);
+    napi_value WindowPositionInit(napi_env env);
     napi_value CreateJsDecorButtonStyleObj(napi_env env, DecorButtonStyle decorButtonStyle);
     napi_value ConvertWindowDensityInfoToJsValue(napi_env env, const WindowDensityInfo& windowDensityInfo);
     bool ConvertDecorButtonStyleFromJs(napi_env env, napi_value jsObject, DecorButtonStyle& decorButtonStyle);

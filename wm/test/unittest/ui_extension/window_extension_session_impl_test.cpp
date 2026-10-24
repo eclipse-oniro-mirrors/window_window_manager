@@ -1438,7 +1438,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateSessionViewportConfig1, TestSize.
     SessionViewportConfig config;
     window_->lastDensity_ = 1.0f;
     window_->lastOrientation_ = 0;
-    config.isDensityFollowHost_ = true;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     config.density_ = 1.0f;
     config.orientation_ = 0;
     ASSERT_EQ(window_->UpdateSessionViewportConfig(config), WSError::WS_OK);
@@ -1458,7 +1458,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateSessionViewportConfig1, TestSize.
     ASSERT_EQ(window_->UpdateSessionViewportConfig(config), WSError::WS_OK);
     usleep(WAIT_SYNC_IN_NS);
 
-    config.isDensityFollowHost_ = false;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::NONE;
     window_->lastDensity_ = 0.0f;
     window_->lastOrientation_ = 0;
     config.density_ = 1.0f;
@@ -1476,7 +1476,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateSessionViewportConfig2, TestSize.
 {
     ASSERT_NE(nullptr, window_);
     SessionViewportConfig config;
-    config.isDensityFollowHost_ = true;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     config.density_ = -1.0f;
     ASSERT_EQ(window_->UpdateSessionViewportConfig(config), WSError::WS_ERROR_INVALID_PARAM);
 }
@@ -1536,7 +1536,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateSystemViewportConfig1, TestSize.L
 HWTEST_F(WindowExtensionSessionImplTest, UpdateSystemViewportConfig2, TestSize.Level1)
 {
     ASSERT_NE(nullptr, window_);
-    window_->isDensityFollowHost_ = true;
+    window_->dpiFollowStrategy_ = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     window_->UpdateSystemViewportConfig();
     usleep(WAIT_SYNC_IN_NS);
 }
@@ -1549,7 +1549,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateSystemViewportConfig2, TestSize.L
 HWTEST_F(WindowExtensionSessionImplTest, UpdateSystemViewportConfig3, TestSize.Level1)
 {
     ASSERT_NE(nullptr, window_->property_);
-    window_->isDensityFollowHost_ = false;
+    window_->dpiFollowStrategy_ = DpiFollowStrategy::NONE;
     window_->property_->SetDisplayId(0);
     window_->UpdateSystemViewportConfig();
     usleep(WAIT_SYNC_IN_NS);
@@ -1894,7 +1894,7 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost01, TestSize.Lev
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetDisplayId(displayId);
 
-    auto isFollowHost = true;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     auto densityValue = 0.1f;
 
     window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
@@ -1908,7 +1908,7 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost01, TestSize.Lev
     window_->property_->SetWindowRect(preRect);
     EXPECT_CALL(*content, UpdateViewportConfig(Field(&Ace::ViewportConfig::density_, densityValue), _, _, _, _));
 
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_OK);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_OK);
     usleep(WAIT_SYNC_IN_NS);
 }
 
@@ -1924,6 +1924,7 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost02, TestSize.Lev
     window_->property_->SetDisplayId(displayId);
 
     auto isFollowHost = false;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::NONE;
     auto densityValue = 0.1f;
 
     auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(window_->property_->GetDisplayId());
@@ -1942,8 +1943,8 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost02, TestSize.Lev
     window_->property_->SetWindowRect(preRect);
     EXPECT_CALL(*content, UpdateViewportConfig(Field(&Ace::ViewportConfig::density_, vpr), _, _, _, _));
 
-    window_->isDensityFollowHost_ = true;
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_OK);
+    window_->dpiFollowStrategy_ = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_OK);
     usleep(WAIT_SYNC_IN_NS);
 }
 
@@ -1958,14 +1959,14 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost03, TestSize.Lev
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetDisplayId(displayId);
 
-    auto isFollowHost = false;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::NONE;
     auto densityValue = 0.1f;
     window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     ASSERT_NE(nullptr, window_->uiContent_);
     Ace::UIContentMocker* content = reinterpret_cast<Ace::UIContentMocker*>(window_->uiContent_.get());
     EXPECT_CALL(*content, UpdateViewportConfig(_, _, _, _, _)).Times(0);
 
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_OK);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_OK);
     usleep(WAIT_SYNC_IN_NS);
 }
 
@@ -1980,11 +1981,11 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost04, TestSize.Lev
     ASSERT_NE(nullptr, window_->property_);
     window_->property_->SetDisplayId(displayId);
 
-    auto isFollowHost = true;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     auto densityValue = 0.0f;
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_ERROR_INVALID_PARAM);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_ERROR_INVALID_PARAM);
     densityValue = -0.1f;
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_ERROR_INVALID_PARAM);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_ERROR_INVALID_PARAM);
 }
 
 /**
@@ -1999,7 +2000,7 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost05, TestSize.Lev
     window_->property_->SetDisplayId(displayId);
     window_->property_->windowRect_ = {1, 1, 1, 1};
 
-    auto isFollowHost = true;
+    DpiFollowStrategy dpiFollowStrategy = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     auto densityValue = 0.1f;
     window_->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     ASSERT_NE(nullptr, window_->uiContent_);
@@ -2007,23 +2008,23 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyDensityFollowHost05, TestSize.Lev
     EXPECT_CALL(*content, UpdateViewportConfig(_, _, _, _, _)).Times(3);
 
     window_->hostDensityValue_ = densityValue;
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_OK);
-    ASSERT_FALSE(window_->isDensityFollowHost_);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_OK);
+    EXPECT_FALSE(window_->dpiFollowStrategy_.load() == dpiFollowStrategy);
 
     window_->hostDensityValue_ = 0.2f;
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_OK);
-    ASSERT_TRUE(window_->isDensityFollowHost_);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_OK);
+    EXPECT_TRUE(window_->dpiFollowStrategy_.load() == dpiFollowStrategy);
     ASSERT_EQ(window_->hostDensityValue_, densityValue);
 
     densityValue = FLT_MAX;
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_OK);
-    ASSERT_TRUE(window_->isDensityFollowHost_);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_OK);
+    EXPECT_TRUE(window_->dpiFollowStrategy_.load() == dpiFollowStrategy);
     ASSERT_EQ(window_->hostDensityValue_, densityValue);
 
     densityValue = FLT_MIN;
-    window_->isDensityFollowHost_ = false;
-    ASSERT_EQ(window_->NotifyDensityFollowHost(isFollowHost, densityValue), WSError::WS_OK);
-    ASSERT_TRUE(window_->isDensityFollowHost_);
+    window_->dpiFollowStrategy_.store(DpiFollowStrategy::NONE);
+    EXPECT_EQ(window_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue), WSError::WS_OK);
+    EXPECT_TRUE(window_->dpiFollowStrategy_.load() == dpiFollowStrategy);
     ASSERT_EQ(window_->hostDensityValue_, densityValue);
     usleep(WAIT_SYNC_IN_NS);
 }
@@ -2037,7 +2038,7 @@ HWTEST_F(WindowExtensionSessionImplTest, GetVirtualPixelRatio01, TestSize.Level1
 {
     sptr<DisplayInfo> displayInfo = new DisplayInfo();
     displayInfo->SetVirtualPixelRatio(3.25f);
-    window_->isDensityFollowHost_ = true;
+    window_->dpiFollowStrategy_.store(DpiFollowStrategy::FOLLOW_HOST_DPI_UEA);
     window_->hostDensityValue_ = 2.0f;
     ASSERT_EQ(window_->hostDensityValue_, window_->GetVirtualPixelRatio(displayInfo));
 }
@@ -2052,7 +2053,7 @@ HWTEST_F(WindowExtensionSessionImplTest, GetVirtualPixelRatio02, TestSize.Level1
     auto systemDensity = 3.25;
     sptr<DisplayInfo> displayInfo = new DisplayInfo();
     displayInfo->SetVirtualPixelRatio(systemDensity);
-    window_->isDensityFollowHost_ = false;
+    window_->dpiFollowStrategy_.store(DpiFollowStrategy::NONE);
     window_->hostDensityValue_ = 2.0f;
     ASSERT_EQ(systemDensity, window_->GetVirtualPixelRatio(displayInfo));
 }
@@ -2067,7 +2068,7 @@ HWTEST_F(WindowExtensionSessionImplTest, GetVirtualPixelRatio03, TestSize.Level1
     auto systemDensity = 3.25;
     sptr<DisplayInfo> displayInfo = new DisplayInfo();
     displayInfo->SetVirtualPixelRatio(systemDensity);
-    window_->isDensityFollowHost_ = true;
+    window_->dpiFollowStrategy_.store(DpiFollowStrategy::FOLLOW_HOST_DPI_UEA);
     ASSERT_EQ(systemDensity, window_->GetVirtualPixelRatio(displayInfo));
 }
 
@@ -2847,22 +2848,22 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionDensity, TestSize.Level1
     auto vpr = display->GetDisplayInfo()->GetVirtualPixelRatio();
     SessionViewportConfig config;
     config.displayId_ = window->property_->GetDisplayId();
-    config.isDensityFollowHost_ = true;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     config.density_ = 2.0f;
     window->UpdateExtensionDensity(config);
-    EXPECT_TRUE(window->isDensityFollowHost_);
+    EXPECT_TRUE(window->dpiFollowStrategy_.load() == config.dpiFollowStrategy_);
     if (window->hostDensityValue_ != std::nullopt) {
         EXPECT_NEAR(config.density_, window->hostDensityValue_->load(), 0.00001f);
     }
-    config.isDensityFollowHost_ = false;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::NONE;
     window->UpdateExtensionDensity(config);
-    EXPECT_FALSE(window->isDensityFollowHost_);
+    EXPECT_TRUE(window->dpiFollowStrategy_.load() == config.dpiFollowStrategy_);
     EXPECT_NEAR(config.density_, vpr, 0.00001f);
     sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
     compatibleModeProperty->SetIsAdaptToSimulationScale(true);
     window->property_->SetCompatibleModeProperty(compatibleModeProperty);
     window->UpdateExtensionDensity(config);
-    EXPECT_FALSE(window->isDensityFollowHost_);
+    EXPECT_TRUE(window->dpiFollowStrategy_.load() == config.dpiFollowStrategy_);
     EXPECT_NEAR(config.density_, COMPACT_SIMULATION_SCALE_DPI, 0.00001f);
 }
 
@@ -2880,7 +2881,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionDensity_DensityCustomize
     window->customizedDensity_ = 2.0f;
 
     SessionViewportConfig config;
-    config.isDensityFollowHost_ = false;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::NONE;
     config.density_ = 3.0f;
     window->UpdateExtensionDensity(config);
     EXPECT_NEAR(config.density_, window->customizedDensity_, 0.00001f);
@@ -2900,7 +2901,7 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionDensity_DensityCustomize
     window->customizedDensity_ = 2.0f;
 
     SessionViewportConfig config;
-    config.isDensityFollowHost_ = true;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
     config.density_ = 3.0f;
     window->UpdateExtensionDensity(config);
     EXPECT_NEAR(3.0f, window->hostDensityValue_->load(), 0.00001f);

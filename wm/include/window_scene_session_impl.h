@@ -52,6 +52,7 @@ public:
         bool isFromInnerkits = false) override;
     WMError DestroyHookWindow();
     WMError NotifyDrawingCompleted() override;
+    WMError NotifyStartWithSnapshot() override;
     WMError NotifyRemoveStartingWindow() override;
     WMError NotifyRemoveStartingWindow(std::string& errMsg) override;
     WMError SetTextFieldAvoidInfo(double textFieldPositionY, double textFieldHeight) override;
@@ -171,6 +172,7 @@ public:
     virtual void SetSystemPrivacyMode(bool isSystemPrivacyMode) override;
     virtual WMError SetSnapshotSkip(bool isSkip) override;
     WMError SetTouchHotAreas(const std::vector<Rect>& rects) override;
+    WMError SetTouchableAreas(const std::vector<Rect>& rects) override;
     WMError SetKeyboardTouchHotAreas(const KeyboardTouchHotAreas& hotAreas) override;
     virtual WmErrorCode KeepKeyboardOnFocus(bool keepKeyboardFlag) override;
     WMError ChangeCallingWindowId(uint32_t callingWindowId) override;
@@ -551,8 +553,10 @@ protected:
      *
      * Keeps the stored PX values (vpr-independent), re-applies work-area capping and
      * attached intersection with the new vpr, and refreshes the VP view.
+     * @param info Display info from the density event; passed to GetVirtualPixelRatio so the
+     * display is fetched only when it is null, and reused for the raw display density.
      */
-    void RecalcPxLimitsOnDensity();
+    void RecalcPxLimitsOnDensity(const sptr<DisplayInfo>& info);
 
     /**
      * @brief Cap min limits by work area caps, respecting the aspect ratio rules.
@@ -571,13 +575,26 @@ protected:
     float GetEffectiveAspectRatio(const WindowLimits& limits) const;
 
     /**
+     * @brief Get the density snapshot carried with the limits shared to attached windows.
+     * @param effectiveVpr The window's effective density (result of GetVirtualPixelRatio).
+     * @return effectiveVpr when the window's density is independent of the local display density
+     *         (default-density / unique-density / custom-density mode), or an invalid marker (0.0f)
+     *         otherwise. Attached windows convert the shared limits between units with this
+     *         snapshot instead of their own density, so all collaborating windows derive the same
+     *         physical-pixel limits.
+     */
+    float GetDensitySnapshotForAttachedWindows(float effectiveVpr);
+
+    /**
      * @brief Calculate window limits intersection with attached windows.
      * @param newLimits Reference to WindowLimits (PX unit) to be updated with intersected values.
      * @param newLimitsVP Reference to WindowLimits (VP unit) to be updated with intersected values.
-     * @param virtualPixelRatio Virtual pixel ratio for unit conversion.
+     * @param density The density basis for the intersection (see AttachDensityBasis): the
+     *        effective density derives the VP view, and the raw display density converts
+     *        snapshot-invalid (0) attached limits shared by non-independent-density providers.
      */
     void CalculateAttachedWindowLimitsIntersection(WindowLimits& newLimits, WindowLimits& newLimitsVP,
-        float virtualPixelRatio);
+        const AttachDensityBasis& density);
 
     /**
      * @brief Result of calculating intersection with a single attached window.
@@ -595,12 +612,12 @@ protected:
      * @param currentLimitsVP Current VP limits.
      * @param attachedLimits Attached window limits (may be PX or VP).
      * @param limitOptions Options for which limits (height/width) to intersect.
-     * @param virtualPixelRatio Virtual pixel ratio for conversion.
+     * @param density The density basis for the intersection (see AttachDensityBasis).
      * @return Intersection result containing validity and calculated limits.
      */
     WinIntersectResult CalcSingleWinIntersect(
         const WindowLimits& currentLimits, const WindowLimits& currentLimitsVP, const WindowLimits& attachedLimits,
-        const AttachLimitOptions& limitOptions, float virtualPixelRatio);
+        const AttachLimitOptions& limitOptions, const AttachDensityBasis& density);
 
     /**
      * @brief Notify session side about window limits change.
@@ -645,6 +662,7 @@ protected:
     void RegisterWindowRecoverStateChangeListener();
 
 private:
+    WMError SetTouchHotAreasImpl(const std::vector<Rect>& rects, WSPropertyChangeAction action);
     WMError DestroyInner(bool needNotifyServer, bool isFromInnerkits = false);
     WMError MainWindowCloseInner();
     WMError SyncDestroyAndDisconnectSpecificSession(int32_t persistentId);
@@ -709,13 +727,14 @@ private:
      */
     WMError CheckMoveConfiguration(MoveConfiguration& moveConfiguration);
     void UpdateEnableDragWhenSwitchMultiWindow(bool enable);
-    void UpdateSubWindowDragEnabledByDecorVisible(bool decorVisible) override;
+    void UpdateSubWindowDragEnabled(bool freeMultiWindowEnable) override;
     WMError GetSelectMode(SelectMode& selectMode) override;
     bool ShouldSkipSupportWindowModeCheck(uint32_t windowModeSupportType, WindowMode mode);
     uint32_t UpdateConfigVal(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
     uint32_t UpdateConfigValInVP(uint32_t minVal, uint32_t maxVal, uint32_t configVal, uint32_t defaultVal, float vpr);
     void CalculateNewLimitsByLimits(
-        WindowLimits& newLimits, WindowLimits& newLimitsVP, WindowLimits& customizedLimits, float& virtualPixelRatio);
+        WindowLimits& newLimits, WindowLimits& newLimitsVP, WindowLimits& customizedLimits,
+        float& virtualPixelRatio, float& displayPixelRatio);
     void ProcessVirtualPixelLimits(WindowLimits& newLimits, WindowLimits& newLimitsVP,
         const WindowLimits& customizedLimits, const WindowLimits& systemLimitsVP, float virtualPixelRatio);
     void ProcessPhysicalPixelLimits(WindowLimits& newLimits, WindowLimits& newLimitsVP,
@@ -806,6 +825,7 @@ private:
     bool IsSystemDensityChanged(const sptr<DisplayInfo>& displayInfo);
     bool IsDefaultDensityEnabled();
     float GetMainWindowCustomDensity();
+    float GetExtensionWindowCustomDensity();
     float customDensity_ = UNDEFINED_DENSITY;
     bool isEnableDefaultDensityWhenCreate_ = false;
     float rsCornerRadius_ = 0.0f;
@@ -935,8 +955,10 @@ private:
     std::shared_ptr<Rosen::RSAnimatableProperty<float>> blurBrightnessValue_;
     std::shared_ptr<Rosen::RSAnimatableProperty<Rosen::RSColor>> blurMaskColorValue_;
     void AddRSNodeModifier(bool isDark, const std::shared_ptr<RSBaseNode>& rsNode);
-    void ModifySidebarBlurProperty(bool isDark, SidebarBlurType type);
+    void ModifySidebarBlurProperty(bool isDark, SidebarBlurType type, const bool needTransition = true);
     void UpdateSidebarBlurStyleWhenColorModeChange();
+    void SetSidebarBlurValues(bool isDark, SidebarBlurType type);
+    void ApplySidebarBlurWithAnimation(bool isDark, SidebarBlurType type);
 
     bool CheckCreaseRegionCanInHoverState(const Rect& windowRect);
 };

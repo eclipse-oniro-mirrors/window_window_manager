@@ -229,6 +229,8 @@ HWTEST_F(SceneSessionManagerTest2, ConfigWindowLayout, TestSize.Level1)
         bool ret = ssm_->ConfigWindowLayout(layout);
         EXPECT_TRUE(ret);
     }
+
+    ssm_->taskScheduler_->PostVoidSyncTask([] {}, "WaitConfigWindowLayout");
 }
 
 /**
@@ -682,6 +684,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigDisplayIsolationValid, TestSize.Level1)
     const ConfigItem config = ReadConfig(xmlStr);
 
     EXPECT_TRUE(ssm_->ConfigWindowLayout(config["windowLayout"]));
+    ssm_->taskScheduler_->PostVoidSyncTask([] {}, "WaitConfigWindowLayout");
     const auto policyConfig = WindowDisplayIsolationPolicy::LoadDisplayIsolationSystemConfig();
     EXPECT_EQ(policyConfig.moveIsolatedDisplayIds, (std::set<DisplayId>{5, 7}));
     EXPECT_EQ(policyConfig.dragIsolatedDisplayIds, (std::set<DisplayId>{5, 8}));
@@ -3607,6 +3610,7 @@ HWTEST_F(SceneSessionManagerTest2, ConfigWindowLimitsThreshold01, Function | Sma
     const ConfigItem config = ReadConfig(xmlStr);
 
     EXPECT_TRUE(ssm_->ConfigWindowLayout(config["windowLayout"]));
+    ssm_->taskScheduler_->PostVoidSyncTask([] {}, "WaitConfigWindowLayout");
     const auto thresholdConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
     EXPECT_TRUE(thresholdConfig.enable);
     EXPECT_EQ(thresholdConfig.limitsThresholdPercentage, 81);

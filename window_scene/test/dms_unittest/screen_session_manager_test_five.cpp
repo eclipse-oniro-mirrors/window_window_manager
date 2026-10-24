@@ -852,6 +852,44 @@ HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenStatus, TestSize.Level1)
 }
 
 /**
+ * @tc.name: PauseMirrorByRecordPolicy
+ * @tc.desc: PauseMirrorByRecordPolicy test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, PauseMirrorByRecordPolicy, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "pauseMirrorOption";
+    virtualOption.recordPolicies_ = { RecordPolicy::AUTO_PAUSE };
+    auto screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject());
+    auto screenSession = ssm_->GetScreenSession(screenId);
+    ASSERT_NE(screenSession, nullptr);
+
+    // virtual screen is not mirroring, no screen should be paused
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    ssm_->PauseMirrorByRecordPolicy();
+    EXPECT_TRUE(g_logMsg.find("pause mirror virtual screen") == std::string::npos);
+
+    // virtual screen is mirroring with AUTO_PAUSE record policy, should be paused
+    g_logMsg.clear();
+    screenSession->SetScreenCombination(ScreenCombination::SCREEN_MIRROR);
+    ssm_->PauseMirrorByRecordPolicy();
+    EXPECT_TRUE(g_logMsg.find("pause mirror virtual screen") != std::string::npos);
+
+    // record policy without AUTO_PAUSE, should not be paused
+    g_logMsg.clear();
+    screenSession->SetRecordPolicies({ RecordPolicy::NONE });
+    ssm_->PauseMirrorByRecordPolicy();
+    EXPECT_TRUE(g_logMsg.find("pause mirror virtual screen") == std::string::npos);
+
+    EXPECT_EQ(DMError::DM_OK, ssm_->DestroyVirtualScreen(screenId));
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: SetClient
  * @tc.desc: SetClient
  * @tc.type: FUNC

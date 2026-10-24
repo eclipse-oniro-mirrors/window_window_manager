@@ -202,6 +202,7 @@ const std::string ENABLE_OPTIONAL_STARTING_WINDOW_KEY = "enable.optional.startin
 constexpr int32_t MAIN_WINDOW_CREATE = 3;
 constexpr int32_t MAIN_WINDOW_DESTORY = 4;
 const bool SUPPORT_DPI_SCALING = system::GetBoolParameter("const.desktop.is_support_scale_with_dpi", false);
+const bool IGNORE_OPTIONAL_START_WINDOW = system::GetBoolParameter("const.window.ignore_optional_start_window", false);
 
 /*
  * sessionexception reason
@@ -332,7 +333,8 @@ bool IsUIExtCanShowOnLockScreen(const AppExecFwk::ElementName& element, uint32_t
     TLOGD(WmsLogTag::WMS_UIEXT, "UIExtOnLock: bundleName: %{public}s, moduleName: %{public}s, ablilityName: %{public}s",
           element.GetBundleName().c_str(), element.GetModuleName().c_str(), element.GetAbilityName().c_str());
     static const std::unordered_set<AppExecFwk::ExtensionAbilityType> extensionAbilityTypeWhitelist = {
-        AppExecFwk::ExtensionAbilityType::LIVEVIEW_LOCKSCREEN
+        AppExecFwk::ExtensionAbilityType::LIVEVIEW_LOCKSCREEN,
+        AppExecFwk::ExtensionAbilityType::LIVEVIEW_CARD
     };
 
     if (extensionAbilityTypeWhitelist.find(extensionAbilityType) != extensionAbilityTypeWhitelist.end()) {
@@ -415,45 +417,50 @@ struct SingleIntersectResult {
 };
 
 // Intersect against one attached window. Density/intersection math is shared via WindowHelper so the
-// server produces the same numbers as the client CalcSingleWinIntersect.
+// server produces the same numbers as the client CalcSingleWinIntersect. The density basis maps
+// displayVpr to the current display density (query stand-in) and effectiveVpr to the queried
+// window's effective density, mirroring the client two-density split.
 SingleIntersectResult CalcSingleIntersect(const WindowLimits& curPx, const WindowLimits& curVp,
-    const WindowLimits& attached, const AttachLimitOptions& options, float vpr)
+    const WindowLimits& attached, const AttachLimitOptions& options, const AttachDensityBasis& density)
 {
     SingleIntersectResult result;
     bool intersectHeight = options.isIntersectedHeightLimit;
     bool intersectWidth = options.isIntersectedWidthLimit;
+    // Convert the attached limits to PX with the density snapshot they carry (the provider's
+    // effective density when it computed them); fall back to the query display density when
+    // invalid, mirroring the client rule (snapshot-invalid providers follow the display).
+    const float attachedVpr = attached.vpRatio_ > 0.0f ? attached.vpRatio_ : density.displayVpr;
     WindowLimits attachedPx;
     if (attached.pixelUnit_ == PixelUnit::VP) {
-        WindowHelper::RecalculatePxLimitsByVp(attached, attachedPx, vpr);
+        WindowHelper::RecalculatePxLimitsByVp(attached, attachedPx, attachedVpr);
     } else {
         attachedPx = attached;
     }
     result.pxLimits = WindowHelper::CalculateLimitsIntersection(curPx, attachedPx, intersectHeight,
         intersectWidth);
-    result.pxValid = WindowHelper::IsLimitsIntersectionValid(result.pxLimits, intersectHeight, intersectWidth);
-    WindowLimits attachedVp;
-    if (attached.pixelUnit_ == PixelUnit::PX) {
-        WindowHelper::RecalculateVpLimitsByPx(attached, attachedVp, vpr);
-    } else {
-        attachedVp = attached;
-    }
-    result.vpLimits = WindowHelper::CalculateLimitsIntersection(curVp, attachedVp, intersectHeight,
+    result.pxValid = WindowHelper::IsLimitsIntersectionValid(result.pxLimits, intersectHeight,
         intersectWidth);
-    result.vpValid = WindowHelper::IsLimitsIntersectionValid(result.vpLimits, intersectHeight, intersectWidth);
+    // Derive the VP view from the PX result in the queried window's own effective density; only PX
+    // validity decides whether the intersection is committed, mirroring the client.
+    result.vpLimits = curVp;
+    WindowHelper::RecalculateVpLimitsByPx(result.pxLimits, result.vpLimits, density.effectiveVpr);
+    result.vpValid = result.pxValid;
     return result;
 }
 
 // Re-run the attached-limits intersection loop. Mirrors the client
-// CalculateAttachedWindowLimitsIntersection: only commit a source when both PX and VP intersections valid.
-void IntersectAttachedLimits(const WindowSessionProperty& prop, WindowLimits& pxLimits,
-    WindowLimits& vpLimits, float vpr)
+// CalculateAttachedWindowLimitsIntersection: only commit a source when the PX intersection is valid.
+// anchorInfo must come from the SceneSession (sceneSession->GetWindowAnchorInfo()), the server-side
+// authoritative attach state: the property copy is only populated at creation/recovery and goes
+// stale after attach, so using it here would silently skip every source for sub windows.
+void IntersectAttachedLimits(const WindowSessionProperty& prop, const WindowAnchorInfo& anchorInfo,
+    WindowLimits& pxLimits, WindowLimits& vpLimits, const AttachDensityBasis& density)
 {
     auto attachedList = prop.GetAttachedWindowLimitsList();
     if (attachedList.empty()) {
         return;
     }
     bool isMainWindow = WindowHelper::IsMainWindow(prop.GetWindowType());
-    auto anchorInfo = prop.GetWindowAnchorInfo();
     for (const auto& item : attachedList) {
         AttachLimitOptions options = isMainWindow ? prop.GetAttachedLimitOptions(item.first) :
             AttachLimitOptions { anchorInfo.attachOptions.isIntersectedHeightLimit,
@@ -463,12 +470,17 @@ void IntersectAttachedLimits(const WindowSessionProperty& prop, WindowLimits& px
         if (!intersectHeight && !intersectWidth) {
             continue;
         }
-        auto result = CalcSingleIntersect(pxLimits, vpLimits, item.second, options, vpr);
-        bool committed = result.pxValid && result.vpValid;
+        auto result = CalcSingleIntersect(pxLimits, vpLimits, item.second, options, density);
+        bool committed = result.pxValid;
+        const float attachedVpr = item.second.vpRatio_ > 0.0f ? item.second.vpRatio_ : density.displayVpr;
         TLOGD(WmsLogTag::WMS_LAYOUT, "intersect id:%{public}d, srcId:%{public}d, attachedUnit:%{public}u, "
-            "attachedMinH:%{public}u, hIntersect:%{public}d, wIntersect:%{public}d, committed:%{public}d",
-            prop.GetPersistentId(), item.first, item.second.pixelUnit_, item.second.minHeight_,
-            intersectHeight, intersectWidth, committed);
+            "attachedDensitySnapshot=%{public}f, screenVpr:%{public}f, ownVpr:%{public}f, "
+            "attachedVpr:%{public}f, hIntersect:%{public}d, wIntersect:%{public}d, committed:%{public}d, "
+            "px[minW:%{public}u,minH:%{public}u,maxW:%{public}u,maxH:%{public}u]",
+            prop.GetPersistentId(), item.first, item.second.pixelUnit_, item.second.vpRatio_,
+            density.displayVpr, density.effectiveVpr, attachedVpr, intersectHeight, intersectWidth, committed,
+            result.pxLimits.minWidth_, result.pxLimits.minHeight_, result.pxLimits.maxWidth_,
+            result.pxLimits.maxHeight_);
         if (!committed) {
             continue;
         }
@@ -1863,9 +1875,13 @@ bool SceneSessionManager::ConfigWindowLayout(const WindowSceneConfig::ConfigItem
         TLOGW(WmsLogTag::WMS_LAYOUT, "The windowLayoutConfig is invalid (not a map).");
         return false;
     }
-    ConfigMoveDrag(windowLayoutConfig["moveDrag"]);
-    ConfigDisplayIsolation(windowLayoutConfig["displayIsolation"]);
-    ConfigWindowLimitsThreshold(windowLayoutConfig["windowLimitsThreshold"]);
+    // system::SetParameter may block the main thread under heavy CPU load.
+    // Execute the configuration methods asynchronously in order on the OS_SceneSessionManager thread.
+    taskScheduler_->PostAsyncTask([this, windowLayoutConfig] {
+        ConfigMoveDrag(windowLayoutConfig["moveDrag"]);
+        ConfigDisplayIsolation(windowLayoutConfig["displayIsolation"]);
+        ConfigWindowLimitsThreshold(windowLayoutConfig["windowLimitsThreshold"]);
+    }, __func__);
     return true;
 }
 
@@ -3032,14 +3048,21 @@ WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSe
     bool useVPLimits = (sessionProperty->GetUserWindowLimits().pixelUnit_ == PixelUnit::VP);
     // The user-specified unit is density-invariant, so the base is taken in the user unit and the other
     // unit is derived. Mirrors the client UpdateDensityInner + CalculateAttachedWindowLimitsIntersection.
-    float vpr = targetDensity;
+    // The density basis maps displayVpr to the query target density (the client reads the display
+    // density) and effectiveVpr to the queried window's effective density: an independent-density
+    // window (custom / default / unique) uses the density snapshot pushed by the client and does NOT
+    // follow the display density, mirroring the client GetVirtualPixelRatio resolution.
+    const float densitySnapshot = sessionProperty->GetLimitsForAttachedWindows().vpRatio_;
+    const AttachDensityBasis density { densitySnapshot > 0.0f ? densitySnapshot : targetDensity,
+                                       targetDensity };
     auto anchorInfo = sceneSession->GetWindowAnchorInfo();
     auto optionsList = sessionProperty->GetAttachedLimitOptionsList();
     auto attachedList = sessionProperty->GetAttachedWindowLimitsList();
     bool hasIntersected = WindowHelper::HasIntersectedAttachLimits(anchorInfo, optionsList);
-    TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, vpr:%{public}f, useVP:%{public}d, "
-        "hasIntersected:%{public}d, anchorH:%{public}d, anchorW:%{public}d, optionsSize:%{public}zu, "
-        "attachedSize:%{public}zu", winId, vpr, useVPLimits, hasIntersected,
+    TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, screenVpr:%{public}f, ownVpr:%{public}f, "
+        "densitySnapshot:%{public}f, useVP:%{public}d, hasIntersected:%{public}d, "
+        "anchorH:%{public}d, anchorW:%{public}d, optionsSize:%{public}zu, attachedSize:%{public}zu",
+        winId, density.displayVpr, density.effectiveVpr, densitySnapshot, useVPLimits, hasIntersected,
         anchorInfo.attachOptions.isIntersectedHeightLimit, anchorInfo.attachOptions.isIntersectedWidthLimit,
         optionsList.size(), attachedList.size());
     WindowLimits limitsPx;
@@ -3047,21 +3070,21 @@ WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSe
     if (useVPLimits) {
         limitsVp = hasIntersected ? sessionProperty->GetLimitsForAttachedWindows()
                                   : sessionProperty->GetWindowLimitsVP();
-        WindowHelper::RecalculatePxLimitsByVp(limitsVp, limitsPx, vpr);
+        WindowHelper::RecalculatePxLimitsByVp(limitsVp, limitsPx, density.effectiveVpr);
     } else {
         limitsPx = hasIntersected ? sessionProperty->GetLimitsForAttachedWindows()
                                   : sessionProperty->GetWindowLimits();
         limitsVp = WindowLimits::DEFAULT_VP_LIMITS();
-        WindowHelper::RecalculateVpLimitsByPx(limitsPx, limitsVp, vpr);
+        WindowHelper::RecalculateVpLimitsByPx(limitsPx, limitsVp, density.effectiveVpr);
     }
-    limitsPx.vpRatio_ = vpr;
-    limitsVp.vpRatio_ = vpr;
+    limitsPx.vpRatio_ = density.effectiveVpr;
+    limitsVp.vpRatio_ = density.effectiveVpr;
     bool displayInFreeMulti = systemConfig_.IsDisplayInFreeMultiWindow(sessionProperty->GetDisplayId());
     TLOGD(WmsLogTag::WMS_LAYOUT, "recalc id:%{public}d, base:%{public}s, displayInFreeMulti:%{public}d, "
         "willIntersect:%{public}d", winId, hasIntersected ? "LimitsForAttached" : "Stored", displayInFreeMulti,
         hasIntersected && displayInFreeMulti);
     if (hasIntersected && displayInFreeMulti) {
-        IntersectAttachedLimits(*sessionProperty, limitsPx, limitsVp, vpr);
+        IntersectAttachedLimits(*sessionProperty, anchorInfo, limitsPx, limitsVp, density);
     }
     return useVPLimits ? limitsVp : limitsPx;
 }
@@ -4375,6 +4398,7 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
     }
     sceneSession->NotifyActivation();
     auto sceneSessionInfo = SetAbilitySessionInfo(sceneSession, requestId, true);
+    sceneSessionInfo->requestId = requestId;
     sceneSessionInfo->isNewWant = isNewActive;
     sceneSessionInfo->targetGrantBundleName =
         sceneSession->GetSessionInfo().GetWantSafely().GetStringParam("targetGrantBundleName");
@@ -4822,10 +4846,14 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
             auto focusedSessionId = windowFocusController_->GetFocusedSessionId(displayId);
             UpdateBrightness(focusedSessionId);
         }
-        if (IsPcSceneSessionLifecycle(sceneSession)) {
+        if (IsPcSceneSessionLifecycle(sceneSession) || reason == LifeCycleChangeReason::GAME_BACKGROUND_RUNNING) {
             TLOGNI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] Notify session background",
                 persistentId, scbRequestId);
-            sceneSession->NotifySessionBackground(1, true, true);
+            if (reason == LifeCycleChangeReason::GAME_BACKGROUND_RUNNING) {
+                sceneSession->NotifySessionBackground(static_cast<uint32_t>(reason), true, true);
+            } else {
+                sceneSession->NotifySessionBackground(1, true, true);
+            }
         } else {
             TLOGNI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] begin MinimizeUIAbility, "
                 "system: %{public}u",
@@ -5284,6 +5312,11 @@ WSErrorResult SceneSessionManager::CreateAndConnectSpecificSession(const sptr<IS
         if (parentSession->GetSessionInfo().isSystem_ && property->GetIsUIExtFirstSubWindow() &&
             systemConfig_.supportUIExtensionSubWindow_) {
             property->SetWindowType(WindowType::WINDOW_TYPE_SCB_SUB_WINDOW);
+            AAFwk::UIExtensionSessionInfo info;
+            AAFwk::AbilityManagerClient::GetInstance()->GetUIExtensionSessionInfo(token, info);
+            auto bundleName = info.elementName.GetBundleName();
+            auto abilityName = info.elementName.GetAbilityName();
+            ReportScbSystemSceneSubWindowCreate(bundleName, abilityName);
         }
     }
     auto initClientDisplayId = UpdateSpecificSessionClientDisplayId(property);
@@ -5491,6 +5524,19 @@ void SceneSessionManager::ReportSubWindowCreationFailure(int32_t pid, const std:
         oss << ", abilityName: " << abilityName;
         SingletonContainer::Get<WindowInfoReporter>().ReportWindowException(
             static_cast<int32_t>(WindowDFXHelperType::WINDOW_CREATE_SUB_WINDOW_FAILED), pid, oss.str());
+    }, __func__);
+}
+
+void SceneSessionManager::ReportScbSystemSceneSubWindowCreate(const std::string& bundleName,
+    const std::string& abilityName)
+{
+    taskScheduler_->PostAsyncTask([bundleName, abilityName]() {
+        std::ostringstream oss;
+        oss << "A subwindow is being created by a UIExtension, which is started by ScbSystemScene, "
+            "UIExtension bundleName: "<< bundleName;
+        oss << ", abilityName: " << abilityName;
+        SingletonContainer::Get<WindowInfoReporter>().ReportWindowException(
+            static_cast<int32_t>(WindowDFXHelperType::WINDOW_SCB_SYSTEM_SCENE_CREATE_SUBWINDOW), getpid(), oss.str());
     }, __func__);
 }
 
@@ -6239,6 +6285,11 @@ void SceneSessionManager::SetSpecificWindowZIndexListener(const NotifySetSpecifi
 void SceneSessionManager::SetMoveMainWindowToTargetDisplayListener(NotifyMoveMainWindowToTargetDisplayFunc&& func)
 {
     moveMainWindowToTargetDisplayFunc_ = std::move(func);
+}
+
+void SceneSessionManager::SetWindowPositionListener(NotifySetWindowPositionFunc&& listener)
+{
+    setWindowPositionFunc_ = std::move(listener);
 }
 
 void SceneSessionManager::SetCreateKeyboardSessionListener(const NotifyCreateKeyboardSessionFunc& func)
@@ -7385,7 +7436,7 @@ void SceneSessionManager::PostProcessStartingWindowInfo(
     if (!GetEnableOptionalStartingWindowFromBMS(abilityInfo)) {
         return;
     }
-    if (GetPerformanceClass() == PERFORMANCE_CLASS_LOW_LEVEL) {
+    if (!IGNORE_OPTIONAL_START_WINDOW && GetPerformanceClass() == PERFORMANCE_CLASS_LOW_LEVEL) {
         return;
     }
     TLOGI(WmsLogTag::WMS_PATTERN, "empty %{public}s starting window icon", abilityInfo.bundleName.c_str());
@@ -8451,12 +8502,36 @@ std::vector<std::pair<DisplayId, int32_t>> SceneSessionManager::GetAllFocusedSes
     return windowFocusController_->GetAllFocusedSessionList();
 }
 
+DisplayId SceneSessionManager::ResolveDefaultDisplayId(DisplayId displayId)
+{
+    if (displayId != DISPLAY_ID_INVALID) {
+        return displayId;
+    }
+    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
+    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
+    static const bool g_defaultDisplayResolve =
+        system::GetBoolParameter("persist.window.default_display_resolve", false);
+    if (!g_defaultDisplayResolve) {
+        return DEFAULT_DISPLAY_ID;
+    }
+    int32_t userId = currentUserId_;
+    if (userId == DEFAULT_USERID) {
+        userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
+    }
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
+    displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+    TLOGD(WmsLogTag::WMS_FOCUS,
+        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId, displayId);
+    return displayId;
+}
+
 void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
     if (!SessionPermission::IsSACalling()) {
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     taskScheduler_->PostSyncTask([this, &focusInfo, displayId] {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -11854,18 +11929,23 @@ WSError SceneSessionManager::SetWindowFlags(const sptr<SceneSession>& sceneSessi
         TLOGD(WmsLogTag::DEFAULT, "session is nullptr");
         return WSError::WS_ERROR_NULLPTR;
     }
+    if (property == nullptr) {
+        TLOGE(WmsLogTag::DEFAULT, "property is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
     auto sessionProperty = sceneSession->GetSessionProperty();
     uint32_t flags = property->GetWindowFlags();
     uint32_t oldFlags = sessionProperty->GetWindowFlags();
-    if (((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED) ||
-         (oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK)) &&
+    uint32_t changedFlags = oldFlags ^ flags;
+    if (((changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) ||
+         (changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_WATER_MARK))) &&
         !property->GetSystemCalling()) {
         TLOGE(WmsLogTag::DEFAULT, "permission denied");
         return WSError::WS_ERROR_NOT_SYSTEM_APP;
     }
     sessionProperty->SetWindowFlags(flags);
     CheckAndNotifyWaterMarkChangedResult();
-    if ((oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
+    if (changedFlags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
         sceneSession->OnShowWhenLocked(flags & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED));
     }
     TLOGI(WmsLogTag::DEFAULT, "win=[%{public}d, %{public}s], flags=%{public}u",
@@ -14842,27 +14922,26 @@ WSErrorResult SceneSessionManager::RestoreSessionToForeground(int32_t persistent
             "Permission denied for restoring session to foreground!"};
     }
     if (!systemConfig_.IsSupportPCMode()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "device not support");
-        return WSErrorResult{WSError::WS_ERROR_DEVICE_NOT_SUPPORT, "device not support"};
+        TLOGE(WmsLogTag::WMS_LIFE, "Device not support");
+        return WSErrorResult{WSError::WS_ERROR_DEVICE_NOT_SUPPORT, "Device not support"};
     }
     if (IsScreenLocked()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "screen is locked, cannot restore session to foreground");
+        TLOGE(WmsLogTag::WMS_LIFE, "Screen is locked, cannot restore session to foreground");
         return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION,
-            "screen is locked, cannot restore session to foreground"};
+            "Screen is locked, cannot restore session to foreground"};
     }
     auto session = GetMainSessionByPersistentId(persistentId);
-    if (session == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: fail to find main window");
-        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "fail to find main window"};
+    if (session == nullptr || session->GetSessionState() == SessionState::STATE_DISCONNECT) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Session not found or disconnected");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "Session not found or disconnected"};
     }
     if (!restoreSessionToForegroundFunc_) {
-        TLOGE(WmsLogTag::WMS_LIFE, "RestoreSessionToForeground: listener is null");
-        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "listener is null"};
+        TLOGE(WmsLogTag::WMS_LIFE, "Listener is null");
+        return WSErrorResult{WSError::WS_ERROR_INVALID_OPERATION, "Listener is null"};
     }
     auto func = restoreSessionToForegroundFunc_;
-    auto screenId = session->GetScreenId();
-    taskScheduler_->PostTask([func = std::move(func), persistentId, screenId]() {
-        func(persistentId, screenId);
+    taskScheduler_->PostTask([func = std::move(func), persistentId]() {
+        func(persistentId);
     }, __func__);
     return WSErrorResult{WSError::WS_OK, ""};
 }
@@ -14911,6 +14990,7 @@ WSError SceneSessionManager::GetFocusSessionToken(sptr<IRemoteObject>& token, Di
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     return taskScheduler_->PostSyncTask([this, &token, where = __func__, displayId]() {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -14940,6 +15020,7 @@ WSError SceneSessionManager::GetFocusSessionElement(AppExecFwk::ElementName& ele
         TLOGE(WmsLogTag::WMS_FOCUS, "permission denied!");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
+    displayId = ResolveDefaultDisplayId(displayId);
     return taskScheduler_->PostSyncTask([this, &element, where = __func__, displayId]() {
         auto focusGroup = windowFocusController_->GetFocusGroup(displayId);
         if (focusGroup == nullptr) {
@@ -17229,6 +17310,183 @@ WSError SceneSessionManager::MoveMainWindowToTargetDisplay(DisplayId displayId, 
 }
 
 /** @note @window.hierarchy */
+WSError SceneSessionManager::CheckSetWindowPositionPermission(
+    const std::vector<WindowPositionParams>& windowPositions, const uint32_t callingTokenId)
+{
+    bool needTopmost = false;
+    for (const auto& position : windowPositions) {
+        if (position.windowId <= 0 ||
+            position.insertAfter < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "invalid param, windowId: %{public}d, insertAfter: %{public}d",
+                position.windowId, position.insertAfter);
+            return WSError::WS_ERROR_INVALID_PARAM;
+        }
+        if (position.insertAfter == static_cast<int32_t>(WindowPosition::TOPMOST)) {
+            needTopmost = true;
+        }
+    }
+    if (needTopmost &&
+        !SessionPermission::VerifyPermissionByCallerToken(callingTokenId,
+            PermissionConstants::PERMISSION_MAIN_WINDOW_TOPMOST)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied for topmost");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionWindowId(const WindowPositionParams& position,
+    const int32_t callingPid, bool& needTopmostOnRemove)
+{
+    auto sceneSession = GetSceneSession(position.windowId);
+    if (sceneSession == nullptr || sceneSession->IsTerminated()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "session is null or terminated, windowId: %{public}d", position.windowId);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (!SessionHelper::IsMainWindow(sceneSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "window is not main window, windowId: %{public}d", position.windowId);
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
+    if (callingPid != sceneSession->GetCallingPid()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied, not call by the same process, windowId: %{public}d",
+            position.windowId);
+        return WSError::WS_ERROR_INVALID_WINDOW;
+    }
+    WSError err = CheckSetWindowPositionDisplaySupport(sceneSession, "window", position.windowId);
+    if (err != WSError::WS_OK) {
+        return err;
+    }
+    if (sceneSession->GetSessionProperty()->IsMainWindowTopmost() &&
+        position.insertAfter == static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+        needTopmostOnRemove = true;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionDisplaySupport(const sptr<SceneSession>& sceneSession,
+    const std::string& targetName, const int32_t targetId)
+{
+    if (sceneSession->IsSuperMultiFoldOuterScreen()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s on super multi fold outer screen, id: %{public}d",
+            targetName.c_str(), targetId);
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(sceneSession->GetDisplayId());
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s display session not found, id: %{public}d",
+            targetName.c_str(), targetId);
+        return WSError::WS_ERROR_INVALID_DISPLAY;
+    }
+    if (screenSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "%{public}s on virtual screen, id: %{public}d",
+            targetName.c_str(), targetId);
+        return WSError::WS_ERROR_INVALID_DISPLAY;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionInsertAfter(const WindowPositionParams& position)
+{
+    if (position.insertAfter <= 0) {
+        return WSError::WS_OK;
+    }
+    auto insertAfterSession = GetSceneSession(position.insertAfter);
+    if (insertAfterSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target not found, insertAfter: %{public}d",
+            position.insertAfter);
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    if (!SessionHelper::IsMainWindow(insertAfterSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "insertAfter target is not main window, insertAfter: %{public}d",
+            position.insertAfter);
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
+    return CheckSetWindowPositionDisplaySupport(insertAfterSession, "insertAfter target", position.insertAfter);
+}
+
+WSError SceneSessionManager::CheckSetWindowPositionSessions(const WindowPositionInfo& windowPositionInfo,
+    const int32_t callingPid, const uint32_t callingTokenId)
+{
+    const auto& windowPositions = windowPositionInfo.windowPositions;
+    bool needTopmostOnRemove = false;
+    for (const auto& position : windowPositions) {
+        WSError err = CheckSetWindowPositionWindowId(position, callingPid, needTopmostOnRemove);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+        err = CheckSetWindowPositionInsertAfter(position);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+    }
+    if (needTopmostOnRemove &&
+        !SessionPermission::VerifyPermissionByCallerToken(callingTokenId,
+            PermissionConstants::PERMISSION_MAIN_WINDOW_TOPMOST)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "permission denied for removing topmost");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    return WSError::WS_OK;
+}
+
+void SceneSessionManager::UpdateMainWindowTopmostState(const std::vector<WindowPositionParams>& windowPositions)
+{
+    for (const auto& position : windowPositions) {
+        // Only these two sentinels change the topmost state. The other values are one-shot z-order
+        // adjustments and leave the global topmost state untouched.
+        if (position.insertAfter != static_cast<int32_t>(WindowPosition::TOPMOST) &&
+            position.insertAfter != static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            continue;
+        }
+        auto sceneSession = GetSceneSession(position.windowId);
+        if (sceneSession == nullptr) {
+            continue;
+        }
+        // The topmost state is part of the session property. The client only sends the requested
+        // z-order and does not go through the property update flow for this api, so the property
+        // has to be kept in sync here, for both setting and removing topmost.
+        bool isTopmost = position.insertAfter == static_cast<int32_t>(WindowPosition::TOPMOST);
+        sceneSession->GetSessionProperty()->SetMainWindowTopmost(isTopmost);
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "windowId: %{public}d, mainWindowTopmost: %{public}d",
+            position.windowId, isTopmost);
+    }
+}
+
+WSError SceneSessionManager::SetWindowPosition(const WindowPositionInfo& windowPositionInfo)
+{
+    if (!systemConfig_.IsPcWindow()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "device not support");
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    const auto& windowPositions = windowPositionInfo.windowPositions;
+    if (windowPositions.empty()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "windowPositions is empty");
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    // The checks read state confined to the OS_SceneSession thread (session map, session properties,
+    // screen sessions) and must run there. IPCSkeleton reads the calling identity of the current
+    // thread, so the pid and token have to be captured here, on the ipc thread, before posting.
+    const int32_t callingPid = IPCSkeleton::GetCallingPid();
+    const uint32_t callingTokenId = IPCSkeleton::GetCallingTokenID();
+    auto task = [this, windowPositionInfo, callingPid, callingTokenId]() {
+        WSError err = CheckSetWindowPositionPermission(windowPositionInfo.windowPositions, callingTokenId);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+        err = CheckSetWindowPositionSessions(windowPositionInfo, callingPid, callingTokenId);
+        if (err != WSError::WS_OK) {
+            return err;
+        }
+        UpdateMainWindowTopmostState(windowPositionInfo.windowPositions);
+        if (setWindowPositionFunc_) {
+            setWindowPositionFunc_(windowPositionInfo);
+        } else {
+            TLOGNE(WmsLogTag::WMS_HIERARCHY, "setWindowPositionFunc_ is nullptr");
+        }
+        return WSError::WS_OK;
+    };
+    return taskScheduler_->PostSyncTask(task, __func__);
+}
+
+/** @note @window.hierarchy */
 WSError SceneSessionManager::ResetSpecificWindowZIndex(int32_t pid)
 {
     bool isFoundationCall = SessionPermission::IsFoundationCall();
@@ -19513,7 +19771,7 @@ WMError SceneSessionManager::MakeScreenFoldData(const std::vector<std::string>& 
         return WMError::WM_DO_NOTHING;
     }
     AppExecFwk::ElementName element = {};
-    WSError ret = GetFocusSessionElement(element);
+    WSError ret = GetFocusSessionElement(element, DEFAULT_DISPLAY_ID);
     auto sceneSession = GetSceneSession(windowFocusController_->GetFocusedSessionId(DEFAULT_DISPLAY_ID));
     if (sceneSession == nullptr || ret != WSError::WS_OK) {
         TLOGI(WmsLogTag::DMS, "Error: fail to get focused package name.");
@@ -19703,7 +19961,7 @@ WMError SceneSessionManager::TerminateSessionByPersistentId(int32_t persistentId
 }
 
 WSError SceneSessionManager::PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-    bool shouldBackToCaller)
+    bool shouldBackToCaller, uint32_t reason)
 {
     if (!SessionPermission::IsSystemAppCall() && !SessionPermission::IsSACalling()) {
         TLOGE(WmsLogTag::WMS_LIFE, "The caller is neither a system app nor an SA.");
@@ -19715,7 +19973,7 @@ WSError SceneSessionManager::PendingSessionToBackgroundByPersistentId(const int3
         TLOGE(WmsLogTag::WMS_LIFE, "Permission denied, no manage misson permission");
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
-    return taskScheduler_->PostSyncTask([this, persistentId, shouldBackToCaller] {
+    return taskScheduler_->PostSyncTask([this, persistentId, shouldBackToCaller, reason] {
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "Session id:%{public}d is not found.", persistentId);
@@ -19725,7 +19983,12 @@ WSError SceneSessionManager::PendingSessionToBackgroundByPersistentId(const int3
             TLOGE(WmsLogTag::WMS_MAIN, "Session id:%{public}d is not mainWindow.", persistentId);
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
-        return sceneSession->PendingSessionToBackgroundForDelegator(shouldBackToCaller);
+        LifeCycleChangeReason lifeCycleChangeReason = static_cast<LifeCycleChangeReason>(reason);
+        if (lifeCycleChangeReason == LifeCycleChangeReason::GAME_BACKGROUND_RUNNING) {
+            sceneSession->HandleGameBackgroundRunningDisplayHook();
+            sceneSession->SetIsGameBackgroundRunning(true);
+        }
+        return sceneSession->PendingSessionToBackgroundForDelegator(shouldBackToCaller, lifeCycleChangeReason);
     }, __func__);
 }
 
@@ -20690,6 +20953,7 @@ std::shared_ptr<Media::PixelMap> SceneSessionManager::GetPixelMap(uint32_t resou
     }
 
     Media::SourceOptions opts;
+    opts.svgResourceLimitLevel = Media::SVGResourceLimitLevel::SVG_RESOURCE_LIMIT_MEDIUM;
     uint32_t errorCode = 0;
     std::unique_ptr<Media::ImageSource> imageSource;
     if (!abilityInfo->hapPath.empty()) {
@@ -20755,8 +21019,16 @@ bool SceneSessionManager::GetCropInfoByDisplaySize(const Media::ImageInfo& image
     int32_t displayHeight = 0;
     bool isCropped = false;
     ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
-    if (!GetDisplaySizeById(defaultScreenId, displayWidth, displayHeight)) {
-        TLOGE(WmsLogTag::WMS_PATTERN, "get display size failed");
+    auto screenSession = ScreenSessionManagerClient::GetInstance().GetScreenSession(defaultScreenId);
+    if (screenSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "get screen session failed, screenId:%{public}" PRIu64, defaultScreenId);
+        return isCropped;
+    }
+    auto bounds = screenSession->GetScreenProperty().GetBounds().rect_;
+    displayWidth = bounds.width_;
+    displayHeight = bounds.height_;
+    if (displayWidth == 0 || displayHeight == 0) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "invalid display size, w:%{public}d, h:%{public}d", displayWidth, displayHeight);
         return isCropped;
     }
     int32_t cropSize = std::max(displayWidth, displayHeight);
@@ -21770,23 +22042,20 @@ WSError SceneSessionManager::NotifySessionPropertyChangeFromSession(int32_t pers
 void SceneSessionManager::NotifyWindowPropertyChangeByWindowInfoKey(
     const sptr<SceneSession>& sceneSession, WindowInfoKey windowInfoKey)
 {
-    const char* const where = __func__;
-    taskScheduler_->PostAsyncTask([this, weakSession = wptr(sceneSession), winInfoKey = windowInfoKey, where]() {
-        sptr<SceneSession> session = weakSession.promote();
-        if (session == nullptr) {
-            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
-            return;
-        }
-        uint32_t propertyDirtyFlags = session->GetPropertyDirtyFlags() | static_cast<uint32_t>(winInfoKey);
-        TLOGND(WmsLogTag::WMS_ATTRIBUTE,
-            "%{public}s: win=[%{public}d, %{public}s], dirtyFlags=%{public}u, interestedFlags=%{public}u",
-            where, session->GetWindowId(), session->GetWindowName().c_str(), propertyDirtyFlags, interestedFlags_);
-        WindowInfoList windowInfoList;
-        std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
-        PackWindowPropertyChangeInfo(session, windowPropertyChangeInfo);
-        windowInfoList.push_back(windowPropertyChangeInfo);
-        SessionManagerAgentController::GetInstance().NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
-    }, where);
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "sceneSession is null, infoKey=%{public}u",
+            static_cast<uint32_t>(windowInfoKey));
+        return;
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], infoKey: %{public}u, interestedFlags=%{public}u",
+        sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(), static_cast<uint32_t>(windowInfoKey),
+        interestedFlags_);
+    WindowInfoList windowInfoList;
+    std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
+    PackWindowPropertyChangeInfo(sceneSession, windowPropertyChangeInfo);
+    windowInfoList.push_back(windowPropertyChangeInfo);
+    SessionManagerAgentController::GetInstance().NotifyWindowPropertyChange(
+        static_cast<uint32_t>(windowInfoKey), windowInfoList);
 }
 
 void SceneSessionManager::NotifyWindowPropertyChange(ScreenId screenId)
@@ -22542,11 +22811,12 @@ void SceneSessionManager::OnMotionRotationChanged(float sensorRotation)
     }
 }
 
-void SceneSessionManager::OnMotionSmartRotationChanged(float sensorRotation)
+void SceneSessionManager::OnMotionSmartRotationChanged(float sensorRotation, int16_t reason)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "sensorRotation: %{public}f", sensorRotation);
+    TLOGI(WmsLogTag::WMS_ROTATION, "OnMotionSmartRotationChanged sensorRotation: %{public}f, reason: %{public}d",
+         sensorRotation, reason);
     if (smartSensorRotationChangeListener_) {
-        smartSensorRotationChangeListener_(sensorRotation);
+        smartSensorRotationChangeListener_(sensorRotation, reason);
     }
 }
 

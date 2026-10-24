@@ -16,6 +16,7 @@
 #ifndef OHOS_ROSEN_WINDOW_LIMITS_THRESHOLD_H
 #define OHOS_ROSEN_WINDOW_LIMITS_THRESHOLD_H
 
+#include <mutex>
 #include <optional>
 #include <set>
 #include <string>
@@ -60,7 +61,10 @@ public:
 private:
     static WindowLimitsThresholdConfig GetLimitsThresholdConfig();
 
+    static std::mutex limitsThresholdConfigMutex_;
+
     static std::optional<WindowLimitsThresholdConfig> limitsThresholdConfig_;
+    // Above guarded by limitsThresholdConfigMutex_
 };
 
 } // namespace OHOS::Rosen

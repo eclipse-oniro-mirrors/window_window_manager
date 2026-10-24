@@ -5971,14 +5971,7 @@ napi_value JsWindow::OnSetTouchableAreas(napi_env env, napi_callback_info info)
                 "[window][setTouchableAreas]msg:window is null"));
             return;
         }
-        if (!Permission::IsSystemCalling() &&
-            !Permission::CheckSelfPermission("ohos.permission.SET_WINDOW_TOUCH_AREAS")) {
-            TLOGNE(WmsLogTag::WMS_EVENT, "OnSetTouchableAreas permission denied!");
-            task->Reject(
-                env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NO_PERMISSION, "OnSetTouchableAreas failed"));
-            return;
-        }
-        WMError ret = weakWindow->SetTouchHotAreas(touchableAreas);
+        WMError ret = weakWindow->SetTouchableAreas(touchableAreas);
         if (ret == WMError::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -12297,9 +12290,14 @@ napi_value JsWindow::OnRegisterWindowFocusStateChange(napi_env env, napi_callbac
 napi_value JsWindow::OnUnregisterWindowFocusStateChange(napi_env env, napi_callback_info info)
 {
     if (windowToken_ == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "Window is nullptr");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                              "[window][offWindowFocusStateChange]msg: The window is not created or destroyed.");
+        if (isDestroyed_) {
+            TLOGI(WmsLogTag::WMS_LIFE, "window is already destroy, ignore.");
+            return NapiGetUndefined(env);
+        } else {
+            TLOGE(WmsLogTag::WMS_FOCUS, "Window is nullptr");
+            return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                                  "[window][offWindowFocusStateChange]msg: The window is not created or destroyed.");
+        }
     }
     sptr<Window> windowToken = windowToken_;
     constexpr size_t argcMax = 1;

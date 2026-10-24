@@ -53,6 +53,9 @@ public:
     virtual void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes)
         override;
     virtual void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds) override;
+    virtual void NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state) override;
+    virtual void NotifySpecifiedDisplayPowerEvent(DisplayId displayId,
+        DisplayPowerEvent event, EventStatus status) override;
 private:
     static inline BrokerDelegator<DisplayManagerAgentProxy> delegator_;
 };

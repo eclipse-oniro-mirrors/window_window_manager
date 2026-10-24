@@ -212,6 +212,7 @@ public:
     virtual Orientation GetRequestedOrientation() override;
     virtual void SetNeedRemoveWindowInputChannel(bool needRemoveWindowInputChannel) override;
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) override;
+    virtual WMError SetTouchableAreas(const std::vector<Rect>& rects) override;
     virtual void GetRequestedTouchHotAreas(std::vector<Rect>& rects) const override;
     virtual WMError SetAPPWindowLabel(const std::string& label) override;
     virtual WMError SetAPPWindowIcon(const std::shared_ptr<Media::PixelMap>& icon) override;
@@ -254,7 +255,8 @@ public:
     virtual WmErrorCode KeepKeyboardOnFocus(bool keepKeyboardFlag) override;
     virtual WMError SetSingleFrameComposerEnabled(bool enable) override;
     virtual WMError SetLandscapeMultiWindow(bool isLandscapeMultiWindow) override;
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) override;
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM,
+        DvsyncDisableReason disableReason = DEFAULT_DVSYNCDISABLEREASON) override;
     virtual void SetTouchEvent(int32_t touchType) override;
 
     /*

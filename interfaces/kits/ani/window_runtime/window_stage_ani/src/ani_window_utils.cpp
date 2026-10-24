@@ -1346,18 +1346,23 @@ ani_object AniWindowUtils::CreateAniWindowFocusState(ani_env* env, bool isFocuse
         TLOGE(WmsLogTag::WMS_FOCUS, "[ANI] fail to new obj");
         return AniWindowUtils::CreateAniUndefined(env);
     }
-    int32_t focusChangeReason = reason == WindowFocusChangeReason::CLICK ? 1 : 0;
-    CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("focused").c_str(), nullptr,
+    CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("isFocused").c_str(), nullptr,
         static_cast<ani_boolean>(isFocused));
+    ani_enum reasonEnum {};
+    ani_enum_item reasonItem = nullptr;
+    if (env->FindEnum("@ohos.window.window.FocusChangeReason", &reasonEnum) == ANI_OK) {
+        env->Enum_GetEnumItemByName(reasonEnum,
+            reason == WindowFocusChangeReason::CLICK ? "CLICK" : "DEFAULT", &reasonItem);
+    }
     CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("focusChangeReason").c_str(), nullptr,
-        static_cast<ani_long>(focusChangeReason));
+        reasonItem);
     if (!isFocused && nextFocusedWindowId != INVALID_WINDOW_ID) {
         CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("nextFocusedWindowId").c_str(),
-            nullptr, static_cast<ani_long>(nextFocusedWindowId));
+            nullptr, AniWindowUtils::CreateOptionalInt(env, static_cast<ani_int>(nextFocusedWindowId)));
     }
     if (isFocused && prevFocusedWindowId != INVALID_WINDOW_ID) {
         CallAniMethodVoid(env, focusState, aniClass, Builder::BuildSetterName("prevFocusedWindowId").c_str(),
-            nullptr, static_cast<ani_long>(prevFocusedWindowId));
+            nullptr, AniWindowUtils::CreateOptionalInt(env, static_cast<ani_int>(prevFocusedWindowId)));
     }
     return focusState;
 }

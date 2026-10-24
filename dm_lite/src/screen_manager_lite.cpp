@@ -399,6 +399,14 @@ bool ScreenManagerLite::SetScreenPowerForAll(ScreenPowerState state, PowerStateC
     return SingletonContainer::Get<ScreenManagerAdapterLite>().SetScreenPowerForAll(state, reason);
 }
 
+bool ScreenManagerLite::SetScreenPowerForSpecifiedId(DisplayId displayId,
+    ScreenPowerState state, PowerStateChangeReason reason)
+{
+    TLOGI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", state:%{public}u, reason:%{public}u",
+        displayId, state, reason);
+    return SingletonContainer::Get<ScreenManagerAdapterLite>().SetScreenPowerForSpecifiedId(displayId, state, reason);
+}
+
 ScreenPowerState ScreenManagerLite::GetScreenPower(ScreenId dmsScreenId)
 {
     return SingletonContainer::Get<ScreenManagerAdapterLite>().GetScreenPower(dmsScreenId);

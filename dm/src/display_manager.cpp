@@ -168,6 +168,7 @@ private:
     void NotifyPrivateStateWindowListChanged(DisplayId id, std::vector<std::string> privacyWindowList);
     void NotifyScreenshot(sptr<ScreenshotInfo> info);
     void NotifyDisplayPowerEvent(DisplayPowerEvent event, EventStatus status);
+    void NotifySpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status);
     void NotifyDisplayStateChanged(DisplayId id, DisplayState state);
     void NotifyDisplayChangedEvent(sptr<DisplayInfo> info, DisplayChangeEvent event);
     void NotifyDisplayCreate(sptr<DisplayInfo> info);
@@ -331,6 +332,12 @@ public:
     virtual void NotifyDisplayStateChanged(DisplayId id, DisplayState state) override
     {
         pImpl_->NotifyDisplayStateChanged(id, state);
+    }
+
+    virtual void NotifySpecifiedDisplayPowerEvent(DisplayId displayId,
+        DisplayPowerEvent event, EventStatus status) override
+    {
+        pImpl_->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
     }
 private:
     sptr<Impl> pImpl_;
@@ -2469,6 +2476,23 @@ void DisplayManager::Impl::NotifyDisplayStateChanged(DisplayId id, DisplayState 
     }
     TLOGW(WmsLogTag::DMS, "callback_ target is not set!");
 }
+
+void DisplayManager::Impl::NotifySpecifiedDisplayPowerEvent(DisplayId displayId,
+    DisplayPowerEvent event, EventStatus status)
+{
+    std::set<sptr<IDisplayPowerEventListener>> powerEventListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        powerEventListeners = powerEventListeners_;
+    }
+    TLOGD(WmsLogTag::DMS,
+        "[UL_POWER_IVI]NotifyDisplayPowerEvent event:%{public}u, status:%{public}u, size:%{public}zu",
+        event, status, powerEventListeners.size());
+    for (auto& listener : powerEventListeners) {
+        listener->OnSpecifiedDisplayPowerEvent(displayId, event, status);
+    }
+}
+ 
 
 void DisplayManager::Impl::NotifyDisplayCreate(sptr<DisplayInfo> info)
 {

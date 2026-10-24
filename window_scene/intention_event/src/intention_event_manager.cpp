@@ -240,37 +240,34 @@ void IntentionEventManager::InputEventListener::DispatchKeyEventCallback(
     int32_t focusedSessionId, std::shared_ptr<MMI::KeyEvent> keyEvent, bool consumed) const
 {
     if (keyEvent == nullptr) {
-        WLOGFW("keyEvent is null, focusedSessionId:%{public}" PRId32
-            ", consumed:%{public}" PRId32, focusedSessionId, consumed);
+        TLOGW(WmsLogTag::WMS_INPUT_KEY_FLOW, "keyEvent is null");
         return;
     }
-
     if (consumed) {
-        WLOGD("Input method has processed key event, id:%{public}" PRId32 ", focusedSessionId:%{public}" PRId32,
-            keyEvent->GetId(), focusedSessionId);
+        TLOGD(WmsLogTag::WMS_INPUT_KEY_FLOW,
+              "consumed, id=%{public}d, focusedSessionId=%{public}d",
+              keyEvent->GetId(), focusedSessionId);
         return;
     }
 
     auto focusedSceneSession = SceneSessionManager::GetInstance().GetSceneSession(focusedSessionId);
     if (focusedSceneSession == nullptr) {
-        WLOGFE("focusedSceneSession is null");
+        TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "focusedSceneSession is null");
         keyEvent->MarkProcessed();
         return;
     }
-
     if (uiContent_ == nullptr) {
-        WLOGFE("uiContent_ is null");
+        TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "uiContent_ is null");
         keyEvent->MarkProcessed();
         return;
     }
-
     SendKeyEventConsumedResultToSCB(keyEvent, focusedSceneSession->SendKeyEventToUI(keyEvent));
 }
 
 void IntentionEventManager::InputEventListener::OnInputEvent(std::shared_ptr<MMI::KeyEvent> keyEvent) const
 {
     if (keyEvent == nullptr) {
-        TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "The key event is nullptr");
+        TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "keyEvent is null");
         return;
     }
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "IEM:KeyEvent id:%d", keyEvent->GetId());
@@ -294,9 +291,11 @@ void IntentionEventManager::InputEventListener::OnInputEvent(std::shared_ptr<MMI
     }
     auto isSystem = focusedSceneSession->GetSessionInfo().isSystem_;
     static uint32_t eventId = 0;
-    TLOGI(WmsLogTag::WMS_INPUT_KEY_FLOW, "eid:%{public}d,InputId:%{public}d,wid:%{public}u"
-        ",fid:%{public}d,sys:%{public}d",
-        eventId++, keyEvent->GetId(), keyEvent->GetTargetWindowId(), focusedSessionId, isSystem);
+    TLOGI(WmsLogTag::WMS_INPUT_KEY_FLOW,
+          "eid=%{public}d, inputId=%{public}d, wid=%{public}u, fid=%{public}d, sys=%{public}d",
+          eventId++, keyEvent->GetId(), keyEvent->GetTargetWindowId(), focusedSessionId, isSystem);
+
+    // Begin to transfer keyEvent.
     if (!isSystem) {
         WSError ret = focusedSceneSession->TransferKeyEvent(keyEvent);
         if ((ret != WSError::WS_OK || static_cast<int32_t>(getprocpid()) != focusedSceneSession->GetCallingPid()) &&
@@ -315,16 +314,23 @@ void IntentionEventManager::InputEventListener::OnInputEvent(std::shared_ptr<MMI
 #ifdef IMF_ENABLE
     bool isKeyboardEvent = IsKeyboardEvent(keyEvent);
     if (isKeyboardEvent) {
-        WLOGD("Async dispatch keyEvent to input method");
+        auto inputMethodController = MiscServices::InputMethodController::GetInstance();
+        if (inputMethodController == nullptr) {
+            TLOGE(WmsLogTag::WMS_INPUT_KEY_FLOW, "controller is null, inputId=%{public}d", keyEvent->GetId());
+            DispatchKeyEventCallback(focusedSessionId, keyEvent, false);
+            return;
+        }
+        TLOGI(WmsLogTag::WMS_INPUT_KEY_FLOW,
+            "send to IMF, id=%{public}d, focusedSessionId=%{public}d",
+            keyEvent->GetId(), focusedSessionId);
         auto callback = [this, focusedSessionId] (std::shared_ptr<MMI::KeyEvent>& keyEvent, bool consumed) {
             this->DispatchKeyEventCallback(focusedSessionId, keyEvent, consumed);
         };
-        auto ret = MiscServices::InputMethodController::GetInstance()->DispatchKeyEvent(keyEvent, callback);
+        auto ret = inputMethodController->DispatchKeyEvent(keyEvent, callback);
         if (ret != 0) {
-            WLOGFE("DispatchKeyEvent failed, ret:%{public}d, id:%{public}d, focusedSessionId:%{public}d",
-                ret, keyEvent->GetId(), focusedSessionId);
             DispatchKeyEventCallback(focusedSessionId, keyEvent, false);
         }
+        TLOGD(WmsLogTag::WMS_INPUT_KEY_FLOW, "IMF processed end, ret=%{public}d", ret);
         return;
     }
 #endif // IMF_ENABLE

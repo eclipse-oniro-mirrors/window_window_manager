@@ -427,7 +427,7 @@ void ExtensionSession::NotifyAsyncOn()
     }
 }
 
-WSError ExtensionSession::NotifyDensityFollowHost(bool isFollowHost, float densityValue)
+WSError ExtensionSession::NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue)
 {
     if (!IsSessionValid()) {
         return WSError::WS_ERROR_INVALID_SESSION;
@@ -437,7 +437,7 @@ WSError ExtensionSession::NotifyDensityFollowHost(bool isFollowHost, float densi
         return WSError::WS_ERROR_NULLPTR;
     }
 
-    return sessionStage_->NotifyDensityFollowHost(isFollowHost, densityValue);
+    return sessionStage_->NotifyDensityFollowHost(dpiFollowStrategy, densityValue);
 }
 
 WSError ExtensionSession::UpdateSessionViewportConfig(const SessionViewportConfig& config)
@@ -450,9 +450,9 @@ WSError ExtensionSession::UpdateSessionViewportConfig(const SessionViewportConfi
         TLOGE(WmsLogTag::WMS_UIEXT, "sessionStage_ is null");
         return WSError::WS_ERROR_NULLPTR;
     }
-    TLOGI(WmsLogTag::WMS_UIEXT, "winId: %{public}d, isDensityFollowHost_:%{public}d, "
+    TLOGI(WmsLogTag::WMS_UIEXT, "winId: %{public}d, dpiFollowStrategy_:%{public}u, "
         "displayId:%{public}" PRIu64", density:%{public}f, orientation:%{public}d.",
-        GetPersistentId(), config.isDensityFollowHost_, config.displayId_, config.density_, config.orientation_);
+        GetPersistentId(), config.dpiFollowStrategy_, config.displayId_, config.density_, config.orientation_);
     return sessionStage_->UpdateSessionViewportConfig(config);
 }
 

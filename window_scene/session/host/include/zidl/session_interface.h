@@ -64,6 +64,7 @@ public:
     virtual WSError Show(sptr<WindowSessionProperty> property) = 0;
     virtual WSError Hide() = 0;
     virtual WSError DrawingCompleted() = 0;
+    virtual WSError StartWithSnapshot() = 0;
     virtual WSError RemoveStartingWindow() = 0;
     virtual WSError RemoveStartingWindow(std::string& errMsg) = 0;
 

@@ -59,7 +59,7 @@ sptr<AAFwk::SessionInfo> ExtensionSessionManager::SetAbilitySessionInfo(const sp
     abilitySessionInfo->displayId = sessionInfo.config_.displayId_;
     abilitySessionInfo->density = sessionInfo.config_.density_;
     abilitySessionInfo->orientation = sessionInfo.config_.orientation_;
-    abilitySessionInfo->isDensityFollowHost = sessionInfo.config_.isDensityFollowHost_;
+    abilitySessionInfo->dpiFollowStrategy = static_cast<uint32_t>(sessionInfo.config_.dpiFollowStrategy_);
     if (sessionInfo.want != nullptr) {
         abilitySessionInfo->want = sessionInfo.GetWantSafely();
     }
@@ -87,7 +87,7 @@ sptr<ExtensionSession> ExtensionSessionManager::RequestExtensionSession(const Se
     auto task = [this, newSessionInfo = sessionInfo]() mutable -> sptr<ExtensionSession> {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "RequestExtensionSession");
         TLOGNI(WmsLogTag::WMS_UIEXT, "in");
-        if (!newSessionInfo.config_.isDensityFollowHost_) {
+        if (newSessionInfo.config_.dpiFollowStrategy_ == DpiFollowStrategy::NONE) {
             newSessionInfo.config_.density_ = GetSystemDensity(newSessionInfo.config_.displayId_);
         }
         if (newSessionInfo.want && newSessionInfo.want->HasParameter(AAFwk::SCREEN_MODE_KEY)) {
@@ -108,9 +108,9 @@ sptr<ExtensionSession> ExtensionSessionManager::RequestExtensionSession(const Se
         }
         TLOGNI(WmsLogTag::WMS_UIEXT,
             "persistentId: %{public}d, bundleName: %{public}s, moduleName: %{public}s, abilityName: %{public}s, "
-            "isDensityFollowHost_: %{public}d, density_: %{public}f",
+            "dpiFollowStrategy_: %{public}u, density_: %{public}f",
             persistentId, newSessionInfo.bundleName_.c_str(), newSessionInfo.moduleName_.c_str(),
-            newSessionInfo.abilityName_.c_str(), newSessionInfo.config_.isDensityFollowHost_,
+            newSessionInfo.abilityName_.c_str(), newSessionInfo.config_.dpiFollowStrategy_,
             newSessionInfo.config_.density_);
         return extensionSession;
     };

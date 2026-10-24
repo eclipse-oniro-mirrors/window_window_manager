@@ -511,6 +511,7 @@ void SecondaryDisplayFoldPolicy::ChangeSuperScreenDisplayMode(sptr<ScreenSession
             changeScreenWhenBootCompleted_ = false;
         }
     }
+    ScreenSessionManager::GetInstance().PauseMirrorByRecordPolicy();
     SetSecondaryDisplayModeChangeStatus(true);
     SendPropertyChangeResult(screenSession, SCREEN_ID_FULL, ScreenPropertyChangeReason::FOLD_SCREEN_EXPAND,
         displayMode);

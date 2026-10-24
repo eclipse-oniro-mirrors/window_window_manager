@@ -200,6 +200,7 @@ private:
     static napi_value SetFloatingScale(napi_env env, napi_callback_info info);
     static napi_value SetIsMidScene(napi_env env, napi_callback_info info);
     static napi_value SetIsGamePrelaunch(napi_env env, napi_callback_info info);
+    static napi_value SetIsGameBackgroundRunning(napi_env env, napi_callback_info info);
     static napi_value SetSystemSceneOcclusionAlpha(napi_env env, napi_callback_info info);
     static napi_value ResetOcclusionAlpha(napi_env env, napi_callback_info info);
     static napi_value SetSystemSceneForceUIFirst(napi_env env, napi_callback_info info);
@@ -303,6 +304,7 @@ private:
     static napi_value SetDragDisabledAreas(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
     static napi_value UpdateCallerPersistentId(napi_env env, napi_callback_info info);
+    static napi_value UpdateDensity(napi_env env, napi_callback_info info);
     /*
      * PC Window
      */
@@ -329,6 +331,7 @@ private:
     napi_value OnSetFloatingScale(napi_env env, napi_callback_info info);
     napi_value OnSetIsMidScene(napi_env env, napi_callback_info info);
     napi_value OnSetIsGamePrelaunch(napi_env env, napi_callback_info info);
+    napi_value OnSetIsGameBackgroundRunning(napi_env env, napi_callback_info info);
     napi_value OnSetSystemSceneOcclusionAlpha(napi_env env, napi_callback_info info);
     napi_value OnResetOcclusionAlpha(napi_env env, napi_callback_info info);
     napi_value OnSetSystemSceneForceUIFirst(napi_env env, napi_callback_info info);
@@ -423,6 +426,7 @@ private:
     napi_value OnSetDragDisabledAreas(napi_env env, napi_callback_info info);
     napi_value OnUpdateSceneLastUsedPosition(napi_env env, napi_callback_info info);
     napi_value OnUpdateCallerPersistentId(napi_env env, napi_callback_info info);
+    napi_value OnUpdateDensity(napi_env env, napi_callback_info info);
 
     /*
      * PC Window

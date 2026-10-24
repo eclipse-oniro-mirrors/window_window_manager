@@ -1921,6 +1921,13 @@ public:
     virtual WMError NotifyDrawingCompleted() { return WMError::WM_OK; }
 
     /**
+     * @brief notify window start with snapshot.
+     *
+     * @return WMError
+     */
+    virtual WMError NotifyStartWithSnapshot() { return WMError::WM_OK; }
+
+    /**
      * @brief notify window remove starting window.
      *
      * @return WMError
@@ -3103,6 +3110,14 @@ public:
      * @return WM_OK means set success, others means set failed.
      */
     virtual WMError SetTouchHotAreas(const std::vector<Rect>& rects) { return WMError::WM_OK; }
+
+    /**
+     * @brief Set touchable areas, permission check is required on the server side.
+     *
+     * @param rects Touchable areas of touching.
+     * @return WM_OK means set success, others means set failed.
+     */
+    virtual WMError SetTouchableAreas(const std::vector<Rect>& rects) { return WMError::WM_OK; }
 
     /**
      * @brief Set keyboard touch hot areas.
@@ -5136,7 +5151,8 @@ public:
      * @param dvsyncSwitch bool.
      * @return * void
      */
-    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM) {}
+    virtual void SetUiDvsyncSwitch(bool dvsyncSwitch, FromWhom fromWhom = DEFAULT_FROMWHOM,
+        DvsyncDisableReason disableReason = DEFAULT_DVSYNCDISABLEREASON) {}
 
     /**
      * @brief Set touch event

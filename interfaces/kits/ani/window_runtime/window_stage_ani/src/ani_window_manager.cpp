@@ -189,6 +189,67 @@ void AniWindowManager::OnShiftAppWindowFocus(ani_env* env, ani_int sourceWindowI
     return ;
 }
 
+void AniWindowManager::SetWindowPosition(ani_env* env, ani_long nativeObj, ani_object list)
+{
+    AniWindowManager* aniWindowManager = reinterpret_cast<AniWindowManager*>(nativeObj);
+    if (aniWindowManager != nullptr) {
+        aniWindowManager->OnSetWindowPosition(env, list);
+    } else {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] aniWindowManager is nullptr");
+    }
+}
+
+void AniWindowManager::OnSetWindowPosition(ani_env* env, ani_object list)
+{
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[ANI]");
+    auto elements = AniWindowUtils::ExtractArrayElements(env, list);
+    if (elements.empty()) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowPositions is empty");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWindowPosition]msg: windowPositions is empty");
+        return;
+    }
+    if (elements.size() > MAX_SIZE_WINDOW_POSITION) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] windowPositions size exceeds max, size: %{public}zu",
+            elements.size());
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][setWindowPosition]msg: The windowPositions list exceeds the maximum size of 50.");
+        return;
+    }
+    WindowPositionInfo windowPositionInfo;
+    for (auto& element : elements) {
+        ani_object elementObj = static_cast<ani_object>(element);
+        WindowPositionParams windowPosition;
+        ani_int aniWindowId = 0;
+        if (env->Object_GetPropertyByName_Int(elementObj, "windowId", &aniWindowId) != ANI_OK ||
+            static_cast<int32_t>(aniWindowId) <= 0) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] failed to convert windowId");
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                "[window][setWindowPosition]msg: failed to convert windowId");
+            return;
+        }
+        ani_int aniInsertAfter = 0;
+        if (env->Object_GetPropertyByName_Int(elementObj, "insertAfter", &aniInsertAfter) != ANI_OK ||
+            static_cast<int32_t>(aniInsertAfter) < static_cast<int32_t>(WindowPosition::NOT_TOPMOST)) {
+            TLOGE(WmsLogTag::WMS_HIERARCHY, "[ANI] failed to convert insertAfter");
+            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+                "[window][setWindowPosition]msg: failed to convert insertAfter");
+            return;
+        }
+        windowPosition.windowId = static_cast<int32_t>(aniWindowId);
+        windowPosition.insertAfter = static_cast<int32_t>(aniInsertAfter);
+        windowPositionInfo.windowPositions.emplace_back(windowPosition);
+    }
+    WMError wmError = SingletonContainer::Get<WindowManager>().SetWindowPosition(windowPositionInfo);
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(wmError);
+    if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowPosition", ret);
+        std::string errMsg = WindowFocusErrorMsgHelper::GetErrorMsg(
+            WindowFocusApiType::SET_WINDOW_POSITION, wmError);
+        AniWindowUtils::AniThrowError(env, ret, errMsg);
+    }
+}
+
 ani_object AniWindowManager::GetAllMainWindowInfo(ani_env* env, ani_long nativeObj, ani_object context)
 {
     TLOGI(WmsLogTag::WMS_LIFE, "[ANI]");

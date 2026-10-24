@@ -302,7 +302,7 @@ public:
     {
         return -1;
     }
-    virtual WSError NotifyDensityFollowHost(bool isFollowHost, float densityValue)
+    virtual WSError NotifyDensityFollowHost(DpiFollowStrategy dpiFollowStrategy, float densityValue)
     {
         return WSError::WS_OK;
     }

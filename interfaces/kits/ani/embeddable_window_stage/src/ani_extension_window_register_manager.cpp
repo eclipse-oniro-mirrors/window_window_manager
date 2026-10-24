@@ -199,7 +199,7 @@ WmErrorCode AniExtensionWindowRegisterManager::RegisterListener(sptr<Window>& wi
 WmErrorCode AniExtensionWindowRegisterManager::UnregisterAllListeners(
     CaseType caseType, sptr<Window>& window, const std::string& type, ani_env* env)
 {
-    TLOGI(WmsLogTag::WMS_UIEXT, "[ANI]Unregister all callback, type: %{public}s", type.c_str());
+    TLOGI(WmsLogTag::WMS_UIEXT, "[ANI]SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
     for (auto it = aniCbMap_[type].begin(); it != aniCbMap_[type].end();) {
         WmErrorCode ret = ProcessRegister(caseType, it->second, window, type, false);
         if (ret != WmErrorCode::WM_OK) {

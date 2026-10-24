@@ -463,10 +463,10 @@ WSError SceneSessionManagerLite::GetRecentMainSessionInfoList(std::vector<Recent
 }
 
 WSError SceneSessionManagerLite::PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
-    bool shouldBackToCaller)
+    bool shouldBackToCaller, uint32_t reason)
 {
     return SceneSessionManager::GetInstance().PendingSessionToBackgroundByPersistentId(persistentId,
-        shouldBackToCaller);
+        shouldBackToCaller, reason);
 }
 
 WSErrorResult SceneSessionManagerLite::RestoreSessionToForeground(int32_t persistentId)

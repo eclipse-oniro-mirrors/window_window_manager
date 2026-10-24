@@ -405,7 +405,7 @@ enum class SceneType : uint8_t {
 };
 
 struct SessionViewportConfig {
-    bool isDensityFollowHost_ = false;
+    DpiFollowStrategy dpiFollowStrategy_ = DpiFollowStrategy::NONE;
     float density_ = 1.0f; // Indicates the host's density, if following the host, use it, otherwise get it from DMS.
     uint64_t displayId_ = 0;
     int32_t orientation_ = 0;
@@ -605,6 +605,11 @@ struct SessionInfo {
      */
     bool isGamePrelaunch_ = false;
     bool reuseSessionInGamePreLaunch_ = false;
+
+    /**
+     * Game Background Running
+     */
+    bool isGameBackgroundRunning_ = false;
 
     AAFwk::Want GetWantSafely() const
     {
@@ -1669,6 +1674,21 @@ enum class LifeCycleChangeReason {
 
     GAME_PRELAUNCH_BACKGROUND,
 
+    /**
+     * active reason
+     */
+    EXIT_SPLIT,
+    RECOVER,
+    EXIT_MIDSCENE,
+    SCREEN_UNLOCK,
+    SWITCH_FREE_WINDOWS_MODE,
+    SESSION_STATE_CHANGE,
+
+    SCREEN_OFF,
+    SCREEN_ON,
+
+    GAME_BACKGROUND_RUNNING,
+
     REASON_END,
 };
 
@@ -1743,6 +1763,7 @@ enum class SidebarBlurType : uint32_t {
     INITIAL,
     DEFAULT_FLOAT,
     DEFAULT_MAXIMIZE,
+    DEFAULT_MAXIMIZE_NOANIMATE,
     END,
 };
 
@@ -1840,7 +1861,7 @@ struct RogWindowConfig {
 
     bool IsValid() const
     {
-        return width > 0 && height > 0 && dpi > 0 && scale > 0 && !xhdpiAppList.empty();
+        return width > 0 && height > 0 && dpi > 0 && scale > 0;
     }
 
     std::string ToString() const

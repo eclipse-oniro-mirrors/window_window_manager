@@ -1183,6 +1183,11 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
         TLOGE(WmsLogTag::DMS, "SCB: WriteInterfaceToken failed");
         return SCREEN_ID_INVALID;
     }
+    std::vector<uint32_t> recordPolicies;
+    recordPolicies.reserve(virtualOption.recordPolicies_.size());
+    for (const auto& recordPolicy : virtualOption.recordPolicies_) {
+        recordPolicies.push_back(static_cast<uint32_t>(recordPolicy));
+    }
     bool res = data.WriteString(virtualOption.name_) && data.WriteUint32(virtualOption.width_) &&
         data.WriteUint32(virtualOption.height_) && data.WriteFloat(virtualOption.density_) &&
         data.WriteInt32(virtualOption.flags_) && data.WriteBool(virtualOption.isForShot_) &&
@@ -1196,7 +1201,8 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
         data.WriteString(virtualOption.bundleName_) &&
         data.WriteUint32(virtualOption.phyWidth_) && data.WriteUint32(virtualOption.phyHeight_) &&
         data.WriteUint32(virtualOption.renderWidth_) && data.WriteUint32(virtualOption.renderHeight_) &&
-        data.WriteInt32(virtualOption.screenId_) && data.WriteUint32(static_cast<uint32_t>(virtualOption.caller_));
+        data.WriteInt32(virtualOption.screenId_) && data.WriteUint32(static_cast<uint32_t>(virtualOption.caller_)) &&
+        data.WriteUint32(static_cast<uint32_t>(virtualOption.hdrMode_)) && data.WriteUInt32Vector(recordPolicies);
     if (virtualOption.surface_ != nullptr && virtualOption.surface_->GetProducer() != nullptr) {
         res = res &&
             data.WriteBool(true) &&

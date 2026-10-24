@@ -513,7 +513,7 @@ bool ScreenSession::GetIsInternal() const
 
 void ScreenSession::SetIsCurrentInUse(bool isInUse)
 {
-    isInUse_ = isInUse;
+    isCurrentInUse_ = isInUse;
 }
 
 bool ScreenSession::GetIsCurrentInUse() const
@@ -1333,6 +1333,16 @@ VirtualScreenFlag ScreenSession::GetVirtualScreenFlag()
 void ScreenSession::SetVirtualScreenFlag(VirtualScreenFlag screenFlag)
 {
     screenFlag_ = screenFlag;
+}
+
+std::vector<RecordPolicy> ScreenSession::GetRecordPolicies() const
+{
+    return recordPolicies_;
+}
+
+void ScreenSession::SetRecordPolicies(const std::vector<RecordPolicy>& recordPolicies)
+{
+    recordPolicies_ = recordPolicies;
 }
 
 VirtualScreenType ScreenSession::GetVirtualScreenType()

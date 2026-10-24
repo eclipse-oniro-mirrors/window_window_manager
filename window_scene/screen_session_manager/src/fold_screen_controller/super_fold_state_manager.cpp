@@ -624,6 +624,11 @@ void SuperFoldStateManager::HandleDisplayNotify(SuperFoldStatusChangeEvents chan
         return;
     }
 
+    if (changeEvent <= SuperFoldStatusChangeEvents::SYSTEM_KEYBOARD_OFF &&
+        changeEvent >= SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED) {
+        ScreenSessionManager::GetInstance().PauseMirrorByRecordPolicy();
+    }
+
     if (!ScreenSessionManager::GetInstance().GetClientProxy()) {
         HandleSuperFoldDisplayInServer(screenSession, changeEvent);
     } else {

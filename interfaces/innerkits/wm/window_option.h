@@ -606,16 +606,22 @@ public:
     /**
      * @brief Set DPI follow-up mode of UIExtension.
      *
-     * @param isDensityFollowHost DPI follow-up mode of UIExtension.
+     * @param dpiFollowStrategy DPI follow-up strategy of UIExtension.
      */
-    void SetIsDensityFollowHost(bool isDensityFollowHost);
+    void SetDpiFollowStrategy(DpiFollowStrategy dpiFollowStrategy)
+    {
+        dpiFollowStrategy_ = dpiFollowStrategy;
+    }
 
     /**
      * @brief Get DPI follow-up mode of UIExtension.
      *
-     * @return true - DPI follows host, false - DPI follows UIExtensionAbility.
+     * @return DpiFollowStrategy - DPI follow-up strategy of UIExtension.
      */
-    bool GetIsDensityFollowHost() const;
+    DpiFollowStrategy GetDpiFollowStrategy() const
+    {
+        return dpiFollowStrategy_;
+    }
 
     /**
      * @brief Set default density for subwindow or system window.
@@ -766,7 +772,7 @@ private:
     bool isUIExtAnySubWindow_ = false;
     WindowType parentWindowType_ = WindowType::WINDOW_TYPE_APP_MAIN_WINDOW;
     float density_ = 1.0f;
-    bool isDensityFollowHost_ = false;
+    DpiFollowStrategy dpiFollowStrategy_ = DpiFollowStrategy::NONE;
     bool isConstrainedModal_ = false;
     int64_t startModalExtensionTimeStamp_ = -1;
     bool followCreatorLifecycle_ = false;

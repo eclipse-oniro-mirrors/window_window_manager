@@ -493,10 +493,10 @@ namespace window {
   }
 
   export interface WindowFocusState {
-    focused: boolean;
+    isFocused: boolean;
     focusChangeReason: FocusChangeReason;
-    nextFocusedWindowId?: number;
-    prevFocusedWindowId?: number;
+    nextFocusedWindowId?: int;
+    prevFocusedWindowId?: int;
   }
 
   export enum FocusChangeReason {
@@ -505,10 +505,10 @@ namespace window {
   }
 
   export class WindowFocusStateInternal implements WindowFocusState {
-    focused: boolean = false;
+    isFocused: boolean = false;
     focusChangeReason: FocusChangeReason = FocusChangeReason.DEFAULT;
-    nextFocusedWindowId?: number;
-    prevFocusedWindowId?: number;
+    nextFocusedWindowId?: int;
+    prevFocusedWindowId?: int;
   }
 
   export enum RectChangeReason {
@@ -1653,6 +1653,23 @@ export class GetWindowsByCoordinateParamInternal implements GetWindowsByCoordina
   y: int;
 }
 
+export enum WindowPosition {
+  NOT_TOPMOST = -3,
+  TOPMOST = -2,
+  BOTTOM = -1,
+  TOP = 0
+}
+
+export interface WindowPositionParams {
+  windowId: int;
+  insertAfter: int;
+}
+
+export class WindowPositionParamsInternal implements WindowPositionParams {
+  windowId: int;
+  insertAfter: int;
+}
+
 
 export interface SystemBarStyle {
   statusBarContentColor?: string;
@@ -1773,6 +1790,9 @@ export interface WindowCreateParams {
     systemAnimationParams?: StartAnimationSystemParams;
     needAnimation?: boolean;
     isWindowLimitsForcible?: boolean;
+    minimizeOnStart?: boolean;
+    excludeFromDock?: boolean;
+    excludeFromRecent?: boolean;
 }
 
 export class WindowCreateParamsInternal implements WindowCreateParams {
@@ -1780,6 +1800,9 @@ export class WindowCreateParamsInternal implements WindowCreateParams {
     systemAnimationParams?: StartAnimationSystemParams;
     needAnimation?: boolean;
     isWindowLimitsForcible?: boolean;
+    minimizeOnStart?: boolean;
+    excludeFromDock?: boolean;
+    excludeFromRecent?: boolean;
 }
 
 /**
@@ -5861,6 +5884,7 @@ native function setSpecificSystemWindowZIndexSync(nativeObj: long, windowType: W
 native function createSubWindowAndBindParentSync(nativeObj: long, name: string,
   parentId: int, ctx: BaseContext, parentWindowEventListener: WindowEventListener): Window;
 native function moveMainWindowToTargetDisplaySync(nativeObj: long, displayId: long, windowId: int, userId: int): void;
+native function setWindowPositionSync(nativeObj: long, list: Array<WindowPositionParams>): void;
 
 export function createSubWindowAndBindParent(name: string, parentId: int, ctx: BaseContext,
   parentWindowEventListener: WindowEventListener): Promise<Window> {
@@ -6331,6 +6355,18 @@ export function moveMainWindowToTargetDisplay(displayId: long, windowId: int, us
   return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
       taskpool.execute((): void => {
           return moveMainWindowToTargetDisplaySync(nativeObj, displayId, windowId, userId ?? -1);
+      }).then((ret: Any) => {
+          resolve(undefined);
+      }).catch((err: Any) => {
+          reject(err as BusinessError);
+      });
+  });
+}
+
+export function setWindowPosition(list: Array<WindowPositionParams>): Promise<void> {
+  return new Promise<void>((resolve: (value: undefined) => void, reject: (error: BusinessError) => void): void => {
+      taskpool.execute((): void => {
+          return setWindowPositionSync(nativeObj, list);
       }).then((ret: Any) => {
           resolve(undefined);
       }).catch((err: Any) => {

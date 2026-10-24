@@ -1428,7 +1428,15 @@ struct WindowLimits {
         return minWidth_ <= maxWidth_ && minHeight_ <= maxHeight_;
     }
 
-    static const WindowLimits DEFAULT_VP_LIMITS()
+    /**
+     * @brief Default window limits in VP.
+     *
+     * @param forAttachedWindows True for default limits shared to attached windows: vpRatio is the
+     *                           invalid marker (0.0f), meaning a window that has never computed its
+     *                           limits carries no density snapshot, so receivers fall back to their
+     *                           own density when converting these limits between units.
+     */
+    static const WindowLimits DEFAULT_VP_LIMITS(bool forAttachedWindows = false)
     {
         return {
             static_cast<uint32_t>(INT32_MAX),  // maxWidth
@@ -1437,7 +1445,7 @@ struct WindowLimits {
             1,                                 // minHeight
             FLT_MAX,                           // maxRatio
             0.0f,                              // minRatio
-            1.0f,                              // vpRatio
+            forAttachedWindows ? 0.0f : 1.0f,  // vpRatio: 0.0f means no density snapshot
             PixelUnit::VP                      // pixelUnit
         };
     }
@@ -1992,6 +2000,31 @@ struct SubWindowOptions {
     ModalityType modalityType = ModalityType::WINDOW_MODALITY;
 };
 
+/**
+ * @enum WindowPosition
+ *
+ * @brief Sentinel values of WindowPositionParams::insertAfter, used to adjust the z-order of an
+ *        application main window without naming another window as the anchor. Together with the
+ *        positive windowId form, this enum is the whole domain of insertAfter.
+ *
+ *        TOPMOST and NOT_TOPMOST set and cancel a global topmost state that lasts beyond the call,
+ *        while TOP and BOTTOM only reorder the window for the current call and leave that state
+ *        untouched.
+ */
+enum class WindowPosition : int32_t {
+    // Cancels the global topmost state.
+    NOT_TOPMOST = -3,
+    // Sets the global topmost state, which persists until it is cancelled.
+    // Requires the ohos.permission.WINDOW_TOPMOST permission.
+    TOPMOST = -2,
+    // One-shot reorder: moves the main window below the other application main windows,
+    // without changing the global topmost state.
+    BOTTOM = -1,
+    // One-shot reorder: moves the main window above the other application main windows,
+    // without changing the global topmost state.
+    TOP = 0,
+};
+
 struct ExtensionWindowConfig {
     std::string windowName;
     ExtensionWindowAttribute windowAttribute = ExtensionWindowAttribute::UNKNOWN;
@@ -2503,6 +2536,14 @@ enum class FromWhom : uint8_t {
 };
 
 constexpr FromWhom DEFAULT_FROMWHOM = FromWhom::INNER;
+
+enum class DvsyncDisableReason : uint8_t {
+    API_DISABLE = 0,
+    BACKGROUND_DISABLE = 1,
+    UNFOCUS_DISABLE = 2,
+};
+
+constexpr DvsyncDisableReason DEFAULT_DVSYNCDISABLEREASON = DvsyncDisableReason::API_DISABLE;
 #endif
 }
 #endif // OHOS_ROSEN_WM_COMMON_H

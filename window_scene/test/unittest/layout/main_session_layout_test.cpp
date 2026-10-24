@@ -295,6 +295,47 @@ HWTEST_F(MainSessionLayoutTest, RequestUpdateAttachedWindowLimits02, TestSize.Le
 }
 
 /**
+ * @tc.name: RequestUpdateAttachedWindowLimits07
+ * @tc.desc: The density snapshot (vpRatio_) carried by the source limits is preserved both in the
+ *           main window's stored attached-limits entry and in the client notification.
+ * @tc.type: FUNC
+ */
+HWTEST_F(MainSessionLayoutTest, RequestUpdateAttachedWindowLimits07, TestSize.Level1)
+{
+    SessionInfo info;
+    info.bundleName_ = "RequestUpdateAttachedWindowLimits07";
+    info.moduleName_ = "RequestUpdateAttachedWindowLimits07";
+    info.abilityName_ = "RequestUpdateAttachedWindowLimits07";
+    sptr<MainSession> mainSession = sptr<MainSession>::MakeSptr(info, nullptr);
+
+    sptr<SessionStageMocker> mainSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    mainSession->sessionStage_ = mainSessionStage;
+
+    // Source window has an independent density (e.g. custom density 3.0)
+    int32_t sourcePersistentId = 1007;
+    WindowLimits attachedLimits = { 2000, 1000, 200, 300, 0.0f, 0.0f, 3.0f, PixelUnit::VP };
+
+    WindowLimits capturedLimits;
+    EXPECT_CALL(*mainSessionStage, UpdateAttachedWindowLimits(
+        sourcePersistentId, testing::_, true, true))
+        .Times(1).WillOnce(testing::DoAll(testing::SaveArg<1>(&capturedLimits),
+            testing::Return(WSError::WS_OK)));
+
+    WSError ret = mainSession->RequestUpdateAttachedWindowLimits(sourcePersistentId, attachedLimits,
+        true, true);
+    EXPECT_EQ(WSError::WS_OK, ret);
+
+    // Stored entry keeps the source's density snapshot for later intersection calculation
+    auto limitsList = mainSession->GetSessionProperty()->GetAttachedWindowLimitsList();
+    ASSERT_EQ(1u, limitsList.size());
+    EXPECT_EQ(sourcePersistentId, limitsList[0].first);
+    EXPECT_FLOAT_EQ(3.0f, limitsList[0].second.vpRatio_);
+    EXPECT_EQ(PixelUnit::VP, limitsList[0].second.pixelUnit_);
+    // Client notification carries the same snapshot
+    EXPECT_FLOAT_EQ(3.0f, capturedLimits.vpRatio_);
+}
+
+/**
  * @tc.name: RequestRemoveAttachedWindowLimits01
  * @tc.desc: Test main window removes own limits and propagates to children
  * @tc.type: FUNC

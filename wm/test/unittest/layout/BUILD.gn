@@ -20,6 +20,12 @@ wm_unittest_common = "../:wm_unittest_common"
 
 ohos_unittest("wm_layout_test") {
   module_out_path = module_out_path
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
 
   sources = [
     "window_scene_session_impl_layout_test.cpp",

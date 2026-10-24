@@ -138,6 +138,10 @@ void WindowController::CancelStartingWindow(sptr<IRemoteObject> abilityToken)
 WMError WindowController::NotifyWindowTransition(sptr<WindowTransitionInfo>& srcInfo,
     sptr<WindowTransitionInfo>& dstInfo)
 {
+    if (srcInfo == nullptr || dstInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_STARTUP_PAGE, "transition info is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
     TLOGI(WmsLogTag::WMS_STARTUP_PAGE, "begin!");
     sptr<WindowNode> dstNode = nullptr;
     sptr<WindowNode> srcNode = nullptr;
@@ -1054,7 +1058,7 @@ WMError WindowController::SetWindowFlags(uint32_t windowId, uint32_t flags, bool
     auto property = node->GetWindowProperty();
     uint32_t oldFlags = property->GetWindowFlags();
     if (property->GetApiCompatibleVersion() >= 9 && !isSystemCalling && // 9: api version.
-        (oldFlags ^ flags) == static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
+        (oldFlags ^ flags) & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_SHOW_WHEN_LOCKED)) {
         WLOGFW("Only API 9- or system calling support showing when locked.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
@@ -1568,6 +1572,12 @@ WMError WindowController::UpdateProperty(sptr<WindowProperty>& property, Propert
             break;
         }
         case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA: {
+            std::vector<Rect> rects;
+            property->GetTouchHotAreas(rects);
+            ret = UpdateTouchHotAreas(node, rects);
+            break;
+        }
+        case PropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA_NEED_PERMISSION: {
             std::vector<Rect> rects;
             property->GetTouchHotAreas(rects);
             ret = UpdateTouchHotAreas(node, rects);

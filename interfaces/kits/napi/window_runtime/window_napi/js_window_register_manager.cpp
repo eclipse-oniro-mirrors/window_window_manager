@@ -903,6 +903,7 @@ WmErrorCode JsWindowRegisterManager::UnregisterListener(sptr<Window> window, std
     }
     RegisterListenerType listenerType = iterCallbackType->second;
     if (value == nullptr) {
+        TLOGI(WmsLogTag::DEFAULT, "SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto it = jsCbMap_[type].begin(); it != jsCbMap_[type].end();) {
             if (it->second->CanCancelUnregister(type) != WmErrorCode::WM_OK) {
                 return WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
@@ -992,6 +993,8 @@ WmErrorCode JsWindowRegisterManager::UnregisterWindowPostureModeListener(napi_en
         return WmErrorCode::WM_OK;
     }
     if (callback == nullptr) {
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "SubEvent op=off_all kit=ArkUIKit event=%{public}u",
+            static_cast<uint32_t>(mode));
         for (auto it = jsPostureModeCbMap_[mode].begin(); it != jsPostureModeCbMap_[mode].end();) {
             WmErrorCode ret = ProcessWindowPostureModeChangeRegister(it->second, window, false, env, mode);
             if (ret != WmErrorCode::WM_OK) {

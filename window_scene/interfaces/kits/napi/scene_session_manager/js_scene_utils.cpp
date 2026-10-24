@@ -2283,6 +2283,7 @@ napi_value CreateJsSessionRecoverInfo(
         CreateSupportWindowModes(env, sessionInfo.supportedWindowModes));
     napi_set_named_property(env, objValue,
         "pageCompatibleMode", CreateJsValue(env, property->GetPageCompatibleMode()));
+    napi_set_named_property(env, objValue, "hookSceneMessage", CreateJsValue(env, property->GetHookSceneMessage()));
     napi_set_named_property(env, objValue,
         "combinedCompatibleConfig", CreateJsValueFromStringArray(env, property->GetCombinedCompatibleConfig()));
 
@@ -3250,6 +3251,32 @@ napi_value SceneTypeInit(napi_env env)
         CreateJsValue(env, static_cast<int32_t>(SceneType::PANEL_SCENE)));
     napi_set_named_property(env, objValue, "INPUT_SCENE",
         CreateJsValue(env, static_cast<int32_t>(SceneType::INPUT_SCENE)));
+    return objValue;
+}
+
+napi_value WindowPositionInit(napi_env env)
+{
+    WLOGFD("in");
+
+    if (env == nullptr) {
+        WLOGFE("Env is nullptr");
+        return nullptr;
+    }
+
+    napi_value objValue = nullptr;
+    napi_create_object(env, &objValue);
+    if (objValue == nullptr) {
+        WLOGFE("Failed to get object");
+        return nullptr;
+    }
+    napi_set_named_property(env, objValue, "NOT_TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::NOT_TOPMOST)));
+    napi_set_named_property(env, objValue, "TOPMOST",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOPMOST)));
+    napi_set_named_property(env, objValue, "BOTTOM",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::BOTTOM)));
+    napi_set_named_property(env, objValue, "TOP",
+        CreateJsValue(env, static_cast<int32_t>(WindowPosition::TOP)));
     return objValue;
 }
 

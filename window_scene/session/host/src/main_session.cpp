@@ -833,8 +833,11 @@ WSError MainSession::RequestUpdateAttachedWindowLimits(int32_t sourcePersistentI
 
     // Update own limits first (skip if excluded - i.e., when propagating from/to self)
     if (excludePersistentId != winId) {
-        TLOGD(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d updating limits from source id=%{public}d",
-            winId, sourcePersistentId);
+        TLOGD(WmsLogTag::WMS_LAYOUT, "Main window id=%{public}d updating limits from source id=%{public}d: "
+            "maxW=%{public}u, maxH=%{public}u, minW=%{public}u, minH=%{public}u, pixelUnit=%{public}u, "
+            "densitySnapshot=%{public}f", winId, sourcePersistentId, attachedWindowLimits.maxWidth_,
+            attachedWindowLimits.maxHeight_, attachedWindowLimits.minWidth_, attachedWindowLimits.minHeight_,
+            static_cast<uint32_t>(attachedWindowLimits.pixelUnit_), attachedWindowLimits.vpRatio_);
         const auto& property = GetSessionProperty();
         property->SetAttachedWindowLimits(sourcePersistentId, attachedWindowLimits);
         AttachLimitOptions limitOptions;

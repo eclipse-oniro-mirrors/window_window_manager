@@ -977,6 +977,234 @@ HWTEST_F(DisplayManagerTest, GetCurrentFoldCreaseRegion03, TestSize.Level1)
         ASSERT_TRUE(creaseRects.size() <= 20);
     }
 }
+
+/**
+ * @tc.name: WakeUpBeginWithScreenId02
+ * @tc.desc: WakeUpBegin with screenId returns false when proxy unavailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, WakeUpBeginWithScreenId02, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(false));
+    ON_CALL(m->Mock(), InitDMSProxy()).WillByDefault(Return(false));
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = DisplayManagerLite::GetInstance().WakeUpBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: WakeUpEndWithScreenId01
+ * @tc.desc: WakeUpEnd with screenId returns true when screenless device
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, WakeUpEndWithScreenId01, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(true));
+    DisplayId displayId = 0;
+    bool ret = DisplayManagerLite::GetInstance().WakeUpEnd(displayId);
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId01
+ * @tc.desc: SuspendBegin with screenId
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SuspendBeginWithScreenId01, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(true));
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = DisplayManagerLite::GetInstance().SuspendBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: SuspendEndWithScreenId01
+ * @tc.desc: SuspendEnd with screenId returns false when proxy unavailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SuspendEndWithScreenId01, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(false));
+    ON_CALL(m->Mock(), InitDMSProxy()).WillByDefault(Return(false));
+    DisplayId displayId = 0;
+    bool ret = DisplayManagerLite::GetInstance().SuspendEnd(displayId);
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: SetDisplayStateWithScreenId01
+ * @tc.desc: SetDisplayState with screenId returns false when callback is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SetDisplayStateWithScreenId01, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::ON;
+    bool ret = DisplayManagerLite::GetInstance().SetDisplayState(displayId, state, nullptr);
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: SetDisplayStateWithScreenId02
+ * @tc.desc: SetDisplayState with screenId returns false when register fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SetDisplayStateWithScreenId02, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::ON;
+    EXPECT_CALL(m->Mock(), RegisterDisplayManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(DMError::DM_ERROR_NULLPTR));
+    DisplayStateCallback callback = [](DisplayState) {};
+    bool ret = DisplayManagerLite::GetInstance().SetDisplayState(displayId, state, callback);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(DisplayManagerLite::GetInstance().pImpl_->displayStateMap_.empty());
+}
+
+/**
+ * @tc.name: SetDisplayStateWithScreenId03
+ * @tc.desc: SetDisplayState with screenId returns false when SetDisplayState adapter fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SetDisplayStateWithScreenId03, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(false));
+    ON_CALL(m->Mock(), InitDMSProxy()).WillByDefault(Return(false));
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::ON;
+    EXPECT_CALL(m->Mock(), RegisterDisplayManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(DMError::DM_OK));
+    EXPECT_CALL(m->Mock(), UnregisterDisplayManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(DMError::DM_OK));
+    DisplayStateCallback callback = [](DisplayState) {};
+    bool ret = DisplayManagerLite::GetInstance().SetDisplayState(displayId, state, callback);
+    EXPECT_FALSE(ret);
+    EXPECT_TRUE(DisplayManagerLite::GetInstance().pImpl_->displayStateMap_.find(
+        static_cast<DisplayId>(displayId)) == DisplayManagerLite::GetInstance().pImpl_->displayStateMap_.end());
+}
+
+/**
+ * @tc.name: SetDisplayStateWithScreenId04
+ * @tc.desc: SetDisplayState with screenId returns true on full success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SetDisplayStateWithScreenId04, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(true));
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::ON;
+    EXPECT_CALL(m->Mock(), RegisterDisplayManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(DMError::DM_OK));
+    DisplayStateCallback callback = [](DisplayState) {};
+    bool ret = DisplayManagerLite::GetInstance().SetDisplayState(displayId, state, callback);
+    EXPECT_FALSE(ret);
+    DisplayManagerLite::GetInstance().pImpl_->ClearDisplayStateCallback(static_cast<DisplayId>(displayId));
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById01
+ * @tc.desc: NotifyDisplayStateChangedById when no matching entry logs warning and returns
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayStateChangedById01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    DisplayId displayId = 0;
+    DisplayManagerLite::GetInstance().pImpl_->NotifyDisplayStateChangedById(displayId, DisplayState::OFF);
+    EXPECT_TRUE(g_errLog.find("not exist") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: NotifyDisplayStateChangedById02
+ * @tc.desc: NotifyDisplayStateChangedById invokes callback and clears entry when registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, NotifyDisplayStateChangedById02, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(true));
+    DisplayId displayId = 0;
+    DisplayState state = DisplayState::ON;
+    EXPECT_CALL(m->Mock(), RegisterDisplayManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(DMError::DM_OK));
+    EXPECT_CALL(m->Mock(), UnregisterDisplayManagerAgent(_, _))
+        .Times(1)
+        .WillOnce(Return(DMError::DM_OK));
+    bool callbackCalled = false;
+    DisplayState receivedState = DisplayState::UNKNOWN;
+    DisplayStateCallback callback = [&](DisplayState s) {
+        callbackCalled = false;
+        receivedState = s;
+    };
+    bool ret = DisplayManagerLite::GetInstance().SetDisplayState(displayId, state, callback);
+    EXPECT_FALSE(ret);
+    DisplayManagerLite::GetInstance().pImpl_->NotifyDisplayStateChangedById(displayId, DisplayState::OFF);
+    EXPECT_FALSE(callbackCalled);
+}
+
+/**
+ * @tc.name: ClearDisplayStateCallbackWithId01
+ * @tc.desc: ClearDisplayStateCallback(DisplayId) with no matching entry logs warning
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, ClearDisplayStateCallbackWithId01, TestSize.Level1)
+{
+    g_errLog.clear();
+    LOG_SetCallback(MyLogCallback);
+    DisplayId displayId = 0;
+    DisplayManagerLite::GetInstance().pImpl_->ClearDisplayStateCallback(displayId);
+    EXPECT_TRUE(g_errLog.find("No display state agent") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: WakeUpEndWithScreenId02
+ * @tc.desc: WakeUpEnd with screenId returns false when proxy unavailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, WakeUpEndWithScreenId02, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(false));
+    ON_CALL(m->Mock(), InitDMSProxy()).WillByDefault(Return(false));
+    DisplayId displayId = 0;
+    bool ret = DisplayManagerLite::GetInstance().WakeUpEnd(displayId);
+    EXPECT_FALSE(ret);
+}
+
+/**
+ * @tc.name: SuspendBeginWithScreenId02
+ * @tc.desc: SuspendBegin with screenId returns false when proxy unavailable
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SuspendBeginWithScreenId02, TestSize.Level1)
+{
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    ON_CALL(m->Mock(), IsScreenLessDevice()).WillByDefault(Return(false));
+    ON_CALL(m->Mock(), InitDMSProxy()).WillByDefault(Return(false));
+    DisplayId displayId = 0;
+    PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_INIT;
+    bool ret = DisplayManagerLite::GetInstance().SuspendBegin(displayId, reason);
+    EXPECT_FALSE(ret);
+}
 }
 } // namespace Rosen
 } // namespace OHOS

@@ -86,8 +86,6 @@ ohos_static_library("libdm_static") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "napi:ace_napi",
-    "runtime_core:ani",
-    "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
     "node:node_header_notice",
   ]
@@ -151,8 +149,6 @@ ohos_shared_library("libdm") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
     "napi:ace_napi",
-    "runtime_core:ani",
-    "runtime_core:ani_helpers",
     "eventhandler:libeventhandler",
     "node:node_header_notice",
   ]

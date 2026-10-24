@@ -43,6 +43,7 @@ public:
     MOCK_METHOD1(Show, WSError(sptr<WindowSessionProperty> property));
     MOCK_METHOD0(Hide, WSError(void));
     MOCK_METHOD0(DrawingCompleted, WSError(void));
+    MOCK_METHOD0(StartWithSnapshot, WSError(void));
     MOCK_METHOD0(RemoveStartingWindow, WSError(void));
     MOCK_METHOD1(RemoveStartingWindow, WSError(std::string& errMsg));
     MOCK_METHOD(WSError, OnSessionEvent, (SessionEvent event, const SessionEventParam& param), (override));

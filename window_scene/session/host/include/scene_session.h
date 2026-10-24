@@ -1304,6 +1304,16 @@ protected:
         SizeChangeReason reason = SizeChangeReason::UNDEFINED, DisplayId displayId = DISPLAY_ID_INVALID) {}
     virtual void UpdateSessionRectInner(const WSRect& rect, SizeChangeReason reason,
         const MoveConfiguration& moveConfiguration);
+
+    /**
+     * @brief Converts a rectangle to screen coordinates for move-to-global
+     *        requests when required by the session layout.
+     *
+     * @param rect The rectangle to convert.
+     * @return The converted rectangle, or the original rectangle when no conversion is required.
+     */
+    virtual WSRect ConvertToScreenCoordinates(const WSRect& rect) { return rect; }
+
     void NotifySessionDisplayIdChange(uint64_t displayId);
     virtual void CheckAndMoveDisplayIdRecursively(uint64_t displayId);
     void SetShouldFollowParentWhenShow(bool shouldFollow) { shouldFollowParentWhenShow_ = shouldFollow; }
@@ -1415,7 +1425,7 @@ private:
     template<typename T>
     Rect CalculateAvoidAreaByScale(WSRectT<T>& avoidAreaRect) const;
     WSError GetScale(float& scaleX, float& scaleY) const;
-    bool CheckAndGetRogScale(float& scale) const;
+    bool CheckAndGetRogScale(float& scale) const override;
     WSError GetScaleInRog(float& scaleX, float& scaleY) const;
 
     /*
@@ -1514,6 +1524,8 @@ private:
     bool IsFullScreenMovable() const;
     bool IsSplitMovable() const;
     void HandleCastScreenConnection(SessionInfo& info, sptr<SceneSession> session);
+    WMError CheckUpdatePropertyPermission(WSPropertyChangeAction action,
+        const sptr<WindowSessionProperty>& property, bool isSystemCalling);
     WMError HandleUpdatePropertyByAction(const sptr<WindowSessionProperty>& property,
         WSPropertyChangeAction action);
     WMError HandleActionUpdateTurnScreenOn(const sptr<WindowSessionProperty>& property,

@@ -87,6 +87,7 @@ group("unittest") {
       ":ws_move_drag_controller_test",
       ":ws_multi_instance_manager_test",
       ":ws_pc_fold_screen_controller_test",
+      ":ws_persistent_id_allocator_test",
       ":ws_scene_screen_change_listener_test",
       ":ws_scene_session_lifecycle_test",
       ":ws_scene_session_manager_kiosk_test",
@@ -101,6 +102,7 @@ group("unittest") {
       ":ws_scene_session_manager_stub_test2",
       ":ws_scene_session_manager_motion_test",
       ":ws_scene_session_manager_three_test",
+      ":ws_scene_session_manager_four_test",
       ":ws_scene_session_manager_outline_test",
       ":ws_scene_session_manager_test",
       ":ws_scene_session_manager_two_test",
@@ -343,6 +345,21 @@ ohos_unittest("ws_session_permission_test") {
   deps = [ ":ws_unittest_common" ]
 
   external_deps = test_external_deps
+}
+
+ohos_unittest("ws_persistent_id_allocator_test") {
+  module_out_path = module_out_path
+
+  sources = [ "persistent_id_allocator_test.cpp" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "init:libbegetutil",
+    "preferences:native_preferences",
+    "samgr:samgr_proxy",
+  ]
 }
 
 ohos_unittest("ws_session_listener_controller_test") {
@@ -743,6 +760,40 @@ ohos_unittest("ws_scene_session_manager_three_test") {
   sources = [
     "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
     "scene_session_manager_test13.cpp",
+  ]
+
+  cflags_cc = [ "-Wno-thread-safety" ]
+
+  deps = [ ":ws_unittest_common" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:configuration",
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:ability_manager",
+    "ability_runtime:app_context",
+    "ability_runtime:mission_info",
+    "ability_runtime:runtime",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+    "eventhandler:libeventhandler",
+    "safwk:system_ability_fwk",
+  ]
+}
+
+ohos_unittest("ws_scene_session_manager_four_test") {
+  module_out_path = module_out_path
+
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/test/mock",
+    "${window_base_path}/window_scene/session/host/include/",
+  ]
+
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "scene_session_manager_test14.cpp",
   ]
 
   cflags_cc = [ "-Wno-thread-safety" ]
@@ -1184,6 +1235,18 @@ ohos_unittest("ws_session_specific_window_test") {
 
 ohos_unittest("ws_scene_session_lifecycle_test") {
   module_out_path = module_out_path
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/test/mock",
+  ]
 
   sources = [ "scene_session_lifecycle_test.cpp" ]
 

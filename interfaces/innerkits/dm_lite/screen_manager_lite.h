@@ -132,6 +132,16 @@ public:
     bool SetScreenPowerForAll(ScreenPowerState state, PowerStateChangeReason reason);
 
     /**
+     * @brief Set the screen power state on the specified screen. only concurrent user
+     *
+     * @param displayId display id
+     * @param state Screen power state.
+     * @param reason Reason for power state change.
+     * @return True means set success, false means set failed.
+     */
+    bool SetScreenPowerForSpecifiedId(DisplayId displayId, ScreenPowerState state, PowerStateChangeReason reason);
+
+    /**
      * @brief Synchronize the screen state in power mansger.
      *
      * @param state State of the screen.

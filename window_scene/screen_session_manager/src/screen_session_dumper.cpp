@@ -19,22 +19,22 @@
 #include <fstream>
 #include <transaction/rs_interfaces.h>
 
-#include "unique_fd.h"
-#include "screen_session_manager.h"
-#include "session_permission.h"
+#include "fold_screen_common.h"
+#include "fold_screen_controller/fold_screen_sensor_manager.h"
+#include "fold_screen_controller/secondary_fold_sensor_manager.h"
+#include "fold_screen_controller/super_fold_sensor_manager.h"
+#include "fold_screen_controller/super_fold_state_manager.h"
+#include "fold_screen_state_internel.h"
+#include "parameters.h"
+#include "power_mgr_client.h"
 #include "screen_rotation_property.h"
 #include "screen_scene_config.h"
 #include "screen_sensor_connector.h"
-#include "parameters.h"
-#include "fold_screen_controller/super_fold_state_manager.h"
-#include "fold_screen_controller/super_fold_sensor_manager.h"
-#include "fold_screen_controller/fold_screen_sensor_manager.h"
-#include "fold_screen_state_internel.h"
-#include "window_helper.h"
-#include "fold_screen_controller/secondary_fold_sensor_manager.h"
-
-#include "fold_screen_common.h"
 #include "screen_sensor_mgr.h"
+#include "screen_session_manager.h"
+#include "session_permission.h"
+#include "unique_fd.h"
+#include "window_helper.h"
 
 namespace OHOS {
 namespace Rosen {
@@ -88,6 +88,7 @@ const std::string ARG_SET_DURINGCALL_STATE = "-duringcallstate";
 const std::string ARG_SET_POS = "-setPos";
 const ScreenId SCREEN_ID_FULL = 0;
 const ScreenId SCREEN_ID_MAIN = 5;
+const int32_t DEFAULT_VALUE = 0;
 #ifdef FOLD_ABILITY_ENABLE
 constexpr int SUPER_FOLD_STATUS_MAX = 2;
 const char SECONDARY_DUMPER_VALUE_BOUNDARY[] = "mfg";
@@ -98,6 +99,11 @@ constexpr size_t SECONDARY_FOLD_STATUS_COMMAND_NUM = 2;
 constexpr uint16_t HALL_EXT_DATA_FLAG = 26;
 constexpr uint16_t HALL_HAVE_KEYBOARD_THRESHOLD = 0B0100;
 constexpr uint16_t HALL_REMOVE_KEYBOARD_THRESHOLD = 0B0000;
+const int32_t ANGLE_CHANGE_EXPANDED = 180;
+const int32_t ANGLE_CHANGE_HALF_FOLDED = 90;
+const int32_t ANGLE_CHANGE_FOLDED_BEGIN = 20;
+const int32_t ANGLE_CHANGE_FOLDED = 0;
+const int32_t INVALID_VALUE = -1;
 #endif
 }
 
@@ -849,8 +855,14 @@ void ScreenSessionDumper::DumpDisplayUserRelation(DisplayId id)
  */
 void ScreenSessionDumper::ShowNotifyFoldStatusChangedInfo()
 {
+#ifdef FOLD_ABILITY_ENABLE
     TLOGI(WmsLogTag::DMS, "params_: [%{public}s]", params_[0].c_str());
-    int errCode = ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(params_[0]);
+    int errCode = DEFAULT_VALUE;
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        SetSuperDisplayFoldStatus(params_[0], errCode);
+    } else {
+        errCode = ScreenSessionManager::GetInstance().NotifyFoldStatusChanged(params_[0]);
+    }
     if (errCode != 0) {
         ShowIllegalArgsInfo();
     } else {
@@ -860,6 +872,7 @@ void ScreenSessionDumper::ShowNotifyFoldStatusChangedInfo()
             << std::endl;
         dumpInfo_.append(oss.str());
     }
+#endif
 }
 
 void ScreenSessionDumper::ShowIllegalArgsInfo()
@@ -1098,7 +1111,7 @@ void ScreenSessionDumper::SetHallAndPostureValue(std::string input)
     while (std::getline(ss, token, ',')) {
         tokens.push_back(token);
     }
-    if (tokens.size() != DUMPER_PARAM_INDEX_THREE && tokens[0] != ARG_SET_POSTURE_HALL) {
+    if (tokens.size() != DUMPER_PARAM_INDEX_THREE || tokens[0] != ARG_SET_POSTURE_HALL) {
         TLOGE(WmsLogTag::DMS, "param error: %{public}s", input.c_str());
         return;
     }
@@ -1126,6 +1139,9 @@ void ScreenSessionDumper::SetHallAndPostureValue(std::string input)
     if (FoldScreenStateInternel::IsSingleDisplaySuperFoldDevice()) {
         DMS::ScreenSensorMgr::GetInstance().HandleHallData(&hallEvent);
         DMS::ScreenSensorMgr::GetInstance().HandlePostureData(&postureEvent);
+    } else if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
+        SetSuperFoldHallValue(hallVal);
+        SetSuperFoldPostureAndPower(postureVal);
     } else {
         FoldScreenSensorManager::GetInstance().HandleHallData(&hallEvent);
         FoldScreenSensorManager::GetInstance().HandlePostureData(&postureEvent);
@@ -1149,6 +1165,7 @@ void ScreenSessionDumper::SetHallAndPostureStatus(std::string input)
             if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
                 SuperFoldSensorManager::GetInstance().RegisterPostureCallback();
                 SuperFoldSensorManager::GetInstance().RegisterHallCallback();
+                ScreenSensorConnector::SubscribeRotationSensor();
             } else {
                 DMS::ScreenSensorMgr::GetInstance().RegisterHallCallback();
                 DMS::ScreenSensorMgr::GetInstance().RegisterPostureCallback();
@@ -1158,6 +1175,7 @@ void ScreenSessionDumper::SetHallAndPostureStatus(std::string input)
             if (FoldScreenStateInternel::IsSuperFoldDisplayDevice()) {
                 SuperFoldSensorManager::GetInstance().UnregisterPostureCallback();
                 SuperFoldSensorManager::GetInstance().UnregisterHallCallback();
+                ScreenSensorConnector::UnsubscribeRotationSensor();
             } else {
                 DMS::ScreenSensorMgr::GetInstance().UnRegisterHallCallbackForTest();
                 DMS::ScreenSensorMgr::GetInstance().UnRegisterPostureCallbackForTest();
@@ -1192,24 +1210,23 @@ void ScreenSessionDumper::SetSuperFoldStatusChange(std::string input)
             return;
         }
         SuperFoldStatusChangeEvents superFoldStatus = static_cast<SuperFoldStatusChangeEvents>(value);
-        if (superFoldStatus == SuperFoldStatusChangeEvents::KEYBOARD_ON ||
-            superFoldStatus == SuperFoldStatusChangeEvents::KEYBOARD_OFF) {
-            int hallVal = (superFoldStatus == SuperFoldStatusChangeEvents::KEYBOARD_ON)?
-                HALL_HAVE_KEYBOARD_THRESHOLD: HALL_REMOVE_KEYBOARD_THRESHOLD;
-            HallData hallData{
-                .status = hallVal,
-            };
-            SensorEvent hallEvent = {
-                .data = reinterpret_cast<uint8_t*>(&hallData),
-                .dataLen = sizeof(HallData),
-            };
-            SuperFoldSensorManager::GetInstance().HandleHallData(&hallEvent);
-            TLOGW(WmsLogTag::DMS, "set hall value: %{public}d ", superFoldStatus);
-            return;
+        switch (superFoldStatus) {
+            case SuperFoldStatusChangeEvents::KEYBOARD_ON:
+                return SetSuperFoldHallValue(HALL_HAVE_KEYBOARD_THRESHOLD);
+            case SuperFoldStatusChangeEvents::KEYBOARD_OFF:
+                return SetSuperFoldHallValue(HALL_REMOVE_KEYBOARD_THRESHOLD);
+            case SuperFoldStatusChangeEvents::ANGLE_CHANGE_EXPANDED:
+                return SetSuperFoldPostureAndPower(ANGLE_CHANGE_EXPANDED);
+            case SuperFoldStatusChangeEvents::ANGLE_CHANGE_HALF_FOLDED:
+                return SetSuperFoldPostureAndPower(ANGLE_CHANGE_HALF_FOLDED);
+            case SuperFoldStatusChangeEvents::ANGLE_CHANGE_FOLDED:
+                return SetSuperFoldPostureAndPower(ANGLE_CHANGE_FOLDED);
+            default:
+                SuperFoldStateManager::GetInstance().HandleSuperFoldStatusChange(superFoldStatus);
+                TLOGI(WmsLogTag::DMS, "state: %{public}d, event: %{public}d",
+                    SuperFoldStateManager::GetInstance().GetCurrentStatus(), value);
+                break;
         }
-        SuperFoldStateManager::GetInstance().HandleSuperFoldStatusChange(superFoldStatus);
-        TLOGI(WmsLogTag::DMS, "state: %{public}d, event: %{public}d",
-            SuperFoldStateManager::GetInstance().GetCurrentStatus(), value);
     }
 #endif
 }
@@ -1538,6 +1555,75 @@ void ScreenSessionDumper::TriggerSecondaryFoldStatus(const std::string &valueStr
     }
     TLOGI(WmsLogTag::DMS, "change fold status, %{public}s", foldStatusStr.c_str());
     ScreenSessionManager::GetInstance().TriggerFoldStatusChange(static_cast<FoldStatus>(foldStatus));
+}
+
+void ScreenSessionDumper::SetSuperFoldHallValue(const int32_t hallVal)
+{
+    HallData hallData {
+        .status = hallVal,
+    };
+    SensorEvent hallEvent = {
+        .data = reinterpret_cast<uint8_t*>(&hallData),
+        .dataLen = sizeof(HallData),
+    };
+    SuperFoldSensorManager::GetInstance().HandleHallData(&hallEvent);
+    TLOGI(WmsLogTag::DMS, "state: %{public}d",
+          SuperFoldStateManager::GetInstance().GetCurrentStatus());
+}
+
+void ScreenSessionDumper::SetSuperFoldPostureValue(const int32_t postureVal)
+{
+    PostureData postureData = {
+        .angle = postureVal,
+    };
+    SensorEvent postureEvent = {
+        .data = reinterpret_cast<uint8_t *>(&postureData),
+        .dataLen = sizeof(PostureData),
+    };
+    SuperFoldSensorManager::GetInstance().HandlePostureData(&postureEvent);
+    TLOGI(WmsLogTag::DMS, "state: %{public}d",
+          SuperFoldStateManager::GetInstance().GetCurrentStatus());
+}
+
+void ScreenSessionDumper::SetSuperFoldPostureAndPower(const int32_t postureVal)
+{
+    auto state = ScreenClosedState::UNKNOWN;
+    auto curDisplayMode = ScreenSessionManager::GetInstance().GetFoldDisplayMode();
+    bool isScreenOn = true;
+    if (postureVal > ANGLE_CHANGE_FOLDED_BEGIN && postureVal <= ANGLE_CHANGE_EXPANDED) {
+        if (curDisplayMode == FoldDisplayMode::MAIN) {
+            state = ScreenClosedState::OPEN;
+        }
+    } else if (postureVal >=ANGLE_CHANGE_FOLDED &&  postureVal <= ANGLE_CHANGE_FOLDED_BEGIN) {
+        state = ScreenClosedState::CLOSE;
+        isScreenOn = PowerMgr::PowerMgrClient::GetInstance().IsFoldScreenOn();
+    } else {
+        TLOGE(WmsLogTag::DMS, "postureVal is out of range.");
+        return;
+    }
+    SetSuperFoldPostureValue(postureVal);
+    ScreenSessionManager::GetInstance().SetScreenSwitchState(state, isScreenOn);
+}
+
+void ScreenSessionDumper::SetSuperDisplayFoldStatus(const std::string& foldStatus, int32_t& errCode)
+{
+    if (foldStatus.empty()) {
+        errCode = INVALID_VALUE;
+        return;
+    }
+    int32_t postureVal = INVALID_VALUE;
+    if (foldStatus == STATUS_FOLD_HALF) {
+        ScreenRotationProperty::HandleSensorEventInput(DeviceRotation::ROTATION_PORTRAIT);
+        postureVal = ANGLE_CHANGE_HALF_FOLDED;
+    } else if (foldStatus == STATUS_EXPAND) {
+        postureVal = ANGLE_CHANGE_EXPANDED;
+    } else if (foldStatus == STATUS_FOLD) {
+        postureVal = ANGLE_CHANGE_FOLDED;
+    } else {
+        errCode = INVALID_VALUE;
+        return;
+    }
+    SetSuperFoldPostureAndPower(postureVal);
 }
 #endif
 } // Rosen

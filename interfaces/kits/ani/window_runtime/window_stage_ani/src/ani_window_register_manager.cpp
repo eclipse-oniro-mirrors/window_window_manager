@@ -919,7 +919,7 @@ WmErrorCode AniWindowRegisterManager::UnregisterListener(sptr<Window> window, co
     ani_boolean isUndef = ANI_FALSE;
     env->Reference_IsUndefined(callback, &isUndef);
     if (!callback || isUndef == ANI_TRUE) {
-        TLOGI(WmsLogTag::DEFAULT, "[ANI]Unregister all callbck, type:%{public}s", type.c_str());
+        TLOGI(WmsLogTag::DEFAULT, "[ANI]SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto it = jsCbMap_[type].begin(); it != jsCbMap_[type].end();) {
             WmErrorCode ret = ProcessListener(listenerType, caseType, it->second, window, false, env, 0, errMsg);
             if (ret != WmErrorCode::WM_OK) {
@@ -1017,7 +1017,7 @@ WmErrorCode AniWindowRegisterManager::UnregisterWindowPostureListener(sptr<Windo
     ani_boolean isUndef = ANI_FALSE;
     env->Reference_IsUndefined(callback, &isUndef);
     if (!callback || isUndef == ANI_TRUE) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]Unregister all callbck, mode:%{public}u", postureMode);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[ANI]SubEvent op=off_all kit=ArkUIKit event=%{public}u", postureMode);
         for (auto it = jsPostureModeCbMap_[postureMode].begin(); it != jsPostureModeCbMap_[postureMode].end();) {
             WmErrorCode ret = ProcessWindowPostureModeChangeRegister(it->second, window, false, env, postureMode);
             if (ret != WmErrorCode::WM_OK) {

@@ -53,6 +53,8 @@ public:
     void NotifyBrightnessInfoChanged(ScreenId screenId, const ScreenBrightnessInfo& info) override {};
     void OnDisplayAttributeChange(sptr<DisplayInfo> displayInfo, const std::vector<std::string>& attributes)
         override {};
+    void NotifyDisplayStateChangedById(DisplayId displayId, DisplayState state) override {};
+    void NotifySpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status) override {};
 };
 }
 }

@@ -305,5 +305,10 @@ int32_t RSInterfaces::UnRegisterExposedEventCallback(const RSExposedEventType ty
 {
     return 0;
 }
+
+int32_t RSInterfaces::SetVirtualScreenHDRMode(ScreenId id, HDRMode mode)
+{
+    return 0;
+}
 }  // namespace Rosen
 }  // namespace OHOS

@@ -3536,6 +3536,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions01, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3679,6 +3680,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions07, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3704,6 +3706,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions08, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3729,6 +3732,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions09, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -3754,6 +3758,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions10, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -4086,6 +4091,7 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeDelegatedPath01, TestSize.Level1)
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetWindowModeSupportType(
         static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -4536,6 +4542,103 @@ HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_SubWindowMixedConfig02,
     WMError ret = window->MaximizeWithOptions(
         MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::UNSPECIFIED, config);
     ASSERT_EQ(ret, WMError::WM_OK);
+}
+
+// ==================== IsDisplayInFreeMultiWindow Branch Tests ====================
+
+/**
+ * @tc.name: MaximizeWithOptions_DisplayNotInFreeMultiWindow01
+ * @tc.desc: Display not in supportMultiWindowScreenSet should intercept maximize (returns WM_OK, not executed)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_DisplayNotInFreeMultiWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("DisplayNotInFreeMultiWin01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // supportMultiWindowScreenSet_ is empty, so IsDisplayInFreeMultiWindow() returns false
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    // Intercepted path returns WM_OK
+    ASSERT_EQ(ret, WMError::WM_OK);
+    // Maximize not executed: enableImmersiveMode_ and maximizeLayoutFullScreen_ stay at default false
+    EXPECT_EQ(window->enableImmersiveMode_.load(), false);
+    EXPECT_EQ(window->maximizeLayoutFullScreen_.load(), false);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_DisplayInFreeMultiWindow01
+ * @tc.desc: Display in supportMultiWindowScreenSet and not fullscreen-disabled should execute maximize
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_DisplayInFreeMultiWindow01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("DisplayInFreeMultiWin01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // Add current display to supportMultiWindowScreenSet_ so IsDisplayInFreeMultiWindow() returns true
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    ASSERT_EQ(ret, WMError::WM_OK);
+    // Maximize executed: ENTER_IMMERSIVE sets enableImmersiveMode_ and maximizeLayoutFullScreen_ to true
+    EXPECT_EQ(window->enableImmersiveMode_.load(), true);
+    EXPECT_EQ(window->maximizeLayoutFullScreen_.load(), true);
+}
+
+/**
+ * @tc.name: MaximizeWithOptions_FullScreenDisabled01
+ * @tc.desc: FullScreenDisabled should intercept maximize even when display is in free multi window
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, MaximizeWithOptions_FullScreenDisabled01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("FullScreenDisabled01");
+    sptr<WindowSceneSessionImpl> window = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(1);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    // Display is in free multi window
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
+    // But fullscreen is disabled via CompatibleModeProperty
+    sptr<CompatibleModeProperty> compatibleModeProperty = sptr<CompatibleModeProperty>::MakeSptr();
+    compatibleModeProperty->SetDisableFullScreen(true);
+    window->property_->SetCompatibleModeProperty(compatibleModeProperty);
+    window->property_->SetWindowModeSupportType(
+        static_cast<uint32_t>(WindowModeSupport::WINDOW_MODE_SUPPORT_ALL));
+    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    window->hostSession_ = session;
+
+    SnapshotAnimationConfig config = { SnapshotAnimationConfig::UNSET, SnapshotAnimationConfig::UNSET };
+    WMError ret = window->MaximizeWithOptions(
+        MaximizePresentation::ENTER_IMMERSIVE, AcrossDisplayPresentation::FOLLOW_ACROSS_DISPLAY_SETTING, config);
+    // Intercepted path returns WM_OK
+    ASSERT_EQ(ret, WMError::WM_OK);
+    // Maximize not executed: enableImmersiveMode_ and maximizeLayoutFullScreen_ stay at default false
+    EXPECT_EQ(window->enableImmersiveMode_.load(), false);
+    EXPECT_EQ(window->maximizeLayoutFullScreen_.load(), false);
 }
 
 /**

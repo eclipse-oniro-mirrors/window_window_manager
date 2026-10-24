@@ -41,10 +41,23 @@ int32_t DisplayManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& d
             NotifyDisplayPowerEvent(event, status);
             break;
         }
+        case TRANS_ID_NOTIFY_SPECIFIED_DISPLAY_POWER_EVENT: {
+            DisplayId displayId = static_cast<DisplayId>(data.ReadUint64());
+            DisplayPowerEvent event = static_cast<DisplayPowerEvent>(data.ReadUint32());
+            EventStatus status = static_cast<EventStatus>(data.ReadUint32());
+            NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+            break;
+        }
         case TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED: {
             DisplayState state = static_cast<DisplayState>(data.ReadUint32());
             DisplayId id = static_cast<DisplayId>(data.ReadUint64());
             NotifyDisplayStateChanged(id, state);
+            break;
+        }
+        case TRANS_ID_NOTIFY_DISPLAY_STATE_CHANGED_BY_ID: {
+            DisplayId displayId = static_cast<DisplayId>(data.ReadUint64());
+            DisplayState state = static_cast<DisplayState>(data.ReadUint32());
+            NotifyDisplayStateChangedById(displayId, state);
             break;
         }
         case TRANS_ID_ON_SCREEN_CONNECT: {

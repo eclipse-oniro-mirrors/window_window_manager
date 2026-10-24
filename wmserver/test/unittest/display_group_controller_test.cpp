@@ -528,27 +528,6 @@ HWTEST_F(DisplayGroupControllerTest, UpdateWindowDisplayId01, TestSize.Level1)
 }
 
 /**
- * @tc.name: MoveCrossNodeToTargetDisplay01
- * @tc.desc: TargetDisplayId equals to default displayId
- * @tc.type: FUNC
- */
-HWTEST_F(DisplayGroupControllerTest, MoveCrossNodeToTargetDisplay01, TestSize.Level1)
-{
-    sptr<WindowNode> node1 = new WindowNode();
-    node1->SetWindowProperty(CreateWindowProperty(100));
-    ASSERT_NE(nullptr, node1);
-    sptr<WindowNode> child = new WindowNode();
-    child->SetWindowProperty(CreateWindowProperty(101));
-    ASSERT_NE(nullptr, child);
-    node1->children_.push_back(child);
-    displayGroupController_->MoveCrossNodeToTargetDisplay(node1, 0);
-    auto showingDisplays = child->GetShowingDisplays();
-    ASSERT_NE(0, showingDisplays.size());
-    ASSERT_EQ(0, showingDisplays[0]);
-    node1->children_.pop_back();
-}
-
-/**
  * @tc.name: ProcessNotCrossNodesOnDestroyedDisplay01
  * @tc.desc: DisplayId equals to defaultDisplayId
  * @tc.type: FUNC

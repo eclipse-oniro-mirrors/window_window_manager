@@ -17,6 +17,7 @@
 
 #include "context.h"
 #include "interfaces/include/ws_common.h"
+#include "mock/mock_session_stage.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/session.h"
 #include "session_info.h"
@@ -565,6 +566,49 @@ HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreas, TestSize.Level1)
     EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
 }
 
+/**
+ * @tc.name: GetAllAvoidAreasFilterTitleButton
+ * @tc.desc: GetAllAvoidAreas should not include TYPE_TITLE_BUTTON
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, GetAllAvoidAreasFilterTitleButton, TestSize.Level1)
+{
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    SessionInfo info;
+    info.abilityName_ = "GetAllAvoidAreasFilterTitleButton";
+    info.bundleName_ = "GetAllAvoidAreasFilterTitleButton";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->property_ = sptr<WindowSessionProperty>::MakeSptr();
+    sceneSession->specificCallback_ = sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    sceneSession->specificCallback_->onGetLSState_ = []() { return true; };
+    sceneSession->Session::SetIgnoreRotateScale(1, 1);
+    EXPECT_EQ(sceneSession->GetAllAvoidAreas(avoidAreas), WSError::WS_OK);
+    EXPECT_EQ(avoidAreas.find(AvoidAreaType::TYPE_TITLE_BUTTON), avoidAreas.end());
+}
+
+/**
+ * @tc.name: UpdateAvoidAreaFilterTitleButton
+ * @tc.desc: UpdateAvoidArea with TYPE_TITLE_BUTTON returns WS_DO_NOTHING
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateAvoidAreaFilterTitleButton, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateAvoidAreaFilterTitleButton";
+    info.bundleName_ = "UpdateAvoidAreaFilterTitleButton";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    WSError ret = sceneSession->UpdateAvoidArea(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+    EXPECT_EQ(ret, WSError::WS_ERROR_NULLPTR);
+
+    sceneSession->foregroundInteractiveStatus_ = true;
+    ret = sceneSession->UpdateAvoidArea(avoidArea, AvoidAreaType::TYPE_TITLE_BUTTON);
+    EXPECT_EQ(ret, WSError::WS_DO_NOTHING);
+}
+
 /*
  * @tc.name: NotifyClientToUpdateRectTask
  * @tc.desc: NotifyClientToUpdateRectTask
@@ -970,6 +1014,135 @@ HWTEST_F(SceneSessionImmersiveTest, CalculateAvoidAreaByTypeWithRog, TestSize.Le
     AvoidArea avoidArea;
     session->CalculateAvoidAreaByType(AvoidAreaType::TYPE_SYSTEM, winRect, avoidRect, avoidArea);
     EXPECT_NE(avoidArea.topRect_.height_, 0);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea01
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true and no sessionStage_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea01";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = nullptr;
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    AvoidArea area;
+    area.topRect_ = { 0, 0, 100, 50 };
+    avoidAreas[AvoidAreaType::TYPE_SYSTEM] = area;
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, avoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea02
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true, UpdateAvoidArea succeeds
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea02";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea02";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    session->sessionStage_ = mockSessionStage;
+
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    AvoidArea area;
+    area.topRect_ = { 0, 0, 100, 50 };
+    avoidAreas[AvoidAreaType::TYPE_SYSTEM] = area;
+    avoidAreas[AvoidAreaType::TYPE_NAVIGATION_INDICATOR] = area;
+
+    EXPECT_CALL(*mockSessionStage, UpdateAvoidArea(_, _))
+        .Times(2)
+        .WillRepeatedly(Return(WSError::WS_OK));
+
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, avoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea03
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true, UpdateAvoidArea fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea03";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea03";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    session->sessionStage_ = mockSessionStage;
+
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    AvoidArea area;
+    area.topRect_ = { 0, 0, 100, 50 };
+    avoidAreas[AvoidAreaType::TYPE_SYSTEM] = area;
+
+    EXPECT_CALL(*mockSessionStage, UpdateAvoidArea(_, _))
+        .WillOnce(Return(WSError::WS_ERROR_IPC_FAILED));
+
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, avoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea04
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true and empty avoidAreas
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea04";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea04";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    session->sessionStage_ = mockSessionStage;
+
+    std::map<AvoidAreaType, AvoidArea> emptyAvoidAreas;
+    EXPECT_CALL(*mockSessionStage, UpdateAvoidArea(_, _)).Times(0);
+
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, emptyAvoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoPropagateError01
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=false returns error when no sessionStage_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoPropagateError01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoPropagateError01";
+    info.bundleName_ = "UpdateRectWithLayoutInfoPropagateError01";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = nullptr;
+    WSRect rect = { 0, 0, 720, 1280 };
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, {}, false);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
 }
 }
 }
