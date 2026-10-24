@@ -2954,9 +2954,9 @@ WMError SessionProxy::UpdateSessionPropertyByAction(const sptr<WindowSessionProp
         return WMError::WM_ERROR_IPC_FAILED;
     }
     auto sendCode = remote->SendRequest(static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_SESSION_PROPERTY),
-        data, reply, option)
+        data, reply, option);
     if (sendCode != ERR_NONE) {
-        TLOGE(WmsLogTag::DEFAULT, "SendRequest failed, code: %{public}d", sendCode);
+        TLOGE(WmsLogTag::DEFAULT, "SendRequest failed, code=%{public}d, action=%{public}" PRIu64, sendCode, action);
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = reply.ReadInt32();
