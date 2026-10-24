@@ -39,6 +39,7 @@ public:
     WSError UpdateGlobalDisplayRectFromServer(const WSRect& rect, SizeChangeReason reason) override;
     WSError UpdateOrientation() override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
+    WSError SetWindowStartDensity(float density) override;
     WSError HandleBackEvent() override;
     WSError MarkProcessed(int32_t eventId) override;
     WSError UpdateFocus(const sptr<FocusNotifyInfo>& focusNotifyInfo, bool isFocused) override;

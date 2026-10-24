@@ -190,6 +190,7 @@ public:
     WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize) override;
     void NotifyModalUIExtensionMayBeCovered(bool byLoadContent) override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
+    WSError SetWindowStartDensity(float density) override;
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
     WSError SetUIExtensionTransparent() override;
@@ -305,6 +306,7 @@ private:
     bool modalUIExtensionSelfLoadContent_ { false };
     bool isDensityCustomized_ { false };
     float customizedDensity_ { 0.0f };
+    float windowStartDensity_ { -1.0f };
     float lastDensity_ { 0.0f };
     int32_t lastOrientation_ { 0 };
     uint64_t lastDisplayId_ { 0 };

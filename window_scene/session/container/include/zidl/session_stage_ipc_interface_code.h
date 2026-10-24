@@ -140,6 +140,8 @@ enum class SessionStageInterfaceCode {
 
     TRANS_ID_UPDATE_LS_STATE,
     TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW,
+    // set window start density for UEA provider
+    TRANS_ID_SET_WINDOW_START_DENSITY,
 };
 }   // namespace Rosen
 }   // namespace OHOS
