@@ -149,6 +149,21 @@ private:
      */
     std::shared_ptr<RSUIContext> GetFallbackRSUIContext();
 
+    /**
+     * @brief Reads window start density from the Want of sessionInfo.
+     *
+     * The value may be stored as Integer/Float/Double in WantParams; each
+     * GetXxxParam only matches its own type, so try Integer -> Float -> Double
+     * in turn. Returns the density as float, or -1.0f if not found.
+     */
+    static float GetWindowStartDensityFromWant(const AAFwk::Want& want);
+
+    /**
+     * @brief Sends window start density to the session stage after a successful
+     *        ConnectInner, reading the density from sessionInfo.want.
+     */
+    void SendWindowStartDensity(const sptr<ISessionStage>& sessionStage);
+
     sptr<ExtensionSessionEventCallback> extSessionEventCallback_ = nullptr;
     bool isFirstTriggerBindModal_ = true;
     sptr<ChannelDeathRecipient> channelDeath_ = nullptr;

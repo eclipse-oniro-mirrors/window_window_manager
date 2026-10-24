@@ -312,6 +312,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateLSState(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW):
             return HandleUpdateScreenSupportMultiWindow(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_WINDOW_START_DENSITY):
+            return HandleSetWindowStartDensity(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -452,6 +454,13 @@ int SessionStageStub::HandleUpdateSessionViewportConfig(MessageParcel& data, Mes
     };
     config.dpiFollowStrategy_ = static_cast<DpiFollowStrategy>(dpiFollowStrategyValue);
     UpdateSessionViewportConfig(config);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleSetWindowStartDensity(MessageParcel& data, MessageParcel& reply)
+{
+    float density = data.ReadFloat();
+    WSError errCode = SetWindowStartDensity(density);
     return ERR_NONE;
 }
 
