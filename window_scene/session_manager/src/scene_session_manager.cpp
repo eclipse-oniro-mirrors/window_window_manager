@@ -647,7 +647,9 @@ void SceneSessionManager::RegisterBrightnessDataChangeListener()
     #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
         auto ret = DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().RegisterDataChangeListener(
             new OverrideChangeListener(), DisplayPowerMgr::DisplayDataChangeListenerType::FORCE_EXIT_OVERRIDDEN_MODE);
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret: %{public}d", static_cast<int32_t>(ret));
+        if (!ret) {
+            TLOGW(WmsLogTag::WMS_ATTRIBUTE, "register brightness listener failed");
+        }
     #endif
 }
 
@@ -656,7 +658,9 @@ void SceneSessionManager::UnregisterBrightnessDataChangeListener()
     #ifdef POWERMGR_DISPLAY_MANAGER_ENABLE
         auto ret = DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().UnregisterDataChangeListener(
             DisplayPowerMgr::DisplayDataChangeListenerType::FORCE_EXIT_OVERRIDDEN_MODE);
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret: %{public}d", static_cast<int32_t>(ret));
+        if (!ret) {
+            TLOGW(WmsLogTag::WMS_ATTRIBUTE, "unregister brightness listener failed");
+        }
     #endif
 }
 
@@ -1417,8 +1421,6 @@ void SceneSessionManager::ConfigWindowEffect(const WindowSceneConfig::ConfigItem
     AddAlphaToColor(appWindowSceneConfig.focusedShadowDark_.alpha_, appWindowSceneConfig.focusedShadowDark_.color_);
     AddAlphaToColor(appWindowSceneConfig.unfocusedShadowDark_.alpha_,
         appWindowSceneConfig.unfocusedShadowDark_.color_);
-
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "successfully");
 }
 
 bool SceneSessionManager::ConfigAppWindowCornerRadius(const WindowSceneConfig::ConfigItem& item, float& out)
@@ -5563,7 +5565,7 @@ void SceneSessionManager::CheckFloatWindowIsAnco(pid_t pid, const sptr<SceneSess
             if (AbilityInfoManager::GetInstance().IsAnco(sessionInfo.bundleName_,
                     sessionInfo.abilityName_, sessionInfo.moduleName_)) {
                 newSession->SetIsAncoForFloatingWindow(true);
-                TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Set float window is anco, wid: %{public}d", newSession->GetWindowId());
+                TLOGI(WmsLogTag::WMS_ATTRIBUTE, "float window is anco, wid: %{public}d", newSession->GetWindowId());
                 break;
             }
         }
@@ -8153,7 +8155,7 @@ void SceneSessionManager::HandleHideNonSystemFloatingWindows(const sptr<WindowSe
     bool hideNonSystemFloatingWindowsOld = propertyOld->GetHideNonSystemFloatingWindows();
     bool hideNonSystemFloatingWindowsNew = property->GetHideNonSystemFloatingWindows();
     if (hideNonSystemFloatingWindowsOld == hideNonSystemFloatingWindowsNew) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "property hideNonSystemFloatingWindows not change");
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "property hideNonSystemFloatingWindows not change");
         return;
     }
 
@@ -8170,7 +8172,7 @@ void SceneSessionManager::UpdateForceHideState(const sptr<SceneSession>& sceneSe
     const sptr<WindowSessionProperty>& property, bool add)
 {
     if (systemConfig_.IsPcWindow()) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "IsPcWindow, ineffective");
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "IsPcWindow, ineffective");
         return;
     }
     if (property == nullptr) {
@@ -8418,14 +8420,14 @@ WSError SceneSessionManager::UpdateBrightness(int32_t persistentId)
     }
     if (std::fabs(brightness - UNDEFINED_BRIGHTNESS) < std::numeric_limits<float>::min()) {
         if (IsNeedUpdateBrightness(persistentId, brightness)) {
-            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "adjust brightness with default value");
+            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "adjust brightness with default value");
             DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().RestoreBrightness();
             SetDisplayBrightness(UNDEFINED_BRIGHTNESS); // UNDEFINED_BRIGHTNESS means system default brightness
             brightnessSessionId_ = INVALID_WINDOW_ID;
         }
     } else {
         if (std::fabs(brightness - GetDisplayBrightness()) > std::numeric_limits<float>::min()) {
-            TLOGI(WmsLogTag::WMS_ATTRIBUTE, "adjust brightness with value");
+            TLOGD(WmsLogTag::WMS_ATTRIBUTE, "adjust brightness with value");
             DisplayPowerMgr::DisplayPowerMgrClient::GetInstance().OverrideBrightness(
                 static_cast<uint32_t>(brightness * MAX_BRIGHTNESS));
             SetDisplayBrightness(brightness);
@@ -12960,7 +12962,7 @@ WMError SceneSessionManager::Snapshot(std::shared_ptr<Media::PixelMap>& pixelMap
         }
         bool isSucceeded = rsUICtx->GetRSRenderInterface()->TakeSurfaceCapture(surfaceNode, callback, rsConfig);
         if (!isSucceeded) {
-            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "TakeSurfaceCapture failed: %{public}d", persistentId);
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "TakeSurfaceCapture failed, persistentId: %{public}d", persistentId);
             ReportPrivacyWindowSnapshotFail(sceneSession, SNAPSHOT_ERROR_TAKE_CAPTURE, "take surface capture failed");
             return WMError::WM_ERROR_INVALID_OPERATION;
         }
@@ -14805,7 +14807,7 @@ void SceneSessionManager::WindowDestroyNotifyVisibility(const sptr<SceneSession>
         TLOGE(WmsLogTag::DEFAULT, "sceneSession is nullptr!");
         return;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "in, wid: %{public}d, RSVisible: %{public}d, WindowMode: %{public}u",
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "wid: %{public}d, RSVisible: %{public}d, WindowMode: %{public}u",
         sceneSession->GetWindowId(), sceneSession->GetRSVisible(), sceneSession->GetWindowMode());
     if (sceneSession->GetRSVisible() || sceneSession->GetWindowMode() == WindowMode::WINDOW_MODE_PIP) {
         std::vector<sptr<WindowVisibilityInfo>> windowVisibilityInfos;
@@ -15695,7 +15697,6 @@ void SceneSessionManager::SetVirtualPixelRatioChangeListener(const ProcessVirtua
 
 void SceneSessionManager::SetUpdateDisplayDpiChangeCallback(const UpdateDisplayDpiChangeFunc& func)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "in");
     updateDisplayDpiChangeFunc_ = func;
 }
 
@@ -15726,7 +15727,6 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
     }
     taskScheduler_->PostSyncTask([this, displayInfo, type, where = __func__]() {
         if (updateDisplayDpiChangeFunc_ != nullptr) {
-            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s in", where);
             updateDisplayDpiChangeFunc_(displayInfo->GetDisplayId(), displayInfo->GetVirtualPixelRatio());
         }
         if (ShouldProcessVirtualPixelRatioChange(type, displayInfo)) {
@@ -20020,9 +20020,8 @@ WMError SceneSessionManager::GetProcessSurfaceNodeIdByPersistentId(const int32_t
     }
 
     surfaceNodeIds.clear();
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Get process surfaceNodeId by persistentId, pid:%{public}d", pid);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "pid: %{public}d, widSize: %{public}zu", pid, persistentIds.size());
     for (auto persistentId : persistentIds) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "convert wid:%{public}d", persistentId);
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
             continue;
@@ -22742,7 +22741,9 @@ void SceneSessionManager::RegisterAppStateObserver()
         ClearProcessRecordWhenAppExit(processData);
     });
     auto ret = appMgrClient_->RegisterApplicationStateObserver(appStateObserver_);
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "register observer result=%{public}d", ret);
+    if (ret != ERR_OK) {
+        TLOGW(WmsLogTag::WMS_ATTRIBUTE, "register app state observer failed, ret: %{public}d", ret);
+    }
 }
 
 void AppStateObserver::OnProcessDied(const AppExecFwk::ProcessData& processData)
@@ -22756,7 +22757,6 @@ void AppStateObserver::OnProcessDied(const AppExecFwk::ProcessData& processData)
 
 void AppStateObserver::RegisterProcessDiedNotifyFunc(NotifyAppProcessDiedFunc&& func)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "register");
     procDiedCallback_ = std::move(func);
 }
 

@@ -1255,7 +1255,7 @@ int SessionStageStub::HandleConfigDockAutoHide(MessageParcel& data, MessageParce
 
 int SessionStageStub::HandleGetUIContentRemoteObj(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Called");
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "Called");
     sptr<IRemoteObject> uiContentRemoteObj;
     WSError errCode = GetUIContentRemoteObj(uiContentRemoteObj);
     reply.WriteRemoteObject(uiContentRemoteObj);

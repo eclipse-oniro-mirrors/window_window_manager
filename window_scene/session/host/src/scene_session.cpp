@@ -1807,7 +1807,7 @@ void SceneSession::RegisterSnapshotSkipChangeCallback(NotifySnapshotSkipChangeFu
 
 void SceneSession::UpdatePropertyWhenTriggerMode()
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "in, id: %{public}u, winName: %{public}s", GetPersistentId(),
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}u, winName: %{public}s", GetPersistentId(),
             GetWindowName().c_str());
     if (sessionStage_ == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "stage is null");
@@ -9066,7 +9066,7 @@ WMError SceneSession::RemoveSessionBlackList(const std::unordered_set<std::strin
 
 WMError SceneSession::SetUniqueDensityDpi(bool useUnique, float dpi)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "SceneSession set unique dpi: id=%{public}d, dpi=%{public}f",
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}d, dpi=%{public}f",
         GetPersistentId(), dpi);
     if (useUnique && (dpi > DOT_PER_INCH_MAXIMUM_VALUE || dpi < DOT_PER_INCH_MINIMUM_VALUE)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Invalid input dpi value, valid input range: %{public}u ~ %{public}u",
@@ -10718,7 +10718,7 @@ void SceneSession::SetColorSpace(ColorSpace colorSpace)
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "surfaceNode is invalid");
         return;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "SetColorSpace value=%{public}u", colorSpace);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "colorSpace=%{public}u", colorSpace);
     auto colorGamut = GraphicColorGamut::GRAPHIC_COLOR_GAMUT_SRGB;
     if (colorSpace == ColorSpace::COLOR_SPACE_WIDE_GAMUT) {
         colorGamut = GraphicColorGamut::GRAPHIC_COLOR_GAMUT_DCI_P3;
@@ -11282,7 +11282,7 @@ WMError SceneSession::UpdateScreenshotAppEventRegistered(int32_t persistentId, b
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s win %{public}d session is null", where, persistentId);
             return;
         }
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s win %{public}d isRegister %{public}uu",
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s win %{public}d isRegister %{public}u",
             where, persistentId, isRegister);
         if (session->updateScreenshotAppEventRegisteredFunc_) {
             session->updateScreenshotAppEventRegisteredFunc_(persistentId, isRegister);

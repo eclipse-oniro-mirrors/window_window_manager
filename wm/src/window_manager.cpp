@@ -1562,7 +1562,6 @@ WMError WindowManager::UnregisterFloatingScaleChangedListener(const sptr<IWindow
 
 WMError WindowManager::RegisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "in");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
@@ -1602,7 +1601,6 @@ WMError WindowManager::RegisterMidSceneChangedListener(const sptr<IWindowInfoCha
 
 WMError WindowManager::UnregisterMidSceneChangedListener(const sptr<IWindowInfoChangedListener>& listener)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "in");
     if (listener == nullptr) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is null");
         return WMError::WM_ERROR_NULLPTR;
