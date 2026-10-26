@@ -6359,6 +6359,8 @@ void SceneSessionManager::SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>&
         uint64_t defaultDisplayId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
         int32_t focusSessionId = windowFocusController_->GetFocusedSessionId(defaultDisplayId);
         auto focusedSession = GetSceneSession(focusSessionId);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "found=%{public}d, focusId=%{public}d, defaultDisplayId=%{public}" PRIu64,
+            focusedSession != nullptr , focusSessionId, defaultDisplayId);
         DisplayId displayId = defaultDisplayId;
         if (focusedSession != nullptr && focusedSession->GetSessionProperty()->GetDisplayId() != DISPLAY_ID_INVALID) {
             displayId = focusedSession->GetSessionProperty()->GetDisplayId();
@@ -17680,6 +17682,8 @@ WMError SceneSessionManager::ListWindowInfo(const WindowInfoOption& windowInfoOp
                 AddOptionWindowMetaInfo(windowInfo, sceneSession);
             }
             infos.emplace_back(windowInfo);
+            TLOGND(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s]",
+                where, sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str());
         }
         return WMError::WM_OK;
     }, __func__);

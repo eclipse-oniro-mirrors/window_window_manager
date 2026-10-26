@@ -1123,9 +1123,9 @@ WMError WindowManager::UnregisterVisibilityChangedListener(const sptr<IVisibilit
     pImpl_->windowVisibilityListeners_.erase(listener);
 
     WMError ret = WMError::WM_OK;
-    bool hasListeners = false;
+    bool unregistered = false;
     if (pImpl_->windowVisibilityListeners_.empty() && pImpl_->windowVisibilityListenerAgent_ != nullptr) {
-        hasListeners = true;
+        unregistered = true;
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
             pImpl_->windowVisibilityListenerAgent_);
@@ -1133,7 +1133,7 @@ WMError WindowManager::UnregisterVisibilityChangedListener(const sptr<IVisibilit
             pImpl_->windowVisibilityListenerAgent_ = nullptr;
         }
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, hasListeners=%{public}d", ret, hasListeners);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, unregistered=%{public}d", ret, unregistered);
     return ret;
 }
 

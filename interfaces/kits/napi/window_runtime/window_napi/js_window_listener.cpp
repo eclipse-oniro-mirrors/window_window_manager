@@ -686,7 +686,7 @@ void JsWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
         }
         napi_value argv[] = { CreateJsValue(eng, isVisible) };
         thisListener->CallJsMethod(WINDOW_VISIBILITY_CHANGE_CB.c_str(), argv, ArraySize(argv));
-        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: isVisible=%{public}u", where, isVisible);
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: isVisible=%{public}d", where, isVisible);
     };
     napi_status status = napi_send_event(env_, jsCallback, napi_eprio_high, "OnWindowVisibilityChangedCallback");
     if (status != napi_status::napi_ok) {

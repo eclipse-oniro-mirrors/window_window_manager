@@ -579,7 +579,7 @@ void AniWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
         }
         AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
             nullptr, thisListener->aniCallback_, ani_boolean(isVisible));
-        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: isVisible=%{public}u", where, isVisible);
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: isVisible=%{public}d", where, isVisible);
     };
     if (!eventHandler_) {
         TLOGE(WmsLogTag::DEFAULT, "get main event handler failed!");
