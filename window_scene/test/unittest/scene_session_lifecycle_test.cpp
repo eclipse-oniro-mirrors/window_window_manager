@@ -351,7 +351,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
 
 /**
  * @tc.name: Foreground11
- * @tc.desc: Foreground with isFromClient true and main window, session not exist in manager
+ * @tc.desc: Foreground with isFromClient true and main window, state is not a pre-state of foreground
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionLifecycleTest, Foreground11, TestSize.Level1)
@@ -367,6 +367,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground11, TestSize.Level1)
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     session->property_ = property;
     session->SetCallingPid(IPCSkeleton::GetCallingPid());
+    session->SetSessionState(SessionState::STATE_DISCONNECT);
 
     auto result = session->Foreground(property, true);
     EXPECT_EQ(result, WSError::WS_ERROR_INVALID_SESSION);
@@ -374,7 +375,7 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground11, TestSize.Level1)
 
 /**
  * @tc.name: Foreground12
- * @tc.desc: Foreground with isFromClient true and main window, session exists in manager
+ * @tc.desc: Foreground with isFromClient true and main window, state is a pre-state of foreground
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionLifecycleTest, Foreground12, TestSize.Level1)
@@ -383,20 +384,14 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground12, TestSize.Level1)
     info.abilityName_ = "Foreground12";
     info.bundleName_ = "Foreground12";
 
-    sptr<SceneSession::SpecificSessionCallback> specificCallback =
-        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
-    ASSERT_NE(specificCallback, nullptr);
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, specificCallback);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     ASSERT_NE(session, nullptr);
-
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
     session->property_ = property;
     session->SetCallingPid(IPCSkeleton::GetCallingPid());
-    specificCallback->onGetSceneSessionByIdCallback_ = [session](int32_t sessionId) -> sptr<SceneSession> {
-        return session;
-    };
+    session->SetSessionState(SessionState::STATE_CONNECT);
 
     auto result = session->Foreground(property, true);
     EXPECT_EQ(result, WSError::WS_OK);
