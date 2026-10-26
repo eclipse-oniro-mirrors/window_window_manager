@@ -3808,14 +3808,16 @@ napi_value JsWindow::OnSetWindowLayoutFullScreen(napi_env env, napi_callback_inf
             "[window][setWindowLayoutFullScreen]msg: Incorrect parameter types");
     }
     const char* const where = __func__;
+    const std::string windowName = windowName_;
     NapiAsyncTask::CompleteCallback complete =
-        [weakToken = wptr<Window>(windowToken_), isLayoutFullScreen, where](napi_env env,
+        [weakToken = wptr<Window>(windowToken_), isLayoutFullScreen, windowName, where](napi_env env,
             NapiAsyncTask& task, int32_t status) {
             auto window = weakToken.promote();
             if (window == nullptr) {
                 TLOGNE(WmsLogTag::WMS_IMMS, "%{public}s window is nullptr", where);
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][setWindowLayoutFullScreen]msg: The window is not created or destroyed"));
+                    "[window][setWindowLayoutFullScreen]msg: The window " + windowName +
+                    " is not created or destroyed"));
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowLayoutFullScreen",
                     WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
                 return;
