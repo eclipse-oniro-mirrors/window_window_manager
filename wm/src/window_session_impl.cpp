@@ -8517,9 +8517,13 @@ WMError WindowSessionImpl::ClearTouchEventFilter()
 
 bool WindowSessionImpl::FilterKeyEvent(const std::shared_ptr<MMI::KeyEvent>& keyEvent)
 {
-    std::lock_guard<std::mutex> lock(keyEventFilterMutex_);
-    if (keyEventFilter_ != nullptr) {
-        bool isFilter = keyEventFilter_(*keyEvent.get());
+    KeyEventFilterFunc keyEventFilter = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(keyEventFilterMutex_);
+        keyEventFilter = keyEventFilter_;
+    }
+    if (keyEventFilter != nullptr) {
+        bool isFilter = keyEventFilter(*keyEvent.get());
         TLOGE(WmsLogTag::WMS_SYSTEM, "isFilter:%{public}d", isFilter);
         if (isFilter) {
             keyEvent->MarkProcessed();

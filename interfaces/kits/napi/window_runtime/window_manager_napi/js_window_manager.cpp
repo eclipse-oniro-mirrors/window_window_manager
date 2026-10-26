@@ -2201,7 +2201,7 @@ napi_value JsWindowManager::OnShiftAppWindowPointerEvent(napi_env env, napi_call
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [sourceWindowId, targetWindowId, env, task = napiAsyncTask] {
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
+        WmErrorCode ret = ConvertErrorToCode(SingletonContainer::Get<WindowManager>().
             ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
@@ -2256,20 +2256,19 @@ napi_value JsWindowManager::OnShiftAppWindowTouchEvent(napi_env env, napi_callba
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][shiftAppWindowTouchEvent]msg: Failed to convert parameter to fingerId");
     }
+    if (sourceWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
+        targetWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
+        (fingerId <= static_cast<int32_t>(INVALID_FINGER_ID))) {
+        TLOGE(WmsLogTag::WMS_PC, "invalid sourceWindowId or targetWindowId or fingerId");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
+            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][shiftAppWindowTouchEvent]msg: Invalid sourceWindowId or targetWindowId or fingerId");
+    }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [sourceWindowId, targetWindowId, fingerId, env, task = napiAsyncTask] {
-        if (sourceWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
-            targetWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
-            (fingerId <= static_cast<int32_t>(INVALID_FINGER_ID))) {
-            TLOGE(WmsLogTag::WMS_PC, "invalid sourceWindowId or targetWindowId or fingerId");
-            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
-                WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
-                        "[window][shiftAppWindowTouchEvent]msg: Invalid sourceWindowId or targetWindowId or fingerId"));
-            return;
-        }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
+        WmErrorCode ret = ConvertErrorToCode(SingletonContainer::Get<WindowManager>().
             ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId, fingerId));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));

@@ -1339,7 +1339,7 @@ int32_t CJWindowImpl::SetDialogBackGestureEnabled(bool enabled)
         return static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
     }
 
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->SetDialogBackGestureEnabled(enabled));
+    WmErrorCode ret = ConvertErrorToCode(windowToken_->SetDialogBackGestureEnabled(enabled));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_DIALOG, "Set dialog backgesture failed, window [%{public}u, %{public}s]",
             windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str());

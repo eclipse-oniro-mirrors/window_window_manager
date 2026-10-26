@@ -496,6 +496,23 @@ const std::map<WMError, WmErrorCode> WM_JS_TO_ERROR_CODE_MAP {
 };
 
 /**
+ * @brief Convert WMError to corresponding WmErrorCode.
+ *
+ * @param error WMError value to convert.
+ * @param defaultCode Value to return if mapping is not found.
+ * @return Corresponding WmErrorCode or defaultCode if unmapped.
+ */
+inline WmErrorCode ConvertErrorToCode(WMError error,
+    WmErrorCode defaultCode = WmErrorCode::WM_ERROR_STATE_ABNORMALLY)
+{
+    auto iter = WM_JS_TO_ERROR_CODE_MAP.find(error);
+    if (iter != WM_JS_TO_ERROR_CODE_MAP.end()) {
+        return iter->second;
+    }
+    return defaultCode;
+}
+
+/**
  * @brief Enumerates window size change reason.
  */
 enum class WindowSizeChangeReason : uint32_t {

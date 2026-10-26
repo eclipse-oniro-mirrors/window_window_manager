@@ -1233,7 +1233,7 @@ napi_value JsExtensionWindow::OnRegisterRectChangeCallback(napi_env env, size_t 
     if (reasons != static_cast<uint32_t>(ComponentRectChangeReason::HOST_WINDOW_RECT_CHANGE)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Unsupported rect change reasons");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][on]msg: Parameter verification faile");
+            "[window][on]msg: Parameter verification failed");
     }
     napi_value cbValue = argv[INDEX_TWO];
     if (!NapiIsCallable(env, cbValue)) {
@@ -1659,7 +1659,8 @@ napi_value JsExtensionWindow::OnCreateSubWindowWithOptions(napi_env env, napi_ca
         TLOGE(WmsLogTag::WMS_SUB, "Failed to convert followCreatorLifecycle parameter to bool");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.uiExtension.createSubWindowWithOptions",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM)));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][createSubWindowWithOptions]msg: Failed to convert followCreatorLifecycle parameter to bool"));
         return NapiGetUndefined(env);
     }
     auto extWindow = extensionWindow_->GetWindow();
