@@ -6360,7 +6360,7 @@ void SceneSessionManager::SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>&
         int32_t focusSessionId = windowFocusController_->GetFocusedSessionId(defaultDisplayId);
         auto focusedSession = GetSceneSession(focusSessionId);
         TLOGI(WmsLogTag::WMS_ATTRIBUTE, "found=%{public}d, focusId=%{public}d, defaultDisplayId=%{public}" PRIu64,
-            focusedSession != nullptr , focusSessionId, defaultDisplayId);
+            focusedSession != nullptr, focusSessionId, defaultDisplayId);
         DisplayId displayId = defaultDisplayId;
         if (focusedSession != nullptr && focusedSession->GetSessionProperty()->GetDisplayId() != DISPLAY_ID_INVALID) {
             displayId = focusedSession->GetSessionProperty()->GetDisplayId();
