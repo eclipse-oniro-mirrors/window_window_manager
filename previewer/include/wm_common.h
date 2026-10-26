@@ -436,6 +436,8 @@ enum class ControlAppType : uint8_t {
     PARENT_CONTROL,
     DLP,
     PRIVACY_WINDOW,
+    APP_PROJECTION,
+    SCREEN_SHARED_PROTECTION,
     CONTROL_APP_TYPE_END,
 };
 
