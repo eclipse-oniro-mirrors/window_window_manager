@@ -209,6 +209,7 @@ const bool IGNORE_OPTIONAL_START_WINDOW = system::GetBoolParameter("const.window
 */
 const std::string ERR_REASON_DEFAULT = "startFailed";
 const std::string ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK = "startFirstBootScreenUnlock";
+const std::string ERR_REASON_LOW_MEMORY_APP_FREEZE = "startLowMemoryAppFreeze";
 
 const std::map<std::string, OHOS::AppExecFwk::DisplayOrientation> STRING_TO_DISPLAY_ORIENTATION_MAP = {
     {"unspecified",                         OHOS::AppExecFwk::DisplayOrientation::UNSPECIFIED},
@@ -3194,6 +3195,8 @@ WSError SceneSessionManager::StartOrMinimizePcAppInPadUIAbilityBySCB(const sptr<
             exceptionInfo.needRemoveSession = true;
             if (errCode == ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK) {
                 abilitySessionInfo->errorReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
+            } else if (errCode == ERR_LOW_MEMORY_APP_FREEZE) {
+                abilitySessionInfo->errorReason = ERR_REASON_LOW_MEMORY_APP_FREEZE;
             } else {
                 abilitySessionInfo->errorReason = ERR_REASON_DEFAULT;
             }
@@ -4473,6 +4476,8 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         exceptionInfo.needRemoveSession = true;
         if (errCode == ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK) {
             sceneSessionInfo->errorReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
+        } else if (errCode == ERR_LOW_MEMORY_APP_FREEZE) {
+            sceneSessionInfo->errorReason = ERR_REASON_LOW_MEMORY_APP_FREEZE;
         } else {
             sceneSessionInfo->errorReason = ERR_REASON_DEFAULT;
         }
@@ -6982,6 +6987,8 @@ WSError SceneSessionManager::StartOrMinimizeUIAbilityBySCB(const sptr<SceneSessi
             exceptionInfo.needRemoveSession = true;
             if (errCode == ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK) {
                 abilitySessionInfo->errorReason = ERR_REASON_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK;
+            } else if (errCode == ERR_LOW_MEMORY_APP_FREEZE) {
+                abilitySessionInfo->errorReason = ERR_REASON_LOW_MEMORY_APP_FREEZE;
             } else {
                 abilitySessionInfo->errorReason = ERR_REASON_DEFAULT;
             }
