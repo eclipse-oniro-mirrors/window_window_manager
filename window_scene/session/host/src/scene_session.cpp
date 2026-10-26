@@ -1629,14 +1629,8 @@ void SceneSession::NotifyUpdateAppUseControl(ControlAppType type, const ControlI
             bool isAppUseControlChanged = (session->isAppUseControl_ != isAppUseControl);
             session->isAppUseControl_ = isAppUseControl;
             session->onUpdateAppUseControlFunc_(type, controlInfo.isNeedControl, controlInfo.isControlRecentOnly);
-            if (type == ControlAppType::PRIVACY_WINDOW || type == ControlAppType::SCREEN_SHARED_PROJECTION) {
-                TLOGNI(WmsLogTag::WMS_LIFE,
-                    "%{public}s no need to notify app use control status, type: %{public}d, id: %{public}d",
-                    where, static_cast<int>(type), session->GetPersistentId());
-                return;
-            }
-            if (session->sessionStage_ == nullptr) {
-                TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s sessionStage is null", where);
+            if (session->sessionStage_ == nullptr || type == ControlAppType::PRIVACY_WINDOW) {
+                TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s sessionStage is nullptr or privacy mode control", where);
                 return;
             }
             auto state = session->GetSessionState();
