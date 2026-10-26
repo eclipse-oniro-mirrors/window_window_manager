@@ -25,7 +25,6 @@
 #include "session/host/include/main_session.h"
 #include "screen_session_manager_client.h"
 #include "wm_common.h"
-#include "ipc_skeleton.h"
 #include "mock/mock_session_stage.h"
 #include "input_event.h"
 #include <pointer_event.h>
