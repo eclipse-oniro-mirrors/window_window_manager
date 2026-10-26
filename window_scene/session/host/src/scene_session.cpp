@@ -533,8 +533,9 @@ WSError SceneSession::Foreground(
             return WSError::WS_OK;
         }
         if (!IsForegroundPreState()) {
-            TLOGW(WmsLogTag::WMS_LIFE, "Current state is not a pre-state of foreground, state: %{public}u",
-                GetSessionState());
+            TLOGW(WmsLogTag::WMS_LIFE,
+                "Current state is not a pre-state of foreground, session: %{public}d, state: %{public}u",
+                GetPersistentId(), GetSessionState());
             return WSError::WS_ERROR_INVALID_SESSION;
         }
     }
