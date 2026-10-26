@@ -42,7 +42,7 @@ WSError FocusGroup::UpdateFocusedAppSessionId(int32_t persistentId)
 WindowFocusController::WindowFocusController() noexcept
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "constructor");
-    AddFocusGroup(DEFAULT_DISPLAY_ID, DEFAULT_DISPLAY_ID);
+    AddFocusGroup(DEFAULT_DISPLAY_ID, DEFAULT_DISPLAY_ID, DisplayGroupType::DEFAULT);
 }
 
 DisplayId WindowFocusController::GetDisplayGroupId(DisplayId displayId)
@@ -69,7 +69,8 @@ DisplayId WindowFocusController::GetDisplayGroupId(DisplayId displayId)
     }
 }
 
-WSError WindowFocusController::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId)
+WSError WindowFocusController::AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId,
+    DisplayGroupType displayGroupType)
 {
     TLOGI(WmsLogTag::WMS_FOCUS,
           "displayId: %{public}" PRIu64", displayGroupId: %{public}" PRIu64,
@@ -88,6 +89,11 @@ WSError WindowFocusController::AddFocusGroup(DisplayGroupId displayGroupId, Disp
         auto iter = focusGroupMap_.find(displayGroupId);
         if (iter == focusGroupMap_.end() || iter->second == nullptr) {
             sptr<FocusGroup> focusGroup = sptr<FocusGroup>::MakeSptr(displayGroupId);
+            DisplayGroupType defaultDisplayGroupType = displayGroupId == DISPLAY_GROUP_ID_DEFAULT
+                ? DisplayGroupType::DEFAULT : DisplayGroupType::SPECIAL;
+            DisplayGroupType groupType = displayGroupType != DisplayGroupType::INVALID ?
+                displayGroupType : defaultDisplayGroupType;
+            focusGroup->SetDisplayGroupType(groupType);
             focusGroup->displayIds_.insert(displayId);
             focusGroupMap_.insert(std::make_pair(displayGroupId, focusGroup));
         } else {

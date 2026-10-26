@@ -369,7 +369,7 @@ public:
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WSError IsFocusWindowParent(const sptr<IRemoteObject>& token, bool& isParent);
-    WSError AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
+    WSError AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId, DisplayGroupType displayGroupType);
     WSError RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 
@@ -1291,10 +1291,15 @@ private:
     bool CheckBlockingFocus(const sptr<SceneSession>& session, bool includingAppSession);
     WSError ShiftFocus(DisplayId displayId, const sptr<SceneSession>& nextSession, bool isProactiveUnfocus,
         FocusChangeReason reason = FocusChangeReason::DEFAULT);
+    void HandleSCBFocusChange(const sptr<SceneSession>& focusedSession, const sptr<SceneSession>& nextSession);
     void UpdateFocusStatus(DisplayId displayId, const sptr<SceneSession>& sceneSession, bool isFocused,
-        const sptr<FocusNotifyInfo>& focusNotifyInfo);
+        const sptr<FocusNotifyInfo>& focusNotifyInfo, int32_t otherWindowId = INVALID_WINDOW_ID,
+        int32_t otherUid = -1, int32_t otherPid = -1);
+    void ProcessModalFocusNotify(const sptr<SceneSession>& sceneSession, const sptr<Session>& modal,
+        const sptr<SceneSession>& modalSession);
     void NotifyFocusStatus(const sptr<SceneSession>& sceneSession, bool isFocused, const sptr<FocusGroup>& focusGroup,
-        const sptr<FocusNotifyInfo>& focusNotifyInfo);
+        const sptr<FocusNotifyInfo>& focusNotifyInfo, int32_t otherWindowId = INVALID_WINDOW_ID,
+        int32_t otherUid = -1, int32_t otherPid = -1);
     sptr<FocusNotifyInfo> GetFocusNotifyInfo(DisplayId displayId, const sptr<SceneSession>& nextSession,
         FocusChangeReason reason = FocusChangeReason::DEFAULT);
     void NotifyRssThawApp(const int32_t uid, const std::string& bundleName, const std::string& reason);

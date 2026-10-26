@@ -2706,7 +2706,7 @@ HWTEST_F(SceneSessionManagerTest2, GetFocusWindowInfoByAbilityToken, TestSize.Le
     ssm_->GetFocusWindowInfoByAbilityToken(focusInfo, token);
     EXPECT_EQ(focusInfo.windowId_, INVALID_WINDOW_ID);
 
-    ssm_->windowFocusController_->AddFocusGroup(0, 0);
+    ssm_->windowFocusController_->AddFocusGroup(0, 0, DisplayGroupType::DEFAULT);
     sceneSession1->property_->SetDisplayId(DEFAULT_DISPLAY_ID);
     auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
     sceneSession1->property_->SetPersistentId(2);
