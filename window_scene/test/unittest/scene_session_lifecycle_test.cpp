@@ -625,6 +625,79 @@ HWTEST_F(SceneSessionLifecycleTest, DisconnectTask01, TestSize.Level0)
 }
 
 /**
+ * @tc.name: DisconnectTaskVisibilityNotifyOnce01
+ * @tc.desc: Notify visibility change only once when disconnect is triggered more than once
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, DisconnectTaskVisibilityNotifyOnce01, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "DisconnectTaskVisibilityNotifyOnce01";
+    info.bundleName_ = "DisconnectTaskVisibilityNotifyOnce01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->isActive_ = true;
+    sceneSession->isVisible_ = true;
+    int32_t notifyCount = 0;
+    sceneSession->SetVisibilityChangedDetectFunc(
+        [&notifyCount](int32_t pid, bool isVisible, bool newIsVisible) {
+            if (isVisible != newIsVisible) {
+                notifyCount++;
+            }
+        });
+    EXPECT_EQ(sceneSession->DisconnectTask(false, true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->DisconnectTask(false, true), WSError::WS_OK);
+    EXPECT_EQ(notifyCount, 1); // only the first disconnect notifies the visibility change
+    EXPECT_EQ(sceneSession->IsVisible(), true); // isVisible_ is kept for the dirty pipeline
+}
+
+/**
+ * @tc.name: DisconnectVisibilityNotifyAfterReuse01
+ * @tc.desc: Notify visibility change again after the session is reused by a new attach
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, DisconnectVisibilityNotifyAfterReuse01, TestSize.Level0)
+{
+    SessionInfo info;
+    info.abilityName_ = "DisconnectVisibilityNotifyAfterReuse01";
+    info.bundleName_ = "DisconnectVisibilityNotifyAfterReuse01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->isActive_ = true;
+    sceneSession->isVisible_ = true;
+    int32_t notifyCount = 0;
+    sceneSession->SetVisibilityChangedDetectFunc(
+        [&notifyCount](int32_t pid, bool isVisible, bool newIsVisible) {
+            if (isVisible != newIsVisible) {
+                notifyCount++;
+            }
+        });
+    EXPECT_EQ(sceneSession->DisconnectTask(false, true), WSError::WS_OK);
+    EXPECT_EQ(sceneSession->DisconnectTask(false, true), WSError::WS_OK);
+    EXPECT_EQ(notifyCount, 1);
+
+    // Reuse the disconnected session object for a new attach, as ReuseSession does.
+    sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(mockSessionStage, nullptr);
+    sptr<IWindowEventChannel> eventChannel = sptr<WindowEventChannel>::MakeSptr(mockSessionStage);
+    ASSERT_NE(eventChannel, nullptr);
+    SystemSessionConfig systemConfig;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    sptr<IRemoteObject> renderSession;
+    std::shared_ptr<RSSurfaceNode> surfaceNode;
+    sptr<IRemoteObject> token;
+    auto result = sceneSession->ConnectInner(mockSessionStage, eventChannel, 0, systemConfig,
+        renderSession, surfaceNode, property, token);
+    ASSERT_EQ(result, WSError::WS_OK);
+    EXPECT_EQ(notifyCount, 2); // the new attach notifies +1 because isVisible_ is still true
+    EXPECT_EQ(sceneSession->DisconnectTask(false, true), WSError::WS_OK);
+    EXPECT_EQ(notifyCount, 3); // the first disconnect of the new lifecycle notifies again
+    EXPECT_EQ(sceneSession->DisconnectTask(false, true), WSError::WS_OK);
+    EXPECT_EQ(notifyCount, 3); // later disconnects do not notify again
+}
+
+/**
  * @tc.name: DisconnectTask02
  * @tc.desc: normal function
  * @tc.type: FUNC

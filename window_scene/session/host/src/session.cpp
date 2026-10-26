@@ -1738,6 +1738,7 @@ __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISe
     SetCallingPid(pid);
     callingUid_ = uid;
     NotifyPendingAppHookDisplayInfo();
+    isAlreadyDisconnect_ = false;
     UpdateSessionState(SessionState::STATE_CONNECT);
 
     // Window Layout
@@ -1898,6 +1899,7 @@ WSError Session::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<I
     auto windowRect = property->GetWindowRect();
     layoutRect_ = { windowRect.posX_, windowRect.posY_,
         static_cast<int32_t>(windowRect.width_), static_cast<int32_t>(windowRect.height_) };
+    isAlreadyDisconnect_ = false;
     UpdateSessionState(SessionState::STATE_CONNECT);
     EditSessionInfo().disableDelegator = property->GetIsAbilityHookOff();
     for (const auto& [transitionType, animation] : property->GetTransitionAnimationConfig()) {
@@ -2081,6 +2083,7 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken,
     isStarting_ = false;
     bufferAvailable_ = false;
     isNeedSyncSessionRect_ = true;
+    const bool isFirstDisconnect = !isAlreadyDisconnect_;
     isAlreadyDisconnect_ = true;
     // SCBSystemSession release surfaceNode when it detach
     if (mainHandler_ && !IsSystemSession()) {
@@ -2111,7 +2114,7 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken,
     UpdateSessionState(SessionState::STATE_BACKGROUND);
     UpdateSessionState(SessionState::STATE_DISCONNECT);
     NotifyDisconnect();
-    if (visibilityChangedDetectFunc_) {
+    if (visibilityChangedDetectFunc_ && isFirstDisconnect) {
         visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), false);
     }
     // If session is disconnect, clear it's outline if need.
