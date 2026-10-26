@@ -417,7 +417,7 @@ void SceneInputManager::ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProp
             // groupType is invalid.
             mmiGroupType = (displayGroupId == 0) ? MMI::GROUP_DEFAULT : MMI::GROUP_SPECIAL;
         }
-        TLOGI(WmsLogTag::WMS_EVENT,
+        TLOGD(WmsLogTag::WMS_EVENT,
               "displayGroupId=%{public}" PRIu64 ", groupType=%{public}" PRIu32 ", mmiGroupType=%{public}d",
               displayGroupId, groupType, mmiGroupType);
 

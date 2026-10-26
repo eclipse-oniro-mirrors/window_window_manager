@@ -91,6 +91,11 @@ public:
     {
         return WSError::WS_OK;
     };
+    // set window start density to UEA provider, applied directly without scaling
+    virtual WSError SetWindowStartDensity(float density)
+    {
+        return WSError::WS_OK;
+    };
     virtual WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option)
     {
         return WSError::WS_OK;

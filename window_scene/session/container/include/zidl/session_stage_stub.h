@@ -141,6 +141,7 @@ private:
     int HandleSetIsStartMoving(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateLSState(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateScreenSupportMultiWindow(MessageParcel& data, MessageParcel& reply);
+    int HandleSetWindowStartDensity(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_STUB_H
