@@ -351,8 +351,8 @@ void SessionManagerAgentController::NotifyWindowPropertyChange(
             }
         }
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "#agents=%{public}u, pids=[%{public}s]",
-        static_cast<uint32_t>(agentObjs.size()), pidStream.str().c_str());
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dirtyFlags=%{public}u, #agents=%{public}u, pids=[%{public}s]",
+        propertyDirtyFlags, static_cast<uint32_t>(agentObjs.size()), pidStream.str().c_str());
 }
 
 void SessionManagerAgentController::NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo)
