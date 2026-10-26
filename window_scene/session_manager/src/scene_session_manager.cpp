@@ -635,6 +635,10 @@ void SceneSessionManager::Init()
     OHOS::Rosen::TextConfig::SetLocaleTextBreakEnabled(true);
 
     MotionManager::GetInstance().Init();
+
+    if (SessionPermission::IsBetaVersion()) {
+        ffrtQueueHelper_->StartStatCollection();
+    }
 }
 
 void SceneSessionManager::RegisterBrightnessDataChangeListener()
@@ -4231,7 +4235,7 @@ void SceneSessionManager::NotifyAmsPendingSessionWhenFail(uint32_t resultCode, s
     RemoveRequestTaskInfo(persistentId, requestId);
     ffrtQueueHelper_->SubmitTask([requestId]{
          AAFwk::AbilityManagerClient::GetInstance()->NotifyStartupExceptionBySCB(requestId);
-    });
+    }, __func__);
 }
 
 bool SceneSessionManager::IsKeyboardForeground()
@@ -4300,7 +4304,7 @@ int32_t SceneSessionManager::StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSes
         *retCode = static_cast<int32_t>(result);
         TLOGNI(WmsLogTag::WMS_LIFE, "StartUIAbility sceneFlag:%{public}d isRestart:%{public}d retCode: %{public}d",
             startParams.sceneFlag, startParams.isRestart, *retCode);
-    }, START_UI_ABILITY_TIMEOUT);
+    }, START_UI_ABILITY_TIMEOUT, __func__);
 
     if (isTimeout) {
         TLOGE(WmsLogTag::WMS_LIFE, "Timeout, currentUserId: %{public}d", currentUserId_.load());
@@ -5208,7 +5212,7 @@ WSError SceneSessionManager::RequestSceneSessionDestructionInner(sptr<SceneSessi
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s [id: %{public}d][scbRequestId: %{public}d]"
                 "close ability ret:%{public}d",
                 where, persistentId, scbRequestId, static_cast<int32_t>(ret));
-        });
+        }, __func__);
     }
     sceneSession->SetIsUserRequestedExit(isUserRequestedExit);
     sceneSession->SetSessionInfoAncoSceneState(AncoSceneState::DEFAULT_STATE);
@@ -6326,7 +6330,7 @@ WMError SceneSessionManager::NotifyRotationProperty(int32_t persistentId,
         if (ret != WSError::WS_OK) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s failed, ret:%{public}d", where, ret);
         }
-    });
+    }, __func__);
     return WMError::WM_OK;
 }
 
@@ -6717,7 +6721,7 @@ WSErrorResult SceneSessionManager::FinalizeSessionDestruction(const int32_t pers
     }
     ClearSpecificSessionRemoteObjectMap(persistentId);
     TLOGI(WmsLogTag::WMS_LIFE, "Destroy specific session end, id: %{public}d", persistentId);
-    return WSErrorResult{WSError::WS_OK, "Destroy specific session end"};
+    return WSErrorResult{ret, "Destroy specific session end"};
 }
 
 
@@ -7410,7 +7414,7 @@ void SceneSessionManager::UpdateAllStartingWindowRdb()
         TLOGNI(WmsLogTag::WMS_PATTERN, "%{public}s res: %{public}d, bundles: %{public}zu, insert: %{public}" PRId64,
             where, batchInsertRes, bundleInfos.size(), outInsertNum);
     };
-    ffrtQueueHelper_->SubmitTask(loadTask);
+    ffrtQueueHelper_->SubmitTask(loadTask, __func__);
 }
 
 std::string SceneSessionManager::GetCallerSessionColorMode(const SessionInfo& sessionInfo)
@@ -7722,7 +7726,7 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
             where, sceneSession->GetPersistentId(), isIconSvg);
         sceneSession->NotifyPreLoadStartingWindowFinished();
     };
-    ffrtQueueHelper_->SubmitTask(loadTask);
+    ffrtQueueHelper_->SubmitTask(loadTask, __func__);
 }
 
 bool SceneSessionManager::CheckAndGetPreLoadResourceId(const StartingWindowInfo& startingWindowInfo,
@@ -13191,7 +13195,7 @@ void SceneSessionManager::StartAbilityBySpecified(const SessionInfo& sessionInfo
                 bundleName, appInstanceKey);
         };
         taskScheduler_->PostAsyncTask(task, where);
-    });
+    }, __func__);
 }
 
 void SceneSessionManager::NotifyWindowStateErrorFromMMI(int32_t pid, int32_t persistentId)
@@ -16320,7 +16324,7 @@ BrokerStates SceneSessionManager::NotifyStartAbility(
                 static_cast<uint64_t>(accessTokenIDEx), windowMode);
             HiviewDFX::XCollie::GetInstance().CancelTimer(timerId);
             *ret = static_cast<int32_t>(result);
-        }, NOTIFY_START_ABILITY_TIMEOUT);
+        }, NOTIFY_START_ABILITY_TIMEOUT, __func__);
 
         if (isTimeout) {
             TLOGE(WmsLogTag::WMS_LIFE, "notify start ability timeout, id: %{public}d", persistentId);
@@ -16423,7 +16427,7 @@ void SceneSessionManager::NotifyClearSession(int32_t collaboratorType, int32_t p
             HiviewDFX::XCollie::GetInstance().CancelTimer(timerId);
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s called clear mission ret: %{public}d, persistent id: %{public}d",
                 where, ret, persistentId);
-        });
+        }, __func__);
     }
 }
 
@@ -22294,7 +22298,7 @@ WMError SceneSessionManager::GetRouterStackInfo(int32_t persistentId,
         }
         listener->SendRouterStackInfo(routerStackInfo);
     };
-    ffrtQueueHelper_->SubmitTask(task);
+    ffrtQueueHelper_->SubmitTask(task, __func__);
     return WMError::WM_OK;
 }
 
