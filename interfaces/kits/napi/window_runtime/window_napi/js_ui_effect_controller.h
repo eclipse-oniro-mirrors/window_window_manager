@@ -15,6 +15,9 @@
 
 #ifndef OHOS_JS_UI_EFFECT_CONTROLLER_H
 #define OHOS_JS_UI_EFFECT_CONTROLLER_H
+#include <memory>
+#include <mutex>
+
 #include "js_runtime_utils.h"
 #include "ui_effect_controller_client.h"
 #include "ui_effect_controller_proxy.h"
@@ -35,6 +38,11 @@ private:
     napi_value OnSetParams(napi_env env, napi_callback_info info);
     WMError InitClientAndServer();
     napi_value OnAnimateTo(napi_env env, napi_callback_info info);
+    struct RecoverGuard {
+        std::mutex mutex;
+        JsUIEffectController* controller = nullptr;
+    };
+    std::shared_ptr<RecoverGuard> recoverGuard_ = std::make_shared<RecoverGuard>();
     sptr<UIEffectControllerClient> client_;
     sptr<IUIEffectController> server_;
 };

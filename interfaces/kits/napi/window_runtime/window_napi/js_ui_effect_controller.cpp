@@ -60,11 +60,16 @@ void JsUIEffectController::Finalizer(napi_env env, void* data, void* hint)
 
 JsUIEffectController::JsUIEffectController(): client_(sptr<UIEffectControllerClient>::MakeSptr())
 {
+    recoverGuard_->controller = this;
     TLOGI(WmsLogTag::WMS_ANIMATION, "Constructor");
 };
 
 JsUIEffectController::~JsUIEffectController()
 {
+    {
+        std::lock_guard<std::mutex> lock(recoverGuard_->mutex);
+        recoverGuard_->controller = nullptr;
+    }
     SingletonContainer::Get<WindowAdapter>().UnregisterUIEffectRecoverCallbackFunc(client_->GetId());
     TLOGI(WmsLogTag::WMS_ANIMATION, "Destrutor, id: %{public}d", client_->GetId());
 }
@@ -76,19 +81,46 @@ WMError JsUIEffectController::Init()
         TLOGI(WmsLogTag::WMS_ANIMATION, "failed to init");
         return err;
     }
-    SingletonContainer::Get<WindowAdapter>().RegisterUIEffectRecoverCallbackFunc(client_->GetId(), [this]()-> WMError {
-        return InitClientAndServer();
-    });
+    auto guard = recoverGuard_;
+    sptr<UIEffectControllerClient> client = client_;
+    SingletonContainer::Get<WindowAdapter>().RegisterUIEffectRecoverCallbackFunc(client_->GetId(),
+        [guard, client]()-> WMError {
+            {
+                std::lock_guard<std::mutex> lock(guard->mutex);
+                if (guard->controller == nullptr) {
+                    TLOGW(WmsLogTag::WMS_ANIMATION, "controller already destroyed, skip recover before IPC");
+                    return WMError::WM_ERROR_IPC_FAILED;
+                }
+            }
+            int32_t controllerId = UIEFFECT_INVALID_ID;
+            sptr<IUIEffectController> newServer;
+            WMError ret = SingletonContainer::Get<WindowAdapter>().CreateUIEffectController(
+                client, newServer, controllerId);
+            if (ret != WMError::WM_OK) {
+                return ret;
+            }
+            std::lock_guard<std::mutex> lock(guard->mutex);
+            if (guard->controller == nullptr) {
+                TLOGW(WmsLogTag::WMS_ANIMATION, "controller already destroyed, skip recover after IPC");
+                return WMError::WM_ERROR_IPC_FAILED;
+            }
+            guard->controller->server_ = newServer;
+            client->SetId(controllerId);
+            return WMError::WM_OK;
+        });
     return WMError::WM_OK;
 }
 
 WMError JsUIEffectController::InitClientAndServer()
 {
     int32_t controllerId = UIEFFECT_INVALID_ID;
-    WMError err = SingletonContainer::Get<WindowAdapter>().CreateUIEffectController(client_, server_, controllerId);
+    sptr<IUIEffectController> controller;
+    WMError err = SingletonContainer::Get<WindowAdapter>().CreateUIEffectController(
+        client_, controller, controllerId);
     if (err != WMError::WM_OK) {
         return err;
     }
+    server_ = controller;
     client_->SetId(controllerId);
     return WMError::WM_OK;
 }
