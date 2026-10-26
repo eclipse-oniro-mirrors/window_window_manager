@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1155,6 +1155,10 @@ void SceneSessionManagerProxy::GetAllGroupInfo(
             return;
         }
         displayId2GroupIdMap[displayId] = displayGroupId;
+    }
+    if (displayId2GroupIdMap.empty() || allFocusInfoList.empty()) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "ipc reply is empty");
+        return;
     }
 }
 
