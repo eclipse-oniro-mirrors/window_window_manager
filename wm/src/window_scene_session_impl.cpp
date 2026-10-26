@@ -5531,9 +5531,21 @@ bool WindowSceneSessionImpl::CheckIsPcAppInPadFullScreenOnMobileWindowMode()
     return false;
 }
 
-bool WindowSceneSessionImpl::CheckCanStartMoveWindowByWindowType()
+bool WindowSceneSessionImpl::IsDragMoveCapabilitySupported() const
 {
-    if (IsPcOrFreeMultiWindowCapabilityEnabled()) {
+    const bool isDisplayInFreeMultiWindow = IsDisplayInFreeMultiWindow();
+    const bool isPcAppInPad = property_->GetIsPcAppInPad();
+    const bool isDeviceFeatureCapable = IsDeviceFeatureCapableForFreeMultiWindow();
+    TLOGD(WmsLogTag::WMS_LAYOUT, "id: %{public}d, displayId: %{public}" PRIu64
+          ", isDisplayInFreeMultiWindow: %{public}d, isPcAppInPad: %{public}d, isDeviceFeatureCapable: %{public}d",
+          GetPersistentId(), property_->GetDisplayId(), isDisplayInFreeMultiWindow,
+          isPcAppInPad, isDeviceFeatureCapable);
+    return isDisplayInFreeMultiWindow || isPcAppInPad || isDeviceFeatureCapable;
+}
+
+bool WindowSceneSessionImpl::IsStartMovingAllowed() const
+{
+    if (IsDragMoveCapabilitySupported()) {
         return true;
     }
     WindowType windowType = GetType();
@@ -5550,7 +5562,7 @@ WmErrorCode WindowSceneSessionImpl::StartMoveWindow(std::string& errMsg)
 {
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSceneSessionImpl::StartMoveWindow");
     errMsg.clear();
-    if (!CheckCanStartMoveWindowByWindowType()) {
+    if (!IsStartMovingAllowed()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid window type:%{public}u", GetType());
         RETURN_ERR(errMsg, "Invalid window type", WmErrorCode::WM_ERROR_INVALID_CALLING);
     }
@@ -5587,7 +5599,7 @@ WMError WindowSceneSessionImpl::StartMovingWithOptions(const StartMovingOptions&
 {
     errMsg.clear();
     auto windowId = GetPersistentId();
-    if (!CheckCanStartMoveWindowByWindowType()) {
+    if (!IsStartMovingAllowed()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid window type: %{public}u, id: %{public}d", GetType(), windowId);
         RETURN_ERR(errMsg, "Invalid window type", WMError::WM_ERROR_INVALID_CALLING);
     }
@@ -5630,7 +5642,7 @@ WmErrorCode WindowSceneSessionImpl::StartMoveWindowWithCoordinate(int32_t offset
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "invalid window type:%{public}u", GetType());
         RETURN_ERR(errMsg, "Invalid window type", WmErrorCode::WM_ERROR_INVALID_CALLING);
     }
-    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
+    if (!IsDragMoveCapabilitySupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         RETURN_ERR(errMsg, "The device is not supported", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
     }
@@ -5686,7 +5698,7 @@ WmErrorCode WindowSceneSessionImpl::StopMoveWindow(std::string& errMsg)
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "invalid window type:%{public}u", GetType());
         RETURN_ERR(errMsg, "Invalid window type", WmErrorCode::WM_ERROR_INVALID_CALLING);
     }
-    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
+    if (!IsDragMoveCapabilitySupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         RETURN_ERR(errMsg, "The device is not supported", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
     }
