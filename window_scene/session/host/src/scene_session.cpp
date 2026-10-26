@@ -532,6 +532,10 @@ WSError SceneSession::Foreground(
             TLOGW(WmsLogTag::WMS_LIFE, "check failed");
             return WSError::WS_OK;
         }
+        if (GetSceneSessionById(GetPersistentId()) == nullptr) {
+            TLOGW(WmsLogTag::WMS_LIFE, "session invalid");
+            return WSError::WS_ERROR_INVALID_SESSION;
+        }
     }
     return ForegroundTask(property, isAlreadyShown);
 }
