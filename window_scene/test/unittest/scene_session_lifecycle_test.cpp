@@ -25,6 +25,7 @@
 #include "session/host/include/main_session.h"
 #include "screen_session_manager_client.h"
 #include "wm_common.h"
+#include "ipc_skeleton.h"
 #include "mock/mock_session_stage.h"
 #include "input_event.h"
 #include <pointer_event.h>
@@ -347,6 +348,59 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground10, TestSize.Level1)
     EXPECT_TRUE(g_logMsg.find(resultLog) != std::string::npos);
  
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: Foreground11
+ * @tc.desc: Foreground with isFromClient true and main window, session not exist in manager
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground11, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "Foreground11";
+    info.bundleName_ = "Foreground11";
+
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session->property_ = property;
+    session->SetCallingPid(IPCSkeleton::GetCallingPid());
+
+    auto result = session->Foreground(property, true);
+    EXPECT_EQ(result, WSError::WS_ERROR_INVALID_SESSION);
+}
+
+/**
+ * @tc.name: Foreground12
+ * @tc.desc: Foreground with isFromClient true and main window, session exists in manager
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionLifecycleTest, Foreground12, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "Foreground12";
+    info.bundleName_ = "Foreground12";
+
+    sptr<SceneSession::SpecificSessionCallback> specificCallback =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    ASSERT_NE(specificCallback, nullptr);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, specificCallback);
+    ASSERT_NE(session, nullptr);
+
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    session->property_ = property;
+    session->SetCallingPid(IPCSkeleton::GetCallingPid());
+    specificCallback->onGetSceneSessionByIdCallback_ = [session](int32_t sessionId) -> sptr<SceneSession> {
+        return session;
+    };
+
+    auto result = session->Foreground(property, true);
+    EXPECT_EQ(result, WSError::WS_OK);
 }
 
 /**
