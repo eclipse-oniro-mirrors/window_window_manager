@@ -946,8 +946,8 @@ public:
     WindowLayoutInfo GetWindowLayoutInfoForWindowInfo() const;
     WindowMetaInfo GetWindowMetaInfoForWindowInfo() const;
     void SetClientDisplayIdChangeListener(const NotifyClientDisplayIdChangeFunc& func);
-    uint32_t GetPropertyDirtyFlags() const { return propertyDirtyFlags_; };
-    void SetPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ = dirtyFlags; }
+    uint32_t GetPropertyDirtyFlags() const { return propertyDirtyFlags_.load(); };
+    uint32_t SetPropertyDirtyFlags(uint32_t dirtyFlags) { return propertyDirtyFlags_.exchange(dirtyFlags); }
     void AddPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ |= dirtyFlags; }
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
@@ -1292,7 +1292,7 @@ protected:
     /*
      * Window Property
      */
-    uint32_t propertyDirtyFlags_ = 0;
+    std::atomic<uint32_t> propertyDirtyFlags_ = 0;
     void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
     template<typename T1, typename T2, typename Ret>

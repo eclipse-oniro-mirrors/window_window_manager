@@ -22084,16 +22084,18 @@ void SceneSessionManager::NotifyWindowPropertyChange(ScreenId screenId)
             }
             if (sceneSession->GetSessionInfo().screenId_ != SCREEN_ID_INVALID &&
                 sceneSession->GetSessionInfo().screenId_ != screenId) {
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "skip win=[%{public}d, %{public}s], screenId=%{public}" PRIu64,
+                    sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(),
+                    sceneSession->GetSessionInfo().screenId_);
                 continue;
             }
             if (!(sceneSession->GetPropertyDirtyFlags() & observedFlags_)) {
                 continue;
             }
-            propertyDirtyFlags |= sceneSession->GetPropertyDirtyFlags();
+            propertyDirtyFlags |= sceneSession->SetPropertyDirtyFlags(0);
             std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
             PackWindowPropertyChangeInfo(sceneSession, windowPropertyChangeInfo);
             windowInfoList.emplace_back(windowPropertyChangeInfo);
-            sceneSession->SetPropertyDirtyFlags(0);
         }
     }
     if (!windowInfoList.empty()) {
