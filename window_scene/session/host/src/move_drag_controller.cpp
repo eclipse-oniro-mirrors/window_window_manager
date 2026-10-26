@@ -634,6 +634,8 @@ WSRect MoveDragController::GetFullScreenToFloatingRect(const WSRect& originalRec
         windowRect.height_,
     };
     TLOGI(WmsLogTag::WMS_LAYOUT, "target rect:%{public}s", targetRect.ToString().c_str());
+    targetRect = limits_.ClampRect(targetRect);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "after by limits target rect:%{public}s", targetRect.ToString().c_str());
     return targetRect;
 }
 
