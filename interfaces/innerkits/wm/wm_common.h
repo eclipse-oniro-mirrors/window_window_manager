@@ -554,12 +554,15 @@ enum class ControlAppType : uint8_t {
     PARENT_CONTROL,
     DLP,
     PRIVACY_WINDOW,
-    SCREEN_SHARED_PROJECTION,
+    APP_PROJECTION,
+    SCREEN_SHARED_PROTECTION,
     CONTROL_APP_TYPE_END,
 };
 
-const ControlAppType CONTROL_APP_TYPE_ENUM_LIST[] = { ControlAppType::APP_LOCK, ControlAppType::PARENT_CONTROL,
-    ControlAppType::DLP, ControlAppType::SCREEN_SHARED_PROJECTION, ControlAppType::PRIVACY_WINDOW };
+const ControlAppType CONTROL_APP_TYPE_ENUM_LIST[] = {
+    ControlAppType::APP_LOCK,       ControlAppType::PARENT_CONTROL,           ControlAppType::DLP,
+    ControlAppType::APP_PROJECTION, ControlAppType::SCREEN_SHARED_PROTECTION, ControlAppType::PRIVACY_WINDOW
+};
 
 /**
  * @brief Enumerates flag of multiWindowUIType.
