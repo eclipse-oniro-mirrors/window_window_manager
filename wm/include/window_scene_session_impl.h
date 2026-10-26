@@ -961,6 +961,17 @@ private:
     void SetSidebarBlurValues(bool isDark, SidebarBlurType type);
     void ApplySidebarBlurWithAnimation(bool isDark, SidebarBlurType type);
 
+    /*
+     * dpi force scale for PC Window
+     */
+    bool isDpiForceScale_ {false};
+    float dpiForceScale_ {1.0f};
+    float windowStartDensity_ {0.0f};
+    void UpdateDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale, float windowStartDensity) override;
+    void ConvertPointerEventForDpiForceScale(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    bool GetIsDpiForceScale() const;
+    float GetDpiForceScale() const;
+
     bool CheckCreaseRegionCanInHoverState(const Rect& windowRect);
 };
 } // namespace Rosen

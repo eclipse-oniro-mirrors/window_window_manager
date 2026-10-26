@@ -1593,6 +1593,14 @@ WSError Session::UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeRea
     }
     WSRect updateRect = IsNeedConvertToRelativeRect(reason) ?
         GetLayoutController()->ConvertGlobalRectToRelative(rect, GetDisplayId()) : rect;
+    // Special compatible scale: convert physical coordinates to logical coordinates for the client
+    float scaleFactor = GetCoordinateScaleFactor();
+    if (!MathHelper::NearEqual(scaleFactor, 1.0f) && scaleFactor > 0) {
+        updateRect.posX_ = static_cast<int32_t>(updateRect.posX_ / scaleFactor);
+        updateRect.posY_ = static_cast<int32_t>(updateRect.posY_ / scaleFactor);
+        TLOGI(WmsLogTag::WMS_LAYOUT, "dpiforcescale update client rect: id: %{public}d, rect:%{public}s, "
+            "reason:%{public}u %{public}s", persistentId, updateRect.ToString().c_str(), reason, updateReason.c_str());
+    }
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "id:[%d]rect[%d,%d,%d,%d]ConvertToRelativeRect[%d,%d,%d,%d]",
         persistentId, rect.posX_, rect.posY_, rect.width_, rect.height_, updateRect.posX_, updateRect.posY_,
         updateRect.width_, updateRect.height_);

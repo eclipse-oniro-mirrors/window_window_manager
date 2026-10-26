@@ -1424,6 +1424,7 @@ inline constexpr Rect Rect::EMPTY_RECT { 0, 0, 0, 0 };
  * @brief hook diaplayinfo deepending on the window size.
  */
 struct HookInfo {
+    DisplayId displayId_ = 0;
     uint32_t width_;
     uint32_t height_;
     float_t density_;
@@ -1431,16 +1432,19 @@ struct HookInfo {
     bool enableHookRotation_;
     uint32_t displayOrientation_;
     bool enableHookDisplayOrientation_;
+    float_t dpiForceScale_ = 0.0f;
     Rect actualRect_ = { 0, 0, 0, 0};
 
     std::string ToString() const
     {
         std::ostringstream oss;
-        oss << "width: " << width_ << ", height: " << height_ << ", density: " << density_
+        oss << "displayId: " << displayId_
+            << ", width: " << width_ << ", height: " << height_ << ", density: " << density_
             << ", rotation: " << rotation_
             << ", enableHookRotation: " << (enableHookRotation_ ? "true" : "false")
             << ", displayOrientation: " << displayOrientation_
             << ", enableHookDisplayOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false")
+            << ", dpiForceScale: " << dpiForceScale_
             << ", actualPosX: " << actualRect_.posX_ << ", actualPosY: " << actualRect_.posY_
             << ", actualWidth: " << actualRect_.width_ << ", actualHeight :" << actualRect_.height_;
         return oss.str();

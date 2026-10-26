@@ -111,6 +111,7 @@ const std::string KEYBOARD_EFFECT_OPTION_CHANGE_CB = "keyboardEffectOptionChange
 const std::string SESSION_LOCK_STATE_CHANGE_CB = "sessionLockStateChange";
 const std::string SET_WINDOW_CORNER_RADIUS_CB = "setWindowCornerRadius";
 const std::string HIGHLIGHT_CHANGE_CB = "highlightChange";
+const std::string DPI_FORCE_SCALE_CHANGE_CB = "dpiForceScaleChange";
 const std::string SET_PARENT_SESSION_CB = "setParentSession";
 const std::string UPDATE_FLAG_CB = "updateFlag";
 const std::string Z_LEVEL_CHANGE_CB = "zLevelChange";
@@ -222,6 +223,7 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {SESSION_LOCK_STATE_CHANGE_CB,          ListenerFuncType::SESSION_LOCK_STATE_CHANGE_CB},
     {SET_WINDOW_CORNER_RADIUS_CB,           ListenerFuncType::SET_WINDOW_CORNER_RADIUS_CB},
     {HIGHLIGHT_CHANGE_CB,                   ListenerFuncType::HIGHLIGHT_CHANGE_CB},
+    {DPI_FORCE_SCALE_CHANGE_CB,               ListenerFuncType::DPI_FORCE_SCALE_CHANGE_CB},
     {FOLLOW_PARENT_RECT_CB,                 ListenerFuncType::FOLLOW_PARENT_RECT_CB},
     {SET_PARENT_SESSION_CB,                 ListenerFuncType::SET_PARENT_SESSION_CB},
     {UPDATE_FLAG_CB,                        ListenerFuncType::UPDATE_FLAG_CB},
@@ -530,6 +532,12 @@ napi_value JsSceneSession::Create(napi_env env, const sptr<SceneSession>& sessio
     napi_set_named_property(env, objValue, "isDecorEnable",
         CreateJsValue(env, session->GetSessionProperty()->IsDecorEnable()));
     ParseMetadataConfiguration(env, objValue, session);
+    napi_set_named_property(env, objValue, "dpiForceScale",
+        CreateJsValue(env, session->GetDpiForceScale()));
+    napi_set_named_property(env, objValue, "isDpiForceScale",
+        CreateJsValue(env, session->GetIsDpiForceScale()));
+    napi_set_named_property(env, objValue, "windowStartDensity",
+        CreateJsValue(env, session->GetWindowStartDensity()));
     sptr<WindowSessionProperty> sessionProperty = session->GetSessionProperty();
     if (sessionProperty != nullptr) {
         napi_set_named_property(env, objValue, "screenId",
@@ -648,6 +656,7 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
     BindNativeFunction(env, objValue, "setIsGamePrelaunch", moduleName, JsSceneSession::SetIsGamePrelaunch);
     BindNativeFunction(env, objValue, "setIsGameBackgroundRunning", moduleName, JsSceneSession::SetIsGameBackgroundRunning);
     BindNativeFunction(env, objValue, "setScale", moduleName, JsSceneSession::SetScale);
+    BindNativeFunction(env, objValue, "setDpiForceScale", moduleName, JsSceneSession::SetDpiForceScale);
     BindNativeFunction(env, objValue, "setWindowLastSafeRect", moduleName, JsSceneSession::SetWindowLastSafeRect);
     BindNativeFunction(env, objValue, "getParentWindowRect", moduleName, JsSceneSession::GetParentWindowRect);
     BindNativeFunction(env, objValue, "setMovable", moduleName, JsSceneSession::SetMovable);
@@ -3696,6 +3705,9 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
             break;
         case static_cast<uint32_t>(ListenerFuncType::HIGHLIGHT_CHANGE_CB):
             ProcessSetHighlightChangeRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::DPI_FORCE_SCALE_CHANGE_CB):
+            ProcessDpiForceScaleChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::FOLLOW_PARENT_RECT_CB):
             ProcessFollowParentRectRegister();
@@ -6771,6 +6783,61 @@ napi_value JsSceneSession::OnSetScale(napi_env env, napi_callback_info info)
     return NapiGetUndefined(env);
 }
 
+napi_value JsSceneSession::SetDpiForceScale(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[NAPI]");
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnSetDpiForceScale(env, info) : nullptr;
+}
+
+napi_value JsSceneSession::OnSetDpiForceScale(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARG_COUNT_3;
+    napi_value argv[ARG_COUNT_3] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARG_COUNT_3) { // ARG_COUNT_3: dpiForceScale, isDpiForceScale, windowStartDensity
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    double_t dpiForceScale = 1.0;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_0], dpiForceScale)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to convert parameter to dpiForceScale");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    bool isDpiForceScale = false;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_1], isDpiForceScale)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to convert parameter to isDpiForceScale");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    double_t windowStartDensity = 0.0;
+    if (!ConvertFromJsValue(env, argv[ARG_INDEX_2], windowStartDensity)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to convert parameter to windowStartDensity");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "session is nullptr, id:%{public}d", persistentId_);
+        return NapiGetUndefined(env);
+    }
+    session->SetDpiForceScale(static_cast<float_t>(dpiForceScale));
+    session->SetIsDpiForceScale(isDpiForceScale);
+    session->SetWindowStartDensity(static_cast<float_t>(windowStartDensity));
+    // Initialization: TS already knows the value (it computed it). Only notify client.
+    session->NotifyDpiForceScaleToClient();
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[DpiForceScale] SetDpiForceScale id:%{public}d, scale=%{public}f, "
+        "isDpiForceScale=%{public}d, windowStartDensity=%{public}f",
+        persistentId_, session->GetDpiForceScale(), session->GetIsDpiForceScale(), session->GetWindowStartDensity());
+    return NapiGetUndefined(env);
+}
+
 napi_value JsSceneSession::SetWindowLastSafeRect(napi_env env, napi_callback_info info)
 {
     TLOGI(WmsLogTag::WMS_LAYOUT, "[NAPI]");
@@ -9169,6 +9236,26 @@ void JsSceneSession::ProcessSetHighlightChangeRegister()
     session->SetHighlightChangeNotifyFunc(func);
 }
 
+void JsSceneSession::ProcessDpiForceScaleChangeRegister()
+{
+    NotifyDpiForceScaleChangeFunc func =
+        [weakThis = wptr(this), where = __func__](float dpiForceScale, bool isDpiForceScale,
+            float windowStartDensity) {
+            auto jsSceneSession = weakThis.promote();
+            if (!jsSceneSession) {
+                TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s: jsSceneSession is null", where);
+                return;
+            }
+            jsSceneSession->NotifyDpiForceScaleChange(dpiForceScale, isDpiForceScale, windowStartDensity);
+        };
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "session is nullptr");
+        return;
+    }
+    session->SetDpiForceScaleChangeNotifyFunc(func);
+}
+
 void JsSceneSession::NotifyHighlightChange(bool isHighlight)
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "isHighlight: %{public}d, id: %{public}d", isHighlight, persistentId_);
@@ -10230,6 +10317,32 @@ napi_value JsSceneSession::OnUpdateSceneLastUsedPosition(napi_env env, napi_call
     session->SetSceneLastUsedPosition(position);
     TLOGD(WmsLogTag::WMS_LIFE, "position: %{public}s", position.c_str());
     return NapiGetUndefined(env);
+}
+
+void JsSceneSession::NotifyDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale, float windowStartDensity)
+{
+    TLOGI(WmsLogTag::WMS_MAIN, "dpiForceScale: %{public}f, isDpiForceScale: %{public}d, id: %{public}d",
+        dpiForceScale, isDpiForceScale, persistentId_);
+    auto task = [weakThis = wptr(this), dpiForceScale, isDpiForceScale, windowStartDensity,
+                 env = env_, persistentId = persistentId_, where = __func__] {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
+            TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s: jsSceneSession id: %{public}d has been destroyed",
+                where, persistentId);
+            return;
+        }
+        auto jsCallBack = jsSceneSession->GetJSCallback(DPI_FORCE_SCALE_CHANGE_CB);
+        if (!jsCallBack) {
+            TLOGNE(WmsLogTag::WMS_MAIN, "%{public}s: jsCallBack is nullptr", where);
+            return;
+        }
+        napi_value jsDpiForceScale = CreateJsValue(env, dpiForceScale);
+        napi_value jsIsDpiForceScale = CreateJsValue(env, isDpiForceScale);
+        napi_value jsWindowStartDensity = CreateJsValue(env, windowStartDensity);
+        napi_value argv[] = { jsDpiForceScale, jsIsDpiForceScale, jsWindowStartDensity };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+    };
+    taskScheduler_->PostMainThreadTask(task, "NotifyDpiForceScaleChange");
 }
 
 napi_value JsSceneSession::UpdateCallerPersistentId(napi_env env, napi_callback_info info)

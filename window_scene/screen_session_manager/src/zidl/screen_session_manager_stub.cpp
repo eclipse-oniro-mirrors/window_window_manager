@@ -1494,6 +1494,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             int32_t uid = data.ReadInt32();
             bool enable = data.ReadBool();
             DMHookInfo hookInfo;
+            hookInfo.displayId_ = static_cast<DisplayId>(data.ReadUint64());
             hookInfo.width_ = data.ReadUint32();
             hookInfo.height_ = data.ReadUint32();
             hookInfo.density_ = data.ReadFloat();
@@ -1501,6 +1502,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             hookInfo.enableHookRotation_ = data.ReadBool();
             hookInfo.displayOrientation_ = data.ReadUint32();
             hookInfo.enableHookDisplayOrientation_ = data.ReadBool();
+            hookInfo.dpiForceScale_ = data.ReadFloat();
             hookInfo.isFullScreenInForceSplit_ = data.ReadBool();
             hookInfo.actualRect_.posX_ = data.ReadInt32();
             hookInfo.actualRect_.posY_ = data.ReadInt32();
@@ -1512,6 +1514,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_GET_DISPLAY_HOOK_INFO: {
             int32_t uid = data.ReadInt32();
             DMHookInfo hookInfo;
+            hookInfo.displayId_ = static_cast<DisplayId>(data.ReadUint64());
             GetDisplayHookInfo(uid, hookInfo);
             if (!reply.WriteUint32(hookInfo.width_) || !reply.WriteUint32(hookInfo.height_) ||
                 !reply.WriteFloat(hookInfo.density_) || !reply.WriteUint32(hookInfo.rotation_) ||

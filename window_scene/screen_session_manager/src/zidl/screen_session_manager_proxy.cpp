@@ -4757,10 +4757,12 @@ void OHOS::Rosen::ScreenSessionManagerProxy::UpdateDisplayHookInfo(int32_t uid, 
         return;
     }
 
-    if (!data.WriteUint32(hookInfo.width_) || !data.WriteUint32(hookInfo.height_) ||
+    if (!data.WriteUint64(hookInfo.displayId_) ||
+        !data.WriteUint32(hookInfo.width_) || !data.WriteUint32(hookInfo.height_) ||
         !data.WriteFloat(hookInfo.density_) || !data.WriteUint32(hookInfo.rotation_) ||
         !data.WriteBool(hookInfo.enableHookRotation_) || !data.WriteUint32(hookInfo.displayOrientation_) ||
         !data.WriteBool(hookInfo.enableHookDisplayOrientation_) ||
+        !data.WriteFloat(hookInfo.dpiForceScale_) ||
         !data.WriteBool(hookInfo.isFullScreenInForceSplit_) || !data.WriteInt32(hookInfo.actualRect_.posX_) ||
         !data.WriteInt32(hookInfo.actualRect_.posY_) || !data.WriteUint32(hookInfo.actualRect_.width_) ||
         !data.WriteUint32(hookInfo.actualRect_.height_)) {
@@ -4794,6 +4796,11 @@ void ScreenSessionManagerProxy::GetDisplayHookInfo(int32_t uid, DMHookInfo& hook
 
     if (!data.WriteInt32(uid)) {
         TLOGE(WmsLogTag::DMS, "Write uid failed");
+        return;
+    }
+
+    if (!data.WriteUint64(hookInfo.displayId_)) {
+        TLOGE(WmsLogTag::DMS, "Write displayId failed");
         return;
     }
 

@@ -1344,6 +1344,58 @@ void WindowSceneSessionImpl::ResetSuperFoldDisplayY(const std::shared_ptr<MMI::P
     }
 }
 
+float WindowSceneSessionImpl::GetDpiForceScale() const
+{
+    return dpiForceScale_;
+}
+
+bool WindowSceneSessionImpl::GetIsDpiForceScale() const
+{
+    return isDpiForceScale_;
+}
+
+void WindowSceneSessionImpl::UpdateDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale,
+    float windowStartDensity)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[DpiForceScale] Update client DpiForceScale pid=%{public}d, "
+        "scale=%{public}f→%{public}f, isDpiForceScale=%{public}d→%{public}d, startDensity=%{public}f→%{public}f",
+        GetPersistentId(), dpiForceScale_, dpiForceScale, isDpiForceScale_, isDpiForceScale,
+        windowStartDensity_, windowStartDensity);
+    dpiForceScale_ = dpiForceScale;
+    isDpiForceScale_ = isDpiForceScale;
+    windowStartDensity_ = windowStartDensity;
+}
+
+void WindowSceneSessionImpl::ConvertPointerEventForDpiForceScale(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (!GetIsDpiForceScale()) {
+        return;
+    }
+    float scaleFactor = GetDpiForceScale();
+    if (MathHelper::NearEqual(scaleFactor, 1.0f) || scaleFactor <= 0.0f) {
+        return;
+    }
+    int32_t pointerId = pointerEvent->GetPointerId();
+    MMI::PointerEvent::PointerItem pointerItem;
+    if (pointerEvent->GetPointerItem(pointerId, pointerItem)) {
+        int32_t phyDispX = pointerItem.GetDisplayX();
+        int32_t phyDispY = pointerItem.GetDisplayY();
+        int32_t displayX = static_cast<int32_t>(phyDispX / scaleFactor);
+        int32_t displayY = static_cast<int32_t>(phyDispY / scaleFactor);
+        auto globalX = pointerItem.GetGlobalX() - phyDispX + displayX;
+        auto globalY = pointerItem.GetGlobalY() - phyDispY + displayY;
+        pointerItem.SetDisplayX(displayX);
+        pointerItem.SetDisplayY(displayY);
+        pointerItem.SetGlobalX(globalX);
+        pointerItem.SetGlobalY(globalY);
+        TLOGI(WmsLogTag::WMS_EVENT, "[DpiForceScale] convert winId=%{public}d, pointerId=%{public}d, scale=%{public}f, "
+            "phyDisp=[%{public}d,%{public}d]→logDisp=[%{public}d,%{public}d]",
+            GetPersistentId(),pointerId, scaleFactor, phyDispX, phyDispY, displayX, displayY);
+        pointerEvent->UpdatePointerItem(pointerId, pointerItem);
+    }
+}
+
 void WindowSceneSessionImpl::ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
     MMI::PointerEvent::PointerItem& pointerItem, bool isHitTargetDraggable)
 {
@@ -1387,6 +1439,7 @@ void WindowSceneSessionImpl::ConsumePointerEventInner(const std::shared_ptr<MMI:
         DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD) {
         ResetSuperFoldDisplayY(pointerEvent);
     }
+    ConvertPointerEventForDpiForceScale(pointerEvent);
     if (needNotifyEvent) {
         NotifyPointerEvent(pointerEvent);
     } else {
@@ -3208,6 +3261,20 @@ WMError WindowSceneSessionImpl::GetEventOriginalPosition(const EventPositionInfo
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     originalEventPositionInfo = eventPositionInfo;
+    if (GetIsDpiForceScale()) {
+        auto phyDisplayX = static_cast<int32_t>(eventPositionInfo.displayX * GetDpiForceScale());
+        auto phyDisplayY = static_cast<int32_t>(eventPositionInfo.displayY * GetDpiForceScale());
+        originalEventPositionInfo.displayX = phyDisplayX;
+        originalEventPositionInfo.displayY = phyDisplayY;
+        originalEventPositionInfo.displayXPos = phyDisplayX;
+        originalEventPositionInfo.displayYPos = phyDisplayY;
+        originalEventPositionInfo.globalX = eventPositionInfo.globalX - eventPositionInfo.displayX + phyDisplayX;
+        originalEventPositionInfo.globalY = eventPositionInfo.globalY - eventPositionInfo.displayY + phyDisplayY;
+        TLOGD(WmsLogTag::WMS_EVENT, "displayX:%{private}d, displayY:%{private}d"
+            "globalX:%{private}f, globalY:%{private}f",
+            originalEventPositionInfo.displayX, originalEventPositionInfo.displayY,
+            originalEventPositionInfo.globalX, originalEventPositionInfo.globalY);
+    }
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
         property_->GetDisplayId() == DISPLAY_ID_C &&
         DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&

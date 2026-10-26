@@ -140,6 +140,7 @@ enum class SessionStageInterfaceCode {
 
     TRANS_ID_UPDATE_LS_STATE,
     TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW,
+    TRANS_ID_NOTIFY_DPI_FORCE_SCALE_CHANGE,
     // set window start density for UEA provider
     TRANS_ID_SET_WINDOW_START_DENSITY,
 };

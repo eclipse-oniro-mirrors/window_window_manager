@@ -724,6 +724,7 @@ struct DMRect {
  * @brief hook diaplayinfo deepending on the window size.
  */
 struct DMHookInfo {
+    DisplayId displayId_ = 0;
     uint32_t width_;
     uint32_t height_;
     float_t density_;
@@ -731,6 +732,7 @@ struct DMHookInfo {
     bool enableHookRotation_;
     uint32_t displayOrientation_;
     bool enableHookDisplayOrientation_;
+    float_t dpiForceScale_ = 0.0f;
     DMRect actualRect_ = { 0, 0, 0, 0};
     bool isFullScreenInForceSplit_;
 };

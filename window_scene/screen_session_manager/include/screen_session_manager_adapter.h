@@ -69,6 +69,7 @@ public:
     void NotifyDisplayModeChanged(FoldDisplayMode displayMode);
     void NotifyScreenMagneticStateChanged(bool isMagneticState);
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
+    void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid);
     ClientAgentContainer<IDisplayManagerAgent, DisplayManagerAgentType> dmAgentContainer_;
     ClientAgentContainer<IDisplayManagerAgent, std::string> dmAttributeAgentContainer_;
     void NotifyAbnormalScreenConnectChange(ScreenId screenId);

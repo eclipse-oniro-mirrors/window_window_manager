@@ -150,6 +150,18 @@
             OHOS::Rosen::SceneSession::RemoveNormalModalUIExtension*;
             OHOS::Rosen::SceneSession::ResetSizeChangeReasonIfDirty*;
             OHOS::Rosen::SceneSession::SetHighlightChangeNotifyFunc*;
+            OHOS::Rosen::SceneSession::UpdateDpiForceScale*;
+            OHOS::Rosen::SceneSession::SetDpiForceScaleChangeNotifyFunc*;
+            OHOS::Rosen::SceneSession::NotifyDpiForceScaleToClient*;
+            OHOS::Rosen::SceneSession::NotifyDpiForceScaleToTs*;
+            OHOS::Rosen::SceneSession::GetIsDpiForceScale*;
+            OHOS::Rosen::SceneSession::GetDpiForceScale*;
+            OHOS::Rosen::SceneSession::GetWindowStartDensity*;
+            OHOS::Rosen::SceneSession::SetDpiForceScale*;
+            OHOS::Rosen::SceneSession::SetIsDpiForceScale*;
+            OHOS::Rosen::SceneSession::SetWindowStartDensity*;
+            OHOS::Rosen::SceneSession::GetScreenDensityById*;
+            OHOS::Rosen::SceneSession::GetCoordinateScaleFactor*;
             OHOS::Rosen::SceneSession::SetMinimizedFlagByUserSwitch*;
             OHOS::Rosen::SceneSession::SetPipParentWindowIdCallback*;
             OHOS::Rosen::SceneSession::SetRestoreMainWindowCallback*;

@@ -1251,6 +1251,8 @@ private:
      * be processed or skipped for throttling purposes.
      */
     int64_t lastMovingEventActionTimeUs_ = 0;
+    float GetDpiForceScale() const;
+    bool GetIsDpiForceScale() const;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_MOVE_DRAG_CONTROLLER_H

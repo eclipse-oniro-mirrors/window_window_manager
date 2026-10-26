@@ -75,6 +75,7 @@ public:
     }
 
     virtual void UpdateDensity() = 0;
+    virtual void UpdateDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale, float windowStartDensity) {}
     virtual WSError UpdateOrientation() = 0;
 
     /**

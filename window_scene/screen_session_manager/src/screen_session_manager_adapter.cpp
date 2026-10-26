@@ -579,6 +579,31 @@ void ScreenSessionManagerAdapter::NotifyAvailableAreaChanged(DMRect area, Displa
     }
 }
 
+void ScreenSessionManagerAdapter::NotifyAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid)
+{
+    INIT_PROXY_CHECK_RETURN();
+    auto agents = dmAgentContainer_.GetAgentsByType(DisplayManagerAgentType::AVAILABLE_AREA_CHANGED_LISTENER);
+    if (agents.empty()) {
+        TLOGE(WmsLogTag::DMS, "agent is null");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS,"displayId: %{public}" PRIu64 ", uid: %{public}d, "
+            "AvailableArea: [%{public}d, %{public}d, %{public}u, %{public}u]",
+            static_cast<DisplayId>(displayId), uid, area.posX_, area.posY_, area.width_, area.height_);
+    for (auto& agent : agents) {
+        int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
+        if (ScreenSessionManager::GetInstance().GetStoredPidFromUid(uid, agentPid)) {
+            TLOGD(WmsLogTag::DMS, "no notify, pid: %{public}d", agentPid);
+            continue;
+        }
+        if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid,
+                                                           DisplayManagerAgentType::AVAILABLE_AREA_CHANGED_LISTENER)) {
+            agent->NotifyAvailableAreaChanged(area, displayId);
+            TLOGI(WmsLogTag::DMS, "notify, pid: %{public}d", agentPid);
+        }
+    }
+}
+
 void ScreenSessionManagerAdapter::NotifyAbnormalScreenConnectChange(ScreenId screenId)
 {
     INIT_PROXY_CHECK_RETURN();

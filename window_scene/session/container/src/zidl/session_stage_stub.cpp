@@ -107,6 +107,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateRect(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DENSITY_CHANGE):
             return HandleUpdateDensity(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DPI_FORCE_SCALE_CHANGE):
+            return HandleUpdateDpiForceScaleChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ORIENTATION_CHANGE):
             return HandleUpdateOrientation(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SESSION_VIEWPORT_CONFIG):
@@ -430,6 +432,15 @@ int SessionStageStub::HandleUpdateDensity(MessageParcel& data, MessageParcel& re
 {
     WLOGFD("UpdateDensity!");
     UpdateDensity();
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleUpdateDpiForceScaleChange(MessageParcel& data, MessageParcel& reply)
+{
+    float dpiForceScale = data.ReadFloat();
+    bool isDpiForceScale = data.ReadBool();
+    float windowStartDensity = data.ReadFloat();
+    UpdateDpiForceScaleChange(dpiForceScale, isDpiForceScale, windowStartDensity);
     return ERR_NONE;
 }
 
