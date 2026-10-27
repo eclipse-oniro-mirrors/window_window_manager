@@ -363,11 +363,11 @@ HWTEST_F(SceneSessionLifecycleTest, Foreground11, TestSize.Level1)
     sptr<SceneSession::SpecificSessionCallback> specificCallback =
         sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
     ASSERT_NE(specificCallback, nullptr);
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, specificCallback);
+    ASSERT_NE(session, nullptr);
     specificCallback->onGetSceneSessionByIdCallback_ = [session](int32_t sessionId) -> sptr<SceneSession> {
         return nullptr;
     };
-    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, specificCallback);
-    ASSERT_NE(session, nullptr);
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     ASSERT_NE(property, nullptr);
     property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
