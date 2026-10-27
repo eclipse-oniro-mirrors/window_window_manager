@@ -110,11 +110,11 @@ JsWindow::JsWindow(const sptr<Window>& window, napi_env env)
                 return;
             }
             g_jsWindowMap.erase(windowName);
-            TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
+            TLOGNI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
         SetWindowToken(nullptr);
         isDestroyed_ = true;
-        TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in js window", windowName.c_str());
+        TLOGNI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in js window", windowName.c_str());
     };
     NotifyOrientationExecutionResultFunc orientationExecutionResultFunc = [this](
         uint32_t promiseId, OrientationExecutionResult result) {

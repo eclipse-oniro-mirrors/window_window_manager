@@ -467,7 +467,7 @@ void Session::SetSessionInfoExpandInputFlag(uint32_t expandInputFlag)
         std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
         if (sessionInfo_.expandInputFlag_ != expandInputFlag) {
             sessionInfo_.expandInputFlag_ = expandInputFlag;
-            TLOGI(WmsLogTag::WMS_EVENT, "id:%{public}d, flag:%{public}u", GetPersistentId(), expandInputFlag);
+            TLOGNI(WmsLogTag::WMS_EVENT, "InputFlag%{public}d:%{public}u", GetPersistentId(), expandInputFlag);
         }
     }
     NotifySessionInfoChange();
@@ -1086,7 +1086,7 @@ void Session::SetForceTouchable(bool forceTouchable)
 void Session::SetSystemTouchable(bool touchable)
 {
     if (touchable != systemTouchable_) {
-        TLOGNI(WmsLogTag::WMS_EVENT, "sysTouch:%{public}d, %{public}d", GetPersistentId(), touchable);
+        TLOGND(WmsLogTag::WMS_EVENT, "ST:%{public}d%{public}d", GetPersistentId(), touchable);
     }
     systemTouchable_ = touchable;
     NotifySessionInfoChange();
@@ -1994,7 +1994,7 @@ WSError Session::Background(bool isFromClient, const std::string& identityToken,
     HandleDialogBackground();
     NotifySubSessionParentStatusChange(GetWindowMode());
     SessionState state = GetSessionState();
-    TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] Background session, state: %{public}" PRIu32, GetPersistentId(),
+    TLOGI(WmsLogTag::WMS_LIFE, "[id: %{public}d] state: %{public}" PRIu32, GetPersistentId(),
         static_cast<uint32_t>(state));
     if (state == SessionState::STATE_ACTIVE && GetWindowType() == WindowType::WINDOW_TYPE_APP_MAIN_WINDOW) {
         UpdateSessionState(SessionState::STATE_INACTIVE);
@@ -2180,7 +2180,7 @@ WSError Session::RemoveStartingWindow(std::string& errMsg)
 WSError Session::SetActive(bool active)
 {
     SessionState state = GetSessionState();
-    TLOGI(WmsLogTag::WMS_LIFE, "new active:%{public}d, id:%{public}d, state:%{public}u",
+    TLOGI(WmsLogTag::WMS_LIFE, "active:%{public}d, id:%{public}d, state:%{public}u",
         active, GetPersistentId(), static_cast<uint32_t>(state));
     if (!IsSessionValid()) {
         TLOGW(WmsLogTag::WMS_LIFE, "Session is invalid, id: %{public}d state: %{public}u",
@@ -2271,7 +2271,7 @@ void Session::NotifyForegroundInteractiveStatus(bool interactive)
 void Session::SetForegroundInteractiveStatus(bool interactive)
 {
     if (interactive != GetForegroundInteractiveStatus()) {
-        TLOGI(WmsLogTag::WMS_EVENT, "id:%{public}d, %{public}d", GetPersistentId(),
+        TLOGND(WmsLogTag::WMS_EVENT, "Interactive%{public}d%{public}d", GetPersistentId(),
             static_cast<int>(interactive));
     }
     foregroundInteractiveStatus_.store(interactive);
@@ -2293,7 +2293,7 @@ bool Session::IsActivatedAfterScreenLocked() const
 
 void Session::SetIsActivatedAfterScreenLocked(bool isActivatedAfterScreenLocked)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, isLocked:%{public}d",
+    TLOGD(WmsLogTag::WMS_LIFE, "id:%{public}d, isLocked:%{public}d",
           GetPersistentId(), isActivatedAfterScreenLocked);
     isActivatedAfterScreenLocked_.store(isActivatedAfterScreenLocked);
 }
@@ -2305,7 +2305,7 @@ bool Session::GetIsPendingToBackgroundState() const
 
 void Session::SetIsPendingToBackgroundState(bool isPendingToBackgroundState)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d State:%{public}d",
+    TLOGD(WmsLogTag::WMS_LIFE, "id:%{public}d State:%{public}d",
         GetPersistentId(), isPendingToBackgroundState);
     return isPendingToBackgroundState_.store(isPendingToBackgroundState);
 }
@@ -2343,7 +2343,7 @@ void Session::SetAttachState(bool isAttach, WindowMode windowMode)
         if (WindowHelper::IsNeedWaitAttachStateWindow(session->GetWindowType()) &&
             session->IsNeedNotifyAttachState(isAttach)) {
             session->isClientAttach_ = isAttach;
-            TLOGI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
+            TLOGNI(WmsLogTag::WMS_LIFE, "NotifyWindowAttachStateChange, persistentId:%{public}d",
                 session->GetPersistentId());
             if (session->sessionStage_) {
                 session->sessionStage_->NotifyWindowAttachStateChange(isAttach);

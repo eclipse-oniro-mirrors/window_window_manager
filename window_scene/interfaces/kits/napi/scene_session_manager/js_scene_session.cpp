@@ -5405,7 +5405,7 @@ sptr<SceneSession> JsSceneSession::GenSceneSession(SessionInfo& info, bool needA
 void JsSceneSession::ReuseSession(sptr<SceneSession>& sceneSession, SessionInfo& info)
 {
     if (info.reuse || info.isAtomicService_ || !info.specifiedFlag_.empty()) {
-        TLOGI(WmsLogTag::WMS_LIFE, "session need to be reusesd.");
+        TLOGI(WmsLogTag::WMS_LIFE, "session need to be reusesd, collaboratorType: %{public}d", info.collaboratorType_);
         if (CheckCollaboratorType(info.collaboratorType_)) {
             sceneSession = SceneSessionManager::GetInstance().FindSessionByAffinity(info.sessionAffinity);
         } else {
@@ -8446,7 +8446,7 @@ void JsSceneSession::RegisterUpdateAppUseControlCallback()
         }
         jsSceneSession->OnUpdateAppUseControl(type, isNeedControl, isControlRecentOnly);
     });
-    TLOGI(WmsLogTag::WMS_LIFE, "success");
+    TLOGD(WmsLogTag::WMS_LIFE, "success");
 }
 
 void JsSceneSession::OnUpdateAppUseControl(ControlAppType type, bool isNeedControl, bool isControlRecentOnly)

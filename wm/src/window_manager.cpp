@@ -681,7 +681,7 @@ void WindowManager::Impl::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& li
         wmsWindowDestroyedListener = windowLifeCycleListener_;
     }
     if (wmsWindowDestroyedListener == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
+        TLOGD(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
         return;
     }
     wmsWindowDestroyedListener->OnWindowDestroyed(lifeCycleInfo, jsWindowNapiValue);
@@ -3176,7 +3176,7 @@ void WindowManager::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycl
     {
         std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
         if (pImpl_->windowLifeCycleListener_ == nullptr) {
-            TLOGE(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
+            TLOGD(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
             return;
         }
     }
