@@ -1139,8 +1139,8 @@ void SceneSessionManagerProxy::GetAllGroupInfo(
         return;
     }
     int32_t mapSize = 0;
-    if (!reply.ReadInt32(mapSize)) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "Failed to read mapSize");
+    if (!reply.ReadInt32(mapSize) || mapSize < 0 || mapSize > MAX_DISPLAY_GROUP_MAP_SIZE) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Invalid mapSize: %{public}d", mapSize);
         return;
     }
     for (int32_t i = 0; i < mapSize; i++) {
