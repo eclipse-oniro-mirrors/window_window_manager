@@ -3124,9 +3124,9 @@ void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, cons
             if (key == WindowInfoKey::WINDOW_ID) {
                 stream << "winId=" << std::get<int32_t>(value) << ", ";
             } else if (key == WindowInfoKey::WINDOW_MODE) {
-                stream << "mode=" << std::get<WindowMode>(value) << ", ";
+                stream << "mode=" << static_cast<uint32_t>(std::get<WindowMode>(value)) << ", ";
             } else if (key == WindowInfoKey::VISIBILITY_STATE) {
-                stream << "visibility=" << std::get<WindowVisibilityState>(value) << ", ";
+                stream << "visibility=" << static_cast<uint32_t>(std::get<WindowVisibilityState>(value)) << ", ";
             } else if (key == WindowInfoKey::WINDOW_RECT) {
                 stream << "rect=" << std::get<Rect>(value).ToString() << ", ";
             } else if (key == WindowInfoKey::WINDOW_GLOBAL_RECT) {
