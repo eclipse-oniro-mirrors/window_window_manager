@@ -532,10 +532,8 @@ WSError SceneSession::Foreground(
             TLOGW(WmsLogTag::WMS_LIFE, "check failed");
             return WSError::WS_OK;
         }
-        if (!IsForegroundPreState()) {
-            TLOGW(WmsLogTag::WMS_LIFE,
-                "Current state is not a pre-state of foreground, session: %{public}d, state: %{public}u",
-                GetPersistentId(), GetSessionState());
+        if (GetSceneSessionById(GetPersistentId()) == nullptr) {
+            TLOGW(WmsLogTag::WMS_LIFE, "session %{public}d invalid", GetPersistentId());
             return WSError::WS_ERROR_INVALID_SESSION;
         }
     }
