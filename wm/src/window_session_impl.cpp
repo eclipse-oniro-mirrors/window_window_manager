@@ -325,7 +325,7 @@ bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
 
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners, isGamePreLaunch)  \
     do {                                                                        \
-        if (listeners.size() == 0) {                                            \
+        if ((listeners).size() == 0) {                                            \
             TLOGE(WmsLogTag::WMS_LIFE, "listeners size is 0!");                 \
         }                                                                       \
         if (isGamePreLaunch) {                                                  \
