@@ -341,7 +341,7 @@ bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
                 if (listener != nullptr) {                                      \
                     listener->windowLifecycleCb();                              \
                 } else {                                                        \
-                    TLOGE(WmsLogTag::WMS_LIFE, "listeners is null!");           \
+                    TLOGE(WmsLogTag::WMS_LIFE, "listeners is null");           \
                 }                                                               \
             }                                                                   \
         }                                                                       \

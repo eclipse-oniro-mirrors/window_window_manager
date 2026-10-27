@@ -6860,7 +6860,7 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         "maxWindowWidth:%{public}d,minWindowWidth:%{public}d,maxWindowHeight:%{public}d,minWindowHeight:%{public}d,"
         "startWindowType:%{public}d,isPrelaunch:%{public}d,frameNum:%{public}d,"
         "isTargetPlugin:%{public}d,hostBundleName:%{public}s,isGamePrelaunch: %{public}d,"
-        "screenId:%{public}" PRIu64
+        "screenId %{public}" PRIu64 "",
         info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(), info.appIndex_,
         info.sessionAffinity.c_str(), info.callState_, info.persistentId_, info.uiAbilityId_, info.windowMode,
         info.splitRatioPreference, info.callerPersistentId_, info.needClearInNotShowRecent_, info.appInstanceKey_.c_str(),

@@ -1086,7 +1086,7 @@ void Session::SetForceTouchable(bool forceTouchable)
 void Session::SetSystemTouchable(bool touchable)
 {
     if (touchable != systemTouchable_) {
-        TLOGND(WmsLogTag::WMS_EVENT, "ST:%{public}d%{public}d", GetPersistentId(), touchable);
+        TLOGNI(WmsLogTag::WMS_EVENT, "ST:%{public}d%{public}d", GetPersistentId(), touchable);
     }
     systemTouchable_ = touchable;
     NotifySessionInfoChange();
@@ -2271,7 +2271,7 @@ void Session::NotifyForegroundInteractiveStatus(bool interactive)
 void Session::SetForegroundInteractiveStatus(bool interactive)
 {
     if (interactive != GetForegroundInteractiveStatus()) {
-        TLOGND(WmsLogTag::WMS_EVENT, "Interactive%{public}d%{public}d", GetPersistentId(),
+        TLOGNI(WmsLogTag::WMS_EVENT, "Interactive%{public}d%{public}d", GetPersistentId(),
             static_cast<int>(interactive));
     }
     foregroundInteractiveStatus_.store(interactive);

@@ -4140,7 +4140,7 @@ sptr<AAFwk::SessionInfo> SceneSessionManager::SetAbilitySessionInfo(const sptr<S
     }
     abilitySessionInfo->isPrelaunch = sessionInfo.isPrelaunch_;
     abilitySessionInfo->frameNum = sessionInfo.frameNum_;
-    TLOGI(WmsLogTag::WMS_LIFE, "set flag:%{public}d, persistentId:%{public}d, requestId:%{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "flag:%{public}d, persistentId:%{public}d, requestId:%{public}d",
         requestId == DEFAULT_REQUEST_FROM_SCB_ID, abilitySessionInfo->persistentId, requestId);
     return abilitySessionInfo;
 }
@@ -5188,7 +5188,7 @@ WSError SceneSessionManager::RequestSceneSessionDestructionInner(sptr<SceneSessi
     if (!isUserRequestedExit) {
         MoveStartLifeCycleTask(sceneSession);
     }
-    TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] Begin CloseUIAbility, system: %{public}d "
+    TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] Begin CloseUIAbility, system: %{public}d, "
         "collaboratorType:%{public}d", persistentId, scbRequestId,
         sceneSession->GetSessionInfo().isSystem_, sceneSession->GetCollaboratorType());
     if (isForceClean) {

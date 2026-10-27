@@ -2782,8 +2782,8 @@ napi_value JsSceneSessionManager::OnRequestSceneSessionBackground(napi_env env, 
         ConvertFromJsValue(env, argv[ARGC_FOUR], reason);
     }
 
-    TLOGI(WmsLogTag::WMS_LIFE, "isDelegator:%{public}u,isToDesktop:%{public}u,isSaveSnapshot:%{public}u",
-        ", reason: %{public}u", isDelegator, isToDesktop, isSaveSnapshot, reason);
+    TLOGI(WmsLogTag::WMS_LIFE, "isDelegator:%{public}u,isToDesktop:%{public}u,isSaveSnapshot:%{public}u"
+        ",reason: %{public}u", isDelegator, isToDesktop, isSaveSnapshot, reason);
     SceneSessionManager::GetInstance().RequestSceneSessionBackground(sceneSession, isDelegator, isToDesktop,
         isSaveSnapshot, reason);
     return NapiGetUndefined(env);
