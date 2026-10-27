@@ -33,6 +33,7 @@
 namespace OHOS::Rosen {
 namespace {
 constexpr int32_t CYCLE_LIMIT = 1000;
+constexpr int32_t MAX_DISPLAY_GROUP_MAP_SIZE = 100;
 constexpr HiviewDFX::HiLogLabel LABEL = {LOG_CORE, HILOG_DOMAIN_WINDOW, "SceneSessionManagerProxy"};
 constexpr DisplayId VIRTUAL_DISPLAY_ID = 999;
 
