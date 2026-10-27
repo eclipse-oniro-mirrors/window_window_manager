@@ -557,15 +557,6 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Occupied info is nullptr");
         return ERR_INVALID_VALUE;
     }
-    int32_t posX = 0;
-    int32_t posY = 0;
-    uint32_t width = 0;
-    uint32_t height = 0;
-    if (!(data.ReadInt32(posX) && data.ReadInt32(posY) && data.ReadUint32(width) && data.ReadUint32(height))) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "Read callingSessionRect failed");
-        return ERR_INVALID_VALUE;
-    }
-    Rect callingSessionRect = { posX, posY, width, height };
     std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
     uint32_t size = 0;
     if (!data.ReadUint32(size)) {
@@ -602,9 +593,9 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
             TLOGE(WmsLogTag::WMS_KEYBOARD, "transaction unMarsh failed");
             return ERR_INVALID_VALUE;
         }
-        NotifyOccupiedAreaChangeInfo(info, transaction, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, transaction, avoidAreas);
     } else {
-        NotifyOccupiedAreaChangeInfo(info, nullptr, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, nullptr, avoidAreas);
     }
 
     return ERR_NONE;

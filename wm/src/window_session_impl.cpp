@@ -9048,19 +9048,19 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfoInner(sptr<OccupiedAreaChang
 }
 
 void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-    const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingWindowRect,
+    const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     if (handler_ == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "handler is nullptr");
         return;
     }
-    auto task = [weak = wptr(this), info, rsTransaction, callingWindowRect, avoidAreas]() {
+    auto task = [weak = wptr(this), info, rsTransaction, avoidAreas]() {
         if (info != nullptr) {
             TLOGNI(WmsLogTag::WMS_KEYBOARD, "transaction: %{public}d, safeHeight: %{public}u"
-                ", occupied rect: x %{public}d, y %{public}d, w %{public}u, h %{public}u, "
-                "callingWindowRect: %{public}s", rsTransaction != nullptr, info->safeHeight_, info->rect_.posX_,
-                info->rect_.posY_, info->rect_.width_, info->rect_.height_, callingWindowRect.ToString().c_str());
+                ", occupied rect: x %{public}d, y %{public}d, w %{public}u, h %{public}u",
+                rsTransaction != nullptr, info->safeHeight_, info->rect_.posX_, info->rect_.posY_,
+                info->rect_.width_, info->rect_.height_);
         }
         auto window = weak.promote();
         if (!window) {

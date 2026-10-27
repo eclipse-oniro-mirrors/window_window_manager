@@ -1728,7 +1728,7 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyOccupiedAreaChangeInfo01, TestSiz
 {
     sptr<OccupiedAreaChangeInfo> info = new(std::nothrow) OccupiedAreaChangeInfo();
     ASSERT_NE(nullptr, info);
-    window_->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window_->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
 }
 
 /**
@@ -1743,7 +1743,7 @@ HWTEST_F(WindowExtensionSessionImplTest, NotifyOccupiedAreaChangeInfo02, TestSiz
     window_->RegisterOccupiedAreaChangeListener(iOccupiedAreaChangeListener);
     sptr<OccupiedAreaChangeInfo> info = new(std::nothrow) OccupiedAreaChangeInfo();
     ASSERT_NE(nullptr, info);
-    window_->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window_->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
 }
 
 /**

@@ -1435,13 +1435,13 @@ void WindowExtensionSessionImpl::NotifySessionBackground(uint32_t reason, bool w
 
 void WindowExtensionSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
     const std::shared_ptr<RSTransaction>& rsTransaction,
-    const Rect& callingSessionRect, const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
+    const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     if (handler_ == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "handler is nullptr");
         return;
     }
-    auto task = [weak = wptr(this), info, rsTransaction, callingSessionRect, avoidAreas]() {
+    auto task = [weak = wptr(this), info, rsTransaction, avoidAreas]() {
         if (info != nullptr) {
             TLOGNI(WmsLogTag::WMS_KEYBOARD, "TextFieldPosY: %{public}f, KeyBoardHeight: %{public}d",
                 info->textFieldPositionY_, info->rect_.height_);

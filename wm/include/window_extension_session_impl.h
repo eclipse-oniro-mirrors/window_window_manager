@@ -131,7 +131,7 @@ public:
     void NotifySessionForeground(uint32_t reason, bool withAnimation) override;
     void NotifySessionBackground(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas) override;
     void NotifyKeyboardDidShow(const KeyboardPanelInfo& keyboardPanelInfo) override;
     void NotifyKeyboardDidHide(const KeyboardPanelInfo& keyboardPanelInfo) override;

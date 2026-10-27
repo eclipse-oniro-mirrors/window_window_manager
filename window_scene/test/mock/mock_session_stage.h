@@ -40,8 +40,8 @@ public:
     MOCK_METHOD2(NotifyTransferComponentDataSync, WSErrorCode(const AAFwk::WantParams& wantParams,
         AAFwk::WantParams& reWantParams));
     MOCK_METHOD1(MarkProcessed, WSError(int32_t eventId));
-    MOCK_METHOD4(NotifyOccupiedAreaChangeInfo, void(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingWindowRect,
+    MOCK_METHOD3(NotifyOccupiedAreaChangeInfo, void(sptr<OccupiedAreaChangeInfo> info,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas));
     MOCK_METHOD2(UpdateAvoidArea, WSError(const sptr<AvoidArea>& avoidArea, AvoidAreaType type));
     MOCK_METHOD1(DumpSessionElementInfo, void(const std::vector<std::string>& params));
