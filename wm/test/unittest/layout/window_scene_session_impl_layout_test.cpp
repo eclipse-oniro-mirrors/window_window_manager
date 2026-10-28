@@ -4395,6 +4395,67 @@ HWTEST_F(WindowSceneSessionImplLayoutTest, RecalcPxLimitsOnDensity02, Function |
     WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
 }
 
+/**
+ * @tc.name: RecalcPxLimitsOnDensityDpi001
+ * @tc.desc: dpi force scale enabled, effective vpr is overridden to windowStartDensity
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RecalcPxLimitsOnDensityDpi001, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RecalcPxLimitsOnDensityDpi001");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+ 
+    WindowLimits limits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(limits);
+    window->isDpiForceScale_ = true;
+    window->windowStartDensity_ = 4.0f;
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(2.0f), ::testing::Return(WMError::WM_OK)));
+ 
+    window->RecalcPxLimitsOnDensity(nullptr);
+ 
+    // vpr is overridden to windowStartDensity (4.0) instead of the fetched 2.0.
+    EXPECT_FLOAT_EQ(window->GetProperty()->GetLastLimitsVpr(), 4.0f);
+    WindowLimits resultPx = window->GetProperty()->GetWindowLimits();
+    WindowLimits resultVp = window->GetProperty()->GetWindowLimitsVP();
+    EXPECT_FLOAT_EQ(resultPx.vpRatio_, 4.0f);
+    EXPECT_FLOAT_EQ(resultVp.vpRatio_, 4.0f);
+ 
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
+ 
+/**
+ * @tc.name: RecalcPxLimitsOnDensityDpi002
+ * @tc.desc: dpi force scale disabled, effective vpr keeps the fetched value
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplLayoutTest, RecalcPxLimitsOnDensityDpi002, Function | SmallTest | Level1)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    sptr<MockWindowSceneSessionImpl> window = CreateWorkAreaTestWindow("RecalcPxLimitsOnDensityDpi002");
+    auto displayMocker = SetUpWorkAreaDisplayMock();
+ 
+    WindowLimits limits = { 3840, 1920, 1800, 900, 0.0f, 0.0f, WORK_AREA_TEST_VPR, PixelUnit::PX };
+    window->GetProperty()->SetWindowLimits(limits);
+    window->isDpiForceScale_ = false;
+    window->windowStartDensity_ = 4.0f;
+    EXPECT_CALL(*window, GetVirtualPixelRatio(
+        ::testing::An<float&>(), ::testing::An<sptr<DisplayInfo>*>()))
+        .WillOnce(::testing::DoAll(::testing::SetArgReferee<0>(2.0f), ::testing::Return(WMError::WM_OK)));
+ 
+    window->RecalcPxLimitsOnDensity(nullptr);
+ 
+    // vpr keeps the fetched 2.0 when dpi force scale is disabled.
+    EXPECT_FLOAT_EQ(window->GetProperty()->GetLastLimitsVpr(), 2.0f);
+    WindowLimits resultPx = window->GetProperty()->GetWindowLimits();
+    WindowLimits resultVp = window->GetProperty()->GetWindowLimitsVP();
+    EXPECT_FLOAT_EQ(resultPx.vpRatio_, 2.0f);
+    EXPECT_FLOAT_EQ(resultVp.vpRatio_, 2.0f);
+ 
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

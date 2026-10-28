@@ -1546,8 +1546,19 @@ WSError Session::UpdateRect(const WSRect& rect, SizeChangeReason reason,
 
 void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
 {
-    WSRect lastParentRect = GetLayoutController()->GetLastClientParentSize();
-    if (lastParentRect.width_ != rect.width_ || lastParentRect.height_ != rect.height_) {
+    auto layoutController = GetLayoutController();
+    WSRect lastParentRect = layoutController->GetLastClientParentSize();
+    float lastScaleX = layoutController->GetLastScaleX();
+    float lastScaleY = layoutController->GetLastScaleY();
+    float currScaleX = layoutController->GetScaleX();
+    float currScaleY = layoutController->GetScaleY();
+    // Calculate actual display size considering scale
+    int32_t lastLayoutWidth = lastParentRect.width_ * lastScaleX;
+    int32_t lastLayoutHeight = lastParentRect.height_ * lastScaleY;
+    int32_t currLayoutWidth = static_cast<int32_t>(rect.width_ * currScaleX);
+    int32_t currLayoutHeight = static_cast<int32_t>(rect.height_ * currScaleY);
+    if (lastParentRect.width_ != rect.width_ || lastParentRect.height_ != rect.height_ ||
+        lastLayoutWidth != currLayoutWidth || lastLayoutHeight != currLayoutHeight) {
         Rect parentRect = { rect.posX_, rect.posY_, static_cast<uint32_t>(rect.width_),
             static_cast<uint32_t>(rect.height_)};
         NotifySubSessionParentSizeChange(parentRect);

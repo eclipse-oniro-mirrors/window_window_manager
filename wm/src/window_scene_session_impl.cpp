@@ -1796,6 +1796,9 @@ void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
     // set; snapshot-invalid attached limits must be converted with this one (see
     // CalculateAttachedWindowLimitsIntersection), so thread it out from the same displayInfo.
     displayPixelRatio = displayInfo->GetVirtualPixelRatio();
+    if (GetIsDpiForceScale()) {
+        virtualPixelRatio = windowStartDensity_;
+    }
 
     // systemLimits: physical pixels, systemLimitsVP: virtual pixels
     const auto& [systemLimits, systemLimitsVP] = GetSystemSizeLimits(displayWidth, displayHeight, virtualPixelRatio);
@@ -3386,7 +3389,9 @@ void WindowSceneSessionImpl::LimitWindowSize(uint32_t& width, uint32_t& height)
 
     // Float camera window has special limits
     LimitCameraFloatWindowMininumSize(width, height, vpr);
-
+    if (GetIsDpiForceScale()) {
+        vpr = windowStartDensity_;
+    }
     // Work-area capping enabled: when vpr is unchanged and the effective limits fit the
     // caps, skip the funnel re-run. The funnel recalculates from the raw user limits, so
     // a no-op re-run would regress capped results to uncapped values when the cap is
@@ -3468,10 +3473,12 @@ WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height, std::str
     const auto& requestRect = GetRequestRect();
 
     Rect newRect = { requestRect.posX_, requestRect.posY_, width, height };
+    auto windowLimits = property_->GetWindowLimits();
     TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, state: %{public}d, type: %{public}d, mode: %{public}d, requestRect: "
-        "%{public}s, windowRect: %{public}s, newRect: %{public}s",
+        "%{public}s, windowRect: %{public}s, newRect: %{public}s, windowLimits: [%{public}d, %{public}d, %{public}d, %{public}d]",
         property_->GetPersistentId(), state_, GetType(), GetWindowMode(), requestRect.ToString().c_str(),
-        windowRect.ToString().c_str(), newRect.ToString().c_str());
+        windowRect.ToString().c_str(), newRect.ToString().c_str(),
+        windowLimits.minWidth_, windowLimits.maxWidth_, windowLimits.minHeight_, windowLimits.maxHeight_);
 
     property_->SetRequestRect(newRect);
 
@@ -8412,6 +8419,9 @@ void WindowSceneSessionImpl::RecalcPxLimitsOnDensity(const sptr<DisplayInfo>& in
     // NOT the effective density (see CalculateAttachedWindowLimitsIntersection). Stays 0 when
     // the display info is unavailable so the intersection falls back to the effective density.
     const float displayVpr = displayInfo != nullptr ? displayInfo->GetVirtualPixelRatio() : 0.0f;
+    if (GetIsDpiForceScale()) {
+        vpr = windowStartDensity_;
+    }
     bool hasIntersectedLimits = HasIntersectedAttachLimits();
     WindowLimits limitsPx = hasIntersectedLimits ?
         property_->GetLimitsForAttachedWindows() : property_->GetWindowLimits();

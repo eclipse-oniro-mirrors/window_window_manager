@@ -2532,6 +2532,301 @@ HWTEST_F(SceneSessionTest6, UpdateDpiForceScale04, Function | SmallTest | Level1
     session->UpdateDpiForceScale();
     EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
 }
+
+/**
+ * @tc.name: CalcSubWindowRectByAnchorDpi001
+ * @tc.desc: parent session is dpi force scale, sub window rect should be calculated by scaled parent rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, CalcSubWindowRectByAnchorDpi001, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->subWindowLevel_ = 1;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->property_ = property;
+    sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = true;
+    sptr<SceneSession> parentSceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->parentSession_ = parentSceneSession;
+    parentSceneSession->SetIsDpiForceScale(true);
+    parentSceneSession->SetDpiForceScale(2.0f);
+    parentSceneSession->SetWindowStartDensity(2.0f);
+ 
+    WindowAnchorInfo windowAnchorInfo = { true, WindowAnchor::TOP_START, 0, 0 };
+    WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
+    EXPECT_EQ(ret, WSError::WS_OK);
+ 
+    WSRect parentRect = {0, 0, 1000, 1000};
+    WSRect subRect = {0, 0, 400, 400};
+    WSRect retRect;
+ 
+    sceneSession->windowAnchorInfo_.windowAnchor_ = WindowAnchor::TOP;
+    sceneSession->CalcSubWindowRectByAnchor(parentRect, subRect);
+    retRect = {800, 0, 400, 400};
+    EXPECT_EQ(subRect, retRect);
+}
+ 
+/**
+ * @tc.name: CalcSubWindowRectByAnchorDpi002_TopEnd
+ * @tc.desc: parent session is dpi force scale, sub window anchored to TOP_END uses scaled parent rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, CalcSubWindowRectByAnchorDpi002_TopEnd, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->subWindowLevel_ = 1;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->property_ = property;
+    sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = true;
+    sptr<SceneSession> parentSceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->parentSession_ = parentSceneSession;
+    parentSceneSession->SetIsDpiForceScale(true);
+    parentSceneSession->SetDpiForceScale(2.0f);
+    parentSceneSession->SetWindowStartDensity(2.0f);
+ 
+    WindowAnchorInfo windowAnchorInfo = { true, WindowAnchor::TOP_START, 0, 0 };
+    WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
+    EXPECT_EQ(ret, WSError::WS_OK);
+ 
+    WSRect parentRect = {0, 0, 1000, 1000};
+    WSRect subRect = {0, 0, 400, 400};
+    WSRect retRect;
+ 
+    sceneSession->windowAnchorInfo_.windowAnchor_ = WindowAnchor::TOP_END;
+    sceneSession->CalcSubWindowRectByAnchor(parentRect, subRect);
+    retRect = {1600, 0, 400, 400};
+    EXPECT_EQ(subRect, retRect);
+}
+ 
+/**
+ * @tc.name: CalcSubWindowRectByAnchorDpi002
+ * @tc.desc: parent session is not dpi force scale, sub window rect should be calculated by original parent rect
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, CalcSubWindowRectByAnchorDpi002, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->subWindowLevel_ = 1;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->property_ = property;
+    sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = true;
+    sptr<SceneSession> parentSceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->parentSession_ = parentSceneSession;
+ 
+    WindowAnchorInfo windowAnchorInfo = { true, WindowAnchor::TOP_START, 0, 0 };
+    WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
+    EXPECT_EQ(ret, WSError::WS_OK);
+ 
+    WSRect parentRect = {0, 0, 1000, 1000};
+    WSRect subRect = {0, 0, 400, 400};
+    WSRect retRect;
+ 
+    sceneSession->windowAnchorInfo_.windowAnchor_ = WindowAnchor::TOP;
+    sceneSession->CalcSubWindowRectByAnchor(parentRect, subRect);
+    retRect = {300, 0, 400, 400};
+    EXPECT_EQ(subRect, retRect);
+}
+ 
+/**
+ * @tc.name: NotifySubSessionParentSizeChangeDpi001
+ * @tc.desc: parent session is dpi force scale and sub session is not, sub session size should be scaled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifySubSessionParentSizeChangeDpi001, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->SetIsDpiForceScale(true);
+    sceneSession->SetDpiForceScale(2.0f);
+    sceneSession->SetWindowStartDensity(2.0f);
+ 
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    sptr<SessionStageMocker> mockStage = sptr<SessionStageMocker>::MakeSptr();
+    subSession->sessionStage_ = mockStage;
+    sceneSession->subSession_.push_back(subSession);
+ 
+    Rect rect = {10, 20, 100, 200};
+    Rect scaledRect = {10, 20, 200, 400};
+    EXPECT_CALL(*mockStage, NotifySubWindowAfterParentWindowSizeChange(scaledRect)).Times(1);
+    sceneSession->NotifySubSessionParentSizeChange(rect);
+}
+ 
+/**
+ * @tc.name: SetWindowAnchorInfoDpi001
+ * @tc.desc: parent session is dpi force scale, parent rect size should be scaled before notifying sub window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetWindowAnchorInfoDpi001, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->subWindowLevel_ = 1;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->property_ = property;
+    sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = true;
+ 
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionRect({0, 0, 100, 200});
+    parentSession->SetIsDpiForceScale(true);
+    parentSession->SetDpiForceScale(2.0f);
+    parentSession->SetWindowStartDensity(2.0f);
+ 
+    sceneSession->parentSession_ = parentSession;
+    sptr<SessionStageMocker> mockStage = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = mockStage;
+ 
+    // parent rect {0, 0, 100, 200} scaled by dpi force scale 2.0 => {0, 0, 200, 400}
+    Rect scaledRect = {0, 0, 200, 400};
+    EXPECT_CALL(*mockStage, NotifySubWindowAfterParentWindowSizeChange(scaledRect)).Times(1);
+ 
+    WindowAnchorInfo windowAnchorInfo = { true, true, WindowAnchor::TOP_START, 0, 0 };
+    WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: SetWindowAnchorInfoDpi002
+ * @tc.desc: parent session is not dpi force scale, parent rect size should not be scaled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, SetWindowAnchorInfoDpi002, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->subWindowLevel_ = 1;
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    sceneSession->property_ = property;
+    sceneSession->systemConfig_.supportFollowRelativePositionToParent_ = true;
+ 
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+    parentSession->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    parentSession->SetSessionRect({0, 0, 100, 200});
+ 
+    sceneSession->parentSession_ = parentSession;
+    sptr<SessionStageMocker> mockStage = sptr<SessionStageMocker>::MakeSptr();
+    sceneSession->sessionStage_ = mockStage;
+ 
+    // parent rect {0, 0, 100, 200} unchanged
+    Rect scaledRect = {0, 0, 100, 200};
+    EXPECT_CALL(*mockStage, NotifySubWindowAfterParentWindowSizeChange(scaledRect)).Times(1);
+ 
+    WindowAnchorInfo windowAnchorInfo = { true, true, WindowAnchor::TOP_START, 0, 0 };
+    WSError ret = sceneSession->SetWindowAnchorInfo(windowAnchorInfo);
+    EXPECT_EQ(ret, WSError::WS_OK);
+}
+ 
+/**
+ * @tc.name: IsNeedNotifySubSessionParentSizeChange001
+ * @tc.desc: parent scale changes, sub session parent size change should be notified
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, IsNeedNotifySubSessionParentSizeChange001, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto layoutController = sceneSession->GetLayoutController();
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    sptr<SessionStageMocker> mockStage = sptr<SessionStageMocker>::MakeSptr();
+    subSession->sessionStage_ = mockStage;
+    sceneSession->subSession_.push_back(subSession);
+ 
+    layoutController->SetLastClientParentSize({0, 0, 100, 200});
+    layoutController->SetScale(2.0f, 1.0f, 0.5f, 0.5f);
+ 
+    Rect rect = {0, 0, 100, 200};
+    EXPECT_CALL(*mockStage, NotifySubWindowAfterParentWindowSizeChange(rect)).Times(1);
+    sceneSession->IsNeedNotifySubSessionParentSizeChange({0, 0, 100, 200});
+}
+ 
+/**
+ * @tc.name: IsNeedNotifySubSessionParentSizeChange002
+ * @tc.desc: parent size and scale are unchanged, sub session parent size change should not be notified
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, IsNeedNotifySubSessionParentSizeChange002, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto layoutController = sceneSession->GetLayoutController();
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    subSession->windowAnchorInfo_.isAnchoredByAttach_ = true;
+    sptr<SessionStageMocker> mockStage = sptr<SessionStageMocker>::MakeSptr();
+    subSession->sessionStage_ = mockStage;
+    sceneSession->subSession_.push_back(subSession);
+ 
+    layoutController->SetLastClientParentSize({0, 0, 100, 200});
+    layoutController->SetScale(1.0f, 1.0f, 0.5f, 0.5f);
+ 
+    Rect rect = {0, 0, 100, 200};
+    EXPECT_CALL(*mockStage, NotifySubWindowAfterParentWindowSizeChange(rect)).Times(0);
+    sceneSession->IsNeedNotifySubSessionParentSizeChange({0, 0, 100, 200});
+}
+ 
+/**
+ * @tc.name: ScaleStartMovingCoordinateDpi001
+ * @tc.desc: dpi force scale enabled, moving coords should be scaled by dpi force scale
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, ScaleStartMovingCoordinateDpi001, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->SetIsDpiForceScale(true);
+    sceneSession->SetDpiForceScale(2.0f);
+ 
+    int32_t offsetX = 100;
+    int32_t offsetY = 50;
+    int32_t pointerPosX = 300;
+    int32_t pointerPosY = 200;
+    WSRect winRect = {100, 50, 800, 600};
+    sceneSession->ScaleStartMovingCoordinate(offsetX, offsetY, pointerPosX, pointerPosY, winRect);
+ 
+    EXPECT_EQ(offsetX, 200);
+    EXPECT_EQ(offsetY, 100);
+    EXPECT_EQ(pointerPosX, 600);
+    EXPECT_EQ(pointerPosY, 400);
+    EXPECT_EQ(winRect.posX_, 200);
+    EXPECT_EQ(winRect.posY_, 100);
+}
+ 
+/**
+ * @tc.name: ScaleStartMovingCoordinateDpi002
+ * @tc.desc: dpi force scale disabled, moving coords should be unchanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, ScaleStartMovingCoordinateDpi002, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    sceneSession->SetIsDpiForceScale(false);
+    sceneSession->SetDpiForceScale(2.0f);
+ 
+    int32_t offsetX = 100;
+    int32_t offsetY = 50;
+    int32_t pointerPosX = 300;
+    int32_t pointerPosY = 200;
+    WSRect winRect = {100, 50, 800, 600};
+    sceneSession->ScaleStartMovingCoordinate(offsetX, offsetY, pointerPosX, pointerPosY, winRect);
+ 
+    EXPECT_EQ(offsetX, 100);
+    EXPECT_EQ(offsetY, 50);
+    EXPECT_EQ(pointerPosX, 300);
+    EXPECT_EQ(pointerPosY, 200);
+    EXPECT_EQ(winRect.posX_, 100);
+    EXPECT_EQ(winRect.posY_, 50);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

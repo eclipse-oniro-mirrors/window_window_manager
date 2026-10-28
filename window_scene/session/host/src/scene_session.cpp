@@ -1399,11 +1399,32 @@ WSError SceneSession::SyncSessionEvent(SessionEvent event)
     }, __func__);
 }
 
+void SceneSession::ScaleStartMovingCoordinate(int32_t& offsetX, int32_t& offsetY,
+    int32_t& pointerPosX, int32_t& pointerPosY, WSRect& winRect)
+{
+    if (GetIsDpiForceScale()) {
+        float dpiScale = GetDpiForceScale();
+        if (!MathHelper::NearEqual(dpiScale, 1.0f) && dpiScale > 0.0f) {
+            // DpiForceScale scenario: convert logical(app) coords to physical coords.
+            // Session rect width/height are physical, so all coords must stay consistent.
+            offsetX = static_cast<int32_t>(offsetX * dpiScale);
+            offsetY = static_cast<int32_t>(offsetY * dpiScale);
+            pointerPosX = static_cast<int32_t>(pointerPosX * dpiScale);
+            pointerPosY = static_cast<int32_t>(pointerPosY * dpiScale);
+            winRect.posX_ = static_cast<int32_t>(winRect.posX_ * dpiScale);
+            winRect.posY_ = static_cast<int32_t>(winRect.posY_ * dpiScale);
+            TLOGI(WmsLogTag::WMS_LAYOUT_PC, "dpiForceScale=%{public}f, scaled offset:[%{public}d,%{public}d] "
+                "pointer:[%{public}d,%{public}d] winRect:%{public}s", dpiScale, offsetX, offsetY,
+                pointerPosX, pointerPosY, winRect.ToString().c_str());
+        }
+    }
+}
+
 WSError SceneSession::StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
     int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId)
 {
     return PostSyncTask([weakThis = wptr(this), offsetX, offsetY, pointerPosX, pointerPosY,
-        displayId, where = __func__] {
+        displayId, where = __func__]() mutable {
         auto session = weakThis.promote();
         if (!session || !session->moveDragController_) {
             TLOGNW(WmsLogTag::WMS_LAYOUT_PC, "%{public}s: session or moveDragController is null", where);
@@ -1426,6 +1447,7 @@ WSError SceneSession::StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY
             session->GetSessionRect().width_,
             session->GetSessionRect().height_
         };
+        session->ScaleStartMovingCoordinate(offsetX, offsetY, pointerPosX, pointerY, winRect);
         session->InitializeCrossMoveDrag();
         session->moveDragController_->InitMoveDragProperty();
         MoveDragController::MoveCoordinateProperty property = { offsetX, offsetY, pointerPosX,
@@ -9791,6 +9813,12 @@ WSError SceneSession::SetWindowAnchorInfo(const WindowAnchorInfo& windowAnchorIn
         if (windowAnchorInfo.isAnchoredByAttach_) {
             WSRect rect = parentSession->GetSessionRect();
             Rect parentRect = {rect.posX_, rect.posY_, rect.width_, rect.height_};
+            auto parentSceneSession = static_cast<SceneSession*>(parentSession.GetRefPtr());
+            if (parentSceneSession && parentSceneSession->GetIsDpiForceScale()) {
+                float scale = parentSceneSession->GetDpiForceScale();
+                parentRect.width_ *= scale;
+                parentRect.height_ *= scale;
+            }
             if (session->sessionStage_) {
                 session->sessionStage_->NotifySubWindowAfterParentWindowSizeChange(parentRect);
                 auto parentProperty = parentSession->GetSessionProperty();
@@ -9820,42 +9848,50 @@ void SceneSession::CalcSubWindowRectByAnchor(const WSRect& parentRect, WSRect& s
     WindowAnchor anchorMode = windowAnchorInfo_.windowAnchor_;
     int32_t offsetX = windowAnchorInfo_.offsetX_;
     int32_t offsetY = windowAnchorInfo_.offsetY_;
+    auto parentSession = GetParentSession();
+    WSRect parentScaledRect = parentRect;
+    auto parentSceneSession = static_cast<SceneSession*>(parentSession.GetRefPtr());
+    if (parentSceneSession && parentSceneSession->GetIsDpiForceScale()) {
+        float scale = parentSceneSession->GetDpiForceScale();
+        parentScaledRect.width_ *= scale;
+        parentScaledRect.height_ *= scale;
+    }
     switch (anchorMode) {
         case WindowAnchor::TOP_START:
             subRect.posX_ = parentRect.posX_;
             subRect.posY_ = parentRect.posY_;
             break;
         case WindowAnchor::TOP:
-            subRect.posX_ = parentRect.posX_ + (parentRect.width_ - subRect.width_) / HALF_VALUE;
+            subRect.posX_ = parentRect.posX_ + (parentScaledRect.width_ - subRect.width_) / HALF_VALUE;
             subRect.posY_ = parentRect.posY_;
             break;
         case WindowAnchor::TOP_END:
-            subRect.posX_ = parentRect.posX_ + parentRect.width_ - subRect.width_;
+            subRect.posX_ = parentRect.posX_ + parentScaledRect.width_ - subRect.width_;
             subRect.posY_ = parentRect.posY_;
             break;
         case WindowAnchor::START:
             subRect.posX_ = parentRect.posX_;
-            subRect.posY_ = parentRect.posY_ + (parentRect.height_ - subRect.height_) / HALF_VALUE;
+            subRect.posY_ = parentRect.posY_ + (parentScaledRect.height_ - subRect.height_) / HALF_VALUE;
             break;
         case WindowAnchor::CENTER:
-            subRect.posX_ = parentRect.posX_ + (parentRect.width_ - subRect.width_) / HALF_VALUE;
-            subRect.posY_ = parentRect.posY_ + (parentRect.height_ - subRect.height_) / HALF_VALUE;
+            subRect.posX_ = parentRect.posX_ + (parentScaledRect.width_ - subRect.width_) / HALF_VALUE;
+            subRect.posY_ = parentRect.posY_ + (parentScaledRect.height_ - subRect.height_) / HALF_VALUE;
             break;
         case WindowAnchor::END:
-            subRect.posX_ = parentRect.posX_ + parentRect.width_ - subRect.width_;
-            subRect.posY_ = parentRect.posY_ + (parentRect.height_ - subRect.height_) / HALF_VALUE;
+            subRect.posX_ = parentRect.posX_ + parentScaledRect.width_ - subRect.width_;
+            subRect.posY_ = parentRect.posY_ + (parentScaledRect.height_ - subRect.height_) / HALF_VALUE;
             break;
         case WindowAnchor::BOTTOM_START:
             subRect.posX_ = parentRect.posX_;
-            subRect.posY_ = parentRect.posY_ + parentRect.height_ - subRect.height_;
+            subRect.posY_ = parentRect.posY_ + parentScaledRect.height_ - subRect.height_;
             break;
         case WindowAnchor::BOTTOM:
-            subRect.posX_ = parentRect.posX_ + (parentRect.width_ - subRect.width_) / HALF_VALUE;
-            subRect.posY_ = parentRect.posY_ + parentRect.height_ - subRect.height_;
+            subRect.posX_ = parentRect.posX_ + (parentScaledRect.width_ - subRect.width_) / HALF_VALUE;
+            subRect.posY_ = parentRect.posY_ + parentScaledRect.height_ - subRect.height_;
             break;
         case WindowAnchor::BOTTOM_END:
-            subRect.posX_ = parentRect.posX_ + parentRect.width_ - subRect.width_;
-            subRect.posY_ = parentRect.posY_ + parentRect.height_ - subRect.height_;
+            subRect.posX_ = parentRect.posX_ + parentScaledRect.width_ - subRect.width_;
+            subRect.posY_ = parentRect.posY_ + parentScaledRect.height_ - subRect.height_;
             break;
         default:
             TLOGE(WmsLogTag::WMS_SUB, "invalid anchor mode");
@@ -11187,6 +11223,10 @@ void SceneSession::NotifyKeyboardWillHideRegistered(bool registered)
 void SceneSession::SaveLastDensity()
 {
     auto property = GetSessionProperty();
+    if (GetIsDpiForceScale()) {
+        property->SetLastLimitsVpr(GetWindowStartDensity());
+        return;
+    }
     DisplayId displayId = property->GetDisplayId();
     if (auto display = DisplayManager::GetInstance().GetDisplayById(displayId)) {
         property->SetLastLimitsVpr(display->GetVirtualPixelRatio());
@@ -11437,6 +11477,11 @@ void SceneSession::NotifySubSessionParentSizeChange(Rect rect)
     TLOGI(WmsLogTag::WMS_LAYOUT, "subSessionSize: %{public}zu", GetSubSession().size());
     for(const auto& subSession : GetSubSession()) {
         if (subSession && subSession->sessionStage_ && subSession->GetWindowAnchorInfo().isAnchoredByAttach_) {
+            if (GetIsDpiForceScale() && !subSession->GetIsDpiForceScale()) {
+                float scale = GetDpiForceScale();
+                rect.width_ *= scale;
+                rect.height_ *= scale;
+            }
             subSession->sessionStage_->NotifySubWindowAfterParentWindowSizeChange(rect);
         }
     }
