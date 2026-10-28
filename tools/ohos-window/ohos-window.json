@@ -195,10 +195,6 @@
                                                 "appIndex": { "type": "integer" },
                                                 "pid": { "type": "integer" },
                                                 "windowType": { "type": "integer" },
-                                                "parentWindowId": { "type": "integer" },
-                                                "surfaceNodeId": { "type": "integer" },
-                                                "leashWinSurfaceNodeId": { "type": "integer" },
-                                                "isPrivacyMode": { "type": "boolean" },
                                                 "windowMode": { "type": "integer" },
                                                 "windowModeInfo": {
                                                     "type": "object",
@@ -210,9 +206,7 @@
                                                 },
                                                 "isMidScene": { "type": "boolean" },
                                                 "isFocused": { "type": "boolean" },
-                                                "isTouchable": { "type": "boolean" },
-                                                "mainWindowPersistentId": { "type": "integer" },
-                                                "controlAppType": { "type": "integer" }
+                                                "isTouchable": { "type": "boolean" }
                                             }
                                         }
                                     }

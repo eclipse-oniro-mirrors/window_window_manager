@@ -6501,9 +6501,13 @@ void SceneSession::NotifyTouchOutside()
 void SceneSession::NotifyWindowVisibility()
 {
     if (sessionStage_) {
-        sessionStage_->NotifyWindowVisibility(GetRSVisible());
+        auto isVisible = GetRSVisible();
+        auto ret = sessionStage_->NotifyWindowVisibility(isVisible);
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], isVisible=%{public}d, ret=%{public}d",
+            GetWindowId(), GetWindowName().c_str(), isVisible, static_cast<int32_t>(ret));
     } else {
-        WLOGFE("Notify window(id:%{public}d) visibility failed, for this session stage is nullptr", GetPersistentId());
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no stage, win=[%{public}d, %{public}s]", GetWindowId(),
+            GetWindowName().c_str());
     }
 }
 
@@ -6516,7 +6520,7 @@ void SceneSession::NotifyOcclusionState()
     }
     auto visibilityState = GetVisibilityState();
     auto retCode = sessionStage_->NotifyWindowOcclusionState(visibilityState);
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], visibilityState=%{public}u, retCode=%{public}d",
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "win=[%{public}d, %{public}s], visibilityState=%{public}u, retCode=%{public}d",
         GetWindowId(), GetWindowName().c_str(), static_cast<uint32_t>(visibilityState), static_cast<int32_t>(retCode));
 }
 

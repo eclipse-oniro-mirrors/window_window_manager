@@ -568,17 +568,18 @@ void AniWindowListener::OnWindowStatusChange(WindowStatus windowstatus)
 
 void AniWindowListener::OnWindowVisibilityChangedCallback(const bool isVisible)
 {
-    TLOGI(WmsLogTag::DEFAULT, "[ANI]");
-    auto task = [self = weakRef_, vm = vm_, isVisible] {
+    const char* const where = __func__;
+    auto task = [self = weakRef_, vm = vm_, isVisible, where] {
         auto thisListener = self.promote();
         auto aniVm = AniVm(vm);
         auto eng = aniVm.GetAniEnv();
         if (thisListener == nullptr || eng == nullptr || thisListener->aniCallback_ == nullptr) {
-            TLOGE(WmsLogTag::DEFAULT, "[ANI]this listener, eng or callback is nullptr");
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "[ANI] %{public}s: listener or env is null", where);
             return;
         }
         AniWindowUtils::CallAniFunctionVoid(eng, "@ohos.window.window", "runWindowListenerBooleanArgCallback",
             nullptr, thisListener->aniCallback_, ani_boolean(isVisible));
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: isVisible=%{public}d", where, isVisible);
     };
     if (!eventHandler_) {
         TLOGE(WmsLogTag::DEFAULT, "get main event handler failed!");

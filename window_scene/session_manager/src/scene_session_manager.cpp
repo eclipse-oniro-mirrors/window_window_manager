@@ -6389,6 +6389,8 @@ void SceneSessionManager::SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>&
         uint64_t defaultDisplayId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
         int32_t focusSessionId = windowFocusController_->GetFocusedSessionId(defaultDisplayId);
         auto focusedSession = GetSceneSession(focusSessionId);
+        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "found=%{public}d, focusId=%{public}d, defaultDisplayId=%{public}" PRIu64,
+            focusedSession != nullptr, focusSessionId, defaultDisplayId);
         DisplayId displayId = defaultDisplayId;
         if (focusedSession != nullptr && focusedSession->GetSessionProperty()->GetDisplayId() != DISPLAY_ID_INVALID) {
             displayId = focusedSession->GetSessionProperty()->GetDisplayId();
@@ -15639,18 +15641,21 @@ WSError SceneSessionManager::UpdateSessionTouchOutsideListener(int32_t& persiste
 WSError SceneSessionManager::UpdateSessionWindowVisibilityListener(int32_t persistentId, bool haveListener)
 {
     const auto callingPid = IPCSkeleton::GetCallingRealPid();
-    return taskScheduler_->PostSyncTask([this, persistentId, haveListener, callingPid]() -> WSError {
-        TLOGNI(WmsLogTag::WMS_LIFE, "persistentId: %{public}d haveListener:%{public}d",
-            persistentId, haveListener);
+    const char* const where = __func__;
+    auto ret = taskScheduler_->PostSyncTask([this, persistentId, haveListener, callingPid, where]() -> WSError {
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
-            TLOGND(WmsLogTag::WMS_LIFE, "sceneSession is nullptr.");
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: no session for winId=%{public}d, haveListener=%{public}d",
+                where, persistentId, haveListener);
             return haveListener ? WSError::WS_DO_NOTHING : WSError::WS_OK;
         }
         if (callingPid != sceneSession->GetCallingPid()) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "Permission denied, neither register nor unreigster allowed by other process");
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: no permission, winId=%{public}d, haveListener=%{public}d",
+                where, persistentId, haveListener);
             return WSError::WS_ERROR_INVALID_PERMISSION;
         }
+        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s], haveListener=%{public}d",
+            where, persistentId, sceneSession->GetWindowName().c_str(), haveListener);
         if (haveListener) {
             windowVisibilityListenerSessionSet_.insert(persistentId);
             sceneSession->NotifyWindowVisibility();
@@ -15659,12 +15664,14 @@ WSError SceneSessionManager::UpdateSessionWindowVisibilityListener(int32_t persi
         }
         return WSError::WS_OK;
     }, __func__);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", static_cast<int32_t>(ret));
+    return ret;
 }
 
 WMError SceneSessionManager::UpdateSessionOcclusionStateListener(int32_t persistentId, bool haveListener)
 {
     const char* const where = __func__;
-    return taskScheduler_->PostSyncTask([this, persistentId, haveListener, where]() -> WMError {
+    auto ret = taskScheduler_->PostSyncTask([this, persistentId, haveListener, where]() -> WMError {
         auto sceneSession = GetSceneSession(persistentId);
         if (sceneSession == nullptr) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: no session for winId=%{public}d, haveListener=%{public}d",
@@ -15681,6 +15688,8 @@ WMError SceneSessionManager::UpdateSessionOcclusionStateListener(int32_t persist
         }
         return WMError::WM_OK;
     }, where);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", static_cast<int32_t>(ret));
+    return ret;
 }
 
 WMError SceneSessionManager::GetWindowStateSnapshot(int32_t persistentId, std::string& winStateSnapshotJsonStr)
@@ -17745,7 +17754,7 @@ WMError SceneSessionManager::ListWindowInfo(const WindowInfoOption& windowInfoOp
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
     const char* const where = __func__;
-    return taskScheduler_->PostSyncTask([this, windowInfoOption, &infos, where] {
+    auto ret = taskScheduler_->PostSyncTask([this, windowInfoOption, &infos, where] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "SceneSessionManager::ListWindowInfo (%u) "
             "(%u) (%" PRIu64 ") (%d)",
             static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
@@ -17758,8 +17767,6 @@ WMError SceneSessionManager::ListWindowInfo(const WindowInfoOption& windowInfoOp
                 continue;
             }
             if (!FilterForListWindowInfo(windowInfoOption, sceneSession)) {
-                TLOGND(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: filter win: %{public}d",
-                    where, sceneSession->GetWindowId());
                 continue;
             }
             auto windowInfo = sptr<WindowInfo>::MakeSptr();
@@ -17778,10 +17785,14 @@ WMError SceneSessionManager::ListWindowInfo(const WindowInfoOption& windowInfoOp
                 AddOptionWindowMetaInfo(windowInfo, sceneSession);
             }
             infos.emplace_back(windowInfo);
+            TLOGND(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: win=[%{public}d, %{public}s]",
+                where, sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str());
         }
-        TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: size=%{public}u", where, static_cast<uint32_t>(infos.size()));
         return WMError::WM_OK;
     }, __func__);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, size=%{public}u",
+        static_cast<int32_t>(ret), static_cast<uint32_t>(infos.size()));
+    return ret;
 }
 
 void SceneSessionManager::AddOptionWindowMetaInfo(sptr<WindowInfo> &windowInfo, const sptr<SceneSession> &session)
@@ -22177,16 +22188,18 @@ void SceneSessionManager::NotifyWindowPropertyChange(ScreenId screenId)
             }
             if (sceneSession->GetSessionInfo().screenId_ != SCREEN_ID_INVALID &&
                 sceneSession->GetSessionInfo().screenId_ != screenId) {
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "skip win=[%{public}d, %{public}s], screenId=%{public}" PRIu64,
+                    sceneSession->GetWindowId(), sceneSession->GetWindowName().c_str(),
+                    sceneSession->GetSessionInfo().screenId_);
                 continue;
             }
             if (!(sceneSession->GetPropertyDirtyFlags() & observedFlags_)) {
                 continue;
             }
-            propertyDirtyFlags |= sceneSession->GetPropertyDirtyFlags();
+            propertyDirtyFlags |= sceneSession->SetPropertyDirtyFlags(0);
             std::unordered_map<WindowInfoKey, WindowChangeInfoType> windowPropertyChangeInfo;
             PackWindowPropertyChangeInfo(sceneSession, windowPropertyChangeInfo);
             windowInfoList.emplace_back(windowPropertyChangeInfo);
-            sceneSession->SetPropertyDirtyFlags(0);
         }
     }
     if (!windowInfoList.empty()) {

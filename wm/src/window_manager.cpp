@@ -648,7 +648,7 @@ void WindowManager::Impl::NotifyWindowRectChange(const WindowInfoList& windowInf
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowRectChangeListeners.assign(windowRectChangeListeners_.begin(), windowRectChangeListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowRectChangeListeners.size()));
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowRectChangeListeners.size()));
     for (auto& listener : windowRectChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowInfoChanged(windowInfoList);
@@ -664,7 +664,7 @@ void WindowManager::Impl::NotifyWindowGlobalRectChange(const WindowInfoList& win
         windowGlobalRectChangeListeners.assign(
             windowGlobalRectChangeListeners_.begin(), windowGlobalRectChangeListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowGlobalRectChangeListeners.size()));
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowGlobalRectChangeListeners.size()));
     for (auto &listener : windowGlobalRectChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowInfoChanged(windowInfoList);
@@ -1102,7 +1102,7 @@ WMError WindowManager::RegisterVisibilityChangedListener(const sptr<IVisibilityC
         ret = ActiveFaultAgentReregister(agentType, pImpl_->windowVisibilityListenerAgent_);
     }
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_SCB, "register failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "register failed, ret=%{public}d", ret);
         pImpl_->windowVisibilityListenerAgent_ = nullptr;
         return ret;
     }
@@ -1116,22 +1116,24 @@ WMError WindowManager::UnregisterVisibilityChangedListener(const sptr<IVisibilit
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
         "CUSTOM_ANIMATOR_WindowManager::UnregisterVisibilityChangedListener");
     if (listener == nullptr) {
-        WLOGFE("listener could not be null");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
     std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     pImpl_->windowVisibilityListeners_.erase(listener);
 
     WMError ret = WMError::WM_OK;
+    bool unregistered = false;
     if (pImpl_->windowVisibilityListeners_.empty() && pImpl_->windowVisibilityListenerAgent_ != nullptr) {
+        unregistered = true;
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
             pImpl_->windowVisibilityListenerAgent_);
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", ret);
         if (ret == WMError::WM_OK) {
             pImpl_->windowVisibilityListenerAgent_ = nullptr;
         }
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, unregistered=%{public}d", ret, unregistered);
     return ret;
 }
 
@@ -2144,10 +2146,10 @@ WMError WindowManager::ListWindowInfo(const WindowInfoOption& windowInfoOption,
 {
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::ListWindowInfo");
     TLOGI(WmsLogTag::WMS_ATTRIBUTE,
-        "userId: %{public}d windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
+        "userId=%{public}d, filter=%{public}u, type=%{public}u, winId=%{public}d, displayId=%{public}" PRIu64,
         userId_, static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),
-        windowInfoOption.displayId, windowInfoOption.windowId);
+        windowInfoOption.windowId, windowInfoOption.displayId);
     WMError ret = WindowAdapter::GetInstance(userId_).ListWindowInfo(windowInfoOption, infos);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: ret=%{public}d", static_cast<int32_t>(ret));
@@ -3093,8 +3095,6 @@ bool WindowManager::IsModuleHookOff(bool isModuleAbilityHookEnd, const std::stri
 
 void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dirtyFlags=%{public}u, infoSize=%{public}u",
-        propertyDirtyFlags, static_cast<uint32_t>(windowInfoList.size()));
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_RECT)) {
         pImpl_->NotifyWindowRectChange(windowInfoList);
     }
@@ -3116,6 +3116,24 @@ void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, cons
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_GLOBAL_RECT)) {
         pImpl_->NotifyWindowGlobalRectChange(windowInfoList);
     }
+    std::ostringstream stream;
+    for (const auto& info : windowInfoList) {
+        for (const auto& [key, value] : info) {
+            if (key == WindowInfoKey::WINDOW_ID) {
+                stream << "winId=" << std::get<int32_t>(value) << ", ";
+            } else if (key == WindowInfoKey::WINDOW_MODE) {
+                stream << "mode=" << static_cast<uint32_t>(std::get<WindowMode>(value)) << ", ";
+            } else if (key == WindowInfoKey::VISIBILITY_STATE) {
+                stream << "visibility=" << static_cast<uint32_t>(std::get<WindowVisibilityState>(value)) << ", ";
+            } else if (key == WindowInfoKey::WINDOW_RECT) {
+                stream << "rect=" << std::get<Rect>(value).ToString() << ", ";
+            } else if (key == WindowInfoKey::WINDOW_GLOBAL_RECT) {
+                stream << "globalRect=" << std::get<Rect>(value).ToString() << ", ";
+            }
+        }
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dirtyFlags=%{public}u, infos=[%{public}s]",
+        propertyDirtyFlags, stream.str().c_str());
 }
 
 WMError WindowManager::AnimateTo(int32_t windowId, WindowAnimationProperty animationProperty,

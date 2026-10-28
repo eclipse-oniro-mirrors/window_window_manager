@@ -391,10 +391,6 @@ void ClawWindowShellCommand::FillWindowMetaInfoJson(const WindowMetaInfo& metaIn
         {"appIndex", metaInfo.appIndex},
         {"pid", metaInfo.pid},
         {"windowType", static_cast<uint32_t>(metaInfo.windowType)},
-        {"parentWindowId", metaInfo.parentWindowId},
-        {"surfaceNodeId", metaInfo.surfaceNodeId},
-        {"leashWinSurfaceNodeId", metaInfo.leashWinSurfaceNodeId},
-        {"isPrivacyMode", metaInfo.isPrivacyMode},
         {"windowMode", static_cast<uint32_t>(metaInfo.windowMode)},
         {"windowModeInfo", {
             {"windowMode", static_cast<uint32_t>(metaInfo.windowModeInfo.windowMode)},
@@ -404,8 +400,6 @@ void ClawWindowShellCommand::FillWindowMetaInfoJson(const WindowMetaInfo& metaIn
         {"isMidScene", metaInfo.isMidScene},
         {"isFocused", metaInfo.isFocused},
         {"isTouchable", metaInfo.isTouchable},
-        {"mainWindowPersistentId", metaInfo.mainWindowPersistentId},
-        {"controlAppType", static_cast<uint32_t>(metaInfo.controlAppType)},
     };
 }
 

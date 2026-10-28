@@ -2156,7 +2156,6 @@ int SessionStub::HandleUpdatePropertyByAction(MessageParcel& data, MessageParcel
         return ERR_INVALID_DATA;
     }
     auto action = static_cast<WSPropertyChangeAction>(actionValue);
-    TLOGD(WmsLogTag::DEFAULT, "action: %{public}" PRIu64, action);
     sptr<WindowSessionProperty> property = nullptr;
     if (data.ReadBool()) {
         property = sptr<WindowSessionProperty>::MakeSptr();
@@ -2167,6 +2166,7 @@ int SessionStub::HandleUpdatePropertyByAction(MessageParcel& data, MessageParcel
         TLOGW(WmsLogTag::DEFAULT, "Property not exist!");
     }
     const WMError ret = UpdateSessionPropertyByAction(property, action);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ret: %{public}d, action: %{public}" PRIu64, ret, action);
     reply.WriteInt32(static_cast<int32_t>(ret));
     return ERR_NONE;
 }
