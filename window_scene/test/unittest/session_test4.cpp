@@ -2567,6 +2567,18 @@ HWTEST_F(WindowSessionTest4, IsSuperMultiFoldOuterScreen02, TestSize.Level1)
     session_->property_->SetDisplayId(0);
     EXPECT_FALSE(session_->IsSuperMultiFoldOuterScreen());
 }
+
+/**
+ * @tc.name: GetCoordinateScaleFactorDefault
+ * @tc.desc: Test base Session::GetCoordinateScaleFactor returns 1.0 by default
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest4, GetCoordinateScaleFactorDefault, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    // Base Session default implementation returns 1.0f
+    EXPECT_FLOAT_EQ(session_->GetCoordinateScaleFactor(), 1.0f);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

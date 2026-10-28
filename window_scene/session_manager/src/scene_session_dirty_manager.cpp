@@ -1015,8 +1015,10 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
         .isSkipSelfWhenShowOnVirtualScreen = sceneSession->GetSessionProperty()->GetSkipEventOnCastPlus(),
         .windowNameType = windowNameType,
         .agentPid = sceneSession->IsStartMoving() ? static_cast<int32_t>(getpid()) : pid,
-        .dragDisabledAreas = std::move(dragDisabledAreas)
+        .dragDisabledAreas = std::move(dragDisabledAreas),
+        .scaleByWindow = sceneSession->GetDpiForceScale()
     };
+    TLOGE(WmsLogTag::WMS_EVENT, "windowId:%{public}d, scalewindow:%{public}f", windowId, windowInfo.scaleByWindow);
     UpdateWindowFlags(displayId, sceneSession, windowInfo);
     if (windowSessionProperty->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_HANDWRITING)) {
         windowInfo.flags |= MMI::WindowInputPolicy::FLAG_HANDWRITING;

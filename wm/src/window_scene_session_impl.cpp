@@ -1389,8 +1389,8 @@ void WindowSceneSessionImpl::ConvertPointerEventForDpiForceScale(
         pointerItem.SetDisplayY(displayY);
         pointerItem.SetGlobalX(globalX);
         pointerItem.SetGlobalY(globalY);
-        TLOGI(WmsLogTag::WMS_EVENT, "[DpiForceScale] convert winId=%{public}d, pointerId=%{public}d, scale=%{public}f, "
-            "phyDisp=[%{public}d,%{public}d]→logDisp=[%{public}d,%{public}d]",
+        TLOGD(WmsLogTag::WMS_EVENT, "[DpiForceScale] convert winId=%{private}d, pointerId=%{private}d"
+            "scale=%{private}f, phyDisp=[%{private}d,%{private}d]→logDisp=[%{private}d,%{private}d]",
             GetPersistentId(),pointerId, scaleFactor, phyDispX, phyDispY, displayX, displayY);
         pointerEvent->UpdatePointerItem(pointerId, pointerItem);
     }
