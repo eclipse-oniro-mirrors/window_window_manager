@@ -170,7 +170,7 @@ public:
 namespace {
 class MockAbilityContextImpl : public AbilityRuntime::AbilityContextImpl {
 public:
-    std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override {
+        std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override {
         GTEST_LOG_(INFO) << "GetApplicationInfo";
         return std::make_shared<AppExecFwk::ApplicationInfo>();
     }
@@ -216,10 +216,12 @@ HWTEST_F(PictureInPictureControllerAniTest, CreatePictureInPictureWindow01, Test
     WillOnce(Return(WindowState::STATE_SHOWN)).WillOnce(Return(WindowState::STATE_SHOWN));
     auto option_ = sptr<FvOption>::MakeSptr();
     ASSERT_NE(nullptr, option_);
-    sptr<FloatViewController> fvController = sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
+    sptr<FloatViewController> fvController =
+        sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
     fvController->curState_ = FvWindowState::FV_STATE_STARTED;
     FloatViewManager::SetActiveController(fvController);
-    EXPECT_EQ(WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS, pipControl_->CreatePictureInPictureWindow(startType).errCode);
+    EXPECT_EQ(WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,
+        pipControl_->CreatePictureInPictureWindow(startType).errCode);
 }
 
 /**
