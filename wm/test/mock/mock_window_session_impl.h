@@ -31,6 +31,13 @@ public:
     MOCK_METHOD(bool, GetImmersiveModeEnabledState, (), (const override));
     MOCK_METHOD(WMError, GetAppForceLandscapeConfig, (AppForceLandscapeConfig& config), (override));
     MOCK_METHOD(WMError, GetSelectMode, (SelectMode& selectMode), (override));
+    MOCK_METHOD(void, UpdateConfiguration,
+        (const std::shared_ptr<AppExecFwk::Configuration>& configuration), (override));
+    MOCK_METHOD(void, UpdateConfigurationForSpecified,
+        (const std::shared_ptr<AppExecFwk::Configuration>& configuration,
+            const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager), (override));
+    MOCK_METHOD(void, UpdateConfigurationSync,
+        (const std::shared_ptr<AppExecFwk::Configuration>& configuration), (override));
 };
 } // Rosen
 } // OHOS

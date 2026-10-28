@@ -112,6 +112,31 @@ std::shared_ptr<IDataHandler> WindowExtensionSessionImpl::GetExtensionDataHandle
     return dataHandler_;
 }
 
+WMError WindowExtensionSessionImpl::RegisterAbilityDataConsumer(const DataConsumeCallback& callback)
+{
+    if (dataHandler_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "dataHandler_ is nullptr!");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    DataConsumeCallback consumer = callback;
+    auto ret = dataHandler_->RegisterDataConsumer(SubSystemId::ABILITY_UIEXT, std::move(consumer));
+    if (ret != DataHandlerErr::OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "register failed, ret:%{public}u", static_cast<uint32_t>(ret));
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::UnregisterAbilityDataConsumer()
+{
+    if (dataHandler_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "dataHandler_ is nullptr!");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    dataHandler_->UnregisterDataConsumer(SubSystemId::ABILITY_UIEXT);
+    return WMError::WM_OK;
+}
+
 WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Context>& context,
     const sptr<Rosen::ISession>& iSession, const std::string& identityToken, bool isModuleAbilityHookEnd,
     bool isBlockSubwindow)
@@ -213,6 +238,17 @@ void WindowExtensionSessionImpl::UpdateConfiguration(const std::shared_ptr<AppEx
             GetWindowId(), GetDisplayId());
     }
     UpdateDefaultStatusBarColor();
+    if (context_ && (context_->GetBrandColorStrategy() == AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
+        std::vector<sptr<WindowSessionImpl>> subWindows;
+        GetSubWindows(GetPersistentId(), subWindows);
+        for (auto& subWindowSession : subWindows) {
+            if (subWindowSession != nullptr) {
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "scene subWin=%{public}u, display=%{public}" PRIu64,
+                    subWindowSession->GetWindowId(), subWindowSession->GetDisplayId());
+                subWindowSession->UpdateConfiguration(configuration);
+            }
+        }
+    }
 }
 
 void WindowExtensionSessionImpl::UpdateConfigurationForSpecified(
@@ -232,6 +268,17 @@ void WindowExtensionSessionImpl::UpdateConfigurationForSpecified(
             GetWindowId(), specifiedColorMode_.c_str(), GetDisplayId());
         specifiedColorMode_ = configuration->GetItem(AAFwk::GlobalConfigurationKey::SYSTEM_COLORMODE);
         UpdateDefaultStatusBarColor();
+    }
+    if (context_ && (context_->GetBrandColorStrategy() == AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
+        std::vector<sptr<WindowSessionImpl>> subWindows;
+        GetSubWindows(GetPersistentId(), subWindows);
+        for (auto& subWindowSession : subWindows) {
+            if (subWindowSession != nullptr) {
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "scene subWin=%{public}u, display=%{public}" PRIu64,
+                    subWindowSession->GetWindowId(), subWindowSession->GetDisplayId());
+                subWindowSession->UpdateConfigurationForSpecified(configuration, resourceManager);
+            }
+        }
     }
 }
 
@@ -270,6 +317,17 @@ void WindowExtensionSessionImpl::UpdateConfigurationSync(
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "uiContent null, ext win=%{public}u, display=%{public}" PRIu64,
             GetWindowId(), GetDisplayId());
+    }
+    if (context_ && (context_->GetBrandColorStrategy() == AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_UEC)) {
+        std::vector<sptr<WindowSessionImpl>> subWindows;
+        GetSubWindows(GetPersistentId(), subWindows);
+        for (auto& subWindowSession : subWindows) {
+            if (subWindowSession != nullptr) {
+                TLOGD(WmsLogTag::WMS_ATTRIBUTE, "scene subWin=%{public}u, display=%{public}" PRIu64,
+                    subWindowSession->GetWindowId(), subWindowSession->GetDisplayId());
+                subWindowSession->UpdateConfigurationSync(configuration);
+            }
+        }
     }
 }
 

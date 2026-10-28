@@ -27,6 +27,10 @@ public:
     std::shared_ptr<AppExecFwk::HapModuleInfo> hapModuleInfo_ = std::make_shared<AppExecFwk::HapModuleInfo>();
 
     std::shared_ptr<AppExecFwk::HapModuleInfo> GetHapModuleInfo() const override { return hapModuleInfo_; }
+
+    AppExecFwk::BrandColorStrategy GetBrandColorStrategy() const override { return brandColorStrategy_; }
+
+    AppExecFwk::BrandColorStrategy brandColorStrategy_ = AppExecFwk::BrandColorStrategy::BRAND_COLOR_FOLLOW_SYSTEM;
 };
 } // OHOS
 } // Rosen
