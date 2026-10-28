@@ -135,24 +135,24 @@ WMErrorResult PictureInPictureControllerAni::DoCreatePipWindow()
     return WMErrorResult{WMError::WM_OK, ""};
 }
 
-WMErrorResult PictureInPictureControllerAni::StartPictureInPicture(StartPipType startType)
+WMErrorResult PictureInPictureControllerAni::ValidateStartPictureInPicture(StartPipType startType)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "start");
+
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption is null or Get PictureInPictureOption failed");
         return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "PiP configuration parameters are invalid."};
-    }
-    if (curState_ == PiPWindowState::STATE_STARTING || curState_ == PiPWindowState::STATE_STARTED) {
-        TLOGW(WmsLogTag::WMS_PIP, "pipWindow is starting, state: %{public}u, id: %{public}u, mainWindow: %{public}u",
-            curState_, (window_ == nullptr) ? INVALID_WINDOW_ID : window_->GetWindowId(), mainWindowId_);
-        SingletonContainer::Get<PiPReporter>().ReportPiPStartWindow(static_cast<int32_t>(startType),
-            pipOption_->GetPipTemplate(), PipConst::FAILED, "Pip window is starting");
-        return WMErrorResult{WMError::WM_ERROR_PIP_REPEAT_OPERATION, ""};
-    }
-    if (!IsPullPiPAndHandleNavigation()) {
-        TLOGE(WmsLogTag::WMS_PIP, "Navigation operate failed");
         return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
             "Navigation component operation failed."};
+    }
+    return WMErrorResult{WMError::WM_OK, ""};
+}
+
+WMErrorResult PictureInPictureControllerAni::StartPictureInPicture(StartPipType startType)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    WMErrorResult ret = ValidateStartPictureInPicture(startType);
+    if (ret.errCode != WMError::WM_OK) {
+        return ret;
     }
     curState_ = PiPWindowState::STATE_STARTING;
     startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -544,6 +544,34 @@ HWTEST_F(PictureInPictureManagerTest, DoCloseWithReason, TestSize.Level1)
     PictureInPictureManager::DoActionCloseByDumpster(214);
     PictureInPictureManager::RemovePipControllerInfo(214);
 }
+
+/**
+ * @tc.name: GetSameGroupWindowByMainWindowId
+ * @tc.desc: GetSameGroupWindowByMainWindowId - found and not found cases
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureManagerTest, GetSameGroupWindowByMainWindowId, TestSize.Level1)
+{
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto option = sptr<PipOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    auto pipController = sptr<PictureInPictureController>::MakeSptr(option, nullptr, 100, nullptr);
+    ASSERT_NE(pipController, nullptr);
+    pipController->window_ = mw;
+    pipController->mainWindowId_ = 400;
+    PictureInPictureManager::windowToControllerMap_.clear();
+    PictureInPictureManager::PutPipControllerInfo(400, pipController);
+    PiPWindowState preState = PiPWindowState::STATE_UNDEFINED;
+    ASSERT_EQ(mw.GetRefPtr(), PictureInPictureManager::GetSameGroupWindowByMainWindowId(
+        400, PiPTemplateType::VIDEO_PLAY, preState).GetRefPtr());
+    ASSERT_EQ(nullptr, PictureInPictureManager::GetSameGroupWindowByMainWindowId(
+        999, PiPTemplateType::VIDEO_PLAY, preState).GetRefPtr());
+    ASSERT_EQ(nullptr, PictureInPictureManager::GetSameGroupWindowByMainWindowId(
+        400, PiPTemplateType::VIDEO_NAVIGATION, preState).GetRefPtr());
+    PictureInPictureManager::RemovePipControllerInfo(400);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
