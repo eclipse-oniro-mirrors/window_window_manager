@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -785,7 +785,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
     SetContext(context);
     identityToken_ = identityToken;
     property_->SetIsAbilityHookOff(isModuleAbilityHookEnd);
-    TLOGI(WmsLogTag::WMS_LIFE, "SetIsAbilityHookOff %{public}d", isModuleAbilityHookEnd);
+    TLOGD(WmsLogTag::WMS_LIFE, "SetIsAbilityHookOff %{public}d", isModuleAbilityHookEnd);
     AdjustWindowAnimationFlag();
     if (context && context->GetApplicationInfo() &&
         context->GetApplicationInfo()->apiCompatibleVersion >= 9 && // 9: api version
@@ -2333,7 +2333,7 @@ void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<Display
         }
     }
     const auto& requestRect = GetRequestRect();
-    TLOGI(WmsLogTag::WMS_LIFE, "name: %{public}s, id: %{public}d, type: %{public}u, requestRect:%{public}s",
+    TLOGI(WmsLogTag::WMS_LAYOUT, "name: %{public}s, id: %{public}d, type: %{public}u, requestRect:%{public}s",
         property_->GetWindowName().c_str(), GetPersistentId(), type, requestRect.ToString().c_str());
     if (requestRect.width_ != 0 && requestRect.height_ != 0) {
         UpdateViewportConfig(requestRect, WindowSizeChangeReason::RESIZE, nullptr, info);
@@ -2551,7 +2551,7 @@ void WindowSceneSessionImpl::NotifyFreeMultiWindowModeResume()
 
 void WindowSceneSessionImpl::Resume(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d, isDidForeground: %{public}d, isGamePreLaunch:%{public}d",
+    TLOGD(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d, isDidForeground: %{public}d, isGamePreLaunch:%{public}d",
         isColdStart_, isDidForeground_, isGamePreLaunch);
     isDidForeground_ = true;
     isColdStart_ = false;
@@ -2560,7 +2560,7 @@ void WindowSceneSessionImpl::Resume(bool isGamePreLaunch)
 
 void WindowSceneSessionImpl::Pause(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d isGamePreLaunch: %{public}d",
+    TLOGD(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d isGamePreLaunch: %{public}d",
         isColdStart_, isGamePreLaunch);
     isColdStart_ = false;
     NotifyAfterLifecyclePaused();
@@ -2586,7 +2586,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
     }
 
     const auto type = GetType();
-    TLOGI(WmsLogTag::WMS_LIFE, "Window hide [id:%{public}d, type: %{public}d, reason:%{public}u, state:%{public}u, "
+    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, type: %{public}d, reason:%{public}u, state:%{public}u, "
         "requestState:%{public}u, isFromInnerkits:%{public}d",
         GetPersistentId(), type, reason, state_, requestState_, isFromInnerkits);
     if (IsWindowSessionInvalid()) {
@@ -2663,8 +2663,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
     NotifyWindowStatusChange(GetWindowMode());
     NotifyWindowStatusDidChange(GetWindowMode());
     escKeyEventTriggered_ = false;
-    TLOGI(WmsLogTag::WMS_LIFE, "Window hide end, id:%{public}d, type: %{public}d",
-        property_->GetPersistentId(), type);
+    TLOGI(WmsLogTag::WMS_LIFE, "end, id:%{public}d", property_->GetPersistentId());
     return res;
 }
 

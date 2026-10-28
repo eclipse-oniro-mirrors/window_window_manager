@@ -1222,7 +1222,7 @@ WSError SceneSession::OnSessionEvent(SessionEvent event, const SessionEventParam
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s event: %{public}d", where, static_cast<int32_t>(event));
+        TLOGNI(WmsLogTag::DEFAULT, "%{public}s event: %{public}d", where, static_cast<int32_t>(event));
         session->NotifyWindowStatusDidChangeIfNeedWhenSessionEvent(event);
         session->UpdateWaterfallMode(event);
         auto property = session->GetSessionProperty();
@@ -1631,7 +1631,7 @@ void SceneSession::NotifyUpdateAppUseControl(ControlAppType type, const ControlI
             session->isAppUseControl_ = isAppUseControl;
             session->onUpdateAppUseControlFunc_(type, controlInfo.isNeedControl, controlInfo.isControlRecentOnly);
             if (session->sessionStage_ == nullptr || type == ControlAppType::PRIVACY_WINDOW) {
-                TLOGNW(WmsLogTag::WMS_LIFE, "%{public}s sessionStage is nullptr or privacy mode control", where);
+                TLOGND(WmsLogTag::WMS_LIFE, "%{public}s sessionStage is nullptr or privacy mode control", where);
                 return;
             }
             auto state = session->GetSessionState();
@@ -4599,10 +4599,10 @@ WSError SceneSession::RequestSessionBack(bool needMoveToBackground)
                 AutoRSTransaction trans(session->GetRSLeashWinShadowContext());
                 leashWinShadowSurfaceNode->SetForceUIFirst(true);
                 session->isUIFirstEnabled_ = true;
-                TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s leashWinShadowSurfaceNode_ SetForceUIFirst id:%{public}u!",
+                TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s SetForceUIFirst id:%{public}u!",
                     where, session->GetPersistentId());
             } else {
-                TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s failed, leashWinShadowSurfaceNode_ null id:%{public}u",
+                TLOGNI(WmsLogTag::WMS_EVENT, "%{public}s failed, SurfaceNode_ null id:%{public}u",
                     where, session->GetPersistentId());
             }
         }
@@ -6880,7 +6880,6 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         if (info.isBackTransition_) {
             info.screenId_ = session->GetSessionInfo().screenId_;
         }
-        TLOGI(WmsLogTag::WMS_LIFE, "want: screenId %{public}" PRIu64, info.screenId_);
     }
     if (info.windowMode == static_cast<int32_t>(WindowMode::WINDOW_MODE_FULLSCREEN)) {
         info.fullScreenStart_ = true;
@@ -6912,21 +6911,23 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         info.reuseSessionInGamePreLaunch_ = isGamePreLaunch;
     }
 
-    TLOGI(WmsLogTag::WMS_LIFE, "bundleName:%{public}s, moduleName:%{public}s, abilityName:%{public}s,"
-        "appIndex:%{public}d, affinity:%{public}s. callState:%{public}d, want persistentId:%{public}d,"
-        "uiAbilityId:%{public}" PRIu64 ", windowMode:%{public}d, splitRatioPreference:%{public}d, callerId:%{public}d,"
-        "needClearInNotShowRecent:%{public}u, appInstanceKey: %{public}s,"
-        "supportedWindowModes.size:%{public}zu, requestId:%{public}d,"
-        "maxWindowWidth:%{public}d, minWindowWidth:%{public}d, maxWindowHeight:%{public}d, minWindowHeight:%{public}d, "
-        "startWindowType:%{public}d, isPrelaunch:%{public}d, frameNum:%{public}d,"
-        "isTargetPlugin:%{public}d, hostBundleName:%{public}s, isGamePrelaunch: %{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "bundleName:%{public}s,moduleName:%{public}s,abilityName:%{public}s,"
+        "appIndex:%{public}d,affinity:%{public}s. callState:%{public}d,want persistentId:%{public}d,"
+        "uiAbilityId:%{public}" PRIu64 ",windowMode:%{public}d,splitRatioPreference:%{public}d,callerId:%{public}d,"
+        "needClearInNotShowRecent:%{public}u,appInstanceKey: %{public}s,"
+        "supportedWindowModes.size:%{public}zu,requestId:%{public}d,"
+        "maxWindowWidth:%{public}d,minWindowWidth:%{public}d,maxWindowHeight:%{public}d,minWindowHeight:%{public}d,"
+        "startWindowType:%{public}d,isPrelaunch:%{public}d,frameNum:%{public}d,"
+        "isTargetPlugin:%{public}d,hostBundleName:%{public}s,isGamePrelaunch: %{public}d,"
+        "screenId %{public}" PRIu64 "",
         info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(), info.appIndex_,
         info.sessionAffinity.c_str(), info.callState_, info.persistentId_, info.uiAbilityId_, info.windowMode,
         info.splitRatioPreference, info.callerPersistentId_, info.needClearInNotShowRecent_, info.appInstanceKey_.c_str(),
         info.supportedWindowModes.size(), info.requestId,
         info.windowSizeLimits.maxWindowWidth, info.windowSizeLimits.minWindowWidth,
         info.windowSizeLimits.maxWindowHeight, info.windowSizeLimits.minWindowHeight, info.startWindowType_,
-        info.isPrelaunch_, info.frameNum_, info.isTargetPlugin, info.hostBundleName.c_str(), info.isGamePrelaunch_);
+        info.isPrelaunch_, info.frameNum_, info.isTargetPlugin, info.hostBundleName.c_str(), info.isGamePrelaunch_,
+        info.screenId_);
     return info;
 }
 
@@ -6963,7 +6964,7 @@ void SceneSession::NotifyParentLifecycleEvent(ParentLifeCycleEvent event)
 
 void SceneSession::NotifyCrossProcessChildrenLifecycle(ParentLifeCycleEvent event)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "parentId: %{public}d, event: %{public}u",
+    TLOGD(WmsLogTag::WMS_LIFE, "parentId: %{public}d, event: %{public}u",
         GetPersistentId(), static_cast<uint32_t>(event));
     const auto& subSessions = GetSubSession();
     for (const auto& subSession : subSessions) {
@@ -7015,7 +7016,7 @@ WSError SceneSession::PendingSessionActivation(const sptr<AAFwk::SessionInfo> ab
         }
         session->sessionInfo_.startMethod = StartMethod::START_CALL;
         session->sessionInfo_.reuseDelegatorWindow = abilitySessionInfo->reuseDelegatorWindow;
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s set reuseDelegatorWindow %{public}d", where,
+        TLOGND(WmsLogTag::WMS_LIFE, "%{public}s set reuseDelegatorWindow %{public}d", where,
             session->sessionInfo_.reuseDelegatorWindow);
         SessionInfo info = MakeSessionInfoDuringPendingActivation(abilitySessionInfo, session, isFoundationCall);
         if (MultiInstanceManager::IsSupportMultiInstance(session->systemConfig_) &&
@@ -7141,11 +7142,9 @@ bool SceneSession::DisallowActivationFromPendingBackground(bool isPcOrPadEnableA
     }
     bool isPendingToBackgroundState = GetIsPendingToBackgroundState();
     bool foregroundInteractiveStatus = GetForegroundInteractiveStatus();
-    TLOGI(WmsLogTag::WMS_LIFE, "session state:%{public}d, isFoundationCall:%{public}u, "
-        "canStartAbilityFromBackground:%{public}u, foregroundInteractiveStatus:%{public}u, "
-        "isPendingToBackgroundState:%{public}u, isFromAncoAndToAnco:%{public}u",
-        GetSessionState(), isFoundationCall, canStartAbilityFromBackground, foregroundInteractiveStatus,
-        isPendingToBackgroundState, isFromAncoAndToAnco);
+    TLOGI(WmsLogTag::WMS_LIFE, "state:%{public}d, fcall:%{public}u, bgStart:%{public}u, interact:%{public}u, "
+        "pendBg:%{public}u, anco:%{public}u", GetSessionState(), isFoundationCall, canStartAbilityFromBackground,
+        foregroundInteractiveStatus, isPendingToBackgroundState, isFromAncoAndToAnco);
     bool isLifecycleForeground = GetSessionState() == SessionState::STATE_FOREGROUND ||
         GetSessionState() == SessionState::STATE_ACTIVE;
     if (isLifecycleForeground) {
@@ -10122,7 +10121,7 @@ void SceneSession::UpdateLifecyclePausedInner()
         return;
     }
     const auto state = GetSessionState();
-    TLOGI(WmsLogTag::WMS_LIFE, "state: %{public}d", state);
+    TLOGD(WmsLogTag::WMS_LIFE, "state: %{public}d", state);
     if (state == SessionState::STATE_ACTIVE || state == SessionState::STATE_FOREGROUND) {
         sessionStage_->NotifyLifecyclePausedStatus();
     }

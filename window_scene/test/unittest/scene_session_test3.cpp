@@ -1234,7 +1234,6 @@ HWTEST_F(SceneSessionTest3, UpdateLifecyclePausedInner, TestSize.Level1)
     session->UpdateLifecyclePausedInner();
     session->state_ = SessionState::STATE_BACKGROUND;
     session->UpdateLifecyclePausedInner();
-    EXPECT_TRUE(logMsg.find("state: ") != std::string::npos);
     LOG_SetCallback(nullptr);
 }
 

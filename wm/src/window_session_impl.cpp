@@ -325,16 +325,23 @@ bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
 
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners, isGamePreLaunch)  \
     do {                                                                        \
+        if ((listeners).size() == 0) {                                          \
+            TLOGE(WmsLogTag::WMS_LIFE, "listeners size is 0!");                 \
+        }                                                                       \
         if (isGamePreLaunch) {                                                  \
             for (auto& listener : (listeners)) {                                \
                 if (listener != nullptr && listener->IsWindowSceneListener()) { \
                     listener->windowLifecycleCb();                              \
+                } else {                                                        \
+                    TLOGE(WmsLogTag::WMS_LIFE, "listeners is null!");           \
                 }                                                               \
             }                                                                   \
         } else {                                                                \
             for (auto& listener : (listeners)) {                                \
                 if (listener != nullptr) {                                      \
                     listener->windowLifecycleCb();                              \
+                } else {                                                        \
+                    TLOGE(WmsLogTag::WMS_LIFE, "listeners is null");            \
                 }                                                               \
             }                                                                   \
         }                                                                       \
@@ -667,8 +674,7 @@ bool WindowSessionImpl::IsWindowSessionInvalid() const
     bool res = ((GetHostSession() == nullptr) || (GetPersistentId() == INVALID_SESSION_ID) ||
         (state_ == WindowState::STATE_DESTROYED));
     if (res) {
-        TLOGW(WmsLogTag::WMS_LIFE, "already destroyed or not created! id: %{public}d state_: %{public}u",
-            GetPersistentId(), state_);
+        TLOGD(WmsLogTag::WMS_LIFE, "id: %{public}d state_: %{public}u", GetPersistentId(), state_);
     }
     return res;
 }
@@ -945,7 +951,7 @@ void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
     }
     surfaceNode_->SetRSUIContext(rsUIContext);
     RSUIContextContainer::SetRSUIContext(GetPersistentId(), rsUIContext);
-    TLOGI(WmsLogTag::WMS_LIFE, "post init surfaceNode success, name: %{public}s", property_->GetWindowName().c_str());
+    TLOGI(WmsLogTag::WMS_LIFE, "name: %{public}s", property_->GetWindowName().c_str());
 }
 
 sptr<WindowSessionImpl> WindowSessionImpl::GetWindowWithId(uint32_t windowId)
@@ -2223,7 +2229,7 @@ bool WindowSessionImpl::IsNotifyInteractiveDuplicative(bool interactive)
 
 void WindowSessionImpl::NotifyForegroundInteractiveStatus(bool interactive)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "interactive: %{public}d, state: %{public}d", interactive, state_);
+    TLOGI(WmsLogTag::WMS_LIFE, "interactive:%{public}d,state: %{public}d", interactive, state_);
     if (IsWindowSessionInvalid() || state_ != WindowState::STATE_SHOWN) {
         return;
     }
@@ -2850,7 +2856,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
 
 void WindowSessionImpl::RegisterUIContenCallback()
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "start");
+    TLOGD(WmsLogTag::WMS_LIFE, "start");
     RegisterWatchFocusActiveChangeCallback();
     RegisterKeyFrameCallback();
 }
@@ -6418,6 +6424,7 @@ void WindowSessionImpl::NotifyAfterForeground(bool needNotifyListeners, bool nee
     if (needNotifyListeners) {
         NotifyAfterLifecycleForeground();
         {
+            HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "NotifyAfterForeground, id: %u", GetWindowId());
             std::lock_guard<std::recursive_mutex> lockListener(lifeCycleListenerMutex_);
             auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
             CALL_LIFECYCLE_LISTENER(AfterForeground, lifecycleListeners, isGamePreLaunch_);
@@ -6491,7 +6498,7 @@ void WindowSessionImpl::NotifyAfterDidForeground(uint32_t reason)
     TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
     if (reason != static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH) &&
         reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
+        TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
         return;
     }
     if (handler_ == nullptr) {
@@ -6506,6 +6513,7 @@ void WindowSessionImpl::NotifyAfterDidForeground(uint32_t reason)
             return;
         }
         TLOGND(WmsLogTag::WMS_LIFE, "%{public}s execute", where);
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "NotifyAfterDidForeground, id: %u", window->GetWindowId());
         auto lifecycleListeners = window->GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterDidForeground, lifecycleListeners, window->isGamePreLaunch_);
     }, where, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
@@ -6551,7 +6559,7 @@ void WindowSessionImpl::NotifyAfterDidBackground(uint32_t reason)
     TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
     if (reason != static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH) &&
         reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
+        TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
         return;
     }
     if (handler_ == nullptr) {
@@ -10100,7 +10108,7 @@ void WindowSessionImpl::AddSetUIContentTimeoutCheck()
 
 void WindowSessionImpl::NotifySetUIContentComplete()
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "start");
+    TLOGD(WmsLogTag::WMS_LIFE, "start");
     if (WindowHelper::IsSubWindow(GetType()) || WindowHelper::IsSystemWindow(GetType())) {
         // created by UIExtension
         auto extWindow = FindExtensionWindowWithContext();

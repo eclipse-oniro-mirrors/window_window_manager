@@ -1300,7 +1300,7 @@ WSError SceneSessionManager::SetSessionContinueState(const sptr<IRemoteObject>& 
         DistributedClient::GetInstance().SetMissionContinueState(sceneSession->GetPersistentId(),
             static_cast<AAFwk::ContinueState>(continueState), callingUid);
 #endif
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id:%{public}d, continueState:%{public}d",
+        TLOGND(WmsLogTag::WMS_LIFE, "%{public}s: id:%{public}d, continueState:%{public}d",
             where, sceneSession->GetPersistentId(), continueState);
         return WSError::WS_OK;
     }, __func__);
@@ -3838,7 +3838,7 @@ sptr<SceneSession> SceneSessionManager::GetHookedSessionByModuleName(const Sessi
 void SceneSessionManager::UpdateAbilityHookState(const sptr<SceneSession>& sceneSession, bool isAbilityHook)
 {
     if (!sceneSession || !isAbilityHook)  {
-        TLOGE(WmsLogTag::WMS_LIFE, "sceneSession is null or isAbilityHook is false");
+        TLOGD(WmsLogTag::WMS_LIFE, "sceneSession is null or isAbilityHook is false");
         return;
     }
     sceneSession->EditSessionInfo().isAbilityHook_ = isAbilityHook;
@@ -4154,7 +4154,7 @@ sptr<AAFwk::SessionInfo> SceneSessionManager::SetAbilitySessionInfo(const sptr<S
     }
     abilitySessionInfo->isPrelaunch = sessionInfo.isPrelaunch_;
     abilitySessionInfo->frameNum = sessionInfo.frameNum_;
-    TLOGI(WmsLogTag::WMS_LIFE, "Is SCB Call, set flag:%{public}d, persistentId:%{public}d, requestId:%{public}d",
+    TLOGI(WmsLogTag::WMS_LIFE, "flag:%{public}d, persistentId:%{public}d, requestId:%{public}d",
         requestId == DEFAULT_REQUEST_FROM_SCB_ID, abilitySessionInfo->persistentId, requestId);
     return abilitySessionInfo;
 }
@@ -4312,7 +4312,7 @@ int32_t SceneSessionManager::StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSes
         CloseAllFd(sceneSession->GetSessionInfo().want);
         HiviewDFX::XCollie::GetInstance().CancelTimer(timerId);
         *retCode = static_cast<int32_t>(result);
-        TLOGNI(WmsLogTag::WMS_LIFE, "StartUIAbility sceneFlag:%{public}d isRestart:%{public}d retCode: %{public}d",
+        TLOGND(WmsLogTag::WMS_LIFE, "StartUIAbility sceneFlag:%{public}d isRestart:%{public}d retCode: %{public}d",
             startParams.sceneFlag, startParams.isRestart, *retCode);
     }, START_UI_ABILITY_TIMEOUT, __func__);
 
@@ -4421,13 +4421,15 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
         sceneSessionInfo->collaboratorType = sceneSession->GetCollaboratorType();
     }
     TLOGI(WmsLogTag::WMS_LIFE, "[requestId: %{public}d][scbRequestId: %{public}d][id: %{public}d] "
-        "want-ability: %{public}s, bundle: %{public}s, module: %{public}s, appIndex: %{public}d, requestId:%{public}d",
+        "want-ability: %{public}s, bundle: %{public}s, module: %{public}s, appIndex: %{public}d, "
+        "requestId:%{public}d, collaboratorType:%{public}d",
         requestId, scbRequestId, persistentId,
         sceneSessionInfo->want.GetElement().GetAbilityName().c_str(),
         sceneSessionInfo->want.GetElement().GetBundleName().c_str(),
         sceneSessionInfo->want.GetElement().GetModuleName().c_str(),
         sceneSessionInfo->want.GetIntParam(AAFwk::Want::PARAM_APP_CLONE_INDEX_KEY, 0),
-        sceneSessionInfo->requestId);
+        sceneSessionInfo->requestId,
+        sceneSessionInfo->collaboratorType);
     int32_t errCode = ERR_OK;
     bool isColdStart = false;
     if (!sceneSession->IsLifecycleForeground()) {
@@ -5202,8 +5204,9 @@ WSError SceneSessionManager::RequestSceneSessionDestructionInner(sptr<SceneSessi
     if (!isUserRequestedExit) {
         MoveStartLifeCycleTask(sceneSession);
     }
-    TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] Begin CloseUIAbility, system: %{public}d",
-        persistentId, scbRequestId, sceneSession->GetSessionInfo().isSystem_);
+    TLOGI(WmsLogTag::WMS_MAIN, "[id: %{public}d][scbRequestId: %{public}d] Begin CloseUIAbility, system: %{public}d, "
+        "collaboratorType:%{public}d", persistentId, scbRequestId,
+        sceneSession->GetSessionInfo().isSystem_, sceneSession->GetCollaboratorType());
     if (isForceClean) {
         auto ret = AAFwk::AbilityManagerClient::GetInstance()->CleanUIAbilityBySCB(sceneSessionInfo, isUserRequestedExit,
             static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL));
