@@ -31,6 +31,8 @@ public:
         const SceneAnimationConfig& config, const std::map<AvoidAreaType, AvoidArea>& avoidAreas));
     MOCK_METHOD(WSError, UpdateGlobalDisplayRectFromServer, (const WSRect& rect, SizeChangeReason reason), (override));
     MOCK_METHOD0(UpdateDensity, void(void));
+    MOCK_METHOD3(UpdateDpiForceScaleChange, void(float dpiForceScale, bool isDpiForceScale,
+        float windowStartDensity));
     MOCK_METHOD0(UpdateOrientation, WSError(void));
     MOCK_METHOD1(UpdateSessionViewportConfig, WSError(const SessionViewportConfig& config));
     MOCK_METHOD0(HandleBackEvent, WSError(void));

@@ -2326,6 +2326,212 @@ HWTEST_F(SceneSessionTest6, ConfigDockAutoHide, TestSize.Level1)
     auto ret = session->ConfigDockAutoHide(isDockAutoHide);
     ASSERT_EQ(ret, WSError::WS_OK);
 }
+
+/**
+ * @tc.name: GetCoordinateScaleFactor01
+ * @tc.desc: Test GetCoordinateScaleFactor returns dpiForceScale_ when enabled, 1.0 otherwise
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, GetCoordinateScaleFactor01, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    // disabled by default -> 1.0
+    EXPECT_FLOAT_EQ(session->GetCoordinateScaleFactor(), 1.0f);
+
+    session->SetIsDpiForceScale(true);
+    session->SetDpiForceScale(1.5f);
+    EXPECT_FLOAT_EQ(session->GetCoordinateScaleFactor(), 1.5f);
+
+    session->SetIsDpiForceScale(false);
+    EXPECT_FLOAT_EQ(session->GetCoordinateScaleFactor(), 1.0f);
+}
+
+/**
+ * @tc.name: DpiForceScaleGettersSetters01
+ * @tc.desc: Test Set/Get for isDpiForceScale_, dpiForceScale_, windowStartDensity_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, DpiForceScaleGettersSetters01, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    // defaults
+    EXPECT_FALSE(session->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
+    EXPECT_FLOAT_EQ(session->GetWindowStartDensity(), 0.0f);
+
+    session->SetIsDpiForceScale(true);
+    session->SetDpiForceScale(2.25f);
+    session->SetWindowStartDensity(3.5f);
+    EXPECT_TRUE(session->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 2.25f);
+    EXPECT_FLOAT_EQ(session->GetWindowStartDensity(), 3.5f);
+}
+
+/**
+ * @tc.name: GetScreenDensityById01
+ * @tc.desc: Test GetScreenDensityById returns 0.0 when display not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, GetScreenDensityById01, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    // invalid display id -> nullptr display -> returns 0.0
+    float density = session->GetScreenDensityById(static_cast<DisplayId>(999999));
+    EXPECT_FLOAT_EQ(density, 0.0f);
+}
+
+/**
+ * @tc.name: NotifyDpiForceScaleToClient01
+ * @tc.desc: Test NotifyDpiForceScaleToClient no-op when sessionStage_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifyDpiForceScaleToClient01, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->sessionStage_ = nullptr;
+    session->SetDpiForceScale(1.5f);
+    session->SetIsDpiForceScale(true);
+    session->SetWindowStartDensity(2.0f);
+    // no crash, no-op
+    session->NotifyDpiForceScaleToClient();
+    SUCCEED();
+}
+
+/**
+ * @tc.name: NotifyDpiForceScaleToClient02
+ * @tc.desc: Test NotifyDpiForceScaleToClient invokes sessionStage_ when set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifyDpiForceScaleToClient02, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    auto sessionStageMocker = sptr<SessionStageMocker>::MakeSptr();
+    session->sessionStage_ = sessionStageMocker;
+    session->SetDpiForceScale(1.5f);
+    session->SetIsDpiForceScale(true);
+    session->SetWindowStartDensity(2.0f);
+    EXPECT_CALL(*sessionStageMocker, UpdateDpiForceScaleChange(1.5f, true, 2.0f)).Times(1);
+    session->NotifyDpiForceScaleToClient();
+}
+
+/**
+ * @tc.name: NotifyDpiForceScaleToTs01
+ * @tc.desc: Test NotifyDpiForceScaleToTs no-op when func not set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifyDpiForceScaleToTs01, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    // func defaults to nullptr -> no-op
+    session->NotifyDpiForceScaleToTs();
+    SUCCEED();
+}
+
+/**
+ * @tc.name: NotifyDpiForceScaleToTs02
+ * @tc.desc: Test SetDpiForceScaleChangeNotifyFunc + NotifyDpiForceScaleToTs invokes func
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, NotifyDpiForceScaleToTs02, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->SetDpiForceScale(1.5f);
+    session->SetIsDpiForceScale(true);
+    session->SetWindowStartDensity(2.0f);
+
+    float capturedScale = 0.0f;
+    bool capturedIs = false;
+    float capturedDensity = 0.0f;
+    NotifyDpiForceScaleChangeFunc func = [&capturedScale, &capturedIs, &capturedDensity](
+        float dpiForceScale, bool isDpiForceScale, float windowStartDensity) {
+        capturedScale = dpiForceScale;
+        capturedIs = isDpiForceScale;
+        capturedDensity = windowStartDensity;
+    };
+    session->SetDpiForceScaleChangeNotifyFunc(func);
+    session->NotifyDpiForceScaleToTs();
+    EXPECT_FLOAT_EQ(capturedScale, 1.5f);
+    EXPECT_TRUE(capturedIs);
+    EXPECT_FLOAT_EQ(capturedDensity, 2.0f);
+}
+
+/**
+ * @tc.name: UpdateDpiForceScale01
+ * @tc.desc: Test UpdateDpiForceScale no-op when isDpiForceScale_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, UpdateDpiForceScale01, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    // isDpiForceScale_ defaults to false -> early return, dpiForceScale_ unchanged
+    float before = session->GetDpiForceScale();
+    session->UpdateDpiForceScale();
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), before);
+}
+
+/**
+ * @tc.name: UpdateDpiForceScale02
+ * @tc.desc: Test UpdateDpiForceScale no-op when property is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, UpdateDpiForceScale02, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->SetIsDpiForceScale(true);
+    // property_ is set by SceneSession constructor; force nullptr to hit early return
+    session->property_ = nullptr;
+    session->UpdateDpiForceScale();
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
+}
+
+/**
+ * @tc.name: UpdateDpiForceScale03
+ * @tc.desc: Test UpdateDpiForceScale no-op when densities are non-positive
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, UpdateDpiForceScale03, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->SetIsDpiForceScale(true);
+    session->SetWindowStartDensity(0.0f); // non-positive -> early return
+    session->UpdateDpiForceScale();
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
+
+    // windowStartDensity positive, but screen density 0 (invalid display) -> still skip
+    session->SetWindowStartDensity(2.0f);
+    session->property_->SetDisplayId(static_cast<DisplayId>(999999)); // no such display
+    session->UpdateDpiForceScale();
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
+}
+
+/**
+ * @tc.name: UpdateDpiForceScale04
+ * @tc.desc: Test UpdateDpiForceScale skips when currScreenDensity is 0 (invalid display)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, UpdateDpiForceScale04, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<MainSession>::MakeSptr(info, nullptr);
+    session->SetIsDpiForceScale(true);
+    session->SetWindowStartDensity(2.0f);
+    // GetScreenDensityById returns 0.0 (invalid display) -> currScreenDensity=0, skip
+    // Note: the round+clamp main path (currScreenDensity > 0) cannot be unit-tested
+    // here because DisplayManager::GetDisplayById is a non-mockable singleton.
+    session->property_->SetDisplayId(static_cast<DisplayId>(999999));
+    session->UpdateDpiForceScale();
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

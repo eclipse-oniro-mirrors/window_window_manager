@@ -2267,6 +2267,31 @@ HWTEST_F(SessionStageStubTest, HandleSwitchFreeMultiWindow_BoundaryScreenSize, T
     WSError errCode = static_cast<WSError>(reply.ReadInt32());
     ASSERT_EQ(errCode, WSError::WS_OK);
 }
+
+/**
+ * @tc.name: HandleSetWindowStartDensity
+ * @tc.desc: test HandleSetWindowStartDensity
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageStubTest, HandleSetWindowStartDensity, TestSize.Level1)
+{
+    // Case 1: direct handler call
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteFloat(2.5f);
+    ASSERT_TRUE((sessionStageStub_ != nullptr));
+    ASSERT_EQ(0, sessionStageStub_->HandleSetWindowStartDensity(data, reply));
+
+    // Case 2: via OnRemoteRequest with interface token
+    MessageParcel data2;
+    MessageParcel reply2;
+    MessageOption option;
+    data2.WriteInterfaceToken(SessionStageStub::GetDescriptor());
+    data2.WriteFloat(1.0f);
+    uint32_t code = static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_WINDOW_START_DENSITY);
+    int result = sessionStageStub_->OnRemoteRequest(code, data2, reply2, option);
+    EXPECT_EQ(result, ERR_NONE);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -3223,6 +3223,98 @@ HWTEST_F(MoveDragControllerTest, MoveDragInterruptedWithReset01, TestSize.Level1
     EXPECT_EQ(targetRect.posX_, originalRect.posX_);
     EXPECT_EQ(targetRect.posY_, originalRect.posY_);
 }
+
+/**
+ * @tc.name: GetIsDpiForceScale01
+ * @tc.desc: Test GetIsDpiForceScale returns session value via CallSceneSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, GetIsDpiForceScale01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    ASSERT_NE(moveDragController, nullptr);
+    // default: session not enabled -> false
+    session_->SetIsDpiForceScale(false);
+    EXPECT_FALSE(moveDragController->GetIsDpiForceScale());
+
+    session_->SetIsDpiForceScale(true);
+    EXPECT_TRUE(moveDragController->GetIsDpiForceScale());
+}
+
+/**
+ * @tc.name: GetDpiForceScale01
+ * @tc.desc: Test GetDpiForceScale returns session value via CallSceneSession
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, GetDpiForceScale01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    ASSERT_NE(moveDragController, nullptr);
+    // default 1.0f
+    session_->SetDpiForceScale(1.0f);
+    EXPECT_FLOAT_EQ(moveDragController->GetDpiForceScale(), 1.0f);
+
+    session_->SetDpiForceScale(1.5f);
+    EXPECT_FLOAT_EQ(moveDragController->GetDpiForceScale(), 1.5f);
+}
+
+/**
+ * @tc.name: CalcFirstOriginalRectPosDpiForceScale
+ * @tc.desc: Test CalcFirstOriginalRectPos early returns when DpiForceScale enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, CalcFirstOriginalRectPosDpiForceScale, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    ASSERT_NE(moveDragController, nullptr);
+    moveDragController->InitMoveDragProperty();
+    moveDragController->winType_ = WindowType::WINDOW_TYPE_FLOAT;
+    moveDragController->moveDragProperty_.scaleX_ = 2.0;
+    moveDragController->moveDragProperty_.scaleY_ = 2.0;
+    moveDragController->parentRect_ = { 10, 20, 30, 40 };
+    WSRect windowRect = { 50, 60, 70, 80 };
+
+    // enable DpiForceScale -> early return original rect unchanged
+    session_->SetIsDpiForceScale(true);
+    WSRect res = moveDragController->CalcFirstOriginalRectPos(windowRect);
+    EXPECT_EQ(res.posX_, windowRect.posX_);
+    EXPECT_EQ(res.posY_, windowRect.posY_);
+    EXPECT_EQ(res.width_, windowRect.width_);
+    EXPECT_EQ(res.height_, windowRect.height_);
+
+    // disable DpiForceScale -> normal scaling path applies
+    session_->SetIsDpiForceScale(false);
+    res = moveDragController->CalcFirstOriginalRectPos(windowRect);
+    EXPECT_EQ(windowRect.posX_ / moveDragController->moveDragProperty_.scaleX_, res.posX_);
+}
+
+/**
+ * @tc.name: CalcFreeformTargetRectDpiForceScale
+ * @tc.desc: Test CalcFreeformTargetRect divides tranX/tranY by dpiForceScale when enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(MoveDragControllerTest, CalcFreeformTargetRectDpiForceScale, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    ASSERT_NE(moveDragController, nullptr);
+    AreaType type = AreaType::RIGHT;
+    WSRect originalRect = { 100, 100, 1000, 1000 };
+    int32_t tranX = 30;
+    int32_t tranY = 60;
+
+    session_->SetIsDpiForceScale(true);
+    session_->SetDpiForceScale(2.0f);
+    moveDragController->isAdaptToDragScale_ = true; // skip FixTranslateByLimits to keep inputs intact
+    // RIGHT area: posX += tranX; BOTTOM area: posY += tranY
+    auto rect = moveDragController->CalcFreeformTargetRect(type, tranX, tranY, originalRect);
+    // Verify posX was adjusted by scaled tranX (RIGHT type adds to posX)
+    EXPECT_EQ(rect.width_, 1000 + static_cast<int32_t>(tranX / 2.0f));
+
+    // disable -> no scaling applied
+    session_->SetIsDpiForceScale(false);
+    rect = moveDragController->CalcFreeformTargetRect(type, tranX, tranY, originalRect);
+    EXPECT_EQ(rect.width_, 1000 + tranX);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

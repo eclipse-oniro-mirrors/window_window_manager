@@ -1982,6 +1982,40 @@ HWTEST_F(SessionStageProxyTest, SwitchFreeMultiWindow_Error, TestSize.Level1)
     sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
     EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SwitchFreeMultiWindow(true, emptyScreenSet));
 }
+
+/**
+ * @tc.name: SetWindowStartDensity
+ * @tc.desc: test function : SetWindowStartDensity
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStageProxyTest, SetWindowStartDensity, TestSize.Level1)
+{
+    // Case 1: Failed to write interface token
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetWindowStartDensity(2.0f));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 2: Failed to write float
+    MockMessageParcel::SetWriteFloatErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, sessionStage_->SetWindowStartDensity(2.0f));
+    MockMessageParcel::SetWriteFloatErrorFlag(false);
+
+    // Case 3: remote is nullptr
+    sptr<SessionStageProxy> nullProxy = sptr<SessionStageProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, nullProxy->SetWindowStartDensity(2.0f));
+
+    // Case 4: Failed to send request
+    auto remoteMock = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMock->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionStageProxy> failSendProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, failSendProxy->SetWindowStartDensity(2.0f));
+
+    // Case 5: Success
+    remoteMock->sendRequestResult_ = ERR_NONE;
+    sptr<SessionStageProxy> successProxy = sptr<SessionStageProxy>::MakeSptr(remoteMock);
+    EXPECT_EQ(WSError::WS_OK, successProxy->SetWindowStartDensity(2.0f));
+    EXPECT_EQ(WSError::WS_OK, successProxy->SetWindowStartDensity(0.0f));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

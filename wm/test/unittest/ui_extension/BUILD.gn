@@ -31,6 +31,7 @@ ohos_unittest("wm_window_extension_session_impl_test") {
   sources = [
     "provider_data_handler_test.cpp",
     "window_extension_session_impl_test.cpp",
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
   ]
   deps = [ wm_unittest_common ]
   external_deps = test_external_deps

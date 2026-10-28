@@ -4008,6 +4008,111 @@ HWTEST_F(WindowExtensionSessionImplTest, OnHostWindowStatusChangeWithListener, T
 }
 
 /**
+ * @tc.name: SetWindowStartDensity01
+ * @tc.desc: SetWindowStartDensity handler_ is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, SetWindowStartDensity01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowStartDensity01");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    // system app by default mock; handler_ is null
+    window->handler_ = nullptr;
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR, window->SetWindowStartDensity(2.0f));
+}
+
+/**
+ * @tc.name: SetWindowStartDensity02
+ * @tc.desc: SetWindowStartDensity success path stores density
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, SetWindowStartDensity02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowStartDensity02");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    auto runner = AppExecFwk::EventRunner::Create("SetWindowStartDensity02");
+    window->handler_ = std::make_shared<AppExecFwk::EventHandler>(runner);
+
+    // default windowStartDensity_ is -1.0f
+    EXPECT_FLOAT_EQ(window->windowStartDensity_, -1.0f);
+    ASSERT_EQ(WSError::WS_OK, window->SetWindowStartDensity(2.5f));
+    usleep(WAIT_SYNC_IN_NS);
+    // async task should have stored the density
+    EXPECT_FLOAT_EQ(window->windowStartDensity_, 2.5f);
+}
+
+/**
+ * @tc.name: GetVirtualPixelRatio_WindowStartDensity
+ * @tc.desc: GetVirtualPixelRatio returns windowStartDensity_ when > 0
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, GetVirtualPixelRatio_WindowStartDensity, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetVirtualPixelRatio_WindowStartDensity");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    sptr<DisplayInfo> displayInfo = sptr<DisplayInfo>::MakeSptr();
+    displayInfo->SetVirtualPixelRatio(3.0f);
+
+    // windowStartDensity_ > 0 takes priority over follow-host and system density
+    window->isDensityCustomized_ = false;
+    window->windowStartDensity_ = 2.5f;
+    window->dpiFollowStrategy_.store(DpiFollowStrategy::FOLLOW_HOST_DPI_UEA);
+    window->hostDensityValue_ = 1.5f;
+    EXPECT_FLOAT_EQ(2.5f, window->GetVirtualPixelRatio(displayInfo));
+
+    // windowStartDensity_ <= 0 falls through to follow-host path
+    window->windowStartDensity_ = -1.0f;
+    EXPECT_FLOAT_EQ(1.5f, window->GetVirtualPixelRatio(displayInfo));
+
+    // isDensityCustomized_ takes priority over windowStartDensity_
+    window->isDensityCustomized_ = true;
+    window->customizedDensity_ = 4.0f;
+    window->windowStartDensity_ = 2.5f;
+    EXPECT_FLOAT_EQ(4.0f, window->GetVirtualPixelRatio(displayInfo));
+}
+
+/**
+ * @tc.name: UpdateExtensionDensity_WindowStartDensity
+ * @tc.desc: UpdateExtensionDensity sets config.density_ to windowStartDensity_ when > 0
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionDensity_WindowStartDensity, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateExtensionDensity_WindowStartDensity");
+    sptr<WindowExtensionSessionImpl> window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+
+    // Case 1: windowStartDensity_ > 0 and not customized -> density_ = windowStartDensity_
+    window->isDensityCustomized_ = false;
+    window->windowStartDensity_ = 2.5f;
+    SessionViewportConfig config;
+    config.dpiFollowStrategy_ = DpiFollowStrategy::FOLLOW_HOST_DPI_UEA;
+    config.density_ = 3.0f;
+    window->UpdateExtensionDensity(config);
+    EXPECT_FLOAT_EQ(config.density_, 2.5f);
+    // hostDensityValue_ should be set from original config density since isFollowHost
+    ASSERT_TRUE(window->hostDensityValue_.has_value());
+    EXPECT_FLOAT_EQ(window->hostDensityValue_->load(), 3.0f);
+
+    // Case 2: windowStartDensity_ <= 0, isFollowHost -> density_ unchanged (returns early)
+    window->windowStartDensity_ = -1.0f;
+    config.density_ = 3.0f;
+    window->UpdateExtensionDensity(config);
+    EXPECT_FLOAT_EQ(config.density_, 3.0f);
+
+    // Case 3: isDensityCustomized_ takes priority over windowStartDensity_
+    window->isDensityCustomized_ = true;
+    window->customizedDensity_ = 4.0f;
+    window->windowStartDensity_ = 2.5f;
+    config.density_ = 3.0f;
+    window->UpdateExtensionDensity(config);
+    EXPECT_FLOAT_EQ(config.density_, 4.0f);
+}
+
+/**
  * @tc.name: GetWindowPropertyInfo
  * @tc.desc: GetWindowPropertyInfo test
  * @tc.type: FUNC
