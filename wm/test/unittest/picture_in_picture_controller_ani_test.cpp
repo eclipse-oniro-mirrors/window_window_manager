@@ -170,7 +170,7 @@ public:
 namespace {
 class MockAbilityContextImpl : public AbilityRuntime::AbilityContextImpl {
 public:
-    std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override 
+    std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override
     {
         GTEST_LOG_(INFO) << "GetApplicationInfo";
         return std::make_shared<AppExecFwk::ApplicationInfo>();
