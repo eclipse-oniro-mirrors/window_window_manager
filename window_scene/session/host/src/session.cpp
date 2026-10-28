@@ -3387,7 +3387,11 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     constexpr int32_t FFRT_SNAPSHOT_TIMEOUT_MS = 5000;
     auto pixelMap = callback->GetResult(options.runInFfrt ? FFRT_SNAPSHOT_TIMEOUT_MS : SNAPSHOT_TIMEOUT_MS);
-    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    auto captureErrorCode = callback->GetCaptureErrorCode();
+    if (captureErrorCode == CaptureError::WINDOW_CAPTURE_NO_CHILD) {
+        return GetLocalSnapshotWhenNoChild(needBlurSnapshot, rsUICtx);
+    }
+    bool hasCaptureError = captureErrorCode != CaptureError::CAPTURE_OK;
     if (hasCaptureError) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Capture privacy or special layer failed %{public}d", persistentId_);
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
@@ -3408,6 +3412,36 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
     }
     return nullptr;
+}
+
+std::shared_ptr<Media::PixelMap> Session::GetLocalSnapshotWhenNoChild(bool needBlurSnapshot,
+    const std::shared_ptr<RSUIContext>& rsUICtx) const
+{
+    TLOGW(WmsLogTag::WMS_PATTERN, "window capture no child %{public}d", persistentId_);
+    if (scenePersistence_ == nullptr) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "scenePersistence is nullptr %{public}d", persistentId_);
+        return nullptr;
+    }
+    auto lastLocalPixelMap = scenePersistence_->GetLocalSnapshotPixelMap(1, 1);
+    if (lastLocalPixelMap == nullptr) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "local snapshot is nullptr %{public}d", persistentId_);
+        return nullptr;
+    }
+    if (!needBlurSnapshot) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "get local snapshot done %{public}d", persistentId_);
+        return lastLocalPixelMap;
+    }
+    if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "rsUIContext is null, blur local snapshot failed %{public}d", persistentId_);
+        return nullptr;
+    }
+    auto blurLocalPixelMap = rsUICtx->GetRSRenderInterface()->BlurPixelMap(lastLocalPixelMap, blurRadius_);
+    if (blurLocalPixelMap == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "blur local snapshot failed %{public}d", persistentId_);
+        return nullptr;
+    }
+    TLOGI(WmsLogTag::WMS_PATTERN, "get blur local snapshot done %{public}d", persistentId_);
+    return blurLocalPixelMap;
 }
 
 void Session::ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const

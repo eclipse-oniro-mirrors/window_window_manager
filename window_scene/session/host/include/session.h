@@ -1517,6 +1517,8 @@ private:
     SaveStartWindowFunc saveStartWindowCallback_;
     float blurRadius_ = 0.0f;
     uint32_t blurBackgroundColor_ = 0x00000000;
+    std::shared_ptr<Media::PixelMap> GetLocalSnapshotWhenNoChild(bool needBlurSnapshot,
+        const std::shared_ptr<RSUIContext>& rsUICtx) const;
 
     /*
      * Specific Window

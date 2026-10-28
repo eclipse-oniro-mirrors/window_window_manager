@@ -2371,6 +2371,125 @@ HWTEST_F(WindowPatternSnapshotTest, StartWithSnapshot03, TestSize.Level1)
     session_->SetStartWithSnapshot(false);
     EXPECT_EQ(session_->GetStartWithSnapshot(), false);
 }
+
+/**
+ * @tc.name: GetLocalSnapshotWhenNoChild01
+ * @tc.desc: test function : GetLocalSnapshotWhenNoChild with scenePersistence nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotWhenNoChild01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->scenePersistence_ = nullptr;
+    auto result = session_->GetLocalSnapshotWhenNoChild(false, nullptr);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
+ * @tc.name: GetLocalSnapshotWhenNoChild02
+ * @tc.desc: test function : GetLocalSnapshotWhenNoChild with no local snapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotWhenNoChild02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->scenePersistence_ = sptr<ScenePersistence>::MakeSptr("NoChildNoLocal", 1);
+    ASSERT_NE(session_->scenePersistence_, nullptr);
+    auto result = session_->GetLocalSnapshotWhenNoChild(false, nullptr);
+    EXPECT_EQ(result, nullptr);
+
+    result = session_->GetLocalSnapshotWhenNoChild(true, nullptr);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
+ * @tc.name: GetLocalSnapshotWhenNoChild03
+ * @tc.desc: test function : GetLocalSnapshotWhenNoChild get local snapshot without blur
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotWhenNoChild03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NoChildNoBlur";
+    info.bundleName_ = "NoChildNoBlur";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, 1);
+    ASSERT_NE(nullptr, session->scenePersistence_);
+    ScenePersistence::CreateSnapshotDir("storage");
+
+    const uint32_t colors[1] = { 0x6f0000ff };
+    uint32_t colorsLength = sizeof(colors) / sizeof(colors[0]);
+    const int32_t offset = 0;
+    Media::InitializationOptions opts;
+    opts.size.width = COMMON_SIZE;
+    opts.size.height = COMMON_SIZE;
+    opts.pixelFormat = Media::PixelFormat::RGBA_8888;
+    opts.alphaType = Media::AlphaType::IMAGE_ALPHA_TYPE_OPAQUE;
+    int32_t stride = opts.size.width;
+    std::shared_ptr<Media::PixelMap> pixelMap = Media::PixelMap::Create(colors, colorsLength, offset, stride, opts);
+    ASSERT_NE(nullptr, pixelMap);
+
+    auto key = defaultStatus;
+    session->scenePersistence_->snapshotPath_[key] = "/data/nochild_noblur.png";
+    session->scenePersistence_->SaveSnapshot(pixelMap);
+
+    std::shared_ptr<Media::PixelMap> result = nullptr;
+    int32_t maxPollNum = 100;
+    for (int32_t i = 0; i < maxPollNum; i++) {
+        result = session->GetLocalSnapshotWhenNoChild(false, nullptr);
+        if (result != nullptr) {
+            break;
+        }
+    }
+    EXPECT_NE(result, nullptr);
+}
+
+/**
+ * @tc.name: GetLocalSnapshotWhenNoChild04
+ * @tc.desc: test function : GetLocalSnapshotWhenNoChild blur with null rsUIContext
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowPatternSnapshotTest, GetLocalSnapshotWhenNoChild04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NoChildBlurNullCtx";
+    info.bundleName_ = "NoChildBlurNullCtx";
+    sptr<Session> session = sptr<Session>::MakeSptr(info);
+    ASSERT_NE(nullptr, session);
+    session->scenePersistence_ = sptr<ScenePersistence>::MakeSptr(info.bundleName_, 1);
+    ASSERT_NE(nullptr, session->scenePersistence_);
+    ScenePersistence::CreateSnapshotDir("storage");
+
+    const uint32_t colors[1] = { 0x6f0000ff };
+    uint32_t colorsLength = sizeof(colors) / sizeof(colors[0]);
+    const int32_t offset = 0;
+    Media::InitializationOptions opts;
+    opts.size.width = COMMON_SIZE;
+    opts.size.height = COMMON_SIZE;
+    opts.pixelFormat = Media::PixelFormat::RGBA_8888;
+    opts.alphaType = Media::AlphaType::IMAGE_ALPHA_TYPE_OPAQUE;
+    int32_t stride = opts.size.width;
+    std::shared_ptr<Media::PixelMap> pixelMap = Media::PixelMap::Create(colors, colorsLength, offset, stride, opts);
+    ASSERT_NE(nullptr, pixelMap);
+
+    auto key = defaultStatus;
+    session->scenePersistence_->snapshotPath_[key] = "/data/nochild_blur_null.png";
+    session->scenePersistence_->SaveSnapshot(pixelMap);
+
+    std::shared_ptr<Media::PixelMap> localSnapshot = nullptr;
+    int32_t maxPollNum = 100;
+    for (int32_t i = 0; i < maxPollNum; i++) {
+        localSnapshot = session->scenePersistence_->GetLocalSnapshotPixelMap(1, 1);
+        if (localSnapshot != nullptr) {
+            break;
+        }
+    }
+    ASSERT_NE(localSnapshot, nullptr);
+
+    auto result = session->GetLocalSnapshotWhenNoChild(true, nullptr);
+    EXPECT_EQ(result, nullptr);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
