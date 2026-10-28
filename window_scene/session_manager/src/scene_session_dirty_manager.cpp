@@ -1018,7 +1018,6 @@ std::pair<MMI::WindowInfo, std::shared_ptr<Media::PixelMap>> SceneSessionDirtyMa
         .dragDisabledAreas = std::move(dragDisabledAreas),
         .scaleByWindow = sceneSession->GetDpiForceScale()
     };
-    TLOGE(WmsLogTag::WMS_EVENT, "windowId:%{public}d, scalewindow:%{public}f", windowId, windowInfo.scaleByWindow);
     UpdateWindowFlags(displayId, sceneSession, windowInfo);
     if (windowSessionProperty->GetWindowFlags() & static_cast<uint32_t>(WindowFlag::WINDOW_FLAG_HANDWRITING)) {
         windowInfo.flags |= MMI::WindowInputPolicy::FLAG_HANDWRITING;
