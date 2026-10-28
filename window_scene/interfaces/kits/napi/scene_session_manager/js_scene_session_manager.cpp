@@ -95,6 +95,7 @@ const std::string KIOSK_MODE_CHANGE_CB = "kioskModeChange";
 const std::string NOTIFY_SUPPORT_ROTATION_REGISTERED_CB = "notifySupportRotationRegistered";
 const std::string SENSOR_ROTATION_CHANGE_CB = "sensorRotationChange";
 const std::string SMART_SENSOR_ROTATION_CHANGE_CB = "sensorSmartRotationChange";
+const std::string DISPLAY_POWER_EVENT_CHANGE_CB = "displayPowerEventChange";
 const std::string UI_EFFECT_SET_PARAMS_CB = "uiEffectSetParams";
 const std::string UI_EFFECT_ANIMATE_TO_CB = "uiEffectAnimateTo";
 const std::string VIRTUAL_DENSITY_CHANGE_CB = "virtualDensityChange";
@@ -129,6 +130,7 @@ const std::map<std::string, ListenerFunctionType> ListenerFunctionTypeMap {
     {NOTIFY_SUPPORT_ROTATION_REGISTERED_CB, ListenerFunctionType::NOTIFY_SUPPORT_ROTATION_REGISTERED_CB},
     {SENSOR_ROTATION_CHANGE_CB, ListenerFunctionType::SENSOR_ROTATION_CHANGE_CB},
     {SMART_SENSOR_ROTATION_CHANGE_CB, ListenerFunctionType::SMART_SENSOR_ROTATION_CHANGE_CB},
+    {DISPLAY_POWER_EVENT_CHANGE_CB, ListenerFunctionType::DISPLAY_POWER_EVENT_CHANGE_CB},
     {UI_EFFECT_SET_PARAMS_CB,       ListenerFunctionType::UI_EFFECT_SET_PARAMS_CB},
     {UI_EFFECT_ANIMATE_TO_CB,      ListenerFunctionType::UI_EFFECT_ANIMATE_TO_CB},
     {VIRTUAL_DENSITY_CHANGE_CB,   ListenerFunctionType::VIRTUAL_DENSITY_CHANGE_CB},
@@ -1084,6 +1086,34 @@ void JsSceneSessionManager::ProcessSmartSensorRotationRegister()
                sensorRotation, reason);
         this->OnSmartSensorRotationChange(sensorRotation, false, reason);
     });
+}
+
+void JsSceneSessionManager::ProcessDisplayPowerEventRegister()
+{
+    SceneSessionManager::GetInstance().SetDisplayPowerEventChangeListener(
+        [this](ScreenId screenId, DisplayPowerEvent event, EventStatus status) {
+            TLOGI(WmsLogTag::WMS_LIFE, "DisplayPowerEventChangeFunc event: %{public}u, status: %{public}u",
+                static_cast<uint32_t>(event), static_cast<uint32_t>(status));
+            this->OnDisplayPowerEventChange(screenId, event, status);
+        });
+}
+
+void JsSceneSessionManager::OnDisplayPowerEventChange(ScreenId screenId, DisplayPowerEvent event, EventStatus status)
+{
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI] event: %{public}u, status: %{public}u",
+        static_cast<uint32_t>(event), static_cast<uint32_t>(status));
+    auto task = [jsCallBack = GetJSCallback(DISPLAY_POWER_EVENT_CHANGE_CB), env = env_,
+                screenIdInt = static_cast<uint32_t>(screenId),
+                eventInt = static_cast<uint32_t>(event), statusInt = static_cast<uint32_t>(status)] {
+        if (jsCallBack == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
+            return;
+        }
+        napi_value argv[] = { CreateJsValue(env, screenIdInt),
+            CreateJsValue(env, eventInt), CreateJsValue(env, statusInt) };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+    };
+    taskScheduler_->PostMainThreadTask(task, __func__);
 }
 
 napi_value JsSceneSessionManager::SetBehindWindowFilterEnabled(napi_env env, napi_callback_info info)
@@ -2094,6 +2124,9 @@ void JsSceneSessionManager::ProcessRegisterCallback(ListenerFunctionType listene
             break;
         case ListenerFunctionType::SMART_SENSOR_ROTATION_CHANGE_CB:
             ProcessSmartSensorRotationRegister();
+            break;
+        case ListenerFunctionType::DISPLAY_POWER_EVENT_CHANGE_CB:
+            ProcessDisplayPowerEventRegister();
             break;
         case ListenerFunctionType::MINIMIZE_ALL_CB:
             RegisterMinimizeAllCallback();

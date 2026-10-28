@@ -58,6 +58,7 @@ enum class ListenerFunctionType : uint32_t {
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
     SENSOR_ROTATION_CHANGE_CB,
     SMART_SENSOR_ROTATION_CHANGE_CB,
+    DISPLAY_POWER_EVENT_CHANGE_CB,
     MINIMIZE_ALL_CB,
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
     SET_WINDOW_POSITION_CB,
@@ -502,6 +503,8 @@ private:
     void OnSensorRotationChange(float sensorRotation);
     void ProcessSmartSensorRotationRegister();
     void OnSmartSensorRotationChange(float sensorRotation, bool isSwitchUser, int16_t reason);
+    void ProcessDisplayPowerEventRegister();
+    void OnDisplayPowerEventChange(ScreenId screenId, DisplayPowerEvent event, EventStatus status);
 
     /*
      * Window Pattern

@@ -164,6 +164,8 @@ using NotifyRootSceneAvoidAreaChangeFunc = std::function<void(const sptr<AvoidAr
 using NotifySupportRotationRegisteredFunc = std::function<void()>;
 using NotifySensorRotationChangeFunc = std::function<void(float sensorRotation)>;
 using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation, int16_t reason)>;
+using NotifyDisplayPowerEventChangeFunc = std::function<void(ScreenId screenId,
+    DisplayPowerEvent event, EventStatus status)>;
 using NotifyWatchGestureConsumeResultFunc = std::function<void(int32_t keyCode, bool isConsumed)>;
 using NotifyWatchFocusActiveChangeFunc = std::function<void(bool isActive)>;
 using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(const std::string& id)>;
@@ -217,6 +219,12 @@ public:
      * Fold Screen Status Change Report
      */
     void OnScreenFoldStatusChanged(const std::vector<std::string>& screenFoldInfo) override;
+};
+
+class DisplayPowerEventListener : public IDisplayPowerEventListener {
+public:
+    void OnDisplayPowerEvent(DisplayPowerEvent event, EventStatus status) override;
+    void OnSpecifiedDisplayPowerEvent(ScreenId screenId, DisplayPowerEvent event, EventStatus status) override;
 };
 
 class ScreenConnectionChangeListener : public IScreenConnectionChangeListener {
@@ -776,6 +784,8 @@ public:
     void SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func);
     void SetSensorRotationChangeListener(NotifySensorRotationChangeFunc&& func);
     void SetSmartSensorRotationChangeListener(NotifySmartSensorRotationChangeFunc&& func);
+    void SetDisplayPowerEventChangeListener(NotifyDisplayPowerEventChangeFunc&& func);
+    void NotifyDisplayPowerEventChanged(ScreenId screenId, DisplayPowerEvent event, EventStatus status);
     WMError NotifyRotationProperty(int32_t persistentId, uint32_t rotation, uint32_t width, uint32_t height);
 
     /*
@@ -1616,6 +1626,7 @@ private:
     NotifySupportRotationRegisteredFunc supportRotationRegisteredListener_;
     NotifySensorRotationChangeFunc sensorRotationChangeListener_;
     NotifySmartSensorRotationChangeFunc smartSensorRotationChangeListener_;
+    NotifyDisplayPowerEventChangeFunc displayPowerEventChangeListener_;
 
     /*
      * PiP Window
