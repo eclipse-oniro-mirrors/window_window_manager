@@ -7182,22 +7182,23 @@ void WindowSessionImpl::NotifySizeChange(Rect rect, WindowSizeChangeReason reaso
             }
         }
     }
+    std::vector<std::pair<sptr<IWindowRectChangeListener>, bool>> windowRectChangeListeners;
     {
         std::lock_guard<std::mutex> lockRectListener(windowRectChangeListenerMutex_);
-        auto windowRectChangeListeners = GetListeners<IWindowRectChangeListener>();
-        TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, rectChange listenerSize:%{public}zu",
-            GetPersistentId(), windowRectChangeListeners.size());
-        for (auto& [listener, useHookedSize] : windowRectChangeListeners) {
-            if (listener != nullptr) {
-                Rect hookedRect = rect;
-                HookWindowSizeByHookWindowInfo(hookedRect);
-                TLOGD(WmsLogTag::WMS_LAYOUT,
-                    "HookWindowSize[OnRectChange], id:%{public}d, realRect:%{public}s, hookedRect:%{public}s, "
-                    "useHookedSize:%{public}d",
-                    GetPersistentId(), rect.ToString().c_str(), hookedRect.ToString().c_str(), useHookedSize);
-                Rect notifyRect = useHookedSize ? hookedRect : rect;
-                listener->OnRectChange(notifyRect, reason);
-            }
+        windowRectChangeListeners = GetListeners<IWindowRectChangeListener>();
+    }
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, rectChange listenerSize:%{public}zu",
+        GetPersistentId(), windowRectChangeListeners.size());
+    for (auto& [listener, useHookedSize] : windowRectChangeListeners) {
+        if (listener != nullptr) {
+            Rect hookedRect = rect;
+            HookWindowSizeByHookWindowInfo(hookedRect);
+            TLOGD(WmsLogTag::WMS_LAYOUT,
+                "HookWindowSize[OnRectChange], id:%{public}d, realRect:%{public}s, hookedRect:%{public}s, "
+                "useHookedSize:%{public}d",
+                GetPersistentId(), rect.ToString().c_str(), hookedRect.ToString().c_str(), useHookedSize);
+            Rect notifyRect = useHookedSize ? hookedRect : rect;
+            listener->OnRectChange(notifyRect, reason);
         }
     }
     Rect hookedRect = rect;
@@ -9621,8 +9622,11 @@ void WindowSessionImpl::NotifyWindowStatusChange(WindowMode mode)
             windowSystemConfig_.skipRedundantWindowStatusNotifications_);
     }
     lastWindowStatus_.store(windowStatus);
-    std::lock_guard<std::recursive_mutex> lockListener(windowStatusChangeListenerMutex_);
-    auto windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();
+    std::vector<sptr<IWindowStatusChangeListener>> windowStatusChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowStatusChangeListenerMutex_);
+        windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();
+    }
     for (auto& listener : windowStatusChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowStatusChange(windowStatus);
