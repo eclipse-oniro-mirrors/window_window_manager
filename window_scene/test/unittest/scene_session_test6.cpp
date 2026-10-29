@@ -797,6 +797,76 @@ HWTEST_F(SceneSessionTest6, GetSystemAvoidArea, Function | SmallTest | Level1)
 }
 
 /**
+ * @tc.name: GetSystemAvoidArea_SubWindowUseMainSessionMode
+ * @tc.desc: Sub window should use the main session window mode when calculating avoid area
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, GetSystemAvoidArea_SubWindowUseMainSessionMode, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSystemAvoidArea_SubWindowUseMainSessionMode";
+    info.bundleName_ = "GetSystemAvoidArea_SubWindowUseMainSessionMode";
+
+    sptr<SceneSession> mainSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(mainSession, nullptr);
+    mainSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_SPLIT);
+    mainSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    // sub window itself is fullscreen, but should follow the parent main session window mode (split)
+    subSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    subSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession->GetSessionProperty()->SetAvoidAreaOption(
+        static_cast<uint32_t>(AvoidAreaOption::ENABLE_APP_SUB_WINDOW));
+    subSession->parentSession_ = mainSession;
+
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    subSession->SetSystemConfig(systemConfig);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    subSession->GetSessionProperty()->SetDisplayId(2025);
+
+    WSRect rect;
+    AvoidArea avoidArea;
+    subSession->GetSystemAvoidArea(rect, avoidArea);
+    // main session is split, so the sub window should get a non-zero top avoid area
+    EXPECT_GT(avoidArea.topRect_.height_, 0);
+}
+
+/**
+ * @tc.name: GetSystemAvoidArea_SubWindowNoMainSessionFallback
+ * @tc.desc: Sub window without parent should fall back to its own window mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, GetSystemAvoidArea_SubWindowNoMainSessionFallback, Function | SmallTest | Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetSystemAvoidArea_SubWindowNoMainSessionFallback";
+    info.bundleName_ = "GetSystemAvoidArea_SubWindowNoMainSessionFallback";
+
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    // no parent, GetMainSession returns nullptr, should fall back to its own window mode (fullscreen)
+    subSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
+    subSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    subSession->GetSessionProperty()->SetAvoidAreaOption(
+        static_cast<uint32_t>(AvoidAreaOption::ENABLE_APP_SUB_WINDOW));
+
+    SystemSessionConfig systemConfig;
+    systemConfig.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    subSession->SetSystemConfig(systemConfig);
+    ScreenSessionManagerClient::GetInstance().screenSessionMap_.clear();
+    subSession->GetSessionProperty()->SetDisplayId(2025);
+
+    WSRect rect;
+    AvoidArea avoidArea;
+    subSession->GetSystemAvoidArea(rect, avoidArea);
+    // fullscreen is not floating or split, so no top avoid area is calculated
+    EXPECT_EQ(0, avoidArea.topRect_.height_);
+}
+
+/**
  * @tc.name: NotifyWindowAttachStateListenerRegistered
  * @tc.desc: NotifyWindowAttachStateListenerRegistered about session
  * @tc.type: FUNC
