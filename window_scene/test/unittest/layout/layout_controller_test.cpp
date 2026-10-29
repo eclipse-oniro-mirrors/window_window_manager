@@ -345,6 +345,26 @@ HWTEST_F(LayoutControllerTest, TestAdjustRectByAspectRatioAbnormalCases, TestSiz
     });
     EXPECT_NE(layoutController_->AdjustRectByAspectRatio(rect, decor), rect);
 }
+
+/**
+ * @tc.name: SetScale001
+ * @tc.desc: SetScale saves the previous scale into lastScaleX_/lastScaleY_
+ * @tc.type: FUNC
+ */
+HWTEST_F(LayoutControllerTest, SetScale001, TestSize.Level1)
+{
+    layoutController_->SetScale(2.0f, 3.0f, 0.5f, 0.5f);
+    EXPECT_EQ(layoutController_->GetScaleX(), 2.0f);
+    EXPECT_EQ(layoutController_->GetScaleY(), 3.0f);
+    EXPECT_EQ(layoutController_->GetLastScaleX(), 1.0f);
+    EXPECT_EQ(layoutController_->GetLastScaleY(), 1.0f);
+ 
+    layoutController_->SetScale(4.0f, 5.0f, 0.5f, 0.5f);
+    EXPECT_EQ(layoutController_->GetScaleX(), 4.0f);
+    EXPECT_EQ(layoutController_->GetScaleY(), 5.0f);
+    EXPECT_EQ(layoutController_->GetLastScaleX(), 2.0f);
+    EXPECT_EQ(layoutController_->GetLastScaleY(), 3.0f);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
