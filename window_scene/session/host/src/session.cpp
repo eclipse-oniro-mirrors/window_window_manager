@@ -1558,11 +1558,12 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas, bool onlyUpdateAvoidArea)
 {
-    if (!sessionStage_) {
-        TLOGE(WmsLogTag::WMS_IMMS, "sessionStage_ is nullptr, id: %{public}d", GetPersistentId());
-        return WSError::WS_ERROR_INVALID_SESSION;
-    }
     if (onlyUpdateAvoidArea) {
+        GetLayoutController()->SetSessionRect(rect);
+        if (!sessionStage_) {
+            TLOGE(WmsLogTag::WMS_IMMS, "sessionStage_ is nullptr, id: %{public}d", GetPersistentId());
+            return WSError::WS_ERROR_INVALID_SESSION;
+        }
         for (const auto& [type, avoidArea] : avoidAreas) {
             auto ret = sessionStage_->UpdateAvoidArea(new AvoidArea(avoidArea), type);
             if (ret != WSError::WS_OK) {

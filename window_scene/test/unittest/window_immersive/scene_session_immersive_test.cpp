@@ -1127,8 +1127,33 @@ HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea04, Tes
 }
 
 /**
+ * @tc.name: UpdateRectWithLayoutInfoOnlyAvoidArea05
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=true updates sessionRect before IPC
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoOnlyAvoidArea05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea05";
+    info.bundleName_ = "UpdateRectWithLayoutInfoOnlyAvoidArea05";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->sessionStage_ = nullptr;
+    std::map<AvoidAreaType, AvoidArea> avoidAreas;
+    AvoidArea area;
+    area.topRect_ = { 0, 0, 100, 50 };
+    avoidAreas[AvoidAreaType::TYPE_SYSTEM] = area;
+    WSRect rect = { 0, 0, 720, 1280 };
+    EXPECT_NE(session->GetSessionRect(), rect);
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, avoidAreas, true);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(session->GetSessionRect(), rect);
+}
+
+/**
  * @tc.name: UpdateRectWithLayoutInfoPropagateError01
- * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=false returns error when no sessionStage_
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=false returns error when session invalid
  * @tc.type: FUNC
  */
 HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoPropagateError01, TestSize.Level1)
@@ -1140,9 +1165,33 @@ HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoPropagateError01, Te
     ASSERT_NE(session, nullptr);
     session->sessionStage_ = nullptr;
     WSRect rect = { 0, 0, 720, 1280 };
+    EXPECT_NE(session->GetSessionRect(), rect);
     auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
         nullptr, {}, false);
     EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_SESSION);
+    EXPECT_EQ(session->GetSessionRect(), rect);
+}
+
+/**
+ * @tc.name: UpdateRectWithLayoutInfoPropagateError02
+ * @tc.desc: UpdateRectWithLayoutInfo with onlyUpdateAvoidArea=false, session valid but no sessionStage_, returns WS_OK
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionImmersiveTest, UpdateRectWithLayoutInfoPropagateError02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "UpdateRectWithLayoutInfoPropagateError02";
+    info.bundleName_ = "UpdateRectWithLayoutInfoPropagateError02";
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(session, nullptr);
+    session->Session::SetSessionState(SessionState::STATE_CONNECT);
+    session->sessionStage_ = nullptr;
+    WSRect rect = { 0, 0, 720, 1280 };
+    EXPECT_NE(session->GetSessionRect(), rect);
+    auto ret = session->Session::UpdateRectWithLayoutInfo(rect, SizeChangeReason::UNDEFINED, "test",
+        nullptr, {}, false);
+    EXPECT_EQ(ret, WSError::WS_OK);
+    EXPECT_EQ(session->GetSessionRect(), rect);
 }
 }
 }
