@@ -135,9 +135,8 @@ WMErrorResult PictureInPictureControllerAni::DoCreatePipWindow()
     return WMErrorResult{WMError::WM_OK, ""};
 }
 
-WMErrorResult PictureInPictureControllerAni::StartPictureInPicture(StartPipType startType)
+WMErrorResult PictureInPictureControllerAni::ValidateStartPictureInPicture(StartPipType startType)
 {
-    TLOGI(WmsLogTag::WMS_PIP, "start");
     if (pipOption_ == nullptr || pipOption_->GetContext() == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "pipOption is null or Get PictureInPictureOption failed");
         return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED, "PiP configuration parameters are invalid."};
@@ -154,15 +153,27 @@ WMErrorResult PictureInPictureControllerAni::StartPictureInPicture(StartPipType 
         return WMErrorResult{WMError::WM_ERROR_PIP_CREATE_FAILED,
             "Navigation component operation failed."};
     }
+    return WMErrorResult{WMError::WM_OK, ""};
+}
+
+WMErrorResult PictureInPictureControllerAni::StartPictureInPicture(StartPipType startType)
+{
+    TLOGI(WmsLogTag::WMS_PIP, "start");
+    WMErrorResult ret = ValidateStartPictureInPicture(startType);
+    if (ret.errCode != WMError::WM_OK) {
+        return ret;
+    }
     curState_ = PiPWindowState::STATE_STARTING;
     startTimestamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
     bool reachLimit = PictureInPictureManager::IsPipGroupLimitReached(
         static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
     if (reachLimit) {
+        PiPWindowState preState = PiPWindowState::STATE_UNDEFINED;
         window_ = PictureInPictureManager::GetSameGroupWindowByMainWindowId(mainWindowId_,
-            static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
-        if (window_ != nullptr) {
+            static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()), preState);
+        TLOGI(WmsLogTag::WMS_PIP, "previous pipWindow state: %{public}u", preState);
+        if (window_ != nullptr && preState == PiPWindowState::STATE_STARTED) {
             TLOGI(WmsLogTag::WMS_PIP, "Reuse pipWindow: %{public}u as attached to the same mainWindow: %{public}u",
                 window_->GetWindowId(), mainWindowId_);
             PictureInPictureManager::DoClose(window_->GetWindowId(), false, false);

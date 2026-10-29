@@ -657,6 +657,22 @@ ohos_unittest("wm_picture_in_picture_controller_test") {
   external_deps = test_external_deps
 }
 
+ohos_unittest("wm_picture_in_picture_controller_ani_test") {
+  module_out_path = module_out_path
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    cfi_vcall_icall_only = true
+    debug = false
+  }
+  sources = [ "picture_in_picture_controller_ani_test.cpp" ]
+  deps = [
+    ":wm_unittest_common",
+    "${window_base_path}/window_scene/interfaces/innerkits:libwsutils",
+  ]
+  external_deps = test_external_deps
+}
+
 ohos_unittest("wm_picture_in_picture_manager_test") {
   module_out_path = module_out_path
 

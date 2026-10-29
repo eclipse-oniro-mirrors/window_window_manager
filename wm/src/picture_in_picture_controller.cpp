@@ -166,9 +166,11 @@ WMErrorResult PictureInPictureController::StartPictureInPicture(StartPipType sta
     bool reachLimit = PictureInPictureManager::IsPipGroupLimitReached(
         static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
     if (reachLimit) {
+        PiPWindowState preState = PiPWindowState::STATE_UNDEFINED;
         window_ = PictureInPictureManager::GetSameGroupWindowByMainWindowId(mainWindowId_,
-            static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()));
-        if (window_ != nullptr) {
+            static_cast<PiPTemplateType>(pipOption_->GetPipTemplate()), preState);
+        TLOGI(WmsLogTag::WMS_PIP, "previous pipWindow state: %{public}u", preState);
+        if (window_ != nullptr && preState == PiPWindowState::STATE_STARTED) {
             TLOGI(WmsLogTag::WMS_PIP, "Reuse pipWindow: %{public}u as attached to the same mainWindow: %{public}u",
                 window_->GetWindowId(), mainWindowId_);
             PictureInPictureManager::DoClose(window_->GetWindowId(), false, false);
