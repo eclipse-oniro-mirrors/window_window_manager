@@ -2740,7 +2740,7 @@ RotationChangeResult SessionStageProxy::NotifyRotationChange(const RotationChang
     }
 
     if (rotationChangeInfo.type_ == RotationChangeType::WINDOW_DID_ROTATE) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
+        TLOGD(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
         return rotationChangeResult;
     }
     uint32_t rectType = 0;

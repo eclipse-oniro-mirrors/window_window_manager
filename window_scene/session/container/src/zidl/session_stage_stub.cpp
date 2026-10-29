@@ -1609,7 +1609,7 @@ int SessionStageStub::HandleNotifyOrientationExecutionResult(MessageParcel& data
 
 int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "in");
+    TLOGD(WmsLogTag::WMS_ROTATION, "in");
     uint32_t rotation = 0;
     if (!data.ReadUint32(rotation)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "read rotation failed");
@@ -1697,7 +1697,7 @@ int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageP
 
 int SessionStageStub::HandleNotifyPageRotationIsIgnored(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "in");
+    TLOGD(WmsLogTag::WMS_ROTATION, "in");
     NotifyPageRotationIsIgnored();
     return ERR_NONE;
 }
@@ -1730,7 +1730,7 @@ int SessionStageStub::HandleNotifyRotationChange(MessageParcel& data, MessagePar
     RotationChangeInfo rotationChangeInfo = { static_cast<RotationChangeType>(type), orientation, displayId, rect };
     RotationChangeResult rotationChangeResult = NotifyRotationChange(rotationChangeInfo);
     if (rotationChangeInfo.type_ == RotationChangeType::WINDOW_DID_ROTATE) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
+        TLOGD(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
         return ERR_NONE;
     }
     if (!reply.WriteUint32(static_cast<uint32_t>(rotationChangeResult.rectType_))) {

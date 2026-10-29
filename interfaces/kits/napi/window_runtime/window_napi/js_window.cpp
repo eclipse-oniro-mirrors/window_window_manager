@@ -118,7 +118,7 @@ JsWindow::JsWindow(const sptr<Window>& window, napi_env env)
     };
     NotifyOrientationExecutionResultFunc orientationExecutionResultFunc = [this](
         uint32_t promiseId, OrientationExecutionResult result) {
-        TLOGNI(WmsLogTag::WMS_ROTATION, "Notify orientation result [%{public}u, %{public}u]", promiseId, result);
+        TLOGND(WmsLogTag::WMS_ROTATION, "Notify orientation result [%{public}u, %{public}u]", promiseId, result);
         this->NotifyOrientationExecutionResult(promiseId, result);
     };
     windowToken_->RegisterWindowDestroyedListener(func);
@@ -4764,7 +4764,7 @@ napi_value JsWindow::OnSetPreferredOrientation(napi_env env, napi_callback_info 
         }
         weakWindow->SetRequestedOrientation(requestedOrientation);
         task->Resolve(env, NapiGetUndefined(env));
-        TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u",
+        TLOGND(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u",
             where, weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(),
             static_cast<uint32_t>(requestedOrientation));
     };
@@ -4811,7 +4811,7 @@ napi_value JsWindow::OnSetPreferredOrientationWithResult(napi_env env, napi_call
             return;
         }
         WMError ret = weakWindow->SetPreferredOrientationWithResult(requestedOrientation, promiseId);
-        TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u"
+        TLOGND(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u"
             " primiseId=%{public}d result=%{public}d", where, weakWindow->GetWindowId(),
             weakWindow->GetWindowName().c_str(), static_cast<uint32_t>(requestedOrientation), promiseId, ret);
         WmErrorCode errCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
@@ -4843,7 +4843,7 @@ void JsWindow::NotifyOrientationExecutionResult(uint32_t promiseId, OrientationE
     }
     const char* const where = __func__;
     auto asyncTask = [task = napiAsyncTask, env = env_, executionResult, where] {
-        TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s result=%{public}u", where, executionResult);
+        TLOGND(WmsLogTag::WMS_ROTATION, "%{public}s result=%{public}u", where, executionResult);
         if (env == nullptr) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s env is null", where);
             return;
@@ -12216,7 +12216,7 @@ napi_value JsWindow::OnGetRotationLocked(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_ROTATION, "Get rotation locked failed");
         return NapiThrowError(env, code, errMsgPrefix + "get rotation locked failed");
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "window [%{public}u, %{public}s] locked = %{public}d",
+    TLOGD(WmsLogTag::WMS_ROTATION, "window [%{public}u, %{public}s] locked = %{public}d",
         windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str(), locked);
     return CreateJsValue(env, locked);
 }
