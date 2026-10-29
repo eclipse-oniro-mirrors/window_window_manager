@@ -1657,9 +1657,28 @@ float WindowExtensionSessionImpl::GetVirtualPixelRatio(const sptr<DisplayInfo>& 
     return GetDefaultDensity(displayInfo);
 }
 
+bool WindowExtensionSessionImpl::IsHookExtensionWindow()
+{
+    if (isHookExtensionWindowQueried_) {
+        return isHookExtensionWindow_;
+    }
+    isHookExtensionWindowQueried_ = true;
+    std::string bundleName;
+    if (context_) {
+        bundleName = context_->GetBundleName();
+    }
+    bool isHook = false;
+    WMError ret = SingletonContainer::Get<WindowAdapter>().IsHookExtensionWindow(bundleName, isHook);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "can't find isHookExtensionWindow, err: %{public}u", static_cast<uint32_t>(ret));
+    }
+    isHookExtensionWindow_ = isHook;
+    return isHookExtensionWindow_;
+}
+
 float WindowExtensionSessionImpl::GetDefaultDensity(const sptr<DisplayInfo>& displayInfo)
 {
-    if (IsAdaptToSimulationScale()) {
+    if (IsAdaptToSimulationScale() && !IsHookExtensionWindow()) {
         TLOGD(WmsLogTag::WMS_COMPAT, "id:%{public}d scale mode", GetPersistentId());
         return COMPACT_SIMULATION_SCALE_DPI;
     }

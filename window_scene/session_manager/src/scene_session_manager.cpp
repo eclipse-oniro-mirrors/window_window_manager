@@ -20756,6 +20756,23 @@ void SceneSessionManager::RefreshAppInfo(const std::string& bundleName)
     AbilityInfoManager::GetInstance().RefreshAppInfo(bundleName);
 }
 
+WMError SceneSessionManager::IsHookExtensionWindow(const std::string& bundleName, bool& isHook)
+{
+    std::shared_lock<std::shared_mutex> lock(compatibleHookExtensionBundleNameMutex_);
+    isHook = compatibleHookExtensionBundleNames_.find(bundleName) != compatibleHookExtensionBundleNames_.end();
+    return WMError::WM_OK;
+}
+
+WMError SceneSessionManager::SetHookExtensionWindowList(const std::vector<std::string>& bundleNames)
+{
+    std::unique_lock<std::shared_mutex> lock(compatibleHookExtensionBundleNameMutex_);
+    compatibleHookExtensionBundleNames_.clear();
+    for (const auto& name : bundleNames) {
+        compatibleHookExtensionBundleNames_.insert(name);
+    }
+    return WMError::WM_OK;
+}
+
 WMError SceneSessionManager::UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease)
 {
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "bundleName=%{public}s, isRelease=%{public}d", bundleName.c_str(), isRelease);

@@ -145,6 +145,7 @@ private:
     int HandleIsPcWindow(MessageParcel& data, MessageParcel& reply);
     int HandleIsFreeMultiWindow(MessageParcel& data, MessageParcel& reply);
     int HandleIsPcOrPadFreeMultiWindowMode(MessageParcel& data, MessageParcel& reply);
+    int HandleIsHookExtensionWindow(MessageParcel& data, MessageParcel& reply);
     int HandleIsWindowRectAutoSave(MessageParcel& data, MessageParcel& reply);
     int HandleSetImageForRecent(MessageParcel& data, MessageParcel& reply);
     int HandleSetImageForRecentPixelMap(MessageParcel& data, MessageParcel& reply);

@@ -320,6 +320,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_WINDOW_POSITION):
             return HandleSetWindowPosition(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_IS_HOOK_EXTENSION_WINDOW):
+            return HandleIsHookExtensionWindow(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -2472,6 +2474,26 @@ int SceneSessionManagerStub::HandleIsPcWindow(MessageParcel& data, MessageParcel
     WMError errCode = IsPcWindow(isPcWindow);
     if (!reply.WriteBool(isPcWindow)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Write isPcWindow fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleIsHookExtensionWindow(MessageParcel& data, MessageParcel& reply)
+{
+    std::string bundleName;
+    if (!data.ReadString(bundleName)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Read bundleName failed.");
+        return ERR_INVALID_DATA;
+    }
+    bool isHook = false;
+    WMError errCode = IsHookExtensionWindow(bundleName, isHook);
+    if (!reply.WriteBool(isHook)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write isHook fail.");
         return ERR_INVALID_DATA;
     }
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {

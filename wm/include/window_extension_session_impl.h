@@ -295,6 +295,13 @@ private:
      */
     WMError OnHostWindowCompatInfoChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError SetCompatInfo(const AAFwk::WantParams& configParam);
+    bool IsHookExtensionWindow();
+
+    /*
+     * Compatible Mode
+     */
+    bool isHookExtensionWindow_ = false;
+    bool isHookExtensionWindowQueried_ = false;
 
     std::shared_ptr<Extension::DataHandler> dataHandler_;
     std::unordered_map<uint32_t, DataConsumeCallback> dataConsumers_;  // Read only after init

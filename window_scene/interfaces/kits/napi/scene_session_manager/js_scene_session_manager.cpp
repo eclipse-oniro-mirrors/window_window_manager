@@ -329,6 +329,8 @@ napi_value JsSceneSessionManager::Init(napi_env env, napi_value exportObj)
         JsSceneSessionManager::UpdateAppHookDisplayInfo);
     BindNativeFunction(env, exportObj, "notifyHookOrientationChange", moduleName,
         JsSceneSessionManager::NotifyHookOrientationChange);
+    BindNativeFunction(env, exportObj, "setHookExtensionWindowList", moduleName,
+        JsSceneSessionManager::SetHookExtensionWindowList);
     BindNativeFunction(env, exportObj, "refreshPcZOrder", moduleName,
         JsSceneSessionManager::RefreshPcZOrder);
     BindNativeFunction(env, exportObj, "getMaxInstanceCount", moduleName,
@@ -1745,6 +1747,13 @@ napi_value JsSceneSessionManager::NotifyHookOrientationChange(napi_env env, napi
     TLOGD(WmsLogTag::WMS_COMPAT, "[NAPI]");
     JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
     return (me != nullptr) ? me->OnNotifyHookOrientationChange(env, info) : NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::SetHookExtensionWindowList(napi_env env, napi_callback_info info)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "[NAPI]");
+    JsSceneSessionManager* me = CheckParamsAndGetThis<JsSceneSessionManager>(env, info);
+    return (me != nullptr) ? me->OnSetHookExtensionWindowList(env, info) : NapiGetUndefined(env);
 }
 
 napi_value JsSceneSessionManager::IsScbCoreEnabled(napi_env env, napi_callback_info info)
@@ -5476,6 +5485,47 @@ napi_value JsSceneSessionManager::OnNotifyHookOrientationChange(napi_env env, na
         return NapiGetUndefined(env);
     }
     SceneSessionManager::GetInstance().NotifyHookOrientationChange(static_cast<int32_t>(persistentId));
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSessionManager::OnSetHookExtensionWindowList(napi_env env, napi_callback_info info)
+{
+    size_t argc = ARGC_ONE;
+    napi_value argv[ARGC_ONE] = { nullptr };
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc < ARGC_ONE) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Argc is invalid: %{public}zu", argc);
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    bool isArray = false;
+    napi_is_array(env, argv[0], &isArray);
+    if (!isArray) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "argv[0] is not array");
+        napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+            "Input parameter is missing or invalid"));
+        return NapiGetUndefined(env);
+    }
+
+    uint32_t arrayLength = 0;
+    napi_get_array_length(env, argv[0], &arrayLength);
+    std::vector<std::string> bundleNames;
+    for (uint32_t i = 0; i < arrayLength; i++) {
+        napi_value element = nullptr;
+        napi_get_element(env, argv[0], i, &element);
+        if (element == nullptr) {
+            continue;
+        }
+        std::string bundleName;
+        if (ConvertFromJsValue(env, element, bundleName)) {
+            bundleNames.push_back(bundleName);
+        }
+    }
+
+    TLOGI(WmsLogTag::WMS_UIEXT, "SetHookExtensionWindowList, bundle count: %{public}zu", bundleNames.size());
+    SceneSessionManager::GetInstance().SetHookExtensionWindowList(bundleNames);
     return NapiGetUndefined(env);
 }
 
