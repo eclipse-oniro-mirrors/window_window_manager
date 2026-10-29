@@ -885,7 +885,7 @@ protected:
     virtual void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() {}
 
     void ClearVsyncStation();
-    void ReleaseSurfaceNode();
+    void ReleaseRSContext();
     WMError WindowSessionCreateCheck(std::string& errMsg);
     void UpdateDecorEnableToAce(bool isDecorEnable);
     bool NeedShowDecorInOtherDisplay(bool decorVisible);
@@ -1214,6 +1214,7 @@ protected:
     /*
      * RS Client Multi Instance
      */
+    mutable std::mutex rsContextMutex_;
     std::shared_ptr<RSUIDirector> rsUIDirector_;
     std::shared_ptr<RSUIContext> rsUIContext_;
 

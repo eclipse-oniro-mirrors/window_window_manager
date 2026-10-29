@@ -3206,6 +3206,106 @@ HWTEST_F(WindowSessionImplTest5, UpdateSubWindowPropertyWhenTriggerMode, TestSiz
     EXPECT_EQ(subWindow->property_->GetIsPcAppInPad(), false);
     WindowSessionImpl::subWindowSessionMap_.erase(10000);
 }
+
+sptr<WindowSessionImpl> GetReleaseRSContextWindow(const std::string& name)
+{
+    sptr<WindowOption> option = new (std::nothrow) WindowOption();
+    if (option == nullptr) {
+        return nullptr;
+    }
+    option->SetWindowName(name);
+    sptr<WindowSessionImpl> window = new (std::nothrow) WindowSessionImpl(option);
+    if (window == nullptr) {
+        return nullptr;
+    }
+    SessionInfo sessionInfo = { name, name, name };
+    sptr<SessionMocker> session = new (std::nothrow) SessionMocker(sessionInfo);
+    if (session == nullptr) {
+        return nullptr;
+    }
+    window->hostSession_ = session;
+    auto runner = AppExecFwk::EventRunner::Create(name);
+    std::shared_ptr<AppExecFwk::EventHandler> handler = std::make_shared<AppExecFwk::EventHandler>(runner);
+    runner->Run();
+    window->handler_ = handler;
+    return window;
+}
+
+/**
+ * @tc.name: ReleaseRSContext01
+ * @tc.desc: ReleaseRSContext with valid surfaceNode, rsUIDirector and rsUIContext
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, ReleaseRSContext01, TestSize.Level1)
+{
+    sptr<WindowSessionImpl> window = GetReleaseRSContextWindow("ReleaseRSContext01");
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+    window->rsUIContext_ = window->GetRSUIContext();
+
+    window->ReleaseRSContext();
+    EXPECT_EQ(window->surfaceNode_, nullptr);
+    EXPECT_EQ(window->rsUIDirector_, nullptr);
+    EXPECT_EQ(window->rsUIContext_, nullptr);
+    usleep(WAIT_SYNC_IN_NS);
+}
+
+/**
+ * @tc.name: ReleaseRSContext02
+ * @tc.desc: ReleaseRSContext when surfaceNode is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, ReleaseRSContext02, TestSize.Level1)
+{
+    sptr<WindowSessionImpl> window = GetReleaseRSContextWindow("ReleaseRSContext02");
+    ASSERT_NE(window, nullptr);
+    window->surfaceNode_ = nullptr;
+
+    window->ReleaseRSContext();
+    EXPECT_EQ(window->surfaceNode_, nullptr);
+    EXPECT_EQ(window->rsUIDirector_, nullptr);
+    EXPECT_EQ(window->rsUIContext_, nullptr);
+    usleep(WAIT_SYNC_IN_NS);
+}
+
+/**
+ * @tc.name: ReleaseRSContext03
+ * @tc.desc: ReleaseRSContext when rsUIDirector and rsUIContext are nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, ReleaseRSContext03, TestSize.Level1)
+{
+    sptr<WindowSessionImpl> window = GetReleaseRSContextWindow("ReleaseRSContext03");
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+    window->rsUIDirector_ = nullptr;
+    window->rsUIContext_ = nullptr;
+
+    window->ReleaseRSContext();
+    EXPECT_EQ(window->surfaceNode_, nullptr);
+    EXPECT_EQ(window->rsUIDirector_, nullptr);
+    EXPECT_EQ(window->rsUIContext_, nullptr);
+    usleep(WAIT_SYNC_IN_NS);
+}
+
+/**
+ * @tc.name: ReleaseRSContext04
+ * @tc.desc: ReleaseRSContext can be called repeatedly
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest5, ReleaseRSContext04, TestSize.Level1)
+{
+    sptr<WindowSessionImpl> window = GetReleaseRSContextWindow("ReleaseRSContext04");
+    ASSERT_NE(window, nullptr);
+    ASSERT_NE(window->surfaceNode_, nullptr);
+
+    window->ReleaseRSContext();
+    window->ReleaseRSContext();
+    EXPECT_EQ(window->surfaceNode_, nullptr);
+    EXPECT_EQ(window->rsUIDirector_, nullptr);
+    EXPECT_EQ(window->rsUIContext_, nullptr);
+    usleep(WAIT_SYNC_IN_NS);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
