@@ -1376,17 +1376,21 @@ void WindowSessionImpl::ReleaseRSContext()
         surfaceNode_ = nullptr;
         RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
     }
-    std::shared_ptr<RSUIDirector> rsUIDirector;
-    std::shared_ptr<RSUIContext> rsUIContext;
-    {
-        std::lock_guard<std::mutex> lock(rsContextMutex_);
-        rsUIDirector_.swap(rsUIDirector);
-        rsUIContext_.swap(rsUIContext);
+    if (handler_ != nullptr) {
+        std::shared_ptr<RSUIDirector> rsUIDirector;
+        std::shared_ptr<RSUIContext> rsUIContext;
+        {
+            std::lock_guard<std::mutex> lock(rsContextMutex_);
+            rsUIDirector_.swap(rsUIDirector);
+            rsUIContext_.swap(rsUIContext);
+        }
+        handler_->PostTask([rsUIDirector = std::move(rsUIDirector), rsUIContext = std::move(rsUIContext)]() mutable {
+            rsUIDirector.reset();
+            rsUIContext.reset();
+        }, __func__);
+    } else {
+        TLOGW(WmsLogTag::WMS_LIFE, "handler is null!");
     }
-    handler_->PostTask([rsUIDirector = std::move(rsUIDirector), rsUIContext = std::move(rsUIContext)]() mutable {
-        rsUIDirector.reset();
-        rsUIContext.reset();
-    }, __func__);
 }
 
 WSError WindowSessionImpl::SetActive(bool active)

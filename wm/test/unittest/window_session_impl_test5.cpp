@@ -3300,6 +3300,7 @@ HWTEST_F(WindowSessionImplTest5, ReleaseRSContext04, TestSize.Level1)
     ASSERT_NE(window->surfaceNode_, nullptr);
 
     window->ReleaseRSContext();
+    window->handler_ = nullptr;
     window->ReleaseRSContext();
     EXPECT_EQ(window->surfaceNode_, nullptr);
     EXPECT_EQ(window->rsUIDirector_, nullptr);
