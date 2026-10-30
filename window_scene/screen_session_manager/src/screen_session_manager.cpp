@@ -5919,7 +5919,7 @@ DMError ScreenSessionManager::GetBrightnessInfo(DisplayId displayId, ScreenBrigh
 {
     if (!IsDisplayAccessAllowed(displayId)) {
         TLOGNFE(WmsLogTag::DMS, "current user does not support access displayId: %{public}" PRIu64, displayId);
-        return DMError::DM_ERROR_INVALID_PARAM;
+        return DMError::DM_ERROR_ILLEGAL_PARAM;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (displayId == DISPLAY_ID_FAKE) {
