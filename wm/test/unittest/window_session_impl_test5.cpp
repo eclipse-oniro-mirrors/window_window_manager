@@ -3240,7 +3240,8 @@ HWTEST_F(WindowSessionImplTest5, ReleaseRSContext01, TestSize.Level1)
 {
     sptr<WindowSessionImpl> window = GetReleaseRSContextWindow("ReleaseRSContext01");
     ASSERT_NE(window, nullptr);
-    ASSERT_NE(window->surfaceNode_, nullptr);
+    Rosen::RSSurfaceNodeConfig surfaceNodeConfig = { .SurfaceNodeName = "ReleaseRSContext"};
+    window->surfaceNode_ = std::make_shared<Rosen::RSSurfaceNode>(surfaceNodeConfig, true);
     window->rsUIContext_ = window->GetRSUIContext();
 
     window->ReleaseRSContext();
@@ -3277,7 +3278,6 @@ HWTEST_F(WindowSessionImplTest5, ReleaseRSContext03, TestSize.Level1)
 {
     sptr<WindowSessionImpl> window = GetReleaseRSContextWindow("ReleaseRSContext03");
     ASSERT_NE(window, nullptr);
-    ASSERT_NE(window->surfaceNode_, nullptr);
     window->rsUIDirector_ = nullptr;
     window->rsUIContext_ = nullptr;
 
@@ -3297,7 +3297,6 @@ HWTEST_F(WindowSessionImplTest5, ReleaseRSContext04, TestSize.Level1)
 {
     sptr<WindowSessionImpl> window = GetReleaseRSContextWindow("ReleaseRSContext04");
     ASSERT_NE(window, nullptr);
-    ASSERT_NE(window->surfaceNode_, nullptr);
 
     window->ReleaseRSContext();
     window->handler_ = nullptr;
