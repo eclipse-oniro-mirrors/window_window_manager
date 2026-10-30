@@ -119,6 +119,8 @@ public:
     virtual void SetMaximizeMode(MaximizeMode maximizeMode);
     virtual MaximizeMode GetMaximizeMode();
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID);
+    virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+        std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
     virtual void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo, const sptr<IRemoteObject>& abilityToken);
     virtual WMError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener);
     virtual WMError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener);

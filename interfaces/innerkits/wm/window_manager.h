@@ -1161,6 +1161,15 @@ public:
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID);
 
     /**
+     * @brief Get display group information and focus window information.
+     *
+     * @param displayId2GroupIdMap Mapping from display IDs to display group IDs.
+     * @param allFocusInfoList Focus window information for all displays.
+     */
+    void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+        std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
+
+    /**
      * @brief Get focus window info.
      *
      * @param focusInfo Focus window info.
