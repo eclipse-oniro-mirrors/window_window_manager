@@ -702,6 +702,8 @@ class VirtualScreenOptionImpl implements VirtualScreenOption {
     surfaceId: string;
 
     supportsFocus?: boolean;
+
+    userId?: int;
 }
 
 export interface Rect {
