@@ -3113,11 +3113,11 @@ bool NapiIsCallable(napi_env env, napi_value value)
 napi_value JsWindow::OnRegisterWindowCallback(napi_env env, napi_callback_info info)
 {
     if (windowToken_ == nullptr) {
-        WLOGFE("Window is nullptr");
+        WLOGFE("Window %{public}s is nullptr", GetWindowName().c_str());
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][on]msg: The window is not created or destroyed.");
+            "[window][on]msg: The window [" + GetWindowName() + "] is not created or destroyed.");
     }
     sptr<Window> windowToken = windowToken_;
     constexpr size_t argcMin = 2;
