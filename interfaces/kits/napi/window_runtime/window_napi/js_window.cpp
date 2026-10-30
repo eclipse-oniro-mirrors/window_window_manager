@@ -3113,7 +3113,7 @@ bool NapiIsCallable(napi_env env, napi_value value)
 napi_value JsWindow::OnRegisterWindowCallback(napi_env env, napi_callback_info info)
 {
     if (windowToken_ == nullptr) {
-        WLOGFE("Window is nullptr");
+        WLOGFE("Window %{public}s is nullptr", GetWindowName());
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
