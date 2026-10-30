@@ -3117,7 +3117,7 @@ napi_value JsWindow::OnRegisterWindowCallback(napi_env env, napi_callback_info i
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.on",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-            "[window][on]msg: The window is not created or destroyed.");
+            "[window][on]msg: The window %{public}s is not created or destroyed.",  GetWindowName().c_str());
     }
     sptr<Window> windowToken = windowToken_;
     constexpr size_t argcMin = 2;
