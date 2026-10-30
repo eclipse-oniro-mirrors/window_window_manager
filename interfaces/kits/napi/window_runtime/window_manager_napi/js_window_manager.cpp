@@ -2006,16 +2006,14 @@ napi_value JsWindowManager::OnGetTopNavDestinationName(napi_env env, napi_callba
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName",
-            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
             "[window][getTopNavDestinationName]msg: Parameter error: the windowId parameter is required");
     }
     int32_t windowId = 0;
     if (!ConvertFromJsValue(env, argv[0], windowId) || windowId < 1) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid windowId value: %{public}d", windowId);
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName",
-            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
             "[window][getTopNavDestinationName]msg: Invalid windowId value, it must be a positive integer");
     }
@@ -2049,8 +2047,7 @@ napi_value JsWindowManager::OnGetTopNavDestinationName(napi_env env, napi_callba
             task.Resolve(env, CreateJsValue(env, *topNavDestNamePtr));
         };
     napi_value result = nullptr;
-    auto asyncTask = CreateAsyncTask(env, nullptr,
-        std::make_unique<NapiAsyncTask::ExecuteCallback>(std::move(execute)),
+    auto asyncTask = CreateAsyncTask(env, nullptr, std::make_unique<NapiAsyncTask::ExecuteCallback>(std::move(execute)),
         std::make_unique<NapiAsyncTask::CompleteCallback>(std::move(complete)), &result);
     NapiAsyncTask::Schedule("JsWindowManager::OnGetTopNavDestinationName", env, std::move(asyncTask));
     return result;
