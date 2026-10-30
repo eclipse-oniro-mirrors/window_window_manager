@@ -2311,7 +2311,7 @@ static void SetMoveWindowToAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync", *errCodePtr);
-            std::string errorMsg = "[window][moveWindowToAsync]msg: Failed";
+            std::string errorMsg = "[window][moveWindowToAsync]msg: JsWindow::OnMoveWindowToAsync failed";
             APPEND_ERROR_MESSAGE_PTR(errorMsg, errMsgPtr);
             task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, errorMsg));
         }
@@ -2410,7 +2410,7 @@ static void SetMoveWindowToGlobalAsyncTask(NapiAsyncTask::ExecuteCallback& execu
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToGlobal", *errCodePtr);
             task.Reject(env, JsErrUtils::CreateJsError(
-                env, *errCodePtr, "[window][moveWindowToGlobal]msg: Failed"));
+                env, *errCodePtr, "[window][moveWindowToGlobal]msg: JsWindow::OnMoveWindowToGlobal failed"));
         }
     };
 }
@@ -2741,7 +2741,7 @@ static void SetResizeWindowAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.resizeAsync", *errCodePtr);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "[window][resizeWindowAsync]msg: Failed"));
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "[window][resizeWindowAsync]"));
         }
     };
 }
@@ -8813,7 +8813,7 @@ static NapiAsyncTask::CompleteCallback GetEnableDragCompleteCallback(
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.enableDrag", *errCodePtr);
-            std::string errorMsg = "[window][enableDrag]msg: Failed";
+            std::string errorMsg = "[window][enableDrag]msg: Set enable drag failed.";
             if (errMsgPtr != nullptr && !errMsgPtr->empty()) {
                 errorMsg += ": " + *errMsgPtr;
             }
@@ -9472,7 +9472,7 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             TLOGNE(WmsLogTag::WMS_MAIN, "OnSetFollowParentMultiScreenPolicy failed, ret is %{public}d", wmErrorCode);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy", wmErrorCode);
-            std::string errorMsg = "[window][setFollowParentMultiScreenPolicy]msg: Failed";
+            std::string errorMsg = "[window][setFollowParentMultiScreenPolicy]msg: Set multi-screen simultaneous display failed.";
             APPEND_ERROR_MESSAGE(errorMsg, errMsg);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, errorMsg));
             return;
@@ -11531,7 +11531,7 @@ static void SetDragKeyFramePolicyTask(NapiAsyncTask::ExecuteCallback& execute,
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s failed, ret %{public}d", where, *errCodePtr);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDragKeyFramePolicy", *errCodePtr);
             task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
-                "[window][setDragKeyFramePolicy]msg: Failed"));
+                "[window][setDragKeyFramePolicy]msg: set key frame policy failed"));
         }
     };
 }
@@ -11596,7 +11596,7 @@ napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info 
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSupportedWindowModes(
             supportedWindowModes, grayOutMaximizeButton, errMsg));
         if (ret != WmErrorCode::WM_OK) {
-            std::string errorMsg = "[window][setSupportedWindowModes]msg: Failed";
+            std::string errorMsg = "[window][setSupportedWindowModes]";
             APPEND_ERROR_MESSAGE(errorMsg, errMsg);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         } else {
