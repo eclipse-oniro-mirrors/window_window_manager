@@ -16703,22 +16703,27 @@ WSError SceneSessionManager::UpdateScreenSupportMultiWindow(uint64_t screenId, S
     }
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "screenId: %{public}" PRIu64 ", reason: %{public}d",
         screenId, static_cast<int32_t>(reason));
-    if (reason == ScreenSupportMultiWindowReason::ADD) {
-        systemConfig_.supportMultiWindowScreenSet_.insert(static_cast<ScreenId>(screenId));
-    } else if (reason == ScreenSupportMultiWindowReason::DELETE) {
-        systemConfig_.supportMultiWindowScreenSet_.erase(static_cast<ScreenId>(screenId));
-    }
-    {
-        std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
-        for (const auto& [_, sceneSession] : sceneSessionMap_) {
-            if (sceneSession == nullptr) {
-                continue;
-            }
-            sceneSession->UpdateSupportMultiWindowScreenSet(systemConfig_.supportMultiWindowScreenSet_);
-            sceneSession->UpdateScreenSupportMultiWindowToClient();
+    auto task = [this, screenId, reason]() {
+        if (reason == ScreenSupportMultiWindowReason::ADD) {
+            systemConfig_.supportMultiWindowScreenSet_.insert(static_cast<ScreenId>(screenId));
+        } else if (reason == ScreenSupportMultiWindowReason::DELETE) {
+            systemConfig_.supportMultiWindowScreenSet_.erase(static_cast<ScreenId>(screenId));
         }
-    }
-    return WSError::WS_OK;
+        std::set<ScreenId> supportMultiWindowScreenSet = systemConfig_.supportMultiWindowScreenSet_;
+        {
+            std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+            for (const auto& [_, sceneSession] : sceneSessionMap_) {
+                if (sceneSession == nullptr) {
+                    continue;
+                }
+                sptr<SceneSession> session = sceneSession;
+                session->UpdateSupportMultiWindowScreenSet(supportMultiWindowScreenSet);
+                session->UpdateScreenSupportMultiWindowToClient();
+            }
+        }
+        return WSError::WS_OK;
+    };
+    return taskScheduler_->PostSyncTask(task, "UpdateScreenSupportMultiWindow:" + std::to_string(screenId));
 }
 
 void SceneSessionManager::RegisterClientDisplayIdChangeNotifyManagerFunc(const sptr<SceneSession>& sceneSession)
