@@ -3331,7 +3331,8 @@ void SceneSession::GetSystemAvoidArea(WSRect& rect, AvoidArea& avoidArea, bool i
         HookAvoidAreaInCompatibleMode(rect, AvoidAreaType::TYPE_SYSTEM, avoidArea);
         return;
     }
-    WindowMode windowMode = Session::GetWindowMode();
+    auto mainSession = GetMainSession();
+    WindowMode windowMode = mainSession != nullptr ? mainSession->GetWindowMode() : Session::GetWindowMode();
     bool isWindowFloatingOrSplit = windowMode == WindowMode::WINDOW_MODE_FLOATING ||
         WindowHelper::IsSplitWindowMode(windowMode);
     WindowType windowType = Session::GetWindowType();
