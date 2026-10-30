@@ -1790,97 +1790,148 @@ napi_value JsWindow::OnShowWithAnimation(napi_env env, napi_callback_info info)
 
 napi_value JsWindow::OnDestroy(napi_env env, napi_callback_info info)
 {
-    WMError errCode = WMError::WM_OK;
+    DestroyWindowContext context;
+    context.weakToken = windowToken_;
+    context.where = __func__;
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc > 1) {
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
-        errCode = WMError::WM_ERROR_INVALID_PARAM;
+        context.errCode = WMError::WM_ERROR_INVALID_PARAM;
     }
-    wptr<Window> weakToken(windowToken_);
-    const char* const where = __func__;
     napi_value lastParam = (argc == 0) ? nullptr : (GetType(env, argv[0]) == napi_function ? argv[0] : nullptr);
     napi_value result = nullptr;
-    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [this, weakToken, errCode, where, env, task = napiAsyncTask] {
-        auto weakWindow = weakToken.promote();
-        if (weakWindow == nullptr) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr");
-            task->Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR));
-            return;
+    context.task = CreateEmptyAsyncTask(env, lastParam, &result);
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        auto it = g_jsWindowMap.find(windowName_);
+        if (it != g_jsWindowMap.end() && it->second != nullptr) {
+            context.jsWindowRef = it->second;
         }
-        if (errCode != WMError::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, errCode));
-            TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr or get invalid param");
-            return;
-        }
-        if (WindowHelper::IsMainWindow(weakWindow->GetType())) {
-            TLOGNW(WmsLogTag::WMS_LIFE, "window Type %{public}u is not supported, [%{public}u, %{public}s]",
-                static_cast<uint32_t>(weakWindow->GetType()),
-                weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str());
-            task->Resolve(env, NapiGetUndefined(env));
-            return;
-        }
-        WMError ret = weakWindow->Destroy();
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s Window [%{public}u, %{public}s] end, ret=%{public}d",
-            where, weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(), ret);
-        if (ret != WMError::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window destroy failed"));
-            return;
-        }
-        SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
-        task->Resolve(env, NapiGetUndefined(env));
-    };
-    if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroy") != napi_status::napi_ok) {
-        TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
-        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
-            "[window][destroy]msg: Napi send event failed"));
     }
+    auto asyncTask = [this, env, context] {
+        DestroyAsyncTask(env, context);
+    };
     return result;
+}
+
+void JsWindow::DestroyAsyncTask(napi_env env, const DestroyWindowContext& context)
+{
+    auto startTime = std::chrono::steady_clock::now();
+    auto weakWindow = context.weakToken.promote();
+    if (weakWindow == nullptr) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr");
+        WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.destroyErr", errorCode);
+        context.task->Reject(env, JsErrUtils::CreateJsError(env, WMError::WM_ERROR_NULLPTR));
+        return;
+    }
+    if (context.errCode != WMError::WM_OK) {
+        WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(context.errCode);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.destroyErr", errorCode);
+        context.task->Reject(env, JsErrUtils::CreateJsError(env, context.errCode));
+        TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr or get invalid param");
+        return;
+    }
+    if (WindowHelper::IsMainWindow(weakWindow->GetType())) {
+        TLOGNW(WmsLogTag::WMS_LIFE, "window Type %{public}u is not supported, [%{public}u, %{public}s]",
+            static_cast<uint32_t>(weakWindow->GetType()),
+            weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str());
+        context.task->Resolve(env, NapiGetUndefined(env));
+        return;
+    }
+    WMError ret = weakWindow->Destroy();
+    TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s Window [%{public}u, %{public}s] end, ret=%{public}d",
+        context.where, weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(), ret);
+    if (ret != WMError::WM_OK) {
+        WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.destroyErr", errorCode);
+        context.task->Reject(env, JsErrUtils::CreateJsError(env, ret, "Window destroy failed"));
+        return;
+    }
+    auto endTime = std::chrono::steady_clock::now();
+    auto duration = static_cast<int32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        endTime - startTime).count());
+    HISTOGRAM_TIMES("ArkUI.window.destroyTime", duration);
+    ResolveDestroyedWindow(env, context);
 }
 
 napi_value JsWindow::OnDestroyWindow(napi_env env, napi_callback_info info)
 {
-    wptr<Window> weakToken(windowToken_);
-    const char* const where = __func__;
+    DestroyWindowContext context;
+    context.weakToken = windowToken_;
+    context.where = __func__;
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     napi_value lastParam = (argc == 0) ? nullptr :
         ((argv[0] != nullptr && GetType(env, argv[0]) == napi_function) ? argv[0] : nullptr);
     napi_value result = nullptr;
-    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, lastParam, &result);
-    auto asyncTask = [this, weakToken, where, env, task = napiAsyncTask] {
-        auto weakWindow = weakToken.promote();
-        if (weakWindow == nullptr) {
-            TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr or get invalid param");
-            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][destroyWindow]msg: The window is not created or destroyed."));
-            return;
+    context.task = CreateEmptyAsyncTask(env, lastParam, &result);
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        auto it = g_jsWindowMap.find(windowName_);
+        if (it != g_jsWindowMap.end() && it->second != nullptr) {
+            context.jsWindowRef = it->second;
         }
-        if (WindowHelper::IsMainWindow(weakWindow->GetType())) {
-            TLOGNW(WmsLogTag::WMS_LIFE, "window Type %{public}u is not supported, [%{public}u, %{public}s]",
-                static_cast<uint32_t>(weakWindow->GetType()),
-                weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str());
-            task->Resolve(env, NapiGetUndefined(env));
-            return;
-        }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->Destroy());
-        TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s end, window [%{public}u, %{public}s] ret=%{public}d",
-            where, weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(), ret);
-        if (ret != WmErrorCode::WM_OK) {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][destroyWindow]msg: Window destroy failed."));
-            return;
-        }
-        SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
-        task->Resolve(env, NapiGetUndefined(env));
+    }
+    auto asyncTask = [this, env, context] {
+        DestroyWindowAsyncTask(env, context);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnDestroyWindow") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
     }
     return result;
+}
+
+void JsWindow::DestroyWindowAsyncTask(napi_env env, const DestroyWindowContext& context)
+{
+    auto startTime = std::chrono::steady_clock::now();
+    auto weakWindow = context.weakToken.promote();
+    if (weakWindow == nullptr) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "window is nullptr or get invalid param");
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.destroyWindowErr", WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        context.task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][destroyWindow]msg: The window is not created or destroyed."));
+        return;
+    }
+    if (WindowHelper::IsMainWindow(weakWindow->GetType())) {
+        TLOGNW(WmsLogTag::WMS_LIFE, "window Type %{public}u is not supported, [%{public}u, %{public}s]",
+            static_cast<uint32_t>(weakWindow->GetType()),
+            weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str());
+        context.task->Resolve(env, NapiGetUndefined(env));
+        return;
+    }
+    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->Destroy());
+    TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s end, window [%{public}u, %{public}s] ret=%{public}d",
+        context.where, weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(), ret);
+    if (ret != WmErrorCode::WM_OK) {
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.destroyWindowErr", ret);
+        context.task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+            "[window][destroyWindow]msg: Window destroy failed."));
+        return;
+    }
+    auto endTime = std::chrono::steady_clock::now();
+    auto duration = static_cast<int32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        endTime - startTime).count());
+    HISTOGRAM_TIMES("ArkUI.window.destroyWindowTime", duration);
+    ResolveDestroyedWindow(env, context);
+}
+ 
+void JsWindow::ResolveDestroyedWindow(napi_env env, const DestroyWindowContext& context)
+{
+    if (context.jsWindowRef != nullptr) {
+        napi_value obj = context.jsWindowRef->GetNapiValue();
+        if (obj != nullptr) {
+            napi_value jsIsDestroyed = nullptr;
+            if (napi_get_boolean(env, true, &jsIsDestroyed) == napi_ok) {
+                napi_set_named_property(env, obj, "isDestroyed", jsIsDestroyed);
+            }
+        }
+    }
+    SetWindowToken(nullptr); // ensure window dtor when finalizer invalid
+    context.task->Resolve(env, NapiGetUndefined(env));
 }
 
 napi_value JsWindow::OnHide(napi_env env, napi_callback_info info)
@@ -8617,6 +8668,11 @@ __attribute__((no_sanitize("cfi")))
     if (objValue == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to create napi object");
         return nullptr;
+    }
+
+    napi_value jsIsDestroyed = nullptr;
+    if (napi_get_boolean(env, false, &jsIsDestroyed) == napi_ok) {
+        napi_set_named_property(env, objValue, "isDestroyed", jsIsDestroyed);
     }
 
     WLOGI("CreateJsWindow %{public}s", windowName.c_str());
