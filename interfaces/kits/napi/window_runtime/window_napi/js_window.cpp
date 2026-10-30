@@ -2311,7 +2311,7 @@ static void SetMoveWindowToAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync", *errCodePtr);
-            std::string errorMsg = "JsWindow::OnMoveWindowToAsync failed";
+            std::string errorMsg = "[window][moveWindowToAsync]msg: Failed";
             APPEND_ERROR_MESSAGE_PTR(errorMsg, errMsgPtr);
             task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, errorMsg));
         }
@@ -2410,7 +2410,7 @@ static void SetMoveWindowToGlobalAsyncTask(NapiAsyncTask::ExecuteCallback& execu
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToGlobal", *errCodePtr);
             task.Reject(env, JsErrUtils::CreateJsError(
-                env, *errCodePtr, "JsWindow::OnMoveWindowToGlobal failed"));
+                env, *errCodePtr, "[window][moveWindowToGlobal]msg: Failed"));
         }
     };
 }
@@ -2741,7 +2741,7 @@ static void SetResizeWindowAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.resizeAsync", *errCodePtr);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "[window][resizeWindowAsync]"));
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "[window][resizeWindowAsync]msg: Failed"));
         }
     };
 }
@@ -8813,7 +8813,7 @@ static NapiAsyncTask::CompleteCallback GetEnableDragCompleteCallback(
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.enableDrag", *errCodePtr);
-            std::string errorMsg = "Set enable drag failed.";
+            std::string errorMsg = "[window][enableDrag]msg: Failed";
             if (errMsgPtr != nullptr && !errMsgPtr->empty()) {
                 errorMsg += ": " + *errMsgPtr;
             }
@@ -9453,7 +9453,7 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env,
-                WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "window is null"));
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "[window][setFollowParentMultiScreenPolicy]msg: Window is null"));
             return;
         }
         if (!WindowHelper::IsSubWindow(window->GetType())) {
@@ -9462,7 +9462,8 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy",
                 WmErrorCode::WM_ERROR_INVALID_CALLING);
             task->Reject(env, JsErrUtils::CreateJsError(env,
-                WmErrorCode::WM_ERROR_INVALID_CALLING, "invalid window type"));
+                WmErrorCode::WM_ERROR_INVALID_CALLING,
+                "[window][setFollowParentMultiScreenPolicy]msg: Invalid window type"));
             return;
         }
         std::string errMsg;
@@ -9471,7 +9472,7 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             TLOGNE(WmsLogTag::WMS_MAIN, "OnSetFollowParentMultiScreenPolicy failed, ret is %{public}d", wmErrorCode);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy", wmErrorCode);
-            std::string errorMsg = "Set multi-screen simultaneous display failed";
+            std::string errorMsg = "[window][setFollowParentMultiScreenPolicy]msg: Failed";
             APPEND_ERROR_MESSAGE(errorMsg, errMsg);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, errorMsg));
             return;
@@ -11529,7 +11530,8 @@ static void SetDragKeyFramePolicyTask(NapiAsyncTask::ExecuteCallback& execute,
         } else {
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s failed, ret %{public}d", where, *errCodePtr);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDragKeyFramePolicy", *errCodePtr);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "set key frame policy failed"));
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
+                "[window][setDragKeyFramePolicy]msg: Failed"));
         }
     };
 }
@@ -11542,13 +11544,15 @@ napi_value JsWindow::OnSetDragKeyFramePolicy(napi_env env, napi_callback_info in
     if (argc != INDEX_ONE || argv[INDEX_ZERO] == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "argc is invalid: %{public}zu", argc);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDragKeyFramePolicy", WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setDragKeyFramePolicy]msg: The number of parameters is invalid");
     }
     KeyFramePolicy keyFramePolicy;
     if (!ParseKeyFramePolicy(env, argv[INDEX_ZERO], keyFramePolicy)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Failed to convert parameter to keyFramePolicy");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDragKeyFramePolicy", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][setDragKeyFramePolicy]msg: Failed to convert parameter to keyFramePolicy");
     }
     wptr<Window> weakToken(windowToken_);
     NapiAsyncTask::ExecuteCallback execute;
@@ -11585,14 +11589,14 @@ napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info 
         auto window = weakWindow.promote();
         if (window == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR),
-                "The window is not created or destoryed."));
+                "[window][setSupportedWindowModes]msg: The window is not created or destroyed."));
             return;
         }
         std::string errMsg;
         WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSupportedWindowModes(
             supportedWindowModes, grayOutMaximizeButton, errMsg));
         if (ret != WmErrorCode::WM_OK) {
-            std::string errorMsg = "[window][setSupportedWindowModes]";
+            std::string errorMsg = "[window][setSupportedWindowModes]msg: Failed";
             APPEND_ERROR_MESSAGE(errorMsg, errMsg);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret, errorMsg));
         } else {
