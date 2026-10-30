@@ -2311,7 +2311,7 @@ static void SetMoveWindowToAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync", *errCodePtr);
-            std::string errorMsg = "[window][moveWindowToAsync]msg: JsWindow::OnMoveWindowToAsync failed";
+            std::string errorMsg = "[window][moveWindowToAsync]msg: OnMoveWindowToAsync failed";
             APPEND_ERROR_MESSAGE_PTR(errorMsg, errMsgPtr);
             task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, errorMsg));
         }
@@ -2410,7 +2410,7 @@ static void SetMoveWindowToGlobalAsyncTask(NapiAsyncTask::ExecuteCallback& execu
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToGlobal", *errCodePtr);
             task.Reject(env, JsErrUtils::CreateJsError(
-                env, *errCodePtr, "[window][moveWindowToGlobal]msg: JsWindow::OnMoveWindowToGlobal failed"));
+                env, *errCodePtr, "[window][moveWindowToGlobal]msg: OnMoveWindowToGlobal failed"));
         }
     };
 }
