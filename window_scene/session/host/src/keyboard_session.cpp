@@ -116,6 +116,7 @@ WSError KeyboardSession::Show(sptr<WindowSessionProperty> property)
             session->SetSkipEventOnCastPlus(isCallingSessionSkip);
             panelSession->SetSkipEventOnCastPlus(isCallingSessionSkip);
         }
+        session->AdjustKeyboardLayoutForDpiForceScale(property);
         TLOGNI(WmsLogTag::WMS_KEYBOARD,
             "Show keyboard session, id: %{public}d, calling id: %{public}d, targetDisplayId: %{public}" PRIu64 ", "
             "effectOption: %{public}s",
@@ -136,6 +137,18 @@ void KeyboardSession::SetSessionBlackListWhenShow(bool isCallingSessionSkip, con
     } else {
         RemoveSessionBlackList({ "SCB_KEYBOARD_FLOATING" });
         panelSession->RemoveSessionBlackList({ "SCB_KEYBOARD_FLOATING" });
+    }
+}
+
+void KeyboardSession::AdjustKeyboardLayoutForDpiForceScale(const sptr<WindowSessionProperty>& property)
+{
+    sptr<SceneSession> callingSession = GetSceneSession(GetCallingSessionId());
+    if (!callingSession) {
+        return;
+    }
+    if (callingSession->GetIsDpiForceScale()) {
+        KeyboardLayoutParams params = property->GetKeyboardLayoutParams();
+        AdjustKeyboardLayout(params);
     }
 }
 
@@ -300,6 +313,29 @@ bool KeyboardSession::isNeedProcessKeyboardOccupiedAreaInfo(
         lastParams.isValidAvoidHeight() && params.isValidAvoidHeight();
 }
 
+void KeyboardSession::ScaleKeyboardLayoutParams(const KeyboardLayoutParams& params,
+    KeyboardLayoutParams& scaledParams)
+{
+    sptr<SceneSession> callingSession = GetSceneSession(GetCallingSessionId());
+    if (!callingSession) {
+        return;
+    }
+    if (!callingSession->GetIsDpiForceScale()) {
+        return;
+    }
+    float scale = callingSession->GetDpiForceScale();
+    TLOGI(WmsLogTag::WMS_KEYBOARD,
+        "AdjustKeyboardLayout, callingSession is dpiForceScale, scale=%{public}f", scale);
+    scaledParams.LandscapeKeyboardRect_.posX_ =
+        static_cast<int32_t>(params.LandscapeKeyboardRect_.posX_ * scale);
+    scaledParams.LandscapeKeyboardRect_.posY_ =
+        static_cast<int32_t>(params.LandscapeKeyboardRect_.posY_ * scale);
+    scaledParams.PortraitKeyboardRect_.posX_ =
+        static_cast<int32_t>(params.PortraitKeyboardRect_.posX_ * scale);
+    scaledParams.PortraitKeyboardRect_.posY_ =
+        static_cast<int32_t>(params.PortraitKeyboardRect_.posY_ * scale);
+}
+
 WSError KeyboardSession::AdjustKeyboardLayout(const KeyboardLayoutParams& params)
 {
     PostTask([weakThis = wptr(this), params]() -> WSError {
@@ -310,8 +346,10 @@ WSError KeyboardSession::AdjustKeyboardLayout(const KeyboardLayoutParams& params
         }
         // set keyboard layout params
         auto sessionProperty = session->GetSessionProperty();
+        KeyboardLayoutParams scaledParams = params;
+        session->ScaleKeyboardLayoutParams(params, scaledParams);
         const KeyboardLayoutParams lastParams = sessionProperty->GetKeyboardLayoutParams();
-        sessionProperty->SetKeyboardLayoutParams(params);
+        sessionProperty->SetKeyboardLayoutParams(scaledParams);
         sptr<SceneSession> callingSession = session->GetSceneSession(session->GetCallingSessionId());
         if (callingSession) {
             callingSession->SetOriPosYBeforeRaisedByKeyboard(0);
@@ -327,23 +365,25 @@ WSError KeyboardSession::AdjustKeyboardLayout(const KeyboardLayoutParams& params
             session->SetWindowAnimationFlag(true);
         }
         // avoidHeight is set and keyboardLayourParams is not changed, notify avoidArea in case ui params don't flush
-        if (session->isNeedProcessKeyboardOccupiedAreaInfo(lastParams, params)) {
+        if (session->isNeedProcessKeyboardOccupiedAreaInfo(lastParams, scaledParams)) {
             TLOGI(WmsLogTag::WMS_KEYBOARD, "Keyboard avoidHeight is set, id: %{public}d",
                 session->GetCallingSessionId());
             session->ProcessKeyboardOccupiedAreaInfo(session->GetCallingSessionId(), true, false);
         }
         // notify keyboard layout param
         if (session->adjustKeyboardLayoutFunc_) {
-            session->adjustKeyboardLayoutFunc_(params);
+            session->adjustKeyboardLayoutFunc_(scaledParams);
         }
         TLOGNI(WmsLogTag::WMS_KEYBOARD, "Adjust keyboard layout, keyboardId: %{public}d, gravity: %{public}u, "
             "landscapeAvoidHeight: %{public}d, portraitAvoidHeight: %{public}d, "
             "Landscape: %{public}s, Portrait: %{public}s, LandscapePanel: %{public}s, "
             "PortraitPanel: %{public}s, dispId: %{public}" PRIu64, session->GetPersistentId(),
-            static_cast<uint32_t>(params.gravity_), params.landscapeAvoidHeight_, params.portraitAvoidHeight_,
-            params.LandscapeKeyboardRect_.ToString().c_str(), params.PortraitKeyboardRect_.ToString().c_str(),
-            params.LandscapePanelRect_.ToString().c_str(), params.PortraitPanelRect_.ToString().c_str(),
-            params.displayId_);
+            static_cast<uint32_t>(scaledParams.gravity_), scaledParams.landscapeAvoidHeight_,
+            scaledParams.portraitAvoidHeight_, scaledParams.LandscapeKeyboardRect_.ToString().c_str(),
+            scaledParams.PortraitKeyboardRect_.ToString().c_str(),
+            scaledParams.LandscapePanelRect_.ToString().c_str(),
+            scaledParams.PortraitPanelRect_.ToString().c_str(),
+            scaledParams.displayId_);
         return WSError::WS_OK;
     }, "AdjustKeyboardLayout");
     return WSError::WS_OK;

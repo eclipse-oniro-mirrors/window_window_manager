@@ -3391,6 +3391,64 @@ HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimits, TestSize.Level
 }
 
 /**
+ * @tc.name: CalculateNewLimitsByLimitsDpi001
+ * @tc.desc: dpi force scale enabled, virtualPixelRatio is overridden to windowStartDensity
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimitsDpi001, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> testImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    WindowLimits customizedLimits = {200, 200, 10, 10, 0.0f, 0.0f, 1.0f, PixelUnit::VP};
+    WindowLimits newLimits;
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(0);
+    ASSERT_NE(nullptr, display);
+    auto displayInfo = display->GetDisplayInfo();
+    ASSERT_NE(nullptr, displayInfo);
+    float vpr = testImpl->GetVirtualPixelRatio(displayInfo);
+    float displayPixelRatio = 0.0f;
+    testImpl->property_->SetDisplayId(0);
+    testImpl->property_->SetConfigWindowLimitsVP(customizedLimits);
+    testImpl->isDpiForceScale_ = true;
+    testImpl->windowStartDensity_ = 4.0f;
+    testImpl->userLimitsSet_ = false;
+ 
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
+    // The effective virtualPixelRatio is overridden to windowStartDensity (4.0).
+    EXPECT_FLOAT_EQ(vpr, 4.0f);
+}
+ 
+/**
+ * @tc.name: CalculateNewLimitsByLimitsDpi002
+ * @tc.desc: dpi force scale disabled, virtualPixelRatio keeps the display density
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimitsDpi002, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> testImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    WindowLimits customizedLimits = {200, 200, 10, 10, 0.0f, 0.0f, 1.0f, PixelUnit::VP};
+    WindowLimits newLimits;
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(0);
+    ASSERT_NE(nullptr, display);
+    auto displayInfo = display->GetDisplayInfo();
+    ASSERT_NE(nullptr, displayInfo);
+    float vpr = testImpl->GetVirtualPixelRatio(displayInfo);
+    float displayPixelRatio = 0.0f;
+    testImpl->property_->SetDisplayId(0);
+    testImpl->property_->SetConfigWindowLimitsVP(customizedLimits);
+    testImpl->isDpiForceScale_ = false;
+    testImpl->windowStartDensity_ = 4.0f;
+    testImpl->userLimitsSet_ = false;
+ 
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
+    // The effective virtualPixelRatio keeps the display density (not windowStartDensity).
+    EXPECT_FLOAT_EQ(vpr, displayInfo->GetVirtualPixelRatio());
+}
+
+/**
  * @tc.name: SetDefaultDensityEnabled_forCompatMode
  * @tc.desc: SetDefaultDensityEnabled
  * @tc.type: FUNC

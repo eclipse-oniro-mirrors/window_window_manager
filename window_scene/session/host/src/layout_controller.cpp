@@ -244,6 +244,8 @@ WSRect LayoutController::AdjustRectByAspectRatio(const WSRect& rect, const Windo
 
 void LayoutController::SetScale(float scaleX, float scaleY, float pivotX, float pivotY)
 {
+    lastScaleX_ = scaleX_;
+    lastScaleY_ = scaleY_;
     scaleX_ = scaleX;
     scaleY_ = scaleY;
     pivotX_ = pivotX;
