@@ -567,6 +567,8 @@ public:
     WMError StartMovingWithOptions(const StartMovingOptions& options) override;
     WSError StartMovingWithCoordinate(int32_t offsetX, int32_t offsetY,
         int32_t pointerPosX, int32_t pointerPosY, DisplayId displayId) override;
+    void ScaleStartMovingCoordinate(int32_t& offsetX, int32_t& offsetY,
+        int32_t& pointerPosX, int32_t& pointerPosY, WSRect& winRect);
 
     /*
      * Sub Window

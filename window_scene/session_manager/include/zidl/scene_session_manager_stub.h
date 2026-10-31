@@ -49,6 +49,7 @@ private:
     int HandleRecoverWindowPropertyChangeFlag(MessageParcel& data, MessageParcel& reply);
     int HandleGetFocusSessionInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetFocusWindowInfoByAbilityToken(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAllGroupInfo(MessageParcel& data, MessageParcel& reply);
     int HandleSetSessionLabel(MessageParcel& data, MessageParcel& reply);
     int HandleSetSessionIcon(MessageParcel& data, MessageParcel& reply);
     int HandleIsValidSessionIds(MessageParcel& data, MessageParcel& reply);

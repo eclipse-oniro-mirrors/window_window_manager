@@ -187,6 +187,7 @@ public:
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
         TRANS_ID_SET_WINDOW_POSITION,
         TRANS_ID_IS_HOOK_EXTENSION_WINDOW,
+        TRANS_ID_GET_ALL_GROUP_INFO,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;

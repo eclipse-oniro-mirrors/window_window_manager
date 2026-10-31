@@ -1039,6 +1039,86 @@ HWTEST_F(KeyboardSessionTest3, PostKeyboardAnimationSyncTimeoutTask_HandlerNull,
     LOG_SetCallback(nullptr);
 }
 
+/**
+ * @tc.name: AdjustKeyboardLayoutForDpiForceScale001
+ * @tc.desc: calling session is null, AdjustKeyboardLayoutForDpiForceScale should return directly
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, AdjustKeyboardLayoutForDpiForceScale001, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession(
+        "AdjustKeyboardLayoutForDpiForceScale001", "AdjustKeyboardLayoutForDpiForceScale001");
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<WindowSessionProperty> keyboardProperty = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(keyboardProperty, nullptr);
+    // calling session is null, should return without calling AdjustKeyboardLayout
+    keyboardSession->keyboardCallback_->onGetSceneSession =
+        [](uint32_t callingSessionId) -> sptr<SceneSession> { return nullptr; };
+    keyboardSession->AdjustKeyboardLayoutForDpiForceScale(keyboardProperty);
+    // no crash and keyboard layout params unchanged
+    KeyboardLayoutParams params = keyboardSession->GetSessionProperty()->GetKeyboardLayoutParams();
+    EXPECT_EQ(params.LandscapeKeyboardRect_.posX_, 0);
+}
+ 
+/**
+ * @tc.name: AdjustKeyboardLayoutForDpiForceScale002
+ * @tc.desc: calling session exists but dpi force scale is disabled, AdjustKeyboardLayout should not be triggered
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, AdjustKeyboardLayoutForDpiForceScale002, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession(
+        "AdjustKeyboardLayoutForDpiForceScale002", "AdjustKeyboardLayoutForDpiForceScale002");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto callingSession = GetSceneSession("TestSceneSession", "TestSceneSession");
+    ASSERT_NE(callingSession, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession =
+        [callingSession](uint32_t callingSessionId) -> sptr<SceneSession> { return callingSession; };
+    keyboardSession->GetSessionProperty()->SetCallingSessionId(1234);
+    KeyboardLayoutParams params;
+    params.LandscapeKeyboardRect_ = { 100, 200, 0, 0 };
+    keyboardSession->GetSessionProperty()->SetKeyboardLayoutParams(params);
+    // dpi force scale is disabled by default, AdjustKeyboardLayout should not be triggered
+    keyboardSession->AdjustKeyboardLayoutForDpiForceScale(keyboardSession->GetSessionProperty());
+    KeyboardLayoutParams result = keyboardSession->GetSessionProperty()->GetKeyboardLayoutParams();
+    EXPECT_EQ(result.LandscapeKeyboardRect_.posX_, 100);
+}
+ 
+/**
+ * @tc.name: AdjustKeyboardLayoutForDpiForceScale003
+ * @tc.desc: calling session enables dpi force scale, keyboard layout rect should be scaled
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest3, AdjustKeyboardLayoutForDpiForceScale003, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession(
+        "AdjustKeyboardLayoutForDpiForceScale003", "AdjustKeyboardLayoutForDpiForceScale003");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto callingSession = GetSceneSession("TestSceneSession", "TestSceneSession");
+    ASSERT_NE(callingSession, nullptr);
+    // enable dpi force scale for the calling session
+    callingSession->SetIsDpiForceScale(true);
+    callingSession->SetDpiForceScale(2.0f);
+    callingSession->SetWindowStartDensity(2.0f);
+    const float scale = callingSession->GetDpiForceScale();
+    ASSERT_EQ(scale, 2.0f);
+    keyboardSession->keyboardCallback_->onGetSceneSession =
+        [callingSession](uint32_t callingSessionId) -> sptr<SceneSession> { return callingSession; };
+    keyboardSession->GetSessionProperty()->SetCallingSessionId(1234);
+    KeyboardLayoutParams params;
+    params.LandscapeKeyboardRect_ = { 100, 200, 0, 0 };
+    params.PortraitKeyboardRect_ = { 10, 20, 0, 0 };
+    keyboardSession->GetSessionProperty()->SetKeyboardLayoutParams(params);
+    // run AdjustKeyboardLayout synchronously
+    keyboardSession->SetEventHandler(nullptr, nullptr);
+    keyboardSession->AdjustKeyboardLayoutForDpiForceScale(keyboardSession->GetSessionProperty());
+    KeyboardLayoutParams result = keyboardSession->GetSessionProperty()->GetKeyboardLayoutParams();
+    // layout rect should be scaled by the dpi force scale value
+    EXPECT_EQ(result.LandscapeKeyboardRect_.posX_, static_cast<int32_t>(100 * scale));
+    EXPECT_EQ(result.LandscapeKeyboardRect_.posY_, static_cast<int32_t>(200 * scale));
+    EXPECT_EQ(result.PortraitKeyboardRect_.posX_, static_cast<int32_t>(10 * scale));
+    EXPECT_EQ(result.PortraitKeyboardRect_.posY_, static_cast<int32_t>(20 * scale));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

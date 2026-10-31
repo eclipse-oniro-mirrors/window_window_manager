@@ -288,6 +288,7 @@
             OHOS::Rosen::WindowManager::DumpSessionAll*;
             OHOS::Rosen::WindowManager::DumpSessionWithId*;
             OHOS::Rosen::WindowManager::GetAccessibilityWindowInfo*;
+            OHOS::Rosen::WindowManager::GetAllGroupInfo*;
             OHOS::Rosen::WindowManager::GetAllMainWindowInfo*;
             OHOS::Rosen::WindowManager::GetAllWindowLayoutInfo*;
             OHOS::Rosen::WindowManager::GetAppDragResizeType*;
