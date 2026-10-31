@@ -403,10 +403,7 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
     WLOGFD("[WMSCom] Constructor");
     property_ = sptr<WindowSessionProperty>::MakeSptr();
     windowOption_ = option;
-    {
-        std::lock_guard<std::mutex> lock(rsContextMutex_);
-        rsUIContext_ = rsUIContext;
-    }
+    rsUIContext_ = rsUIContext;
     handler_ = std::make_shared<AppExecFwk::EventHandler>(AppExecFwk::EventRunner::GetMainEventRunner());
 
     WindowType optionWindowType = option->GetWindowType();
@@ -426,10 +423,7 @@ WindowSessionImpl::WindowSessionImpl(const sptr<WindowOption>& option,
         TLOGI(WmsLogTag::WMS_LIFE, "nodeId: %{public}." PRIu64, nodeId_);
         vsyncStation_ = std::make_shared<VsyncStation>(nodeId_);
     } else {
-        {
-            std::lock_guard<std::mutex> lock(rsContextMutex_);
-            RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
-        }
+        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, nullptr, rsUIContext);
         surfaceNode_ = CreateSurfaceNode(property_->GetWindowName(), optionWindowType);
         if (surfaceNode_ != nullptr) {
  	        vsyncStation_ = std::make_shared<VsyncStation>(surfaceNode_->GetId());
@@ -939,12 +933,13 @@ WMError WindowSessionImpl::Connect()
 void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
 {
     RSUIContextContainer::SetRenderSession(renderSession);
-    std::shared_ptr<RSUIContext> rsUIContext;
+    std::shared_ptr<RSUIDirector> rsUIDirector;
     {
         std::lock_guard<std::mutex> lock(rsContextMutex_);
         RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
-        rsUIContext = rsUIDirector_->GetRSUIContext();
+        rsUIDirector = rsUIDirector_;
     }
+    auto rsUIContext = rsUIDirector ? rsUIDirector->GetRSUIContext() : nullptr;
     if (SysCapUtil::GetBundleName() == AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         surfaceNode_->GetRSUIContext() != nullptr) {
         TLOGI(WmsLogTag::WMS_LIFE, "sceneboard need a newSurfaceNode, %{public}s",
@@ -10802,8 +10797,12 @@ std::shared_ptr<RSUIDirector> WindowSessionImpl::GetRSUIDirector() const
 std::shared_ptr<RSUIContext> WindowSessionImpl::GetRSUIContext() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
-    std::lock_guard<std::mutex> lock(rsContextMutex_);
-    auto rsUIContext = rsUIDirector_ ? rsUIDirector_->GetRSUIContext() : nullptr;
+    std::shared_ptr<RSUIDirector> rsUIDirector;
+    {
+        std::lock_guard<std::mutex> lock(rsContextMutex_);
+        rsUIDirector = rsUIDirector_;
+    }
+    auto rsUIContext = rsUIDirector ? rsUIDirector->GetRSUIContext() : nullptr;
     TLOGD(WmsLogTag::WMS_SCB, "%{public}s, windowId: %{public}u",
           RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str(), GetWindowId());
     return rsUIContext;
