@@ -5524,7 +5524,7 @@ napi_value JsSceneSessionManager::OnSetHookExtensionWindowList(napi_env env, nap
         }
     }
 
-    TLOGI(WmsLogTag::WMS_UIEXT, "SetHookExtensionWindowList, bundle count: %{public}zu", bundleNames.size());
+    TLOGI(WmsLogTag::WMS_UIEXT, "bundle count: %{public}zu", bundleNames.size());
     SceneSessionManager::GetInstance().SetHookExtensionWindowList(bundleNames);
     return NapiGetUndefined(env);
 }
