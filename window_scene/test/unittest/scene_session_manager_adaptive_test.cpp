@@ -248,6 +248,7 @@ HWTEST_F(SceneSessionManagerAdaptiveTest, HandleConfigValidationVariants, TestSi
     ASSERT_NE(property, nullptr);
     HookWindowInfo hookInfo;
     hookInfo.enableHookWindow = true;
+    hookInfo.widthHookRatio = 0.5f;
     property->SetHookWindowInfo(hookInfo);
     EXPECT_EQ(ssm_->HandleAdaptiveResolutionConfig(session, TEST_UID_A, MakeConfig(TEST_WINDOW_ID, true)),
         WMError::WM_ERROR_INVALID_OPERATION);
@@ -334,6 +335,77 @@ HWTEST_F(SceneSessionManagerAdaptiveTest, CheckOnModeChangeVariants, TestSize.Le
 }
 
 /**
+ * @tc.name: FmwAdaptiveMutexVariants
+ * @tc.desc: FMW rejects enable, blocks restore, and the switch cancels/restores
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAdaptiveTest, FmwAdaptiveMutexVariants, TestSize.Level1)
+{
+    auto session = CreateTestSceneSession(TEST_WINDOW_ID, TEST_UID_A, WindowMode::WINDOW_MODE_FULLSCREEN);
+    ASSERT_NE(session, nullptr);
+
+    // FMW on: enable rejected with a pending record kept
+    ssm_->systemConfig_.freeMultiWindowEnable_ = true;
+    EXPECT_EQ(ssm_->HandleAdaptiveResolutionConfig(session, TEST_UID_A, MakeConfig(TEST_WINDOW_ID, true)),
+        WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE);
+    EXPECT_TRUE(ssm_->adaptiveResolutionWindows_.empty());
+    EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
+
+    // FMW on: even fullscreen restorable windows stay blocked
+    EXPECT_FALSE(ssm_->TryRestoreAdaptiveResolutionWindow(session, true, false));
+    EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
+
+    // FMW switch off: pending records restore
+    ssm_->systemConfig_.freeMultiWindowEnable_ = false;
+    ssm_->RestoreAdaptiveResolutionOnFmwSwitch();
+    EXPECT_TRUE(ssm_->cancelledGameWindowsByUid_.empty());
+
+    // FMW switch on: configured windows are cancelled with records kept
+    ssm_->adaptiveResolutionWindows_[TEST_WINDOW_ID] = TEST_UID_A;
+    ssm_->CancelAdaptiveResolutionOnFmwSwitch();
+    EXPECT_TRUE(ssm_->adaptiveResolutionWindows_.empty());
+    EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
+
+    // the global switch funnels through the same cancel/restore path
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    ssm_->adaptiveResolutionWindows_[TEST_WINDOW_ID] = TEST_UID_A;
+    ssm_->cancelledGameWindowsByUid_[TEST_UID_A] = { TEST_WINDOW_ID };
+    EXPECT_EQ(ssm_->SwitchFreeMultiWindow(true), WSError::WS_OK);
+    EXPECT_TRUE(ssm_->adaptiveResolutionWindows_.empty());
+    EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
+    EXPECT_EQ(ssm_->SwitchFreeMultiWindow(false), WSError::WS_OK);
+    EXPECT_TRUE(ssm_->cancelledGameWindowsByUid_.empty());
+    ssm_->systemConfig_.freeMultiWindowEnable_ = false;
+    ssm_->systemConfig_.freeMultiWindowSupport_ = false;
+}
+
+/**
+ * @tc.name: FmwModeChangeImmediateCancelVariants
+ * @tc.desc: non-fullscreen mode change cancels immediately regardless of FMW
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAdaptiveTest, FmwModeChangeImmediateCancelVariants, TestSize.Level1)
+{
+    auto session = CreateTestSceneSession(TEST_WINDOW_ID, TEST_UID_A, WindowMode::WINDOW_MODE_FULLSCREEN);
+    ASSERT_NE(session, nullptr);
+
+    // FMW on: non-fullscreen mode change cancels immediately
+    ssm_->systemConfig_.freeMultiWindowEnable_ = true;
+    ssm_->adaptiveResolutionWindows_[TEST_WINDOW_ID] = TEST_UID_A;
+    ssm_->CheckAdaptiveResolutionOnModeChange(session, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_TRUE(ssm_->adaptiveResolutionWindows_.empty());
+    EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
+
+    // FMW off: same immediate cancel
+    ssm_->cancelledGameWindowsByUid_.clear();
+    ssm_->adaptiveResolutionWindows_[TEST_WINDOW_ID] = TEST_UID_A;
+    ssm_->CheckAdaptiveResolutionOnModeChange(session, WindowMode::WINDOW_MODE_FLOATING);
+    EXPECT_TRUE(ssm_->adaptiveResolutionWindows_.empty());
+    EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
+    ssm_->systemConfig_.freeMultiWindowEnable_ = false;
+}
+
+/**
  * @tc.name: CheckOnHookWindowChangeVariants
  * @tc.desc: null session, enable+config cancels, enable w/o config noop, disable restores
  * @tc.type: FUNC
@@ -349,12 +421,19 @@ HWTEST_F(SceneSessionManagerAdaptiveTest, CheckOnHookWindowChangeVariants, TestS
     EXPECT_TRUE(ssm_->adaptiveResolutionWindows_.empty());
 
     // enable hook window with config: cancel
+    auto property = session->GetSessionProperty();
+    ASSERT_NE(property, nullptr);
+    HookWindowInfo hookInfo;
+    hookInfo.enableHookWindow = true;
+    hookInfo.widthHookRatio = 0.5f;
+    property->SetHookWindowInfo(hookInfo);
     ssm_->adaptiveResolutionWindows_[TEST_WINDOW_ID] = TEST_UID_A;
     ssm_->CheckAdaptiveResolutionOnHookWindowChange(session, true);
     EXPECT_TRUE(ssm_->adaptiveResolutionWindows_.empty());
     EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
 
     // disable hook window: restore check clears the record when restorable
+    property->SetHookWindowInfo(HookWindowInfo {});
     ssm_->CheckAdaptiveResolutionOnHookWindowChange(session, false);
     EXPECT_TRUE(ssm_->cancelledGameWindowsByUid_.empty());
 }
@@ -466,6 +545,7 @@ HWTEST_F(SceneSessionManagerAdaptiveTest, TryRestoreVariants, TestSize.Level1)
     ASSERT_NE(property, nullptr);
     HookWindowInfo hookInfo;
     hookInfo.enableHookWindow = true;
+    hookInfo.widthHookRatio = 0.5f;
     property->SetHookWindowInfo(hookInfo);
     EXPECT_FALSE(ssm_->TryRestoreAdaptiveResolutionWindow(session, true, false)); // window hook on
     EXPECT_EQ(ssm_->cancelledGameWindowsByUid_[TEST_UID_A].count(TEST_WINDOW_ID), 1u);
