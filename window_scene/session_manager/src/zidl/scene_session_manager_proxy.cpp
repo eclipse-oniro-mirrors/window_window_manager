@@ -4197,32 +4197,32 @@ WMError SceneSessionManagerProxy::IsHookExtensionWindow(const std::string& bundl
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Write interfaceToken failed");
+        TLOGE(WmsLogTag::WMS_COMPAT, "Write interfaceToken failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     if (!data.WriteString(bundleName)) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Write bundleName failed");
+        TLOGE(WmsLogTag::WMS_COMPAT, "Write bundleName failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Remote is null");
+        TLOGE(WmsLogTag::WMS_COMPAT, "Remote is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_IS_HOOK_EXTENSION_WINDOW),
         data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "SendRequest failed");
+        TLOGE(WmsLogTag::WMS_COMPAT, "SendRequest failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     bool result = false;
     if (!reply.ReadBool(result)) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Read isHook failed");
+        TLOGE(WmsLogTag::WMS_COMPAT, "Read isHook failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     int32_t ret = 0;
     if (!reply.ReadInt32(ret)) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "Read ret failed");
+        TLOGE(WmsLogTag::WMS_COMPAT, "Read ret failed");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     isHook = result;
