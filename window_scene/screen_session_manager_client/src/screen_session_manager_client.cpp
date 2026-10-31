@@ -1043,6 +1043,25 @@ void ScreenSessionManagerClient::UpdateDisplayHookInfo(int32_t uid, bool enable,
     screenSessionManager_->UpdateDisplayHookInfo(uid, enable, hookInfo);
 }
 
+void ScreenSessionManagerClient::UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+    const DMAdaptiveResolutionConfig& config)
+{
+    if (!screenSessionManager_) {
+        TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
+        return;
+    }
+    screenSessionManager_->UpdateAdaptiveResolutionHook(uid, enable, config);
+}
+
+bool ScreenSessionManagerClient::IsDisplayHookedByUid(int32_t uid) const
+{
+    if (!screenSessionManager_) {
+        TLOGE(WmsLogTag::DMS, "screenSessionManager_ is null");
+        return false;
+    }
+    return screenSessionManager_->IsDisplayHookedByUid(uid);
+}
+
 void ScreenSessionManagerClient::GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo) const
 {
     if (!screenSessionManager_) {

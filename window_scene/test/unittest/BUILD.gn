@@ -33,6 +33,7 @@ group("unittest") {
     ":ws_scene_persistent_storage_test",
     ":ws_scene_session_converter_test",
     ":ws_scene_session_manager_lite_test",
+    ":ws_scene_session_manager_adaptive_test",
     ":ws_scene_session_manager_stub_lifecycle_test",
     ":ws_scene_session_manager_supplement_test",
     ":ws_scene_system_ability_listener_test",
@@ -42,6 +43,8 @@ group("unittest") {
     ":ws_session_manager_agent_controller_multi_user_test",
     ":ws_session_permission_test",
     ":ws_session_stub_mock_test",
+    ":ws_session_adaptive_test",
+    ":ws_session_adaptive_ipc_test",
     ":ws_session_utils_test",
     ":ws_ssmgr_specific_window_test",
     ":ws_task_scheduler_test",
@@ -1155,6 +1158,94 @@ ohos_unittest("ws_motion_manager_test") {
   external_deps = test_external_deps
 
   defines = [ "WM_SUBSCRIBE_MOTION_ENABLE" ]
+}
+
+ohos_unittest("ws_session_adaptive_ipc_test") {
+  module_out_path = module_out_path
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/test/common/mock",
+    "${window_base_path}/window_scene/test/mock"
+  ]
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "session_adaptive_ipc_test.cpp"
+    ]
+
+  cflags_cc = [ "-Wno-thread-safety" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/test/common/utils:libtestutil",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:mission_info",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+  ]
+}
+
+ohos_unittest("ws_session_adaptive_test") {
+  module_out_path = module_out_path
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/test/mock"
+  ]
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "session_adaptive_test.cpp"
+    ]
+
+  cflags_cc = [ "-Wno-thread-safety" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/test/common/utils:libtestutil",
+  ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:mission_info",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+  ]
+}
+
+ohos_unittest("ws_scene_session_manager_adaptive_test") {
+  module_out_path = module_out_path
+  include_dirs = [
+    "${window_base_path}/test/common/utils/include/",
+    "${window_base_path}/window_scene/test/mock"
+  ]
+  sources = [
+    "${window_base_path}/window_scene/test/mock/mock_accesstoken_kit.cpp",
+    "scene_session_manager_adaptive_test.cpp"
+    ]
+
+  cflags_cc = [ "-Wno-thread-safety" ]
+
+  deps = [
+    ":ws_unittest_common",
+    "${window_base_path}/test/common/utils:libtestutil",
+  ]
+
+  public_deps =
+      [ "${window_base_path}/window_scene/interfaces/innerkits:libwsutils" ]
+
+  external_deps = test_external_deps
+  external_deps += [
+    "ability_base:session_info",
+    "ability_runtime:ability_context_native",
+    "ability_runtime:mission_info",
+    "bundle_framework:appexecfwk_base",
+    "bundle_framework:appexecfwk_core",
+  ]
 }
 
 ohos_unittest("ws_scene_session_manager_supplement_test") {

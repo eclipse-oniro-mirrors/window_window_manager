@@ -4174,6 +4174,36 @@ void Session::SetUpdateAppHookDisplayInfoFunc(const UpdateAppHookDisplayInfoFunc
     updateAppHookDisplayInfoFunc_ = func;
 }
 
+void Session::SetAdaptiveResolutionConfigFunc(const AdaptiveResolutionConfigFunc& func)
+{
+    adaptiveResolutionConfigFunc_ = func;
+}
+
+void Session::SetAdaptiveResolutionModeChangeFunc(const AdaptiveResolutionModeChangeFunc& func)
+{
+    adaptiveResolutionModeChangeFunc_ = func;
+}
+
+void Session::NotifyAdaptiveResolutionModeChange(WindowMode newMode)
+{
+    if (adaptiveResolutionModeChangeFunc_) {
+        adaptiveResolutionModeChangeFunc_(newMode);
+    }
+}
+
+void Session::SetAdaptiveResolutionHookWindowChangeFunc(
+    const AdaptiveResolutionHookWindowChangeFunc& func)
+{
+    adaptiveResolutionHookWindowChangeFunc_ = func;
+}
+
+void Session::NotifyAdaptiveResolutionHookWindowChange(bool enableHookWindow)
+{
+    if (adaptiveResolutionHookWindowChangeFunc_) {
+        adaptiveResolutionHookWindowChangeFunc_(enableHookWindow);
+    }
+}
+
 void Session::SetAcquireRotateAnimationConfigFunc(const AcquireRotateAnimationConfigFunc& func)
 {
     if (func == nullptr) {
@@ -4742,9 +4772,9 @@ WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
     auto preMode = GetWindowMode();
     TLOGI(WmsLogTag::WMS_LAYOUT,
         "[WindowModeUpdate:ServerRecv] id:%{public}d, preMode:%{public}d, mode:%{public}d, "
-        "splitStyle:%{public}d, splitIndex:%{public}d",
-        GetPersistentId(), static_cast<int32_t>(preMode), static_cast<int32_t>(mode),
-        static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex);
+        "splitStyle:%{public}d, splitIndex:%{public}d", GetPersistentId(), static_cast<int32_t>(preMode),
+        static_cast<int32_t>(mode), static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex);
+    NotifyAdaptiveResolutionModeChange(mode);
     auto property = GetSessionProperty();
     if (property == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT,

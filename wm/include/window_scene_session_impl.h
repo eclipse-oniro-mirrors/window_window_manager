@@ -107,6 +107,8 @@ public:
     WMError SetFrameRectForPartialZoomIn(const Rect& frameRect) override;
     WMError UpdateWindowModeForUITest(int32_t updateMode) override;
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    // Re-sends the stored game config to SCB after a possible SCB restart.
+    void ResyncAdaptiveResolution();
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
     WSError UpdateAttachedWindowLimits(int32_t sourcePersistentId,
         const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit,

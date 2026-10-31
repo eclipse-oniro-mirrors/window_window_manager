@@ -135,6 +135,8 @@ public:
     WSError NotifyAppForceLandscapeConfigUpdated() override;
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
+    WSError NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config) override;
     WSError CloseSpecificScene() override;
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;

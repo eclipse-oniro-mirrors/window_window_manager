@@ -706,6 +706,8 @@ public:
     int32_t GetOrResetRsCmdBlockingCount();
     void RegisterGetRsCmdBlockingCountFunc(const sptr<SceneSession>& sceneSession);
     void RegisterUpdateAppHookDisplayInfoFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterAdaptiveResolutionConfigFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterAdaptiveResolutionMonitorFunc(const sptr<SceneSession>& sceneSession);
     void RunAfterNVsyncs(uint32_t vsyncCount, OnCallback&& callback);
 
     /*
@@ -870,6 +872,35 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig);
     void RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func);
+    WMError HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession, int32_t callingUid,
+        const GameAdaptiveResolutionConfig& config);
+    bool UpdateAdaptiveResolutionMaps(int32_t windowId, int32_t callingUid,
+        const GameAdaptiveResolutionConfig& config);
+    WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override;
+    void NotifyGameAdaptiveAgents(bool cancelled, int32_t windowId);
+    bool IsWindowFullScreen(const sptr<SceneSession>& sceneSession);
+    void CheckAdaptiveResolutionOnModeChange(const sptr<SceneSession>& sceneSession, WindowMode newMode);
+    void CheckAdaptiveResolutionOnHookWindowChange(const sptr<SceneSession>& sceneSession,
+        bool enableHookWindow);
+    void ClearAdaptiveResolutionConfig(int32_t persistentId);
+    void ClearAdaptiveResolutionConfigByUid(int32_t uid);
+    // All cancel paths funnel into CancelAdaptiveResolutionInternal.
+    void CancelAdaptiveResolutionByUid(int32_t uid);
+    void CancelAdaptiveResolutionByWindow(int32_t windowId);
+    void CancelAdaptiveResolutionInternal(int32_t uid, const std::vector<int32_t>& windowIds);
+    void NotifyAdaptiveResolutionAvailable(int32_t uid, bool displayHooked);
+    void TryNotifyAdaptiveResolutionAvailable(const sptr<SceneSession>& sceneSession, bool fullscreenNow);
+    bool TryRestoreAdaptiveResolutionWindow(const sptr<SceneSession>& sceneSession,
+        bool fullscreenNow, bool displayHooked);
+    bool IsAdaptiveResolutionRestorable(const sptr<SceneSession>& sceneSession,
+        bool fullscreenNow, bool displayHooked);
+    bool IsWindowPendingRestore(int32_t uid, int32_t windowId);
+    void EraseCancelledGameWindow(int32_t uid, int32_t windowId);
+    void RecordPendingAdaptiveWindow(int32_t uid, int32_t windowId);
+    std::vector<int32_t> EraseAdaptiveResolutionWindowsByUid(int32_t uid);
+    void ClearAdaptiveResolutionHookInDms(int32_t uid);
+    static DMAdaptiveResolutionConfig ToDmAdaptiveResolutionConfig(
+        const GameAdaptiveResolutionConfig& config);
     sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
         sptr<WindowSessionProperty> property = nullptr);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
@@ -2246,6 +2277,12 @@ private:
     RogWindowConfig rogWindowConfig_;
     std::mutex updateRogWindowConfigCallbackMutex_;
     UpdateRogWindowConfigCallbackFunc updateRogWindowConfigCallback_;
+
+    std::mutex adaptiveResolutionMutex_;
+    // windowId -> game uid
+    std::map<int32_t, int32_t> adaptiveResolutionWindows_;
+    // uid -> window ids pending restore or a rejected enable
+    std::map<int32_t, std::set<int32_t>> cancelledGameWindowsByUid_;
 };
 } // namespace OHOS::Rosen
 

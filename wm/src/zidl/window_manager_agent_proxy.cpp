@@ -639,6 +639,58 @@ void WindowManagerAgentProxy::NotifySessionSaveSnapShotComplete(int32_t persiste
     }
 }
 
+void WindowManagerAgentProxy::OnGameAdaptiveResolutionCancelled(int32_t windowId)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Write windowId failed");
+        return;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "remote is null");
+        return;
+    }
+    int sendCode = remote->SendRequest(
+        static_cast<uint32_t>(WindowManagerAgentMsg::TRANS_ID_ON_GAME_ADAPTIVE_RESOLUTION_CANCELLED),
+        data, reply, option);
+    if (sendCode != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "SendRequest failed, code: %{public}d", sendCode);
+    }
+}
+
+void WindowManagerAgentProxy::OnGameAdaptiveResolutionAvailable(int32_t windowId)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "WriteInterfaceToken failed");
+        return;
+    }
+    if (!data.WriteInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Write windowId failed");
+        return;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "remote is null");
+        return;
+    }
+    int sendCode = remote->SendRequest(
+        static_cast<uint32_t>(WindowManagerAgentMsg::TRANS_ID_ON_GAME_ADAPTIVE_RESOLUTION_AVAILABLE),
+        data, reply, option);
+    if (sendCode != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "SendRequest failed, code: %{public}d", sendCode);
+    }
+}
+
 bool WindowManagerAgentProxy::WriteWindowChangeInfoValue(MessageParcel& data,
     const std::pair<WindowInfoKey, WindowChangeInfoType>& windowInfoPair)
 {

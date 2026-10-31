@@ -111,6 +111,30 @@ public:
     WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease);
 
     /**
+     * @brief Set game adaptive resolution config for a target main window.
+     *
+     * @param config Game adaptive resolution config, see GameAdaptiveResolutionConfig.
+     * @return WM_OK means set success, others means set failed.
+     */
+    WMError SetGameAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config) const;
+
+    /**
+     * @brief Register a game adaptive resolution listener (delivered cross-process).
+     *
+     * @param listener IGameAdaptiveResolutionListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    WMError RegisterGameAdaptiveResolutionListener(const sptr<IGameAdaptiveResolutionListener>& listener);
+
+    /**
+     * @brief Unregister a game adaptive resolution listener.
+     *
+     * @param listener IGameAdaptiveResolutionListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    WMError UnregisterGameAdaptiveResolutionListener(const sptr<IGameAdaptiveResolutionListener>& listener);
+
+    /**
      * @brief Get focus window.
      *
      * @param focusInfo Focus window info.
@@ -553,6 +577,8 @@ private:
     WMError RegisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError UnregisterWindowModeInfoChangedListenerForPropertyChange(const sptr<IWindowInfoChangedListener>& listener);
     WMError NotifyCallingWindowDisplayChanged(const CallingWindowInfo& callingWindowInfo);
+    void NotifyGameAdaptiveResolutionCancelled(int32_t windowId);
+    void NotifyGameAdaptiveResolutionAvailable(int32_t windowId);
 };
 } // namespace Rosen
 } // namespace OHOS

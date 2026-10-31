@@ -1211,6 +1211,7 @@ void WindowSceneSessionImpl::OnWindowRecoverStateChange(bool isSpecificSession, 
             UpdateFinishRecoverProperty(isSpecificSession);
             RecoverSessionListener();
             RecoverSessionProperty();
+            ResyncAdaptiveResolution();
             RecoverExtension();
             break;
         default:
@@ -1481,7 +1482,9 @@ void WindowSceneSessionImpl::ConsumePointerEvent(const std::shared_ptr<MMI::Poin
         return;
     }
     if (auto uiContent = GetUIContentSharedPtr()) {
-        uiContent->ProcessPointerEvent(pointerEvent,
+        // Runs the hit test in the hooked coordinate space; returns the original event
+        // untouched (no copy) when the adaptive input hook is inactive.
+        uiContent->ProcessPointerEvent(GetPointerEventForHitTest(pointerEvent),
             [weakThis = wptr(this), pointerEvent, pointerItem](bool isHitTargetDraggable) mutable {
                 auto window = weakThis.promote();
                 if (window == nullptr) {
@@ -3992,6 +3995,7 @@ WMError WindowSceneSessionImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     WSRect sessionRect = { rect.posX_, rect.posY_, rect.width_, rect.height_ };
     avoidArea = hostSession->GetAvoidAreaByType(type, sessionRect, apiVersion);
+    HookAvoidAreaForHookedViewport(avoidArea);
     getAvoidAreaCnt_++;
     TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
         "win %{public}u type %{public}d times %{public}u area %{public}s",
@@ -4018,6 +4022,7 @@ WMError WindowSceneSessionImpl::GetAvoidAreaByTypeIgnoringVisibility(AvoidAreaTy
         rect.posX_, rect.posY_, static_cast<int32_t>(rect.width_), static_cast<int32_t>(rect.height_)
     };
     avoidArea = hostSession->GetAvoidAreaByTypeIgnoringVisibility(type, sessionRect);
+    HookAvoidAreaForHookedViewport(avoidArea);
     TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}d area %{public}s",
           GetWindowId(), GetWindowName().c_str(), type, avoidArea.ToString().c_str());
     return WMError::WM_OK;
@@ -8630,6 +8635,26 @@ void WindowSceneSessionImpl::NotifyDisplayInfoChange(const sptr<DisplayInfo>& in
         return;
     }
     SingletonContainer::Get<WindowManager>().NotifyDisplayInfoChange(token, displayId, density, orientation);
+}
+
+void WindowSceneSessionImpl::ResyncAdaptiveResolution()
+{
+    if (!adaptiveResolutionActive_.load()) {
+        return;
+    }
+    auto hostSession = GetHostSession();
+    if (hostSession == nullptr) {
+        return;
+    }
+    GameAdaptiveResolutionConfig config = GetAdaptiveResolutionConfig();
+    if (config.windowId_ != GetPersistentId()) {
+        TLOGW(WmsLogTag::WMS_RECOVER, "[ResyncAdaptiveResolution] mismatched windowId: "
+            "%{public}d, expected: %{public}d", config.windowId_, GetPersistentId());
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_RECOVER, "[ResyncAdaptiveResolution] Id:%{public}u, config: [%{public}s]",
+        GetWindowId(), config.ToString().c_str());
+    hostSession->UpdateAdaptiveResolutionConfig(config);
 }
 
 /** @note @window.layout */

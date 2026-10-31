@@ -2997,6 +2997,38 @@ WSError SessionStageProxy::SetForceSplitEnable(bool isForceSplitEnabled, bool ne
     return WSError::WS_OK;
 }
 
+WSError SessionStageProxy::NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+    const GameAdaptiveResolutionConfig& config)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(static_cast<int32_t>(status))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] Write status failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteParcelable(&config)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] Write config failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(
+        SessionStageInterfaceCode::TRANS_ID_NOTIFY_ADAPTIVE_RESOLUTION_CHANGED),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return WSError::WS_OK;
+}
+
 void SessionStageProxy::NotifyKeyboardAnimationWillBegin(const KeyboardAnimationInfo& keyboardAnimationInfo,
     const std::shared_ptr<RSTransaction>& rsTransaction)
 {

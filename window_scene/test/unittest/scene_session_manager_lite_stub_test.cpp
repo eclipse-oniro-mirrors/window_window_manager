@@ -188,6 +188,15 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     {
         return WMError::WM_OK;
     }
+    WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override
+    {
+        lastGameConfig_ = config;
+        return gameConfigResult_;
+    }
+
+public:
+    GameAdaptiveResolutionConfig lastGameConfig_;
+    WMError gameConfigResult_ = WMError::WM_OK;
     WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo) override
     {
         MainWindowInfo mainWindowInfo;
@@ -378,7 +387,7 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
-    sptr<SceneSessionManagerLiteStub> sceneSessionManagerLiteStub_ = nullptr;
+    sptr<MockSceneSessionManagerLiteStub> sceneSessionManagerLiteStub_ = nullptr;
 };
 
 void SceneSessionManagerLiteStubTest::SetUpTestCase() {}
@@ -1049,6 +1058,45 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateWindowModeByIdForUITest01,
     res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandleUpdateWindowModeByIdForUITest(data2, reply);
     EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleSetGameAdaptiveResolutionForWindow01
+ * @tc.desc: test function : HandleSetGameAdaptiveResolutionForWindow with invalid parcel
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetGameAdaptiveResolutionForWindow01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    auto res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleSetGameAdaptiveResolutionForWindow(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
+}
+
+/**
+ * @tc.name: HandleSetGameAdaptiveResolutionForWindow02
+ * @tc.desc: test function : HandleSetGameAdaptiveResolutionForWindow decodes and forwards the config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetGameAdaptiveResolutionForWindow02, TestSize.Level1)
+{
+    GameAdaptiveResolutionConfig config;
+    config.enable_ = true;
+    config.scaleRatio_ = 0.5f;
+    config.windowId_ = 11;
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteParcelable(&config);
+    auto res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleSetGameAdaptiveResolutionForWindow(data, reply);
+    EXPECT_EQ(ERR_NONE, res);
+    int32_t errCode = static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WMError::WM_OK));
+    EXPECT_EQ(sceneSessionManagerLiteStub_->lastGameConfig_.windowId_, 11);
+    EXPECT_EQ(sceneSessionManagerLiteStub_->lastGameConfig_.scaleRatio_, 0.5f);
+    EXPECT_TRUE(sceneSessionManagerLiteStub_->lastGameConfig_.enable_);
 }
 
 /**

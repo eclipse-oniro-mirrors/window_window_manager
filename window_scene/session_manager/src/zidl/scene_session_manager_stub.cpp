@@ -44,6 +44,9 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
     switch (code) {
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_CREATE_AND_CONNECT_SPECIFIC_SESSION):
             return HandleCreateAndConnectSpecificSession(data, reply);
+        case static_cast<uint32_t>(
+            SceneSessionManagerMessage::TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW):
+            return HandleSetGameAdaptiveResolutionForWindow(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RECOVER_AND_CONNECT_SPECIFIC_SESSION):
             return HandleRecoverAndConnectSpecificSession(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RECOVER_AND_RECONNECT_SCENE_SESSION):
@@ -326,6 +329,21 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
     }
+}
+
+int SceneSessionManagerStub::HandleSetGameAdaptiveResolutionForWindow(MessageParcel& data, MessageParcel& reply)
+{
+    sptr<GameAdaptiveResolutionConfig> config = data.ReadParcelable<GameAdaptiveResolutionConfig>();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleSetGameAdaptiveResolutionForWindow] Read config failed");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = SetGameAdaptiveResolutionForWindow(*config);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleSetGameAdaptiveResolutionForWindow] Write errCode failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
 }
 
 int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel& data, MessageParcel& reply)

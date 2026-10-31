@@ -55,6 +55,7 @@ public:
     virtual WMError CheckWindowId(int32_t windowId, int32_t& pid);
     virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos);
     virtual WMError UpdateScreenLockStatusForApp(const std::string& bundleName, bool isRelease);
+    virtual WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config);
     virtual void ClearWMSProxy();
     virtual WMError GetWindowModeType(WindowModeType& windowModeType);
     virtual WMError UpdateAnimationSpeedWithPid(pid_t pid, float speed);

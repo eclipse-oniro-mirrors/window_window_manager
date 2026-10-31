@@ -4044,6 +4044,8 @@ void SceneSessionManager::PerformRegisterInRequestSceneSession(sptr<SceneSession
     RegisterClientDisplayIdChangeNotifyManagerFunc(sceneSession);
     RegisterGetRsCmdBlockingCountFunc(sceneSession);
     RegisterUpdateAppHookDisplayInfoFunc(sceneSession);
+    RegisterAdaptiveResolutionConfigFunc(sceneSession);
+    RegisterAdaptiveResolutionMonitorFunc(sceneSession);
     BindVsyncStation(sceneSession);
 }
 
@@ -5054,6 +5056,7 @@ void SceneSessionManager::EraseSceneSessionMapById(int32_t persistentId)
     } else {
         TLOGW(WmsLogTag::WMS_PATTERN, "session is nullptr id: %{public}d", persistentId);
     }
+    ClearAdaptiveResolutionConfig(persistentId);
     std::unique_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
     EraseSceneSessionAndMarkDirtyLocked(persistentId);
     systemTopSceneSessionMap_.erase(persistentId);
@@ -13879,6 +13882,27 @@ WMError SceneSessionManager::UnregisterWindowPropertyChangeAgent(WindowInfoKey w
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY, windowManagerAgent, instanceUserId);
 }
 
+// Agent types registered by SAs (focus, visibility, game adaptive, ...); non-SA callers are rejected.
+static WMError CheckWindowManagerAgentSAPermission(WindowManagerAgentType type)
+{
+    if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY) {
+        if (!SessionPermission::IsSACalling()) {
+            TLOGE(WmsLogTag::WMS_LIFE, "IsSACalling permission denied!");
+            return WMError::WM_ERROR_INVALID_PERMISSION;
+        }
+    }
+    return WMError::WM_OK;
+}
+
 WMError SceneSessionManager::RegisterWindowManagerAgent(WindowManagerAgentType type,
     const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId)
 {
@@ -13895,19 +13919,9 @@ WMError SceneSessionManager::RegisterWindowManagerAgent(WindowManagerAgentType t
             return WMError::WM_ERROR_INVALID_PERMISSION;
         }
     }
-    if (type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_DRAWING_STATE ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_VISIBLE_WINDOW_NUM ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_FOCUS ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_PID_VISIBILITY ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE ||
-        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY) {
-        if (!SessionPermission::IsSACalling()) {
-            TLOGE(WmsLogTag::WMS_LIFE, "permission denied!");
-            return WMError::WM_ERROR_INVALID_PERMISSION;
-        }
+    WMError saPermErr = CheckWindowManagerAgentSAPermission(type);
+    if (saPermErr != WMError::WM_OK) {
+        return saPermErr;
     }
     if ((windowManagerAgent == nullptr) || (windowManagerAgent->AsObject() == nullptr)) {
         TLOGE(WmsLogTag::DEFAULT, "windowManagerAgent is null");
@@ -13941,6 +13955,7 @@ WMError SceneSessionManager::UnregisterWindowManagerAgent(WindowManagerAgentType
         type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO ||
         type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_MODE ||
         type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE ||
+        type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE ||
         type == WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY) {
         if (!SessionPermission::IsSACalling()) {
             TLOGE(WmsLogTag::WMS_LIFE, "IsSACalling permission denied!");
@@ -16753,6 +16768,53 @@ void SceneSessionManager::RegisterUpdateAppHookDisplayInfoFunc(const sptr<SceneS
     sceneSession->SetUpdateAppHookDisplayInfoFunc([this](int32_t uid, const HookInfo& hookInfo, bool enable) {
         return UpdateAppHookDisplayInfo(uid, hookInfo, enable);
     });
+}
+
+void SceneSessionManager::RegisterAdaptiveResolutionConfigFunc(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[RegisterAdaptiveResolutionConfigFunc] session is nullptr");
+        return;
+    }
+    wptr<SceneSession> weakSession = sceneSession;
+    sceneSession->SetAdaptiveResolutionConfigFunc(
+        [this, weakSession](int32_t persistentId, int32_t callingUid, const GameAdaptiveResolutionConfig& config) {
+            auto sceneSession = weakSession.promote();
+            if (sceneSession == nullptr) {
+                TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] session is null, "
+                    "windowId: %{public}d", persistentId);
+                return WMError::WM_ERROR_NULLPTR;
+            }
+            return HandleAdaptiveResolutionConfig(sceneSession, callingUid, config);
+        });
+}
+
+void SceneSessionManager::RegisterAdaptiveResolutionMonitorFunc(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[RegisterAdaptiveResolutionMonitorFunc] session is nullptr");
+        return;
+    }
+    wptr<SceneSession> weakSession = sceneSession;
+    // newMode is captured: the property may still be mid-update when the async task runs.
+    sceneSession->SetAdaptiveResolutionModeChangeFunc(
+        [this, weakSession](WindowMode newMode) {
+            taskScheduler_->PostAsyncTask([this, weakSession, newMode]() {
+                auto session = weakSession.promote();
+                if (session != nullptr) {
+                    CheckAdaptiveResolutionOnModeChange(session, newMode);
+                }
+            }, "CheckAdaptiveResolutionOnModeChange");
+        });
+    sceneSession->SetAdaptiveResolutionHookWindowChangeFunc(
+        [this, weakSession](bool enableHookWindow) {
+            taskScheduler_->PostAsyncTask([this, weakSession, enableHookWindow]() {
+                auto session = weakSession.promote();
+                if (session != nullptr) {
+                    CheckAdaptiveResolutionOnHookWindowChange(session, enableHookWindow);
+                }
+            }, "CheckAdaptiveResolutionOnHookWindowChange");
+        });
 }
 
 WSError SceneSessionManager::NotifyStackEmpty(int32_t persistentId)
@@ -19714,6 +19776,10 @@ WMError SceneSessionManager::UpdateDisplayHookInfo(int32_t uid, uint32_t width, 
 {
     TLOGI(WmsLogTag::WMS_LAYOUT, "width: %{public}u, height: %{public}u, density: %{public}f, enable: %{public}d",
         width, height, density, enable);
+    if (enable) {
+        // Cancel before the DMS call: the adaptive hook must be removed before the display hook takes over
+        CancelAdaptiveResolutionByUid(uid);
+    }
 
     DMHookInfo dmHookInfo;
     dmHookInfo.width_ = width;
@@ -19728,6 +19794,9 @@ WMError SceneSessionManager::UpdateDisplayHookInfo(int32_t uid, uint32_t width, 
         dmHookInfo.isFullScreenInForceSplit_ = fullScreenInForceSplitUidSet_.find(uid) != fullScreenInForceSplitUidSet_.end();
     }
     ScreenSessionManagerClient::GetInstance().UpdateDisplayHookInfo(uid, enable, dmHookInfo);
+    if (!enable) {
+        NotifyAdaptiveResolutionAvailable(uid, false);
+    }
     return WMError::WM_OK;
 }
 
@@ -19754,6 +19823,10 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
         TLOGE(WmsLogTag::WMS_COMPAT, "App hookInfo param error.");
         return WMError::WM_ERROR_INVALID_PARAM;
     }
+    if (enable) {
+        // Cancel before the DMS call: the adaptive hook must be removed before the display hook takes over
+        CancelAdaptiveResolutionByUid(uid);
+    }
     DMHookInfo dmHookInfo;
     dmHookInfo.displayId_ = hookInfo.displayId_;
     dmHookInfo.width_ = hookInfo.width_;
@@ -19772,6 +19845,9 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
         dmHookInfo.isFullScreenInForceSplit_ = fullScreenInForceSplitUidSet_.find(uid) != fullScreenInForceSplitUidSet_.end();
     }
     ScreenSessionManagerClient::GetInstance().UpdateDisplayHookInfo(uid, enable, dmHookInfo);
+    if (!enable) {
+        NotifyAdaptiveResolutionAvailable(uid, false);
+    }
     return WMError::WM_OK;
 }
 
@@ -20695,6 +20771,9 @@ void SceneSessionManager::ClearProcessRecordWhenAppExit(const AppExecFwk::Proces
         appWatermarkPidMap_.erase(processData.pid);
         snapshotSkipPidSet_.erase(processData.pid);
         processWatermarkPidMap_.erase(processData.pid);
+        // The process is gone: clear its adaptive resolution hook in DMS, in case
+        // the session destroy path was skipped (for example on an abnormal exit).
+        ClearAdaptiveResolutionConfigByUid(processData.uid);
     }, __func__);
 }
 
@@ -21413,6 +21492,43 @@ WMError SceneSessionManager::UpdateRogWindowConfig(const RogWindowConfig& window
     return WMError::WM_OK;
 }
 
+WMError SceneSessionManager::SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[SetGameAdaptiveResolutionForWindow] permission denied!");
+        return WMError::WM_ERROR_NOT_SYSTEM_APP;
+    }
+    // The hook is per game uid resolved from the session, not the SA caller's uid.
+    int32_t windowId = config.windowId_;
+    auto sceneSession = GetSceneSession(windowId);
+    if (sceneSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[SetGameAdaptiveResolutionForWindow] session not found, "
+            "windowId: %{public}d", windowId);
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    int32_t gameUid = sceneSession->GetCallingUid();
+    TLOGI(WmsLogTag::WMS_COMPAT, "[SetGameAdaptiveResolutionForWindow] windowId: %{public}d, "
+        "gameUid: %{public}d, config: [%{public}s]", windowId, gameUid, config.ToString().c_str());
+    WMError ret = HandleAdaptiveResolutionConfig(sceneSession, gameUid, config);
+    if (ret != WMError::WM_OK) {
+        return ret;
+    }
+    sceneSession->NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus::SET, config);
+    return WMError::WM_OK;
+}
+
+void SceneSessionManager::NotifyGameAdaptiveAgents(bool cancelled, int32_t windowId)
+{
+    auto task = [cancelled, windowId]() {
+        if (cancelled) {
+            SessionManagerAgentController::GetInstance().NotifyGameAdaptiveResolutionCancelled(windowId);
+        } else {
+            SessionManagerAgentController::GetInstance().NotifyGameAdaptiveResolutionAvailable(windowId);
+        }
+    };
+    taskScheduler_->PostAsyncTask(task, "NotifyGameAdaptiveAgents");
+}
+
 void SceneSessionManager::RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func)
 {
     TLOGI(WmsLogTag::WMS_MAIN, "in");
@@ -21426,6 +21542,443 @@ void SceneSessionManager::RegisterUpdateRogWindowConfigCallback(UpdateRogWindowC
             func(rogWindowConfig_);
         }
     }
+}
+
+bool SceneSessionManager::UpdateAdaptiveResolutionMaps(int32_t windowId, int32_t callingUid,
+    const GameAdaptiveResolutionConfig& config)
+{
+    bool needUpdateDmsHook = true;
+    std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+    if (config.enable_) {
+        bool isUpdate = adaptiveResolutionWindows_.count(windowId) > 0;
+        adaptiveResolutionWindows_[windowId] = callingUid;
+        TLOGI(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] map %{public}s, "
+            "windowId: %{public}d, uid: %{public}d, size: %{public}zu", isUpdate ? "update" : "insert",
+            windowId, callingUid, adaptiveResolutionWindows_.size());
+    } else {
+        adaptiveResolutionWindows_.erase(windowId);
+        // uid-scoped DMS hook: remove only when this was the last configured window.
+        size_t remaining = 0;
+        for (const auto& [_, configuredUid] : adaptiveResolutionWindows_) {
+            if (configuredUid == callingUid) {
+                remaining++;
+            }
+        }
+        needUpdateDmsHook = remaining == 0;
+        TLOGI(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] map erase, "
+            "windowId: %{public}d, uid: %{public}d, size: %{public}zu, "
+            "remaining: %{public}zu, needUpdateDmsHook: %{public}d",
+            windowId, callingUid, adaptiveResolutionWindows_.size(),
+            remaining, needUpdateDmsHook);
+    }
+    auto cancelIt = cancelledGameWindowsByUid_.find(callingUid);
+    if (cancelIt != cancelledGameWindowsByUid_.end()) {
+        cancelIt->second.erase(windowId);
+        bool recordErased = cancelIt->second.empty();
+        if (recordErased) {
+            cancelledGameWindowsByUid_.erase(cancelIt);
+        }
+        TLOGI(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] cancelled record erase, "
+            "uid: %{public}d, windowId: %{public}d, recordErased: %{public}d, cancelledMapSize: %{public}zu",
+            callingUid, windowId, recordErased, cancelledGameWindowsByUid_.size());
+    }
+    return needUpdateDmsHook;
+}
+
+WMError SceneSessionManager::HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession,
+    int32_t callingUid, const GameAdaptiveResolutionConfig& config)
+{
+    if (!systemConfig_.IsPhoneWindow() && !systemConfig_.IsPadWindow()) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] not phone/pad device, "
+            "windowId: %{public}d", config.windowId_);
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    int32_t persistentId = sceneSession->GetPersistentId();
+    if (!config.IsValid() || config.windowId_ != persistentId) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] invalid config or "
+            "mismatched windowId: %{public}d, session: %{public}d", config.windowId_, persistentId);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    // The fullscreen and display-hook-conflict checks only apply to enabling
+    if (config.enable_) {
+        if (!IsWindowFullScreen(sceneSession)) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] not fullscreen, "
+                "windowId: %{public}d", persistentId);
+            RecordPendingAdaptiveWindow(callingUid, persistentId);
+            return WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
+        }
+        // Window hook conflict: both own the viewport; local check before any IPC.
+        auto property = sceneSession->GetSessionProperty();
+        if (property != nullptr && property->GetHookWindowInfo().enableHookWindow) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] window hooked already, "
+                "windowId: %{public}d", persistentId);
+            RecordPendingAdaptiveWindow(callingUid, persistentId);
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
+        // Sync IPC to DMS: keep after all local checks.
+        if (ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(callingUid)) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] display hooked already, "
+                "uid: %{public}d, windowId: %{public}d", callingUid, config.windowId_);
+            RecordPendingAdaptiveWindow(callingUid, persistentId);
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] windowId: %{public}d, "
+        "uid: %{public}d, config: [%{public}s]", config.windowId_, callingUid, config.ToString().c_str());
+    bool needUpdateDmsHook = UpdateAdaptiveResolutionMaps(config.windowId_, callingUid, config);
+    if (needUpdateDmsHook) {
+        ScreenSessionManagerClient::GetInstance().UpdateAdaptiveResolutionHook(
+            callingUid, config.enable_, ToDmAdaptiveResolutionConfig(config));
+    }
+    return WMError::WM_OK;
+}
+
+bool SceneSessionManager::IsWindowFullScreen(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        return false;
+    }
+    return WindowHelper::IsFullScreenWindow(sceneSession->GetWindowMode());
+}
+
+void SceneSessionManager::CheckAdaptiveResolutionOnModeChange(const sptr<SceneSession>& sceneSession,
+    WindowMode newMode)
+{
+    if (sceneSession == nullptr) {
+        return;
+    }
+    int32_t persistentId = sceneSession->GetPersistentId();
+    bool hasGameConfig = false;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        hasGameConfig = adaptiveResolutionWindows_.find(persistentId) !=
+            adaptiveResolutionWindows_.end();
+    }
+    bool fullscreenNow = WindowHelper::IsFullScreenWindow(newMode);
+    if (hasGameConfig && !fullscreenNow) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "[CheckAdaptiveResolutionOnModeChange] non-fullscreen detected, "
+            "cancelling adaptive hook, windowId: %{public}d, mode: %{public}d",
+            persistentId, static_cast<int32_t>(newMode));
+        CancelAdaptiveResolutionByWindow(persistentId);
+        return;
+    }
+    if (fullscreenNow) {
+        TryNotifyAdaptiveResolutionAvailable(sceneSession, fullscreenNow);
+    }
+}
+
+void SceneSessionManager::CheckAdaptiveResolutionOnHookWindowChange(
+    const sptr<SceneSession>& sceneSession, bool enableHookWindow)
+{
+    if (sceneSession == nullptr) {
+        return;
+    }
+    int32_t persistentId = sceneSession->GetPersistentId();
+    if (enableHookWindow) {
+        bool hasGameConfig = false;
+        {
+            std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+            hasGameConfig = adaptiveResolutionWindows_.find(persistentId) !=
+                adaptiveResolutionWindows_.end();
+        }
+        if (hasGameConfig) {
+            TLOGI(WmsLogTag::WMS_COMPAT, "[CheckAdaptiveResolutionOnHookWindowChange] "
+                "window hook enabled, cancelling adaptive hook, windowId: %{public}d", persistentId);
+            CancelAdaptiveResolutionByWindow(persistentId);
+        }
+        return;
+    }
+    TryNotifyAdaptiveResolutionAvailable(sceneSession, IsWindowFullScreen(sceneSession));
+}
+
+DMAdaptiveResolutionConfig SceneSessionManager::ToDmAdaptiveResolutionConfig(
+    const GameAdaptiveResolutionConfig& config)
+{
+    DMAdaptiveResolutionConfig dmConfig {
+        .scaleRatio_ = config.scaleRatio_,
+        .autoMetrics_ = config.autoMetrics_,
+        .notifyDisplay_ = config.notifyDisplay_,
+        .density_ = config.density_,
+        .xDpi_ = config.xDpi_,
+        .yDpi_ = config.yDpi_,
+    };
+    return dmConfig;
+}
+
+void SceneSessionManager::ClearAdaptiveResolutionConfig(int32_t persistentId)
+{
+    int32_t uid = INVALID_UID;
+    bool uidStillConfigured = false;
+    bool hadGameConfig = false;
+    bool cancelledRecordErased = false;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        auto it = adaptiveResolutionWindows_.find(persistentId);
+        hadGameConfig = it != adaptiveResolutionWindows_.end();
+        if (hadGameConfig) {
+            uid = it->second;
+            adaptiveResolutionWindows_.erase(it);
+            for (const auto& [_, configuredUid] : adaptiveResolutionWindows_) {
+                if (configuredUid == uid) {
+                    uidStillConfigured = true;
+                    break;
+                }
+            }
+        }
+        for (auto cancelIt = cancelledGameWindowsByUid_.begin();
+             cancelIt != cancelledGameWindowsByUid_.end();) {
+            if (cancelIt->second.erase(persistentId) > 0) {
+                cancelledRecordErased = true;
+                if (uid == INVALID_UID) {
+                    uid = cancelIt->first;
+                }
+                if (cancelIt->second.empty()) {
+                    cancelIt = cancelledGameWindowsByUid_.erase(cancelIt);
+                    continue;
+                }
+            }
+            ++cancelIt;
+        }
+        if (!hadGameConfig && !cancelledRecordErased) {
+            return;
+        }
+        TLOGI(WmsLogTag::WMS_COMPAT, "[ClearAdaptiveResolutionConfig] windowId: %{public}d, uid: %{public}d, "
+            "hadGameConfig: %{public}d, uidStillConfigured: %{public}d, gameWindowMapSize: %{public}zu, "
+            "cancelledRecordErased: %{public}d, cancelledMapSize: %{public}zu",
+            persistentId, uid, hadGameConfig, uidStillConfigured, adaptiveResolutionWindows_.size(),
+            cancelledRecordErased, cancelledGameWindowsByUid_.size());
+    }
+    if (hadGameConfig && !uidStillConfigured) {
+        ClearAdaptiveResolutionHookInDms(uid);
+    }
+}
+
+void SceneSessionManager::ClearAdaptiveResolutionConfigByUid(int32_t uid)
+{
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        // Clear the cancelled records: the process is dying, no need to notify.
+        if (cancelledGameWindowsByUid_.erase(uid) > 0) {
+            TLOGI(WmsLogTag::WMS_COMPAT, "[ClearAdaptiveResolutionConfigByUid] cancelled record erase, "
+                "uid: %{public}d, cancelledMapSize: %{public}zu", uid, cancelledGameWindowsByUid_.size());
+        }
+    }
+    auto erasedWindowIds = EraseAdaptiveResolutionWindowsByUid(uid);
+    if (erasedWindowIds.empty()) {
+        return;
+    }
+    ClearAdaptiveResolutionHookInDms(uid);
+}
+
+std::vector<int32_t> SceneSessionManager::EraseAdaptiveResolutionWindowsByUid(int32_t uid)
+{
+    std::vector<int32_t> erasedWindowIds;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        for (auto it = adaptiveResolutionWindows_.begin(); it != adaptiveResolutionWindows_.end();) {
+            if (it->second == uid) {
+                erasedWindowIds.push_back(it->first);
+                it = adaptiveResolutionWindows_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        if (erasedWindowIds.empty()) {
+            return erasedWindowIds;
+        }
+        std::ostringstream oss;
+        for (size_t i = 0; i < erasedWindowIds.size(); i++) {
+            oss << erasedWindowIds[i];
+            if (i != erasedWindowIds.size() - 1) {
+                oss << ",";
+            }
+        }
+        TLOGI(WmsLogTag::WMS_COMPAT, "[EraseAdaptiveResolutionWindowsByUid] map erase by uid, "
+            "uid: %{public}d, erased windows: [%{public}s], remaining size: %{public}zu",
+            uid, oss.str().c_str(), adaptiveResolutionWindows_.size());
+    }
+    return erasedWindowIds;
+}
+
+void SceneSessionManager::CancelAdaptiveResolutionByUid(int32_t uid)
+{
+    auto cancelledWindowIds = EraseAdaptiveResolutionWindowsByUid(uid);
+    if (cancelledWindowIds.empty()) {
+        return;
+    }
+    CancelAdaptiveResolutionInternal(uid, cancelledWindowIds);
+}
+
+void SceneSessionManager::CancelAdaptiveResolutionByWindow(int32_t windowId)
+{
+    int32_t uid = INVALID_UID;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        auto it = adaptiveResolutionWindows_.find(windowId);
+        if (it == adaptiveResolutionWindows_.end()) {
+            return;
+        }
+        uid = it->second;
+    }
+    CancelAdaptiveResolutionInternal(uid, { windowId });
+}
+
+void SceneSessionManager::CancelAdaptiveResolutionInternal(int32_t uid,
+    const std::vector<int32_t>& windowIds)
+{
+    if (windowIds.empty()) {
+        return;
+    }
+    bool needClearDms = false;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        // Erase before counting: cancelled windows must not count as remaining references.
+        for (int32_t windowId : windowIds) {
+            adaptiveResolutionWindows_.erase(windowId);
+        }
+        auto& cancelledSet = cancelledGameWindowsByUid_[uid];
+        cancelledSet.insert(windowIds.begin(), windowIds.end());
+        // uid-scoped DMS hook: clear only when this was the last configured window.
+        size_t remaining = 0;
+        for (const auto& [_, configuredUid] : adaptiveResolutionWindows_) {
+            if (configuredUid == uid) {
+                remaining++;
+            }
+        }
+        needClearDms = remaining == 0;
+        TLOGI(WmsLogTag::WMS_COMPAT, "[CancelAdaptiveResolutionInternal] uid: %{public}d, "
+            "window count: %{public}zu, remaining: %{public}zu, needClearDms: %{public}d, "
+            "cancelledMapSize: %{public}zu",
+            uid, windowIds.size(), remaining, needClearDms, cancelledGameWindowsByUid_.size());
+    }
+    if (needClearDms) {
+        ClearAdaptiveResolutionHookInDms(uid);
+    }
+    for (int32_t windowId : windowIds) {
+        auto sceneSession = GetSceneSession(windowId);
+        if (sceneSession != nullptr) {
+            GameAdaptiveResolutionConfig disable;
+            disable.enable_ = false;
+            disable.windowId_ = windowId;
+            sceneSession->NotifyAdaptiveResolutionChanged(
+                GameAdaptiveResolutionStatus::CANCELLED, disable);
+        }
+        // SA notify is independent of the window push (destroyed windows still cancelled).
+        NotifyGameAdaptiveAgents(true, windowId);
+    }
+}
+
+void SceneSessionManager::NotifyAdaptiveResolutionAvailable(int32_t uid, bool displayHooked)
+{
+    std::set<int32_t> candidateWindowIds;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        auto it = cancelledGameWindowsByUid_.find(uid);
+        if (it == cancelledGameWindowsByUid_.end() || it->second.empty()) {
+            return;
+        }
+        candidateWindowIds = it->second;
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionAvailable] uid: %{public}d, "
+        "candidates: %{public}zu, displayHooked: %{public}d", uid, candidateWindowIds.size(), displayHooked);
+    if (displayHooked) {
+        return;
+    }
+    for (int32_t windowId : candidateWindowIds) {
+        auto sceneSession = GetSceneSession(windowId);
+        if (sceneSession == nullptr) {
+            EraseCancelledGameWindow(uid, windowId);
+            continue;
+        }
+        TryRestoreAdaptiveResolutionWindow(sceneSession, IsWindowFullScreen(sceneSession), displayHooked);
+    }
+}
+
+bool SceneSessionManager::IsWindowPendingRestore(int32_t uid, int32_t windowId)
+{
+    std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+    auto it = cancelledGameWindowsByUid_.find(uid);
+    return it != cancelledGameWindowsByUid_.end() && it->second.find(windowId) != it->second.end();
+}
+
+bool SceneSessionManager::TryRestoreAdaptiveResolutionWindow(const sptr<SceneSession>& sceneSession,
+    bool fullscreenNow, bool displayHooked)
+{
+    if (sceneSession == nullptr) {
+        return false;
+    }
+    int32_t windowId = sceneSession->GetPersistentId();
+    int32_t uid = sceneSession->GetCallingUid();
+    if (!IsWindowPendingRestore(uid, windowId) ||
+        !IsAdaptiveResolutionRestorable(sceneSession, fullscreenNow, displayHooked)) {
+        return false;
+    }
+    EraseCancelledGameWindow(uid, windowId);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[TryRestoreAdaptiveResolutionWindow] uid: %{public}d, "
+        "windowId: %{public}d", uid, windowId);
+    NotifyGameAdaptiveAgents(false, windowId);
+    return true;
+}
+
+void SceneSessionManager::TryNotifyAdaptiveResolutionAvailable(
+    const sptr<SceneSession>& sceneSession, bool fullscreenNow)
+{
+    if (sceneSession == nullptr) {
+        return;
+    }
+    // Skip the DMS query on the common non-pending path.
+    if (!IsWindowPendingRestore(sceneSession->GetCallingUid(), sceneSession->GetPersistentId())) {
+        return;
+    }
+    bool displayHooked = ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(
+        sceneSession->GetCallingUid());
+    TryRestoreAdaptiveResolutionWindow(sceneSession, fullscreenNow, displayHooked);
+}
+
+bool SceneSessionManager::IsAdaptiveResolutionRestorable(const sptr<SceneSession>& sceneSession,
+    bool fullscreenNow, bool displayHooked)
+{
+    if (sceneSession == nullptr || displayHooked) {
+        return false;
+    }
+    auto property = sceneSession->GetSessionProperty();
+    if (property != nullptr && property->GetHookWindowInfo().enableHookWindow) {
+        return false;
+    }
+    return fullscreenNow;
+}
+
+void SceneSessionManager::EraseCancelledGameWindow(int32_t uid, int32_t windowId)
+{
+    std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+    auto it = cancelledGameWindowsByUid_.find(uid);
+    if (it == cancelledGameWindowsByUid_.end()) {
+        return;
+    }
+    bool erased = it->second.erase(windowId) > 0;
+    bool recordErased = it->second.empty();
+    if (recordErased) {
+        cancelledGameWindowsByUid_.erase(it);
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "[EraseCancelledGameWindow] uid: %{public}d, windowId: %{public}d, "
+        "erased: %{public}d, recordErased: %{public}d, cancelledMapSize: %{public}zu",
+        uid, windowId, erased, recordErased, cancelledGameWindowsByUid_.size());
+}
+
+void SceneSessionManager::ClearAdaptiveResolutionHookInDms(int32_t uid)
+{
+    DMAdaptiveResolutionConfig dmConfig;
+    dmConfig.systemModified_ = true;
+    ScreenSessionManagerClient::GetInstance().UpdateAdaptiveResolutionHook(uid, false, dmConfig);
+}
+
+void SceneSessionManager::RecordPendingAdaptiveWindow(int32_t uid, int32_t windowId)
+{
+    std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+    cancelledGameWindowsByUid_[uid].insert(windowId);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[RecordPendingAdaptiveEnable] uid: %{public}d, "
+        "windowId: %{public}d, cancelledMapSize: %{public}zu", uid, windowId,
+        cancelledGameWindowsByUid_.size());
 }
 
 void SceneSessionManager::ConfigSupportFunctionType(SupportFunctionType funcType)

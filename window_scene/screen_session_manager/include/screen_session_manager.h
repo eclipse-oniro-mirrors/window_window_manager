@@ -281,6 +281,9 @@ public:
     void UpdateDisplayHookInfo(int32_t uid, bool enable, const DMHookInfo& hookInfo) override;
     void GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo) override;
     void NotifyIsFullScreenInForceSplitMode(int32_t uid, bool isFullScreen) override;
+    void UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+        const DMAdaptiveResolutionConfig& config) override;
+    bool IsDisplayHookedByUid(int32_t uid) override;
 
     void OnScreenConnect(const sptr<ScreenInfo> screenInfo);
     void OnScreenDisconnect(ScreenId screenId);
@@ -905,6 +908,8 @@ private:
         int32_t uid = INVALID_UID);
     void ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo, const sptr<ScreenSession>& screenSession,
         const DMHookInfo& info);
+    bool IsAdaptiveResolutionActive(int32_t uid, DMAdaptiveResolutionConfig& config);
+    void ApplyAdaptiveResolutionHook(const sptr<DisplayInfo>& displayInfo, int32_t uid);
     bool IsValidDisplayOrientation(uint32_t displayOrientation);
     sptr<DisplayInfo> FindDisplayInfoInSession(const sptr<ScreenSession>& screenSession, DisplayId displayId,
         bool isGetActualInfo = false);
@@ -1223,6 +1228,9 @@ private:
     std::map<ScreenId, sptr<ScreenSessionGroup>> smsScreenGroupMap_;
     std::map<uint32_t, std::map<DisplayId, DMHookInfo>> displayHookMap_;
     std::map<int32_t, int32_t> uidAndPidMap_;
+    std::shared_mutex adaptiveResolutionMutex_;
+    // uid -> active config
+    std::map<int32_t, DMAdaptiveResolutionConfig> adaptiveResolutionMap_;
 
     bool userSwitching_ = false;
     bool isAutoRotationOpen_ = false;

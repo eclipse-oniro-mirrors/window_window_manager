@@ -49,6 +49,8 @@ public:
     void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) override;
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo) override;
     void NotifySessionSaveSnapShotComplete(int32_t persistentId) override;
+    void OnGameAdaptiveResolutionCancelled(int32_t windowId) override;
+    void OnGameAdaptiveResolutionAvailable(int32_t windowId) override;
 
 private:
     static inline BrokerDelegator<WindowManagerAgentProxy> delegator_;

@@ -185,6 +185,29 @@ public:
 };
 
 /**
+ * @class IGameAdaptiveResolutionListener
+ *
+ * @brief Listener to observe game adaptive resolution state changes.
+ */
+class IGameAdaptiveResolutionListener : virtual public RefBase {
+public:
+    /**
+     * @brief Notify caller when the game hook is cancelled by a display hook.
+     *
+     * @param windowId The persistent id of the affected window.
+     */
+    virtual void OnGameAdaptiveResolutionCancelled(int32_t windowId) = 0;
+
+    /**
+     * @brief Notify caller when the display hook is removed and the game module
+     *        can re-apply adaptive resolution.
+     *
+     * @param windowId The persistent id of the affected window.
+     */
+    virtual void OnGameAdaptiveResolutionAvailable(int32_t windowId) = 0;
+};
+
+/**
  * @class ISystemBarChangedListener
  *
  * @brief Listener to observe systembar changed.
@@ -1054,6 +1077,41 @@ public:
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos) const;
 
     /**
+     * @brief Set game adaptive resolution config for a target main window.
+     *
+     * The target window is config.windowId_ (the persistentId of the game main
+     * window). Sends the config to SCB via IPC; SCB resolves the game's uid
+     * from that session and applies the hook end-to-end, then pushes the config
+     * back to the target app for local apply. Designed for a system caller
+     * (e.g. Game SA) that may live in another process than the target window.
+     *
+     * @param config Game adaptive resolution config, see GameAdaptiveResolutionConfig.
+     * @return WM_OK means set success, others means set failed.
+     */
+    WMError SetGameAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config) const;
+
+    /**
+     * @brief Register a game adaptive resolution listener.
+     *
+     * The listener receives callbacks when the game hook is cancelled by a display
+     * hook (compat mode) and when the display hook is removed (the game module can
+     * re-apply). Events are routed from the affected window's sessionStage
+     * notification, carrying the windowId.
+     *
+     * @param listener IGameAdaptiveResolutionListener.
+     * @return WM_OK means register success, others means register failed.
+     */
+    WMError RegisterGameAdaptiveResolutionListener(const sptr<IGameAdaptiveResolutionListener>& listener);
+
+    /**
+     * @brief Unregister a game adaptive resolution listener.
+     *
+     * @param listener IGameAdaptiveResolutionListener.
+     * @return WM_OK means unregister success, others means unregister failed.
+     */
+    WMError UnregisterGameAdaptiveResolutionListener(const sptr<IGameAdaptiveResolutionListener>& listener);
+
+    /**
      * @brief Get window layout info.
      *
      * @param displayId DisplayId of which display to get window layout infos.
@@ -1744,6 +1802,8 @@ private:
     bool GetIsModuleHookOffFromSet(const std::string& moduleName);
     // For agent which register failed to re-register.
     WMError ActiveFaultAgentReregister(const WindowManagerAgentType type, const sptr<WindowManagerAgent>& agent);
+    void NotifyGameAdaptiveResolutionCancelled(int32_t windowId);
+    void NotifyGameAdaptiveResolutionAvailable(int32_t windowId);
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -356,6 +356,14 @@ WMError WindowAdapter::ListWindowInfo(const WindowInfoOption& windowInfoOption, 
     return wmsProxy->ListWindowInfo(windowInfoOption, infos);
 }
 
+WMError WindowAdapter::SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetGameAdaptiveResolutionForWindow(config);
+}
+
 WMError WindowAdapter::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
     const WindowInfoOptions& option, bool useHookedSize)
 {

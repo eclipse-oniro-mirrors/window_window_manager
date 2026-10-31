@@ -4627,6 +4627,38 @@ WMError SessionProxy::NotifySplitRatioChanged(float newRatio)
     return static_cast<WMError>(ret);
 }
 
+WMError SessionProxy::UpdateAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveResolutionConfig] WriteInterfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteParcelable(&config)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveResolutionConfig] write config failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    auto remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveResolutionConfig] remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(
+        SessionInterfaceCode::TRANS_ID_UPDATE_ADAPTIVE_RESOLUTION_CONFIG),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveResolutionConfig] SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveResolutionConfig] read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return static_cast<WMError>(ret);
+}
+
 WSError SessionProxy::NotifyCompatibleModeChange(CompatibleStyleMode mode)
 {
     MessageParcel data;
