@@ -3102,6 +3102,8 @@ bool WindowManager::IsModuleHookOff(bool isModuleAbilityHookEnd, const std::stri
 
 void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dirtyFlags=%{public}u, infoSize=%{public}u",
+        propertyDirtyFlags, static_cast<uint32_t>(windowInfoList.size()));
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_RECT)) {
         pImpl_->NotifyWindowRectChange(windowInfoList);
     }
@@ -3123,24 +3125,6 @@ void WindowManager::NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, cons
     if (propertyDirtyFlags & static_cast<int32_t>(WindowInfoKey::WINDOW_GLOBAL_RECT)) {
         pImpl_->NotifyWindowGlobalRectChange(windowInfoList);
     }
-    std::ostringstream stream;
-    for (const auto& info : windowInfoList) {
-        for (const auto& [key, value] : info) {
-            if (key == WindowInfoKey::WINDOW_ID) {
-                stream << "winId=" << std::get<int32_t>(value) << ", ";
-            } else if (key == WindowInfoKey::WINDOW_MODE) {
-                stream << "mode=" << static_cast<uint32_t>(std::get<WindowMode>(value)) << ", ";
-            } else if (key == WindowInfoKey::VISIBILITY_STATE) {
-                stream << "visibility=" << static_cast<uint32_t>(std::get<WindowVisibilityState>(value)) << ", ";
-            } else if (key == WindowInfoKey::WINDOW_RECT) {
-                stream << "rect=" << std::get<Rect>(value).ToString() << ", ";
-            } else if (key == WindowInfoKey::WINDOW_GLOBAL_RECT) {
-                stream << "globalRect=" << std::get<Rect>(value).ToString() << ", ";
-            }
-        }
-    }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dirtyFlags=%{public}u, infos=[%{public}s]",
-        propertyDirtyFlags, stream.str().c_str());
 }
 
 WMError WindowManager::AnimateTo(int32_t windowId, WindowAnimationProperty animationProperty,
