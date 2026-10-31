@@ -473,9 +473,14 @@ public:
         int32_t fingerId) override;
     void SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>& newSession);
     std::vector<std::string> trayAppList_;
-    WMError GetWindowLimits(int32_t windowId, WindowLimits& windowLimits, float targetDensity = 0.0f);
+    WMError GetWindowLimits(int32_t windowId, WindowLimits& windowLimits, float targetDensity = 0.0f,
+        const ScreenProperty& targetScreenProperty = ScreenProperty());
     WindowLimits RecalcWindowLimitsByDensity(const sptr<SceneSession>& sceneSession,
         float targetDensity) const;
+    void RecalcWindowLimitsByScreen(WindowLimits& windowLimits,
+        const ScreenProperty& targetScreenProperty, float targetDensity) const;
+    void CapMinLimitsByWorkArea(WindowLimits& windowLimits, const ScreenProperty& targetScreenProperty,
+        float ratioOfWorkArea, float targetDensity) const;
     void RegisterVirtualPixelChangeCallback(NotifyVirtualPixelChangeFunc&& func);
     NotifyVirtualPixelChangeFunc onVirtualPixelChangeCallback_;
     void ConfigDockAutoHide(bool isDockAutoHide);

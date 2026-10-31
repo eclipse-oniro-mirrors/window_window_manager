@@ -2109,6 +2109,8 @@ bool SceneSessionManager::ConfigWindowLimitsPercentage(const WindowSceneConfig::
     config.enable = enable;
     ParseLimitsThresholdPercentageConfig(limitsPercentageConfig, config);
     WindowLimitsThreshold::SaveLimitsThresholdConfig(config);
+    systemConfig_.limitsThresholdEnable_ = config.enable;
+    systemConfig_.limitsThresholdPercentage_ = config.limitsThresholdPercentage;
     return true;
 }
 
@@ -3016,7 +3018,8 @@ WMError SceneSessionManager::CheckWindowId(int32_t windowId, int32_t& pid)
     return taskScheduler_->PostSyncTask(task, "CheckWindowId:" + std::to_string(windowId));
 }
 
-WMError SceneSessionManager::GetWindowLimits(int32_t windowId, WindowLimits& windowLimits, float targetDensity)
+WMError SceneSessionManager::GetWindowLimits(int32_t windowId, WindowLimits& windowLimits, float targetDensity,
+    const ScreenProperty& targetScreenProperty)
 {
     if (!SessionPermission::IsSystemCalling()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "permission denied!");
@@ -3043,12 +3046,19 @@ WMError SceneSessionManager::GetWindowLimits(int32_t windowId, WindowLimits& win
         // Valid targetDensity: recalculate limits at this density.
         windowLimits = RecalcWindowLimitsByDensity(sceneSession, targetDensity);
     }
+    const DMRect targetWorkArea = targetScreenProperty.GetAvailableArea();
+    if (targetWorkArea.width_ != 0 && targetWorkArea.height_ != 0) {
+        // Refresh the min limits against the available work area carried by the target screen property.
+        RecalcWindowLimitsByScreen(windowLimits, targetScreenProperty, targetDensity);
+    }
     bool isInitialized = !windowLimits.IsDefault();
     TLOGI(WmsLogTag::WMS_LAYOUT_PC, "GetWindowLimits windowId:%{public}d, minWidth:%{public}u, "
         "minHeight:%{public}u, maxWidth:%{public}u, maxHeight:%{public}u, vpRatio:%{public}f, "
-        "pixelUnit:%{public}u, isInitialized:%{public}u, targetDensity:%{public}f", windowId,
-        windowLimits.minWidth_, windowLimits.minHeight_, windowLimits.maxWidth_, windowLimits.maxHeight_,
-        windowLimits.vpRatio_, windowLimits.pixelUnit_, isInitialized, targetDensity);
+        "pixelUnit:%{public}u, isInitialized:%{public}u, targetDensity:%{public}f, "
+        "targetWorkArea[%{public}u, %{public}u], targetVpr:%{public}f",
+        windowId, windowLimits.minWidth_, windowLimits.minHeight_, windowLimits.maxWidth_, windowLimits.maxHeight_,
+        windowLimits.vpRatio_, windowLimits.pixelUnit_, isInitialized, targetDensity, targetWorkArea.width_,
+        targetWorkArea.height_, targetScreenProperty.GetVirtualPixelRatio());
     return WMError::WM_OK;
 }
 
@@ -3099,6 +3109,66 @@ WindowLimits SceneSessionManager::RecalcWindowLimitsByDensity(const sptr<SceneSe
         IntersectAttachedLimits(*sessionProperty, anchorInfo, limitsPx, limitsVp, density);
     }
     return useVPLimits ? limitsVp : limitsPx;
+}
+
+void SceneSessionManager::RecalcWindowLimitsByScreen(WindowLimits& windowLimits,
+    const ScreenProperty& targetScreenProperty, float targetDensity) const
+{
+    // Gate on the limitsThresholdEnabled switch (limitsEnableProp.boolValue_ parsed by
+    // ConfigWindowLimitsPercentage) and the limitsThresholdPercentage parsed by
+    // ParseLimitsThresholdPercentageConfig. Mirrors the client AdjustMinLimitsByWorkArea gating.
+    if (!WindowLimitsThreshold::LimitsThresholdEnabled()) {
+        TLOGD(WmsLogTag::WMS_LAYOUT_PC, "limits threshold disabled, skip refresh by target screen");
+        return;
+    }
+    const float ratioOfWorkArea = WindowLimitsThreshold::LoadLimitsThresholdConfig()
+        .limitsThresholdPercentage / 100.0f;
+    if (ratioOfWorkArea <= 0.0f || ratioOfWorkArea >= 1.0f) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "invalid limitsThresholdPercentage, skip refresh by target screen");
+        return;
+    }
+    CapMinLimitsByWorkArea(windowLimits, targetScreenProperty, ratioOfWorkArea, targetDensity);
+}
+
+void SceneSessionManager::CapMinLimitsByWorkArea(WindowLimits& windowLimits,
+    const ScreenProperty& targetScreenProperty, float ratioOfWorkArea, float targetDensity) const
+{
+    // Invalid work area carried by the target screen property: ignore the screen info and keep
+    // the original limits.
+    const DMRect workArea = targetScreenProperty.GetAvailableArea();
+    if (workArea.width_ == 0 || workArea.height_ == 0) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "invalid work area [%{public}u, %{public}u]",
+            workArea.width_, workArea.height_);
+        return;
+    }
+    // The work area is in physical pixels; convert it to the unit of the queried limits. The query
+    // targetDensity (the display density of the query target) takes precedence when provided,
+    // otherwise the density carried by the target screen property is used.
+    const bool useVPLimits = (windowLimits.pixelUnit_ == PixelUnit::VP);
+    const float density = (targetDensity > 0.0f && !MathHelper::NearZero(targetDensity))
+        ? targetDensity : targetScreenProperty.GetVirtualPixelRatio();
+    if (useVPLimits && MathHelper::NearZero(density)) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "invalid density for vp limits, skip refresh by target screen");
+        return;
+    }
+    const float densityDivisor = useVPLimits ? density : 1.0f;
+    const uint32_t capWidth = static_cast<uint32_t>(workArea.width_ * ratioOfWorkArea / densityDivisor);
+    const uint32_t capHeight = static_cast<uint32_t>(workArea.height_ * ratioOfWorkArea / densityDivisor);
+    if (capWidth == 0 || capHeight == 0) {
+        TLOGW(WmsLogTag::WMS_LAYOUT_PC, "invalid work area cap [%{public}u, %{public}u], skip refresh",
+            capWidth, capHeight);
+        return;
+    }
+    if (windowLimits.minWidth_ <= capWidth && windowLimits.minHeight_ <= capHeight) {
+        TLOGD(WmsLogTag::WMS_LAYOUT_PC, "min limits within work area cap, nothing to refresh");
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_LAYOUT_PC, "cap min limits by work area [%{public}u, %{public}u], "
+        "pre[minW:%{public}u, minH:%{public}u], post[minW:%{public}u, minH:%{public}u]",
+        workArea.width_, workArea.height_, windowLimits.minWidth_, windowLimits.minHeight_,
+        std::min(windowLimits.minWidth_, capWidth), std::min(windowLimits.minHeight_, capHeight));
+    windowLimits.minWidth_ = std::min(windowLimits.minWidth_, capWidth);
+    windowLimits.minHeight_ = std::min(windowLimits.minHeight_, capHeight);
 }
 
 void SceneSessionManager::ConfigDockAutoHide(bool isDockAutoHide) {

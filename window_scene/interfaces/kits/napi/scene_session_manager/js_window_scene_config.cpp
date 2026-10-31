@@ -230,6 +230,10 @@ napi_value JsWindowSceneConfig::CreateSystemConfig(napi_env env, const SystemSes
         config.miniWidthOfMainWindow_));
     napi_set_named_property(env, objValue, "miniHeightOfMainWindow", CreateJsValue(env,
         config.miniHeightOfMainWindow_));
+    napi_set_named_property(env, objValue, "limitsEnabled", CreateJsValue(env,
+        config.limitsThresholdEnable_));
+    napi_set_named_property(env, objValue, "limitsThreshold", CreateJsValue(env,
+        config.limitsThresholdPercentage_));
     return objValue;
 }
 
