@@ -282,7 +282,7 @@ HWTEST_F(WindowSceneSessionImplEventTest, SetWindowMaskWithAlphaNullMask, TestSi
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     auto ret = window->SetWindowMaskWithAlpha(nullptr, 2, 2);
-    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_WINDOW);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_OPERATION);
 }
 
 /**

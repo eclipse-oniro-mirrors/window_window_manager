@@ -57,9 +57,9 @@ WmErrorCode AniExtensionWindowRegisterManager::ProcessWindowChangeRegister(sptr<
     sptr<IWindowChangeListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowChangeListener(thisListener));
+        ret = ConvertErrorToCode(window->RegisterWindowChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowChangeListener(thisListener));
+        ret = ConvertErrorToCode(window->UnregisterWindowChangeListener(thisListener));
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(
         isRegister ? "ArkUI.uiExtension.onWindowSizeChange" : "ArkUI.uiExtension.offWindowSizeChange", ret);
@@ -79,9 +79,9 @@ WmErrorCode AniExtensionWindowRegisterManager::ProcessAvoidAreaChangeRegister(
     sptr<IAvoidAreaChangedListener> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterAvoidAreaChangeListener(thisListener));
+        ret = ConvertErrorToCode(window->RegisterAvoidAreaChangeListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterAvoidAreaChangeListener(thisListener));
+        ret = ConvertErrorToCode(window->UnregisterAvoidAreaChangeListener(thisListener));
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(
         isRegister ? "ArkUI.uiExtension.onAvoidAreaChange" : "ArkUI.uiExtension.offAvoidAreaChange", ret);
@@ -98,9 +98,9 @@ WmErrorCode AniExtensionWindowRegisterManager::ProcessLifeCycleEventRegister(spt
     sptr<IWindowLifeCycle> thisListener(listener);
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterLifeCycleListener(thisListener));
+        ret = ConvertErrorToCode(window->RegisterLifeCycleListener(thisListener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterLifeCycleListener(thisListener));
+        ret = ConvertErrorToCode(window->UnregisterLifeCycleListener(thisListener));
     }
     return ret;
 }
@@ -117,9 +117,9 @@ WmErrorCode AniExtensionWindowRegisterManager::ProcessWindowRectChangeRegister(
     }
     WmErrorCode ret = WmErrorCode::WM_OK;
     if (isRegister) {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->RegisterWindowRectChangeListener(listener));
+        ret = ConvertErrorToCode(window->RegisterWindowRectChangeListener(listener));
     } else {
-        ret = WM_JS_TO_ERROR_CODE_MAP.at(window->UnregisterWindowRectChangeListener(listener));
+        ret = ConvertErrorToCode(window->UnregisterWindowRectChangeListener(listener));
     }
     HISTOGRAM_ENUMERATION_ERROR_CODE(
         isRegister ? "ArkUI.uiExtension.onRectChange" : "ArkUI.uiExtension.offRectChange", ret);
