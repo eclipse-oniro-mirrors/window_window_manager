@@ -192,6 +192,7 @@ public:
     virtual sptr<DisplayInfo> GetVisibleAreaDisplayInfoById(DisplayId displayId) override;
     sptr<DisplayInfo> GetDisplayInfoByScreen(ScreenId screenId) override;
     std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT) override;
+    std::vector<DisplayId> GetAllDisplayIdsInner(const std::vector<DisplayId>& filterScreenIds, const int32_t& userId);
     virtual sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId, bool isNeedUnused = false) override;
     virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false) override;
     virtual DMError GetScreenSupportedColorGamuts(ScreenId screenId,
