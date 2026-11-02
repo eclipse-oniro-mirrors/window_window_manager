@@ -359,7 +359,7 @@ public:
     {
         return WMError::WM_OK;
     }
-    WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
+    WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam) override
     {
         return WMError::WM_OK;
     }

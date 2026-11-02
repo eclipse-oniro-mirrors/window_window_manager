@@ -3435,7 +3435,6 @@ WMError SceneSessionManagerLiteProxy::UpdateSessionsExcludeParam(
             return WMError::WM_ERROR_IPC_FAILED;
         }
     }
-
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         TLOGE(WmsLogTag::WMS_MAIN, "remote is null");

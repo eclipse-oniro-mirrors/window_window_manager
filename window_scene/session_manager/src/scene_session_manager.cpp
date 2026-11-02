@@ -20233,7 +20233,7 @@ WMError SceneSessionManager::TerminateSessionByPersistentId(int32_t persistentId
 WMError SceneSessionManager::UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
 {
     if (!SessionPermission::IsSACalling()) {
-        TLOGE(WmsLogTag::WMS_MAIN, "update session exclude param failed, only support SA calling.");
+        TLOGE(WmsLogTag::WMS_MAIN, "update sessions exclude param failed, only support SA calling.");
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
     if (sessionsExcludeParam.empty()) {

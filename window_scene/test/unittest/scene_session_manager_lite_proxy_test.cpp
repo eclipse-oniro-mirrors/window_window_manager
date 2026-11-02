@@ -1392,11 +1392,11 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_Success, T
 }
 
 /**
- * @tc.name: UpdateSessionsExcludeParam_MutliSessions
+ * @tc.name: UpdateSessionsExcludeParam_MultiSessions
  * @tc.desc: Test UpdateSessionsExcludeParam with multiple sessions
  * @tc.type: FUNC
  */
-HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_MutliSessions, TestSize.Level1)
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_MultiSessions, TestSize.Level1)
 {
     std::vector<SessionsExcludeParam> sessionsExcludeParam;
     SessionsExcludeParam param1;
@@ -1470,6 +1470,7 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_WriteBoolF
 HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_RemoteNullFailed, TestSize.Level1)
 {
     sptr<SceneSessionManagerLiteProxy> liteProxyNullRemote = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    ASSERT_NE(liteProxyNullRemote, nullptr);
     std::vector<SessionsExcludeParam> sessionsExcludeParam;
     SessionsExcludeParam param;
     param.persistentId = 100;
@@ -1484,14 +1485,14 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_RemoteNull
  */
 HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_SendReqFailed, TestSize.Level1)
 {
-    iRemoteObjectMocker_->SendRequestResult(1);
+    iRemoteObjectMocker_->SetRequestResult(1);
     std::vector<SessionsExcludeParam> sessionsExcludeParam;
     SessionsExcludeParam param;
     param.persistentId = 100;
     sessionsExcludeParam.push_back(param);
     EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam),
         WMError::WM_ERROR_IPC_FAILED);
-    iRemoteObjectMocker_->SendRequestResult(0);
+    iRemoteObjectMocker_->SetRequestResult(0);
 }
 
 /**
