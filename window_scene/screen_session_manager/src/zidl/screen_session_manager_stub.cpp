@@ -1494,6 +1494,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             int32_t uid = data.ReadInt32();
             bool enable = data.ReadBool();
             DMHookInfo hookInfo;
+            hookInfo.displayId_ = static_cast<DisplayId>(data.ReadUint64());
             hookInfo.width_ = data.ReadUint32();
             hookInfo.height_ = data.ReadUint32();
             hookInfo.density_ = data.ReadFloat();
@@ -1501,6 +1502,7 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             hookInfo.enableHookRotation_ = data.ReadBool();
             hookInfo.displayOrientation_ = data.ReadUint32();
             hookInfo.enableHookDisplayOrientation_ = data.ReadBool();
+            hookInfo.dpiForceScale_ = data.ReadFloat();
             hookInfo.isFullScreenInForceSplit_ = data.ReadBool();
             hookInfo.actualRect_.posX_ = data.ReadInt32();
             hookInfo.actualRect_.posY_ = data.ReadInt32();
@@ -1512,12 +1514,37 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
         case DisplayManagerMessage::TRANS_ID_GET_DISPLAY_HOOK_INFO: {
             int32_t uid = data.ReadInt32();
             DMHookInfo hookInfo;
+            hookInfo.displayId_ = static_cast<DisplayId>(data.ReadUint64());
             GetDisplayHookInfo(uid, hookInfo);
             if (!reply.WriteUint32(hookInfo.width_) || !reply.WriteUint32(hookInfo.height_) ||
                 !reply.WriteFloat(hookInfo.density_) || !reply.WriteUint32(hookInfo.rotation_) ||
                 !reply.WriteBool(hookInfo.enableHookRotation_)) {
                 TLOGE(WmsLogTag::DMS, "read reply hookInfo failed!");
             }
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_UPDATE_ADAPTIVE_RESOLUTION_HOOK: {
+            int32_t uid = 0;
+            bool enable = false;
+            DMAdaptiveResolutionConfig config;
+            if (!data.ReadInt32(uid) || !data.ReadBool(enable) ||
+                !data.ReadFloat(config.scaleRatio_) || !data.ReadBool(config.autoMetrics_) ||
+                !data.ReadBool(config.notifyDisplay_) || !data.ReadFloat(config.density_) ||
+                !data.ReadFloat(config.xDpi_) || !data.ReadFloat(config.yDpi_) ||
+                !data.ReadBool(config.systemModified_)) {
+                TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] read config failed");
+                return ERR_INVALID_DATA;
+            }
+            UpdateAdaptiveResolutionHook(uid, enable, config);
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_IS_DISPLAY_HOOKED_BY_UID: {
+            int32_t uid = 0;
+            if (!data.ReadInt32(uid)) {
+                TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] read uid failed");
+                return ERR_INVALID_DATA;
+            }
+            reply.WriteBool(IsDisplayHookedByUid(uid));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_GET_ALL_PHYSICAL_DISPLAY_RESOLUTION: {

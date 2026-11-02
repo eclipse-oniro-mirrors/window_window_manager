@@ -453,17 +453,91 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture04, TestSize.Level
     auto existingControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
     existingControl->window_ = mw;
     existingControl->mainWindowId_ = 100;
+    existingControl->curState_ = PiPWindowState::STATE_STARTED;
     // Put an existing controller to make groupCount reach maxCount(default=1)
     PictureInPictureManager::PutPipControllerInfo(600, existingControl);
 
     auto pipControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
     pipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
     pipControl->mainWindowId_ = 100; // same mainWindowId, GetSameGroupWindow returns non-null
-    // reachLimit=true, window!=nullptr, reuse path: DoClose then ShowPictureInPictureWindow
+    // reachLimit=true, window!=nullptr && preState==STATE_STARTED, reuse path:
+    // DoClose then ShowPictureInPictureWindow
     EXPECT_CALL(*(mw), Show(_, _, _, _, _)).Times(1).WillOnce(Return(WMError::WM_OK));
     EXPECT_EQ(WMError::WM_OK, pipControl->StartPictureInPicture(startType).errCode);
 
     PictureInPictureManager::RemovePipControllerInfo(600);
+    // reuse path calls PutPipControllerInfo(window_->GetWindowId(), this), and MockWindow::GetWindowId()
+    // returns INVALID_WINDOW_ID(0), so clean up the leaked entry holding pipControl (and mainWindow_ mock)
+    PictureInPictureManager::RemovePipControllerInfo(INVALID_WINDOW_ID);
+}
+
+/**
+ * @tc.name: StartPictureInPicture05
+ * @tc.desc: StartPictureInPicture with reachLimit=true, same group window exists but
+ *           preState != STATE_STARTED, falls through to StartPictureInPictureInner
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture05, TestSize.Level1)
+{
+    StartPipType startType = StartPipType::USER_START;
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto option = sptr<PipOption>::MakeSptr();
+
+
+    ASSERT_NE(nullptr, option);
+    auto contextPtr = std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    option->SetContext(&contextPtr);
+    auto existingControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
+    existingControl->window_ = mw;
+    existingControl->mainWindowId_ = 100;
+    // keep existingControl->curState_ as STATE_UNDEFINED so that preState != STATE_STARTED
+    PictureInPictureManager::PutPipControllerInfo(700, existingControl);
+ 
+    auto pipControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
+    pipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
+    pipControl->mainWindowId_ = 100; // same mainWindowId, GetSameGroupWindow returns non-null window
+    // reachLimit=true, window!=nullptr but preState==STATE_UNDEFINED, reuse branch skipped
+    // falls through to StartPictureInPictureInner, create fails
+    EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, pipControl->StartPictureInPicture(startType).errCode);
+ 
+    PictureInPictureManager::RemovePipControllerInfo(700);
+}
+ 
+/**
+ * @tc.name: StartPictureInPicture06
+ * @tc.desc: StartPictureInPicture with reachLimit=true, reuse same group window but
+ *           ShowPictureInPictureWindow fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture06, TestSize.Level1)
+{
+    StartPipType startType = StartPipType::USER_START;
+    auto mw = sptr<MockWindow>::MakeSptr();
+    ASSERT_NE(nullptr, mw);
+    auto option = sptr<PipOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    auto contextPtr = std::make_shared<AbilityRuntime::AbilityContextImpl>();
+    option->SetContext(&contextPtr);
+    auto existingControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
+    existingControl->window_ = mw;
+    existingControl->mainWindowId_ = 100;
+    existingControl->curState_ = PiPWindowState::STATE_STARTED;
+    PictureInPictureManager::PutPipControllerInfo(800, existingControl);
+ 
+    auto pipControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
+    pipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
+    pipControl->mainWindowId_ = 100; // same mainWindowId, GetSameGroupWindow returns non-null window
+    // reachLimit=true, window!=nullptr && preState==STATE_STARTED, reuse path taken,
+    // but Show fails so the controller state is reset to STATE_UNDEFINED
+    EXPECT_CALL(*(mw), Show(_, _, _, _, _)).Times(1).WillOnce(Return(WMError::WM_ERROR_PIP_INTERNAL_ERROR));
+    EXPECT_EQ(WMError::WM_ERROR_PIP_INTERNAL_ERROR, pipControl->StartPictureInPicture(startType).errCode);
+    EXPECT_EQ(PiPWindowState::STATE_UNDEFINED, pipControl->curState_);
+ 
+    PictureInPictureManager::RemovePipControllerInfo(800);
+    // reuse path calls PutPipControllerInfo(window_->GetWindowId(), this), and MockWindow::GetWindowId()
+    // returns INVALID_WINDOW_ID(0), so clean up the leaked entry holding pipControl (and mainWindow_ mock)
+    PictureInPictureManager::RemovePipControllerInfo(INVALID_WINDOW_ID);
 }
 
 /**

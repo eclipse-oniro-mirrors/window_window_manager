@@ -107,6 +107,8 @@ public:
     WMError SetFrameRectForPartialZoomIn(const Rect& frameRect) override;
     WMError UpdateWindowModeForUITest(int32_t updateMode) override;
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
+    // Re-sends the stored game config to SCB after a possible SCB restart.
+    void ResyncAdaptiveResolution();
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
     WSError UpdateAttachedWindowLimits(int32_t sourcePersistentId,
         const WindowLimits& attachedWindowLimits, bool isIntersectedHeightLimit,
@@ -861,7 +863,8 @@ private:
      * Move Drag
      */
     bool CheckCanMoveWindowType();
-    bool CheckCanStartMoveWindowByWindowType();
+    bool IsDragMoveCapabilitySupported() const;
+    bool IsStartMovingAllowed() const;
     bool CheckIsPcAppInPadFullScreenOnMobileWindowMode();
     AreaType GetDragAreaByDownEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const MMI::PointerEvent::PointerItem& pointerItem);
@@ -959,6 +962,17 @@ private:
     void UpdateSidebarBlurStyleWhenColorModeChange();
     void SetSidebarBlurValues(bool isDark, SidebarBlurType type);
     void ApplySidebarBlurWithAnimation(bool isDark, SidebarBlurType type);
+
+    /*
+     * dpi force scale for PC Window
+     */
+    bool isDpiForceScale_ {false};
+    float dpiForceScale_ {1.0f};
+    float windowStartDensity_ {0.0f};
+    void UpdateDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale, float windowStartDensity) override;
+    void ConvertPointerEventForDpiForceScale(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    bool GetIsDpiForceScale() const;
+    float GetDpiForceScale() const;
 
     bool CheckCreaseRegionCanInHoverState(const Rect& windowRect);
 };

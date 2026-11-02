@@ -107,6 +107,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateRect(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DENSITY_CHANGE):
             return HandleUpdateDensity(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DPI_FORCE_SCALE_CHANGE):
+            return HandleUpdateDpiForceScaleChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ORIENTATION_CHANGE):
             return HandleUpdateOrientation(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SESSION_VIEWPORT_CONFIG):
@@ -294,6 +296,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateAppHookWindowInfo(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE):
             return HandleSetForceSplitEnable(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ADAPTIVE_RESOLUTION_CHANGED):
+            return HandleNotifyAdaptiveResolutionChanged(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_FV_ACTION_EVENT):
             return HandleSendFvActionEvent(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_FV_WINDOW_INFO):
@@ -312,6 +316,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateLSState(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SCREEN_SUPPORT_MULTI_WINDOW):
             return HandleUpdateScreenSupportMultiWindow(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_WINDOW_START_DENSITY):
+            return HandleSetWindowStartDensity(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -431,6 +437,15 @@ int SessionStageStub::HandleUpdateDensity(MessageParcel& data, MessageParcel& re
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleUpdateDpiForceScaleChange(MessageParcel& data, MessageParcel& reply)
+{
+    float dpiForceScale = data.ReadFloat();
+    bool isDpiForceScale = data.ReadBool();
+    float windowStartDensity = data.ReadFloat();
+    UpdateDpiForceScaleChange(dpiForceScale, isDpiForceScale, windowStartDensity);
+    return ERR_NONE;
+}
+
 int SessionStageStub::HandleUpdateOrientation(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::DMS, "HandleUpdateOrientation!");
@@ -452,6 +467,13 @@ int SessionStageStub::HandleUpdateSessionViewportConfig(MessageParcel& data, Mes
     };
     config.dpiFollowStrategy_ = static_cast<DpiFollowStrategy>(dpiFollowStrategyValue);
     UpdateSessionViewportConfig(config);
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleSetWindowStartDensity(MessageParcel& data, MessageParcel& reply)
+{
+    float density = data.ReadFloat();
+    WSError errCode = SetWindowStartDensity(density);
     return ERR_NONE;
 }
 
@@ -1246,7 +1268,7 @@ int SessionStageStub::HandleConfigDockAutoHide(MessageParcel& data, MessageParce
 
 int SessionStageStub::HandleGetUIContentRemoteObj(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Called");
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "Called");
     sptr<IRemoteObject> uiContentRemoteObj;
     WSError errCode = GetUIContentRemoteObj(uiContentRemoteObj);
     reply.WriteRemoteObject(uiContentRemoteObj);
@@ -1775,6 +1797,23 @@ int SessionStageStub::HandleSetForceSplitEnable(MessageParcel& data, MessageParc
         return ERR_INVALID_DATA;
     }
     SetForceSplitEnable(isForceSplitEnabled, needUpdateViewport, static_cast<SelectMode>(selectModeValue));
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyAdaptiveResolutionChanged(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] in");
+    int32_t statusValue = -1;
+    if (!data.ReadInt32(statusValue)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] Read status failed");
+        return ERR_INVALID_DATA;
+    }
+    sptr<GameAdaptiveResolutionConfig> config = data.ReadParcelable<GameAdaptiveResolutionConfig>();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] config is nullptr!");
+        return ERR_INVALID_DATA;
+    }
+    NotifyAdaptiveResolutionChanged(static_cast<GameAdaptiveResolutionStatus>(statusValue), *config);
     return ERR_NONE;
 }
 

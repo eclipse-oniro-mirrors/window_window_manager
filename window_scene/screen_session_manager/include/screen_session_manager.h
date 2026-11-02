@@ -281,6 +281,9 @@ public:
     void UpdateDisplayHookInfo(int32_t uid, bool enable, const DMHookInfo& hookInfo) override;
     void GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo) override;
     void NotifyIsFullScreenInForceSplitMode(int32_t uid, bool isFullScreen) override;
+    void UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+        const DMAdaptiveResolutionConfig& config) override;
+    bool IsDisplayHookedByUid(int32_t uid) override;
 
     void OnScreenConnect(const sptr<ScreenInfo> screenInfo);
     void OnScreenDisconnect(ScreenId screenId);
@@ -475,6 +478,8 @@ public:
     DMError GetAvailableArea(DisplayId displayId, DMRect& area) override;
     DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area) override;
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
+    void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId);
+    void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid);
     void NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId);
     void NotifyFoldToExpandCompletion(bool foldToExpand) override;
     void NotifyScreenConnectCompletion(ScreenId screenId) override;
@@ -901,6 +906,10 @@ private:
     int Dump(int fd, const std::vector<std::u16string>& args) override;
     sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession,
         int32_t uid = INVALID_UID);
+    void ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo, const sptr<ScreenSession>& screenSession,
+        const DMHookInfo& info);
+    bool IsAdaptiveResolutionActive(int32_t uid, DMAdaptiveResolutionConfig& config);
+    void ApplyAdaptiveResolutionHook(const sptr<DisplayInfo>& displayInfo, int32_t uid);
     bool IsValidDisplayOrientation(uint32_t displayOrientation);
     sptr<DisplayInfo> FindDisplayInfoInSession(const sptr<ScreenSession>& screenSession, DisplayId displayId,
         bool isGetActualInfo = false);
@@ -1217,8 +1226,11 @@ private:
     std::atomic<ScreenId> defaultRsScreenId_ { SCREEN_ID_INVALID };
     std::map<sptr<IRemoteObject>, std::vector<ScreenId>> screenAgentMap_;
     std::map<ScreenId, sptr<ScreenSessionGroup>> smsScreenGroupMap_;
-    std::map<uint32_t, DMHookInfo> displayHookMap_;
+    std::map<uint32_t, std::map<DisplayId, DMHookInfo>> displayHookMap_;
     std::map<int32_t, int32_t> uidAndPidMap_;
+    std::shared_mutex adaptiveResolutionMutex_;
+    // uid -> active config
+    std::map<int32_t, DMAdaptiveResolutionConfig> adaptiveResolutionMap_;
 
     bool userSwitching_ = false;
     bool isAutoRotationOpen_ = false;

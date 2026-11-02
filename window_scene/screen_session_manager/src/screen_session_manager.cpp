@@ -15,6 +15,7 @@
 
 #include "screen_session_manager/include/screen_session_manager.h"
 
+#include <algorithm>
 #include <csignal>
 #include <cstdint>
 #include <ctime>
@@ -161,6 +162,76 @@ constexpr int32_t RES_FAILURE_FOR_PRIVACY_WINDOW = -2;
 constexpr int32_t IRREGULAR_REFRESH_RATE_SKIP_THRETHOLD = 10;
 constexpr float EXTEND_SCREEN_DPI_DEFAULT_PARAMETER = 1.0f;
 constexpr float EXTEND_SCREEN_DPI_FOR_PHONE_GAP = 0.4f;
+constexpr float ADAPTIVE_SCALE_RATIO_MIN = 0.0f;
+constexpr float ADAPTIVE_SCALE_RATIO_MAX = 1.0f;
+constexpr float ADAPTIVE_METRIC_MIN = 0.0f;
+
+bool IsAdaptiveScaleRatioValid(float scaleRatio)
+{
+    return scaleRatio > ADAPTIVE_SCALE_RATIO_MIN && scaleRatio < ADAPTIVE_SCALE_RATIO_MAX;
+}
+
+int32_t ScaleToPixel(float value, float scaleRatio)
+{
+    return std::max(1, static_cast<int32_t>(std::lround(value * scaleRatio)));
+}
+
+// Scales display size by scaleRatio so the app renders at a lower resolution.
+void ScaleAdaptiveDisplaySize(const sptr<DisplayInfo>& displayInfo, float scaleRatio)
+{
+    displayInfo->SetWidth(ScaleToPixel(displayInfo->GetWidth(), scaleRatio));
+    displayInfo->SetHeight(ScaleToPixel(displayInfo->GetHeight(), scaleRatio));
+    displayInfo->SetAvailableWidth(static_cast<uint32_t>(ScaleToPixel(
+        displayInfo->GetAvailableWidth(), scaleRatio)));
+    displayInfo->SetAvailableHeight(static_cast<uint32_t>(ScaleToPixel(
+        displayInfo->GetAvailableHeight(), scaleRatio)));
+}
+
+// Scales all metrics by the same ratio so the vp layout keeps unchanged and only the
+// render resolution drops.
+void ScaleAdaptiveDisplayMetrics(const sptr<DisplayInfo>& displayInfo, float scaleRatio)
+{
+    float density = displayInfo->GetVirtualPixelRatio();
+    float densityInCurResolution = displayInfo->GetDensityInCurResolution();
+    float defaultDensity = displayInfo->GetDefaultVirtualPixelRatio();
+    float xDpi = displayInfo->GetXDpi();
+    float yDpi = displayInfo->GetYDpi();
+    if (density > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetVirtualPixelRatio(density * scaleRatio);
+        displayInfo->SetDpi(static_cast<int32_t>(std::lround(density * scaleRatio * DOT_PER_INCH)));
+    }
+    if (densityInCurResolution > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetDensityInCurResolution(densityInCurResolution * scaleRatio);
+    }
+    if (defaultDensity > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetDefaultVirtualPixelRatio(defaultDensity * scaleRatio);
+    }
+    if (xDpi > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetXDpi(xDpi * scaleRatio);
+    }
+    if (yDpi > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetYDpi(yDpi * scaleRatio);
+    }
+}
+
+// Explicit overrides; 0 keeps the original. dpi follows density x 160.
+void OverrideAdaptiveDisplayMetrics(const sptr<DisplayInfo>& displayInfo,
+    const DMAdaptiveResolutionConfig& config)
+{
+    if (config.density_ > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetVirtualPixelRatio(config.density_);
+        displayInfo->SetDensityInCurResolution(config.density_);
+        displayInfo->SetDefaultVirtualPixelRatio(config.density_);
+        displayInfo->SetDpi(static_cast<int32_t>(std::lround(config.density_ * DOT_PER_INCH)));
+    }
+    if (config.xDpi_ > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetXDpi(config.xDpi_);
+    }
+    if (config.yDpi_ > ADAPTIVE_METRIC_MIN) {
+        displayInfo->SetYDpi(config.yDpi_);
+    }
+}
+
 static const int32_t AUTO_ROTATE_OFF = 0;
 static const int NOTIFY_EVENT_FOR_DUAL_FAILED = 0;
 static const int NOTIFY_EVENT_FOR_DUAL_SUCESS = 1;
@@ -3271,7 +3342,7 @@ bool ScreenSessionManager::IsHook(int32_t uid)
     }
     {
         std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
-        if (displayHookMap_.find(uid) != displayHookMap_.end()) {
+        if (displayHookMap_.find(uid) != displayHookMap_.end() && !displayHookMap_[uid].empty()) {
             TLOGNFI(WmsLogTag::DMS, "is true");
             return true;
         }
@@ -3287,28 +3358,18 @@ bool ScreenSessionManager::IsValidDisplayOrientation(uint32_t displayOrientation
            displayOrientation == static_cast<uint32_t>(DisplayOrientation::LANDSCAPE_INVERTED);
 }
 
-sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo,
-    const sptr<ScreenSession>& screenSession, int32_t uid)
+void ScreenSessionManager::ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo,
+    const sptr<ScreenSession>& screenSession, const DMHookInfo& info)
 {
     if (displayInfo == nullptr) {
-        TLOGNFI(WmsLogTag::DMS, "ConvertToDisplayInfo error, displayInfo is nullptr.");
-        return nullptr;
+        return;
     }
-    if (uid == INVALID_UID) {
-        uid = IPCSkeleton::GetCallingUid();
-    }
-    std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
-    auto it = displayHookMap_.find(uid);
-    if (it == displayHookMap_.end()) {
-        return displayInfo;
-    }
-    auto& info = it->second;
     TLOGNFI(WmsLogTag::DMS, "hW: %{public}u, hH: %{public}u, hD: %{public}f, hR: %{public}u, hER: %{public}d, hO: %{public}u, hEO: %{public}d, "
-        "hAX: %{public}d, hAY: %{public}d, hAW: %{public}u, hAH: %{public}u, dW: %{public}u, dH: %{public}u, dR: %{public}u, dO: %{public}u, uid: %{public}d, pid: %{public}d",
-        info.width_, info.height_, info.density_, info.rotation_, info.enableHookRotation_, info.displayOrientation_, info.enableHookDisplayOrientation_, info.actualRect_.posX_,
+        "hDFS: %{public}f, hAX: %{public}d, hAY: %{public}d, hAW: %{public}u, hAH: %{public}u, dW: %{public}u, dH: %{public}u, dR: %{public}u, dO: %{public}u",
+        info.width_, info.height_, info.density_, info.rotation_, info.enableHookRotation_, info.displayOrientation_, info.enableHookDisplayOrientation_, info.dpiForceScale_, info.actualRect_.posX_,
         info.actualRect_.posY_, info.actualRect_.width_, info.actualRect_.height_, displayInfo->GetWidth(), displayInfo->GetHeight(), static_cast<uint32_t>(displayInfo->GetRotation()),
-        static_cast<uint32_t>(displayInfo->GetDisplayOrientation()), uid, IPCSkeleton::GetCallingPid());
-     
+        static_cast<uint32_t>(displayInfo->GetDisplayOrientation()));
+
     if (!info.isFullScreenInForceSplit_) {
         displayInfo->SetWidth(info.width_);
         displayInfo->SetHeight(info.height_);
@@ -3324,7 +3385,7 @@ sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> d
             displayInfo->SetDisplayOrientation(targetOrientation);
         } else {
             TLOGNFI(WmsLogTag::DMS, "ConvertToDisplayInfo error, screenSession is nullptr.");
-            return nullptr;
+            return;
         }
     }
     if (info.enableHookDisplayOrientation_ &&
@@ -3337,7 +3398,71 @@ sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> d
     displayInfo->SetActualHeight(info.actualRect_.height_);
     displayInfo->SetAvailableWidth(info.width_);
     displayInfo->SetAvailableHeight(info.height_);
+}
+
+sptr<DisplayInfo> ScreenSessionManager::HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo,
+    const sptr<ScreenSession>& screenSession, int32_t uid)
+{
+    if (displayInfo == nullptr) {
+        TLOGNFI(WmsLogTag::DMS, "ConvertToDisplayInfo error, displayInfo is nullptr.");
+        return nullptr;
+    }
+    if (uid == INVALID_UID) {
+        uid = IPCSkeleton::GetCallingUid();
+    }
+    DisplayId displayId = displayInfo->GetDisplayId();
+    // One-way lock order: hookInfoMutex_ (shared) -> adaptiveResolutionMutex_ (shared); no reverse path.
+    std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+    auto it = displayHookMap_.find(uid);
+    if (it == displayHookMap_.end() || it->second.empty()) {
+        // No compat hook: still apply the adaptive hook.
+        ApplyAdaptiveResolutionHook(displayInfo, uid);
+        return displayInfo;
+    }
+    auto screenIt = it->second.find(displayId);
+    if (screenIt == it->second.end()) {
+        // Compat hook targets another display; the adaptive hook still applies here.
+        ApplyAdaptiveResolutionHook(displayInfo, uid);
+        return displayInfo;
+    }
+    auto& info = screenIt->second;
+    TLOGNFI(WmsLogTag::DMS, "uid: %{public}d, pid: %{public}d, displayId: %{public}" PRIu64 " apply hook",
+        uid, IPCSkeleton::GetCallingPid(), displayId);
+    ApplyHookInfoToDisplayInfo(displayInfo, screenSession, info);
+    // Apply the adaptive hook on top of the compat hook.
+    ApplyAdaptiveResolutionHook(displayInfo, uid);
     return displayInfo;
+}
+
+// A map entry means the config is active: entries are only inserted after the ratio
+// is validated at the IPC entry (UpdateAdaptiveResolutionHook).
+bool ScreenSessionManager::IsAdaptiveResolutionActive(int32_t uid, DMAdaptiveResolutionConfig& config)
+{
+    std::shared_lock<std::shared_mutex> lock(adaptiveResolutionMutex_);
+    auto it = adaptiveResolutionMap_.find(uid);
+    if (it == adaptiveResolutionMap_.end()) {
+        return false;
+    }
+    config = it->second;
+    return true;
+}
+
+void ScreenSessionManager::ApplyAdaptiveResolutionHook(const sptr<DisplayInfo>& displayInfo, int32_t uid)
+{
+    DMAdaptiveResolutionConfig config;
+    if (!IsAdaptiveResolutionActive(uid, config)) {
+        return;
+    }
+    ScaleAdaptiveDisplaySize(displayInfo, config.scaleRatio_);
+    if (config.autoMetrics_) {
+        ScaleAdaptiveDisplayMetrics(displayInfo, config.scaleRatio_);
+    } else {
+        OverrideAdaptiveDisplayMetrics(displayInfo, config);
+    }
+    TLOGD(WmsLogTag::DMS, "[ApplyAdaptiveResolutionHook] uid: %{public}d, ratio: %{public}f, "
+        "size: %{public}dx%{public}d, density: %{public}f, dpi: %{public}d, autoMetrics: %{public}d",
+        uid, config.scaleRatio_, displayInfo->GetWidth(), displayInfo->GetHeight(),
+        displayInfo->GetVirtualPixelRatio(), displayInfo->GetDpi(), config.autoMetrics_);
 }
 
 sptr<DisplayInfo> ScreenSessionManager::GetDefaultDisplayInfo(int32_t userId)
@@ -4277,15 +4402,16 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
         std::unique_lock<std::shared_mutex> lock(hookInfoMutex_);
         if (enable) {
             if (uid != 0) {
-                displayHookMap_[uid] = hookInfo;
-                displayHookMap_[uid] = hookInfo;
+                DisplayId displayId = hookInfo.displayId_;
+                displayHookMap_[uid][displayId] = hookInfo;
                 std::ostringstream oss;
-                oss << "hW: " << hookInfo.width_ << ", hH: " << hookInfo.height_ << ", hD: " << hookInfo.density_
-                    << ", hR: " << hookInfo.rotation_ << ", hER: " << hookInfo.enableHookRotation_
-                    << " hO: " << hookInfo.displayOrientation_ 
-                    << ", hEO: " << hookInfo.enableHookDisplayOrientation_
-                    << " , hAX: " << hookInfo.actualRect_.posX_ << ", hAY: " << hookInfo.actualRect_.posY_
-                    << " , hAW: " << hookInfo.actualRect_.width_ << ", hAH: " << hookInfo.actualRect_.height_;
+                oss << "hDId: " << displayId << ", hW: " << hookInfo.width_ << ", hH: " << hookInfo.height_
+                    << ", hD: " << hookInfo.density_ << ", hR: " << hookInfo.rotation_
+                    << ", hER: " << hookInfo.enableHookRotation_ << ", hO: " << hookInfo.displayOrientation_
+                    << ", hEO: " << hookInfo.enableHookDisplayOrientation_ << ", hDFS: " << hookInfo.dpiForceScale_
+                    << ", hAX: " << hookInfo.actualRect_.posX_
+                    << ", hAY: " << hookInfo.actualRect_.posY_ << ", hAW: " << hookInfo.actualRect_.width_
+                    << ", hAH: " << hookInfo.actualRect_.height_;
                 std::regex pattern("%");
                 TLOGD(WmsLogTag::DMS, "update hookinfo %{public}s",
                     std::regex_replace(oss.str(), pattern, "%%").c_str());
@@ -4295,6 +4421,61 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
         }
     }
     NotifyDisplayChangedByUid(screenSessionMapCopy, DisplayChangeEvent::DISPLAY_SIZE_CHANGED, uid);
+    if (enable && uid != 0) {
+        for (const auto& sessionIt : screenSessionMapCopy) {
+            auto screenSession = sessionIt.second;
+            if (screenSession == nullptr || screenSession->GetDisplayId() != hookInfo.displayId_) {
+                continue;
+            }
+            DMRect area = screenSession->GetAvailableArea();
+            NotifyHookAvailableAreaChanged(area, hookInfo.displayId_, uid);
+            break;
+        }
+    }
+}
+
+void ScreenSessionManager::UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+    const DMAdaptiveResolutionConfig& config)
+{
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGNFE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] permission denied!");
+        return;
+    }
+    std::map<ScreenId, sptr<ScreenSession>> screenSessionMapCopy;
+    {
+        std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
+        screenSessionMapCopy = screenSessionMap_;
+    }
+    bool active = enable && IsAdaptiveScaleRatioValid(config.scaleRatio_);
+    bool effectChanged = false;
+    bool notifyDisplay = false;
+    size_t mapSize = 0;
+    {
+        std::unique_lock<std::shared_mutex> lock(adaptiveResolutionMutex_);
+        auto it = adaptiveResolutionMap_.find(uid);
+        bool wasActive = it != adaptiveResolutionMap_.end();
+        bool metricChanged = active && wasActive && !it->second.HasSameEffect(config);
+        effectChanged = active != wasActive || metricChanged;
+        // A system clear carries no origin settings; an SA disable speaks for itself.
+        notifyDisplay = active ? config.notifyDisplay_ : (config.systemModified_ ?
+            wasActive && it->second.notifyDisplay_ : config.notifyDisplay_);
+        if (active) {
+            adaptiveResolutionMap_[uid] = config;
+        } else {
+            adaptiveResolutionMap_.erase(uid);
+        }
+        mapSize = adaptiveResolutionMap_.size();
+    }
+    TLOGNI(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] uid: %{public}d, enable: %{public}d, "
+        "active: %{public}d, effectChanged: %{public}d, mapSize: %{public}zu, ratio: %{public}f, "
+        "autoMetrics: %{public}d, notifyDisplay: %{public}d",
+        uid, enable, active, effectChanged, mapSize,
+        config.scaleRatio_, config.autoMetrics_, notifyDisplay);
+    if (effectChanged && notifyDisplay) {
+        TLOGNI(WmsLogTag::DMS, "[AdaptiveDisplayNotify] uid: %{public}d, event: DISPLAY_SIZE_CHANGED",
+            uid);
+        NotifyDisplayChangedByUid(screenSessionMapCopy, DisplayChangeEvent::DISPLAY_SIZE_CHANGED, uid);
+    }
 }
 
 void ScreenSessionManager::NotifyDisplayChangedByUid(const std::map<ScreenId, sptr<ScreenSession>>& screenSessionMap,
@@ -4328,9 +4509,23 @@ void ScreenSessionManager::NotifyDisplayChangedByUidInner(sptr<DisplayInfo> disp
 void ScreenSessionManager::GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo)
 {
     std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
-    if (displayHookMap_.find(uid) != displayHookMap_.end()) {
-        hookInfo = displayHookMap_[uid];
+    auto it = displayHookMap_.find(uid);
+    if (it == displayHookMap_.end() || it->second.empty()) {
+        return;
     }
+    auto screenIt = it->second.find(hookInfo.displayId_);
+    if (screenIt != it->second.end()) {
+        hookInfo = screenIt->second;
+    }
+}
+
+bool ScreenSessionManager::IsDisplayHookedByUid(int32_t uid)
+{
+    if (!SessionPermission::IsSystemCalling()) {
+        TLOGNFE(WmsLogTag::DMS, "[IsDisplayHookedByUid] permission denied!");
+        return false;
+    }
+    return IsHook(uid);
 }
 
 void ScreenSessionManager::NotifyIsFullScreenInForceSplitMode(int32_t uid, bool isFullScreen)
@@ -4342,11 +4537,14 @@ void ScreenSessionManager::NotifyIsFullScreenInForceSplitMode(int32_t uid, bool 
     }
     {
         std::unique_lock<std::shared_mutex> lock(hookInfoMutex_);
-        if (uid == 0 || displayHookMap_.find(uid) == displayHookMap_.end()) {
+        auto it = displayHookMap_.find(uid);
+        if (uid == 0 || it == displayHookMap_.end() || it->second.empty()) {
             TLOGNFE(WmsLogTag::DMS, "invalid uid: %{public}d", uid);
             return;
         }
-        displayHookMap_[uid].isFullScreenInForceSplit_ = isFullScreen;
+        for (auto& [displayId, hookInfo] : it->second) {
+            hookInfo.isFullScreenInForceSplit_ = isFullScreen;
+        }
     }
     std::map<ScreenId, sptr<ScreenSession>> screenSessionMapCopy;
     {
@@ -5919,7 +6117,7 @@ DMError ScreenSessionManager::GetBrightnessInfo(DisplayId displayId, ScreenBrigh
 {
     if (!IsDisplayAccessAllowed(displayId)) {
         TLOGNFE(WmsLogTag::DMS, "current user does not support access displayId: %{public}" PRIu64, displayId);
-        return DMError::DM_ERROR_INVALID_PARAM;
+        return DMError::DM_ERROR_ILLEGAL_PARAM;
     }
     sptr<ScreenSession> screenSession = GetScreenSession(displayId);
     if (displayId == DISPLAY_ID_FAKE) {
@@ -9655,7 +9853,7 @@ DMError ScreenSessionManager::DoMakeMirror(ScreenId mainScreenId, std::vector<Sc
         }
     };
     if (ffrtQueueHelper_ != nullptr) {
-        ffrtQueueHelper_->SubmitTaskToHead(task);
+        ffrtQueueHelper_->SubmitTaskToHead(task, __func__);
     }
     DMError makeResult = MultiScreenManager::GetInstance().MirrorSwitch(mainScreenId,
         allMirrorScreenIds, mainScreenRegion, screenGroupId, rotationOption, forceMirror);
@@ -14683,6 +14881,45 @@ void ScreenSessionManager::NotifyAvailableAreaChanged(DMRect area, DisplayId dis
 {
     ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(area, displayId);
     NotifyAvailableAttributeChanged(area, displayId);
+    NotifyHookAvailableAreaChanged(area, displayId);
+}
+
+void ScreenSessionManager::NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId)
+{
+    std::vector<int32_t> uids;
+    {
+        std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+        for (auto& [uid, hookMap] : displayHookMap_) {
+            uids.push_back(uid);
+        }
+    }
+    for (auto uid : uids) {
+        NotifyHookAvailableAreaChanged(area, displayId, uid);
+    }
+}
+
+void ScreenSessionManager::NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid)
+{
+    std::shared_lock<std::shared_mutex> lock(hookInfoMutex_);
+    auto hookMap = displayHookMap_.find(uid);
+    if (hookMap == displayHookMap_.end()) {
+        return;
+    }
+    auto screenIt = hookMap->second.find(displayId);
+    if (screenIt == hookMap->second.end()) {
+        return;
+    }
+    const auto& info = screenIt->second;
+    DMRect hookArea = area;
+    float curScale = info.dpiForceScale_;
+    if (curScale > 0) {
+        hookArea.width_ = static_cast<uint32_t>(area.width_ / curScale);
+        hookArea.height_ = static_cast<uint32_t>(area.height_ / curScale);
+    }
+    TLOGNFI(WmsLogTag::DMS, "NotifyHookAvailableAreaChanged uid=%{public}d, displayId=%{public}" PRIu64
+        ", scale=%{public}f, area=[%{public}d,%{public}d,%{public}u,%{public}u]",
+        uid, displayId, curScale, hookArea.posX_, hookArea.posY_, hookArea.width_, hookArea.height_);
+    ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(hookArea, displayId, uid);
 }
 
 void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId)
@@ -14756,6 +14993,18 @@ DMError ScreenSessionManager::GetAvailableArea(DisplayId displayId, DMRect& area
         return DMError::DM_ERROR_NULLPTR;
     }
     area = screenSession->GetAvailableArea();
+    if (IsHook()) {
+        DMHookInfo hookinfo;
+        hookinfo.displayId_ = displayId;
+        GetDisplayHookInfo(IPCSkeleton::GetCallingUid(), hookinfo);
+        if (hookinfo.dpiForceScale_ > 0) {
+            area.width_ = static_cast<uint32_t>(area.width_ / hookinfo.dpiForceScale_);
+            area.height_ = static_cast<uint32_t>(area.height_ / hookinfo.dpiForceScale_);
+        }
+        TLOGNFI(WmsLogTag::WMS_IMMS, "GetDisplayHookInfo uid=%{public}d, displayId=%{public}" PRIu64 ", "
+            "avaiWidth=%{public}u, avaiHeight=%{public}u, scale=%{public}f",
+            GetCallingUid(), displayId, area.width_, area.height_, hookinfo.dpiForceScale_);
+    }
     return DMError::DM_OK;
 }
 

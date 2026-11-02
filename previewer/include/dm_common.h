@@ -213,6 +213,7 @@ public:
      * @brief Notify when display power event status changed.
      */
     virtual void OnDisplayPowerEvent(DisplayPowerEvent event, EventStatus status) = 0;
+    virtual void OnSpecifiedDisplayPowerEvent(DisplayId displayId, DisplayPowerEvent event, EventStatus status) {};
 };
 
 /**

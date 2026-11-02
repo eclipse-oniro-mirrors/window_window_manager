@@ -221,7 +221,6 @@ int32_t OH_WindowManager_Snapshot(int32_t windowId, OH_PixelmapNative* pixelMap)
  * @param touchable window touchable status.
  * @return Return the result code.
  *         {@link OK} the function call is successful.
- *         {@link WINDOW_MANAGER_ERRORCODE_INVALID_PARAM} parameter error.
  *         {@link WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL} this window state is abnormal.
  *         {@link WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL} the window manager service works abnormal.
  * @since 16
@@ -354,7 +353,7 @@ void OH_WindowManager_ReleaseMainWindowSnapshot(const OH_PixelmapNative* snapsho
  *        If true:the cursor follow the mouse movement.
  *        If false:the cursor does not follow the mouse.
  * @return Returns the status code of the execution.
- *         {@link WS_OK} the function call is successful.
+ *         {@link OK} the function call is successful.
  *         {@link WINDOW_MANAGER_ERRORCODE_NO_PERMISSION} permission verification failed.
  *         {@link WINDOW_MANAGER_ERRORCODE_DEVICE_NOT_SUPPORTED} capability not supported.
  *         {@link WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL} this window state is abnormal.
@@ -369,7 +368,7 @@ int32_t OH_WindowManager_LockCursor(int32_t windowId, bool isCursorFollowMovemen
  * @permission ohos.permission.LOCK_WINDOW_CURSOR
  * @param windowId WindowId when window is created.
  * @return Returns the status code of the execution.
- *         {@link WS_OK} the function call is successful.
+ *         {@link OK} the function call is successful.
  *         {@link WINDOW_MANAGER_ERRORCODE_NO_PERMISSION} permission verification failed.
  *         {@link WINDOW_MANAGER_ERRORCODE_DEVICE_NOT_SUPPORTED} capability not supported.
  *         {@link WINDOW_MANAGER_ERRORCODE_STATE_ABNORMAL} this window state is abnormal.

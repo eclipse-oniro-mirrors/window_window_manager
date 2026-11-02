@@ -39,6 +39,7 @@ private:
     int HandleUpdateRect(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateGlobalDisplayRectFromServer(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateDensity(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateDpiForceScaleChange(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateOrientation(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionViewportConfig(MessageParcel& data, MessageParcel& reply);
     int HandleBackEventInner(MessageParcel& data, MessageParcel& reply);
@@ -118,6 +119,7 @@ private:
     int HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateAppHookWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleSetForceSplitEnable(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyAdaptiveResolutionChanged(MessageParcel& data, MessageParcel& reply);
     int HandleGetRouterStackInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetSceneNodeCount(MessageParcel& data, MessageParcel& reply);
     int HandleGetSceneNodeCountWithCallback(MessageParcel& data, MessageParcel& reply);
@@ -140,6 +142,7 @@ private:
     int HandleSetIsStartMoving(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateLSState(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateScreenSupportMultiWindow(MessageParcel& data, MessageParcel& reply);
+    int HandleSetWindowStartDensity(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_WINDOW_SCENE_SESSION_STAGE_STUB_H

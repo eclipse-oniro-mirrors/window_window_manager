@@ -173,6 +173,9 @@ public:
     virtual void UpdateDisplayHookInfo(int32_t uid, bool enable, const DMHookInfo& hookInfo) override;
     void GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo) override;
     void NotifyIsFullScreenInForceSplitMode(int32_t uid, bool isFullScreen) override;
+    void UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+        const DMAdaptiveResolutionConfig& config) override;
+    bool IsDisplayHookedByUid(int32_t uid) override;
 
     virtual void DumpAllScreensInfo(std::string& dumpInfo) override;
     virtual void DumpSpecialScreenInfo(ScreenId id, std::string& dumpInfo) override;

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -600,6 +600,12 @@ public:
         bool isLayoutFullScreen) override { return WSError::WS_OK; }
     WMError UpdateWindowModeForUITest(int32_t updateMode) override { return WMError::WM_OK; }
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override { return WSError::WS_DO_NOTHING; }
+    WSError NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config) override;
+    // Main-thread body: the push arrives on a sessionStage binder thread; viewport
+    // and surface updates must run on the main thread (ArkUI frame transaction).
+    void HandleAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config);
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override
         { return WSError::WS_DO_NOTHING; }
     void SetNotifySizeChangeFlag(bool flag);
@@ -1123,6 +1129,43 @@ protected:
     std::atomic_bool hasSetEnableDrag_ = false;
     void HookWindowSizeByHookWindowInfo(Rect& rect) const;
     void SetAppHookWindowInfo(const HookWindowInfo& hookWindowInfo);
+    /*
+     * Adaptive resolution: render at a lower resolution and scale the surface back.
+     */
+    void ApplyAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config);
+    GameAdaptiveResolutionConfig GetAdaptiveResolutionConfig() const;
+    bool IsAdaptiveResolutionEnabled() const;
+    float GetAdaptiveInputScaleRatio() const;
+    void HookWindowSizeByAdaptiveResolution(Rect& rect) const;
+    void HookAvoidAreaForHookedViewport(AvoidArea& avoidArea) const;
+    void HookAvoidAreasForHookedViewport(std::map<AvoidAreaType, AvoidArea>& avoidAreas) const;
+    sptr<OccupiedAreaChangeInfo> HookOccupiedAreaInfoForHookedViewport(
+        const sptr<OccupiedAreaChangeInfo>& info) const;
+    // Keyboard rects are screen-global; for the fullscreen-only hook they equal window-local.
+    KeyboardAnimationInfo HookKeyboardAnimationInfoForHookedViewport(
+        const KeyboardAnimationInfo& info) const;
+    KeyboardPanelInfo HookKeyboardPanelInfoForHookedViewport(const KeyboardPanelInfo& info) const;
+    void ScaleAvoidAreaForHookedViewport(AvoidArea& avoidArea, float scaleRatio) const;
+    void ScaleAvoidAreaRectForHookedViewport(Rect& rect, float scaleRatio) const;
+    // Refresh viewport/surface/avoid areas to the new hook state; notifyListeners
+    // only gates the window callbacks, never the refresh itself.
+    void RefreshAdaptiveResolution(bool notifyListeners);
+    void NotifyAvoidAreasForHookedViewport();
+    bool UpdateAdaptiveSurfaceScale(const Rect& realRect, const Rect& hookedRect);
+    bool ScalePointerEventForHookedViewport(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    void ScalePointerItemForHookedViewport(MMI::PointerEvent::PointerItem& item, float scaleRatio) const;
+    void ScalePointerEventInPlace(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, float scaleRatio) const;
+    // Returns the event for hit testing: a scaled copy when the input hook is active,
+    // or the original event otherwise (no copy on the normal path).
+    std::shared_ptr<MMI::PointerEvent> GetPointerEventForHitTest(
+        const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+    std::atomic<bool> adaptiveResolutionActive_{ false };
+    mutable std::mutex adaptiveResolutionMutex_;
+    GameAdaptiveResolutionConfig adaptiveResolutionConfig_;
+    std::atomic<bool> adaptiveSurfaceScaleApplied_{ false };
+    uint64_t adaptiveSurfaceNodeId_ = 0;
+    float adaptiveSurfaceScaleX_ = 1.0f;
+    float adaptiveSurfaceScaleY_ = 1.0f;
     virtual WMError GetSelectMode(SelectMode& selectMode) { return WMError::WM_OK; }
     virtual WMError GetForceSplitEnable(bool& enable) { return WMError::WM_OK; }
 

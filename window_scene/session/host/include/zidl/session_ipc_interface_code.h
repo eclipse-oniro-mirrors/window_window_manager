@@ -193,6 +193,9 @@ enum class SessionInterfaceCode {
     TRANS_ID_NOTIFY_FLOAT_VIEW_PREPARE_CLOSE,
     TRANS_ID_UPDATE_FLOAT_VIEW,
     TRANS_ID_RESTORE_FLOAT_VIEW_MAIN_WINDOW,
+
+    // Adaptive resolution
+    TRANS_ID_UPDATE_ADAPTIVE_RESOLUTION_CONFIG,
 };
 } // namespace Rosen
 } // namespace OHOS

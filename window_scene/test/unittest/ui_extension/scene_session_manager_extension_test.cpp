@@ -244,6 +244,55 @@ HWTEST_F(SceneSessionManagerExtensionTest, CreateAndConnectSpecificSession_TestH
     ASSERT_EQ(WSError::WS_OK, res.errCode);
     MockUIExtSessionPermission::ClearAllFlag();
 }
+
+/**
+ * @tc.name: SetHookExtensionWindowList01
+ * @tc.desc: SetHookExtensionWindowList and IsHookExtensionWindow test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerExtensionTest, SetHookExtensionWindowList01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    const std::string notExistBundleName = "not.exist.bundle";
+    std::vector<std::string> bundleNames;
+    ASSERT_EQ(ssm_->SetHookExtensionWindowList(bundleNames), WMError::WM_OK);
+
+    // empty list: no bundle is a hook extension window
+    bool isHook = true;
+    EXPECT_EQ(ssm_->IsHookExtensionWindow(BUNDLE_NAME, isHook), WMError::WM_OK);
+    EXPECT_FALSE(isHook);
+
+    // bundles in the list are hook extension windows, repeated bundle name is ignored
+    bundleNames = { BUNDLE_NAME, BUNDLE_NAME_TEST, BUNDLE_NAME };
+    EXPECT_EQ(ssm_->SetHookExtensionWindowList(bundleNames), WMError::WM_OK);
+    EXPECT_EQ(ssm_->compatibleHookExtensionBundleNames_.size(), 2U);
+    isHook = false;
+    EXPECT_EQ(ssm_->IsHookExtensionWindow(BUNDLE_NAME, isHook), WMError::WM_OK);
+    EXPECT_TRUE(isHook);
+    isHook = false;
+    EXPECT_EQ(ssm_->IsHookExtensionWindow(BUNDLE_NAME_TEST, isHook), WMError::WM_OK);
+    EXPECT_TRUE(isHook);
+    isHook = true;
+    EXPECT_EQ(ssm_->IsHookExtensionWindow(notExistBundleName, isHook), WMError::WM_OK);
+    EXPECT_FALSE(isHook);
+
+    // update the list: the removed bundle is no longer a hook extension window
+    bundleNames = { BUNDLE_NAME_TEST };
+    EXPECT_EQ(ssm_->SetHookExtensionWindowList(bundleNames), WMError::WM_OK);
+    isHook = true;
+    EXPECT_EQ(ssm_->IsHookExtensionWindow(BUNDLE_NAME, isHook), WMError::WM_OK);
+    EXPECT_FALSE(isHook);
+    isHook = false;
+    EXPECT_EQ(ssm_->IsHookExtensionWindow(BUNDLE_NAME_TEST, isHook), WMError::WM_OK);
+    EXPECT_TRUE(isHook);
+
+    // empty list clears all hook extension windows
+    bundleNames.clear();
+    EXPECT_EQ(ssm_->SetHookExtensionWindowList(bundleNames), WMError::WM_OK);
+    isHook = true;
+    EXPECT_EQ(ssm_->IsHookExtensionWindow(BUNDLE_NAME_TEST, isHook), WMError::WM_OK);
+    EXPECT_FALSE(isHook);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

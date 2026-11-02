@@ -76,6 +76,8 @@ public:
     WMError UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) override;
     void TriggerBindModalUIExtension() override;
     std::shared_ptr<IDataHandler> GetExtensionDataHandler() const override;
+    WMError RegisterAbilityDataConsumer(const DataConsumeCallback& callback) override;
+    WMError UnregisterAbilityDataConsumer() override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     WindowMode GetWindowMode() const override;
     WindowMode GetWindowModeCompat() const override;
@@ -190,6 +192,7 @@ public:
     WMError GetWindowPropertyInfo(WindowPropertyInfo& windowPropertyInfo, bool useHookedSize) override;
     void NotifyModalUIExtensionMayBeCovered(bool byLoadContent) override;
     WSError UpdateSessionViewportConfig(const SessionViewportConfig& config) override;
+    WSError SetWindowStartDensity(float density) override;
     void NotifyExtensionEventAsync(uint32_t notifyEvent) override;
     WSError NotifyDumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
     WSError SetUIExtensionTransparent() override;
@@ -292,6 +295,13 @@ private:
      */
     WMError OnHostWindowCompatInfoChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError SetCompatInfo(const AAFwk::WantParams& configParam);
+    bool IsHookExtensionWindow();
+
+    /*
+     * Compatible Mode
+     */
+    bool isHookExtensionWindow_ = false;
+    bool isHookExtensionWindowQueried_ = false;
 
     std::shared_ptr<Extension::DataHandler> dataHandler_;
     std::unordered_map<uint32_t, DataConsumeCallback> dataConsumers_;  // Read only after init
@@ -305,6 +315,7 @@ private:
     bool modalUIExtensionSelfLoadContent_ { false };
     bool isDensityCustomized_ { false };
     float customizedDensity_ { 0.0f };
+    float windowStartDensity_ { -1.0f };
     float lastDensity_ { 0.0f };
     int32_t lastOrientation_ { 0 };
     uint64_t lastDisplayId_ { 0 };

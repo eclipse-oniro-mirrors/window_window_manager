@@ -1004,6 +1004,7 @@ HWTEST_F(WindowSceneSessionImplTest5, StartMoveWindowWithCoordinate_01, TestSize
     ASSERT_EQ(window->StartMoveWindowWithCoordinate(100, 50), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_NE(window->StartMoveWindowWithCoordinate(100, 50), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
@@ -1014,6 +1015,7 @@ HWTEST_F(WindowSceneSessionImplTest5, StartMoveWindowWithCoordinate_01, TestSize
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->windowSystemConfig_.freeMultiWindowEnable_ = false;
     window->windowSystemConfig_.freeMultiWindowSupport_ = false;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.clear();
     window->property_->SetIsPcAppInPad(true);
     ASSERT_NE(window->StartMoveWindowWithCoordinate(100, 50), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
 
@@ -1040,6 +1042,7 @@ HWTEST_F(WindowSceneSessionImplTest5, StartMoveWindowWithCoordinate_02, TestSize
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->property_->SetPersistentId(0);
     ASSERT_EQ(window->StartMoveWindowWithCoordinate(-1, 50), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
 
@@ -1063,6 +1066,7 @@ HWTEST_F(WindowSceneSessionImplTest5, StartMoveWindowWithCoordinate_03, TestSize
     Rect windowRect = { 200, 200, 1000, 1000 };
     window->property_->SetWindowRect(windowRect);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
@@ -2235,6 +2239,7 @@ HWTEST_F(WindowSceneSessionImplTest5, StopMoveWindow, Function | SmallTest | Tes
     ASSERT_EQ(WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT, window->StopMoveWindow());
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->state_ = WindowState::STATE_DESTROYED;
     ASSERT_EQ(WmErrorCode::WM_ERROR_STATE_ABNORMALLY, window->StopMoveWindow());
 
@@ -3383,6 +3388,64 @@ HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimits, TestSize.Level
     EXPECT_EQ(customizedLimits.maxHeight_, userLimits.maxHeight_);
     EXPECT_EQ(customizedLimits.minWidth_, userLimits.minWidth_);
     EXPECT_EQ(customizedLimits.minHeight_, userLimits.minHeight_);
+}
+
+/**
+ * @tc.name: CalculateNewLimitsByLimitsDpi001
+ * @tc.desc: dpi force scale enabled, virtualPixelRatio is overridden to windowStartDensity
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimitsDpi001, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> testImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    WindowLimits customizedLimits = {200, 200, 10, 10, 0.0f, 0.0f, 1.0f, PixelUnit::VP};
+    WindowLimits newLimits;
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(0);
+    ASSERT_NE(nullptr, display);
+    auto displayInfo = display->GetDisplayInfo();
+    ASSERT_NE(nullptr, displayInfo);
+    float vpr = testImpl->GetVirtualPixelRatio(displayInfo);
+    float displayPixelRatio = 0.0f;
+    testImpl->property_->SetDisplayId(0);
+    testImpl->property_->SetConfigWindowLimitsVP(customizedLimits);
+    testImpl->isDpiForceScale_ = true;
+    testImpl->windowStartDensity_ = 4.0f;
+    testImpl->userLimitsSet_ = false;
+ 
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
+    // The effective virtualPixelRatio is overridden to windowStartDensity (4.0).
+    EXPECT_FLOAT_EQ(vpr, 4.0f);
+}
+ 
+/**
+ * @tc.name: CalculateNewLimitsByLimitsDpi002
+ * @tc.desc: dpi force scale disabled, virtualPixelRatio keeps the display density
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest5, CalculateNewLimitsByLimitsDpi002, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    sptr<WindowSceneSessionImpl> testImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+    WindowLimits customizedLimits = {200, 200, 10, 10, 0.0f, 0.0f, 1.0f, PixelUnit::VP};
+    WindowLimits newLimits;
+    WindowLimits newLimitsVP = WindowLimits::DEFAULT_VP_LIMITS();
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(0);
+    ASSERT_NE(nullptr, display);
+    auto displayInfo = display->GetDisplayInfo();
+    ASSERT_NE(nullptr, displayInfo);
+    float vpr = testImpl->GetVirtualPixelRatio(displayInfo);
+    float displayPixelRatio = 0.0f;
+    testImpl->property_->SetDisplayId(0);
+    testImpl->property_->SetConfigWindowLimitsVP(customizedLimits);
+    testImpl->isDpiForceScale_ = false;
+    testImpl->windowStartDensity_ = 4.0f;
+    testImpl->userLimitsSet_ = false;
+ 
+    testImpl->CalculateNewLimitsByLimits(newLimits, newLimitsVP, customizedLimits, vpr, displayPixelRatio);
+    // The effective virtualPixelRatio keeps the display density (not windowStartDensity).
+    EXPECT_FLOAT_EQ(vpr, displayInfo->GetVirtualPixelRatio());
 }
 
 /**

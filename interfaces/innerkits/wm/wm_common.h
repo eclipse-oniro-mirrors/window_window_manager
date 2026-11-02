@@ -121,6 +121,11 @@ constexpr uint32_t MAX_RATIO_LIMITS_COUNT = 10; // Max ratio limits count.
  * ability manager err
  */
 constexpr uint32_t ERR_BLOCK_START_FIRST_BOOT_SCREEN_UNLOCK = 2097253;
+
+/*
+ * low memory application freeze err
+ */
+constexpr uint32_t ERR_LOW_MEMORY_APP_FREEZE = 2097404;
 }
 
 /**
@@ -554,11 +559,15 @@ enum class ControlAppType : uint8_t {
     PARENT_CONTROL,
     DLP,
     PRIVACY_WINDOW,
+    APP_PROJECTION,
+    SCREEN_SHARED_PROTECTION,
     CONTROL_APP_TYPE_END,
 };
 
-const ControlAppType CONTROL_APP_TYPE_ENUM_LIST[] = { ControlAppType::APP_LOCK, ControlAppType::PARENT_CONTROL,
-    ControlAppType::DLP, ControlAppType::PRIVACY_WINDOW };
+const ControlAppType CONTROL_APP_TYPE_ENUM_LIST[] = {
+    ControlAppType::APP_LOCK,       ControlAppType::PARENT_CONTROL,           ControlAppType::DLP,
+    ControlAppType::APP_PROJECTION, ControlAppType::SCREEN_SHARED_PROTECTION, ControlAppType::PRIVACY_WINDOW
+};
 
 /**
  * @brief Enumerates flag of multiWindowUIType.
@@ -858,6 +867,106 @@ private:
                parcel.ReadBool(info.notifyWindowChange) &&
                parcel.ReadBool(info.drawableRectHook);
     }
+};
+
+/**
+ * @struct GameAdaptiveResolutionConfig.
+ *
+ * @brief Config of game adaptive resolution: the window renders at rect x scaleRatio_
+ *        while the surface is scaled back, keeping the layout unchanged.
+ *        Metric overrides (density_/xDpi_/yDpi_) need autoMetrics_ = false; 0 keeps original.
+ */
+struct GameAdaptiveResolutionConfig : public Parcelable {
+    bool enable_{ false };
+    float scaleRatio_{ 1.0f };
+    int32_t windowId_{ -1 };
+    bool inputHook_{ true };
+    bool notifyWindow_{ true };
+    bool notifyDisplay_{ true };
+    bool autoMetrics_{ true };
+    float density_{ 0.0f };
+    float xDpi_{ 0.0f };
+    float yDpi_{ 0.0f };
+
+    static constexpr float MIN_SCALE_RATIO = 0.0f;
+    static constexpr float MAX_SCALE_RATIO = 1.0f;
+
+    bool IsScaleRatioValid() const
+    {
+        return scaleRatio_ > MIN_SCALE_RATIO && scaleRatio_ < MAX_SCALE_RATIO;
+    }
+
+    // Metric overrides: 0 keeps the original; negative values are invalid.
+    bool IsValid() const
+    {
+        return !enable_ || (IsScaleRatioValid() && density_ >= 0.0f &&
+            xDpi_ >= 0.0f && yDpi_ >= 0.0f);
+    }
+
+    // Effective state only covers fields that change the hooked result; control flags
+    // (inputHook_/notifyWindow_/notifyDisplay_) are excluded on purpose.
+    bool HasSameEffect(const GameAdaptiveResolutionConfig& other) const
+    {
+        return enable_ == other.enable_ && MathHelper::NearEqual(scaleRatio_, other.scaleRatio_) &&
+            autoMetrics_ == other.autoMetrics_ && MathHelper::NearEqual(density_, other.density_) &&
+            MathHelper::NearEqual(xDpi_, other.xDpi_) && MathHelper::NearEqual(yDpi_, other.yDpi_);
+    }
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return WriteAllFields(parcel);
+    }
+
+    static GameAdaptiveResolutionConfig* Unmarshalling(Parcel& parcel)
+    {
+        auto config = std::make_unique<GameAdaptiveResolutionConfig>();
+        if (!config || !ReadAllFields(parcel, *config)) {
+            return nullptr;
+        }
+        return config.release();
+    }
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "enable: " << enable_ << ", scaleRatio: " << scaleRatio_ << ", windowId: " << windowId_ <<
+            ", inputHook: " << inputHook_ << ", notifyWindow: " << notifyWindow_ <<
+            ", notifyDisplay: " << notifyDisplay_ << ", autoMetrics: " << autoMetrics_ <<
+            ", density: " << density_ << ", xDpi: " << xDpi_ << ", yDpi: " << yDpi_;
+        return oss.str();
+    }
+
+private:
+    bool WriteAllFields(Parcel& parcel) const
+    {
+        return parcel.WriteBool(enable_) && parcel.WriteFloat(scaleRatio_) && parcel.WriteInt32(windowId_) &&
+            parcel.WriteBool(inputHook_) && parcel.WriteBool(notifyWindow_) && parcel.WriteBool(notifyDisplay_) &&
+            parcel.WriteBool(autoMetrics_) && parcel.WriteFloat(density_) &&
+            parcel.WriteFloat(xDpi_) && parcel.WriteFloat(yDpi_);
+    }
+
+    static bool ReadAllFields(Parcel& parcel, GameAdaptiveResolutionConfig& config)
+    {
+        return parcel.ReadBool(config.enable_) && parcel.ReadFloat(config.scaleRatio_) &&
+            parcel.ReadInt32(config.windowId_) && parcel.ReadBool(config.inputHook_) &&
+            parcel.ReadBool(config.notifyWindow_) && parcel.ReadBool(config.notifyDisplay_) &&
+            parcel.ReadBool(config.autoMetrics_) && parcel.ReadFloat(config.density_) &&
+            parcel.ReadFloat(config.xDpi_) && parcel.ReadFloat(config.yDpi_);
+    }
+};
+
+/**
+ * @brief State of the game adaptive resolution hook pushed from SCB to the app.
+ *
+ * SET carries the config for local apply (SA initiated). CANCELLED carries an
+ * enable=false config; the app restores the real window state and clears its
+ * stored config. AVAILABLE carries no meaningful config; the game module can
+ * re-apply after the conflicting display hook is removed.
+ */
+enum class GameAdaptiveResolutionStatus : int32_t {
+    SET = 0,
+    CANCELLED = 1,
+    AVAILABLE = 2,
 };
 
 /**
@@ -1419,6 +1528,7 @@ inline constexpr Rect Rect::EMPTY_RECT { 0, 0, 0, 0 };
  * @brief hook diaplayinfo deepending on the window size.
  */
 struct HookInfo {
+    DisplayId displayId_ = 0;
     uint32_t width_;
     uint32_t height_;
     float_t density_;
@@ -1426,16 +1536,19 @@ struct HookInfo {
     bool enableHookRotation_;
     uint32_t displayOrientation_;
     bool enableHookDisplayOrientation_;
+    float_t dpiForceScale_ = 0.0f;
     Rect actualRect_ = { 0, 0, 0, 0};
 
     std::string ToString() const
     {
         std::ostringstream oss;
-        oss << "width: " << width_ << ", height: " << height_ << ", density: " << density_
+        oss << "displayId: " << displayId_
+            << ", width: " << width_ << ", height: " << height_ << ", density: " << density_
             << ", rotation: " << rotation_
             << ", enableHookRotation: " << (enableHookRotation_ ? "true" : "false")
             << ", displayOrientation: " << displayOrientation_
             << ", enableHookDisplayOrientation: " << (enableHookDisplayOrientation_ ? "true" : "false")
+            << ", dpiForceScale: " << dpiForceScale_
             << ", actualPosX: " << actualRect_.posX_ << ", actualPosY: " << actualRect_.posY_
             << ", actualWidth: " << actualRect_.width_ << ", actualHeight :" << actualRect_.height_;
         return oss.str();
@@ -2576,6 +2689,22 @@ struct WindowLimits {
     bool IsValid() const
     {
         return minWidth_ <= maxWidth_ && minHeight_ <= maxHeight_;
+    }
+
+    template<typename RectT>
+    RectT ClampRect(const RectT& rect) const
+    {
+        if (!IsValid()) {
+            return rect;
+        }
+        RectT result = rect;
+        result.width_ = std::clamp(rect.width_,
+            static_cast<decltype(rect.width_)>(minWidth_),
+            static_cast<decltype(rect.width_)>(maxWidth_));
+        result.height_ = std::clamp(rect.height_,
+            static_cast<decltype(rect.height_)>(minHeight_),
+            static_cast<decltype(rect.height_)>(maxHeight_));
+        return result;
     }
 
     /**
@@ -4479,6 +4608,7 @@ enum class WindowManagerAgentType : uint32_t {
     WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
     WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
     WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+    WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE,
     WINDOW_MANAGER_AGENT_TYPE_END,
 };
 

@@ -75,6 +75,7 @@ public:
     }
 
     virtual void UpdateDensity() = 0;
+    virtual void UpdateDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale, float windowStartDensity) {}
     virtual WSError UpdateOrientation() = 0;
 
     /**
@@ -87,6 +88,11 @@ public:
      * @return Returns WSError::WS_OK if called success, otherwise failed .
      */
     virtual WSError UpdateSessionViewportConfig(const SessionViewportConfig& config)
+    {
+        return WSError::WS_OK;
+    };
+    // set window start density to UEA provider, applied directly without scaling
+    virtual WSError SetWindowStartDensity(float density)
     {
         return WSError::WS_OK;
     };
@@ -372,6 +378,8 @@ public:
     virtual WSError NotifyAppForceLandscapeConfigUpdated() = 0;
     virtual WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) = 0;
     virtual WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) = 0;
+    virtual WSError NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config) { return WSError::WS_DO_NOTHING; }
     virtual WSError CloseSpecificScene() { return WSError::WS_DO_NOTHING; }
     virtual WSError UpdateBrightness(float brightness) = 0;
 

@@ -28,6 +28,8 @@
 #include "ani_window_animation_utils.h"
 #include "ani_common_want.h"
 #include "ets_request_info.h"
+#include "event_handler.h"
+#include "event_runner.h"
 #include "interop_js/arkts_esvalue.h"
 #include "interop_js/arkts_interop_js_api.h"
 #include "interop_js/hybridgref_ani.h"
@@ -91,7 +93,6 @@ AniWindow::AniWindow(const sptr<Window>& window, ani_vm* vm)
             TLOGI(WmsLogTag::WMS_LIFE, "Remove window %{public}s", windowName.c_str());
         }
         windowToken_ = nullptr;
-        isDestroyed_ = true;
         TLOGI(WmsLogTag::WMS_LIFE, "Destroy window %{public}s in ani window", windowName.c_str());
     };
     windowToken_->RegisterWindowDestroyedListener(func);
@@ -1581,7 +1582,7 @@ void AniWindow::OnSetReceiveDragEventEnabled(ani_env* env, ani_boolean enabled)
         return;
     }
 
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetReceiveDragEventEnabled(enabled));
+    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->SetReceiveDragEventEnabled(enabled));
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setReceiveDragEventEnabled", ret);
         AniWindowUtils::AniThrowError(env, ret, "SetReceiveDragEventEnabled failed.");
@@ -1642,7 +1643,7 @@ void AniWindow::OnSetSeparationTouchEnabled(ani_env* env, ani_boolean enabled)
         return;
     }
 
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetSeparationTouchEnabled(enabled));
+    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->SetSeparationTouchEnabled(enabled));
     if (ret != WmErrorCode::WM_OK) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setSeparationTouchEnabled", ret);
         AniWindowUtils::AniThrowError(env, ret, "SetSeparationTouchEnabled failed.");
@@ -2155,7 +2156,28 @@ void AniWindow::OnSetWindowTouchable(ani_env* env, ani_boolean isTouchable)
         AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
-    WmErrorCode ret = AniWindowUtils::ToErrorCode(window->SetTouchable(static_cast<bool>(isTouchable)));
+    auto mainRunner = AppExecFwk::EventRunner::GetMainEventRunner();
+    if (mainRunner == nullptr) {
+        TLOGE(WmsLogTag::WMS_EVENT, "[ANI]main event runner is nullptr!");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+        return;
+    }
+    wptr<Window> weakWindow = window;
+    WmErrorCode ret = WmErrorCode::WM_OK;
+    auto task = [weakWindow, isTouchable, &ret]() {
+        auto win = weakWindow.promote();
+        if (win == nullptr) {
+            ret = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
+            return;
+        }
+        ret = AniWindowUtils::ToErrorCode(win->SetTouchable(static_cast<bool>(isTouchable)));
+    };
+    if (mainRunner->IsCurrentRunnerThread()) {
+        task();
+    } else {
+        auto eventHandler = std::make_shared<AppExecFwk::EventHandler>(mainRunner);
+        eventHandler->PostSyncTask(task, __func__, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+    }
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_EVENT, "[ANI]SetTouchable failed, ret: %{public}d", ret);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWindowTouchable", ret);
@@ -2559,7 +2581,6 @@ __attribute__((no_sanitize("cfi")))
         return aniWindowObj;
     }
     TLOGI(WmsLogTag::DEFAULT, "[ANI] create window obj");
- 
     ani_status ret;
     ani_class cls = nullptr;
     if ((ret = env->FindClass("@ohos.window.window.WindowInternal", &cls)) != ANI_OK) {
@@ -2569,7 +2590,6 @@ __attribute__((no_sanitize("cfi")))
     ani_vm* vm = nullptr;
     env->GetVM(&vm);
     std::unique_ptr<AniWindow> aniWindow = std::make_unique<AniWindow>(window, vm);
- 
     ani_method initFunc = nullptr;
     if ((ret = env->Class_FindMethod(cls, "<ctor>", ":", &initFunc)) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] get ctor fail %{public}u", ret);
@@ -2586,6 +2606,7 @@ __attribute__((no_sanitize("cfi")))
         return nullptr;
     }
     env->Object_CallMethod_Void(obj, setObjFunc, reinterpret_cast<ani_long>(aniWindow.get()));
+    env->Object_SetFieldByName_Boolean(obj, "isDestroyed", ani_boolean(false));
     ani_ref ref = nullptr;
     if (env->GlobalReference_Create(obj, &ref) != ANI_OK) {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] create global ref fail");
@@ -2813,12 +2834,8 @@ void AniWindow::OnUnregisterWindowCallback(ani_env* env, ani_string type, ani_re
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     auto window = GetWindow();
     if (window == nullptr) {
-        if (isDestroyed_) {
-            TLOGI(WmsLogTag::WMS_LIFE, "window is already destroy, ignore.");
-        } else {
-            TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
-            AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        }
+        TLOGE(WmsLogTag::DEFAULT, "[ANI] window is nullptr");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         return;
     }
     std::string cbType;
@@ -3455,13 +3472,13 @@ void AniWindow::DestroyWindow(ani_env* env, ani_object obj, ani_long nativeObj)
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
-        aniWindow->OnDestroyWindow(env);
+        aniWindow->OnDestroyWindow(env, obj);
     } else {
         TLOGE(WmsLogTag::DEFAULT, "[ANI] aniWindow is nullptr");
     }
 }
 
-void AniWindow::OnDestroyWindow(ani_env* env)
+void AniWindow::OnDestroyWindow(ani_env* env, ani_object obj)
 {
     TLOGI(WmsLogTag::DEFAULT, "[ANI]");
     auto window = GetWindow();
@@ -3482,6 +3499,10 @@ void AniWindow::OnDestroyWindow(ani_env* env)
     if (ret != WmErrorCode::WM_OK) {
         AniWindowUtils::AniThrowError(env, ret, "Window destroy failed");
         return;
+    }
+    ani_status status = env->Object_SetFieldByName_Boolean(obj, "isDestroyed", ani_boolean(true));
+    if (status != ANI_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "[ANI] set isDestroyed true failed, status: %{public}u", status);
     }
     windowToken_ = nullptr;
 }

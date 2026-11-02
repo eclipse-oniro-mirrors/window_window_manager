@@ -45,12 +45,13 @@ constexpr uint32_t LOCAL_FALLBACK_ID_LIMIT = 2000000;
 constexpr uint32_t LOCAL_ID_STRIDE = 1000;
 constexpr int32_t FIRST_RECORD_ID = 2;
 const std::string DEVICE_TYPE_CAR = "car";
+const std::string DEVICE_TYPE_2IN1 = "2in1";
 
 uint32_t GetSessionIdStride()
 {
     static const uint32_t stride = [] {
         const std::string deviceType = system::GetParameter("const.product.devicetype", "");
-        if (deviceType == DEVICE_TYPE_CAR) {
+        if (deviceType == DEVICE_TYPE_CAR || deviceType == DEVICE_TYPE_2IN1) {
             return STRIDE_LARGE_SCENE;
         }
         return STRIDE_DEFAULT;
@@ -62,7 +63,7 @@ int32_t GetMaxKeyId()
 {
     static const int32_t maxKeyId = [] {
         const std::string deviceType = system::GetParameter("const.product.devicetype", "");
-        if (deviceType == DEVICE_TYPE_CAR) {
+        if (deviceType == DEVICE_TYPE_CAR || deviceType == DEVICE_TYPE_2IN1) {
             return KEY_ID_MAX_LARGE_SCENE;
         }
         return KEY_ID_MAX_DEFAULT;

@@ -131,6 +131,10 @@ using NotifyRestartAppFunc = std::function<void(const SessionInfo& info, int32_t
 using ProcessCallingSessionIdChangeFunc = std::function<void(uint32_t callingSessionId)>;
 using GetRsCmdBlockingCountFunc = std::function<int32_t()>;
 using UpdateAppHookDisplayInfoFunc = std::function<WMError(int32_t uid, const HookInfo& hookInfo, bool enable)>;
+using AdaptiveResolutionConfigFunc =
+    std::function<WMError(int32_t persistentId, int32_t callingUid, const GameAdaptiveResolutionConfig& config)>;
+using AdaptiveResolutionModeChangeFunc = std::function<void(WindowMode newMode)>;
+using AdaptiveResolutionHookWindowChangeFunc = std::function<void(bool enableHookWindow)>;
 using GetAppUseControlDisplayMapFunc = std::function<std::unordered_map<DisplayId, bool>&()>;
 using SaveStartWindowFunc = std::function<void(std::string, std::string)>;
 
@@ -904,9 +908,17 @@ public:
     const sptr<LayoutController>& GetLayoutController() const { return layoutController_; }
     virtual WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) { return WSError::WS_OK; }
     virtual WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) { return WSError::WS_OK; }
+    virtual WSError NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config) { return WSError::WS_OK; }
     void NotifyWindowStatusDidChangeIfNeedWhenUpdateRect(SizeChangeReason reason);
     void SetGetRsCmdBlockingCountFunc(const GetRsCmdBlockingCountFunc& func);
     void SetUpdateAppHookDisplayInfoFunc(const UpdateAppHookDisplayInfoFunc& func);
+    void SetAdaptiveResolutionConfigFunc(const AdaptiveResolutionConfigFunc& func);
+    void SetAdaptiveResolutionModeChangeFunc(const AdaptiveResolutionModeChangeFunc& func);
+    void NotifyAdaptiveResolutionModeChange(WindowMode newMode);
+    void SetAdaptiveResolutionHookWindowChangeFunc(
+        const AdaptiveResolutionHookWindowChangeFunc& func);
+    void NotifyAdaptiveResolutionHookWindowChange(bool enableHookWindow);
     WSError UpdateClientRectInfo(const WSRect& rect, SizeChangeReason reason,
                                  const std::map<AvoidAreaType, AvoidArea>& avoidAreas,
                                  const std::shared_ptr<RSTransaction>& rsTransaction);
@@ -946,8 +958,8 @@ public:
     WindowLayoutInfo GetWindowLayoutInfoForWindowInfo() const;
     WindowMetaInfo GetWindowMetaInfoForWindowInfo() const;
     void SetClientDisplayIdChangeListener(const NotifyClientDisplayIdChangeFunc& func);
-    uint32_t GetPropertyDirtyFlags() const { return propertyDirtyFlags_; };
-    void SetPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ = dirtyFlags; }
+    uint32_t GetPropertyDirtyFlags() const { return propertyDirtyFlags_.load(); };
+    uint32_t SetPropertyDirtyFlags(uint32_t dirtyFlags) { return propertyDirtyFlags_.exchange(dirtyFlags); }
     void AddPropertyDirtyFlags(uint32_t dirtyFlags) { propertyDirtyFlags_ |= dirtyFlags; }
     WSError NotifyScreenshotAppEvent(ScreenshotEventType type);
     WSError UpdateBrightness(float brightness);
@@ -1035,6 +1047,8 @@ public:
      * update luoshu state
      */
     WSError UpdateLSStateInfo(bool isLSState);
+
+    virtual float GetCoordinateScaleFactor() const { return 1.0f; }
 
     /**
      * Background Running display hook
@@ -1198,6 +1212,9 @@ protected:
     NotifyRestoreFloatingBallMainWindowFunc restoreFloatingBallMainWindowFunc_;
     GetRsCmdBlockingCountFunc getRsCmdBlockingCountFunc_;
     UpdateAppHookDisplayInfoFunc updateAppHookDisplayInfoFunc_;
+    AdaptiveResolutionConfigFunc adaptiveResolutionConfigFunc_;
+    AdaptiveResolutionModeChangeFunc adaptiveResolutionModeChangeFunc_;
+    AdaptiveResolutionHookWindowChangeFunc adaptiveResolutionHookWindowChangeFunc_;
     NotifyRestoreFloatMainWindowFunc restoreFloatMainWindowFunc_;
     NotifyStopFloatViewFunc stopFloatViewFunc_;
     NotifyUpdateFloatViewFunc updateFloatViewFunc_;
@@ -1292,7 +1309,7 @@ protected:
     /*
      * Window Property
      */
-    uint32_t propertyDirtyFlags_ = 0;
+    std::atomic<uint32_t> propertyDirtyFlags_ = 0;
     void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
 
     template<typename T1, typename T2, typename Ret>
@@ -1515,6 +1532,8 @@ private:
     SaveStartWindowFunc saveStartWindowCallback_;
     float blurRadius_ = 0.0f;
     uint32_t blurBackgroundColor_ = 0x00000000;
+    std::shared_ptr<Media::PixelMap> GetLocalSnapshotWhenNoChild(bool needBlurSnapshot,
+        const std::shared_ptr<RSUIContext>& rsUICtx) const;
 
     /*
      * Specific Window

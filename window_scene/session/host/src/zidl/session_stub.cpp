@@ -387,6 +387,8 @@ int SessionStub::ProcessRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleNotifyIsFullScreenInForceSplitMode(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_SPLIT_RATIO_CHANGED):
             return HandleNotifySplitRatioChanged(data, reply);
+        case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_UPDATE_ADAPTIVE_RESOLUTION_CONFIG):
+            return HandleUpdateAdaptiveResolutionConfig(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_COMPATIBLE_MODE_CHANGE):
             return HandleNotifyCompatibleModeChange(data, reply);
         case static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_NOTIFY_PAGE_ENABLE):
@@ -2156,7 +2158,6 @@ int SessionStub::HandleUpdatePropertyByAction(MessageParcel& data, MessageParcel
         return ERR_INVALID_DATA;
     }
     auto action = static_cast<WSPropertyChangeAction>(actionValue);
-    TLOGD(WmsLogTag::DEFAULT, "action: %{public}" PRIu64, action);
     sptr<WindowSessionProperty> property = nullptr;
     if (data.ReadBool()) {
         property = sptr<WindowSessionProperty>::MakeSptr();
@@ -2167,6 +2168,7 @@ int SessionStub::HandleUpdatePropertyByAction(MessageParcel& data, MessageParcel
         TLOGW(WmsLogTag::DEFAULT, "Property not exist!");
     }
     const WMError ret = UpdateSessionPropertyByAction(property, action);
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ret: %{public}d, action: %{public}" PRIu64, ret, action);
     reply.WriteInt32(static_cast<int32_t>(ret));
     return ERR_NONE;
 }
@@ -2936,6 +2938,21 @@ int SessionStub::HandleNotifySplitRatioChanged(MessageParcel& data, MessageParce
     WMError errCode = NotifySplitRatioChanged(newRatio);
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_COMPAT, "write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SessionStub::HandleUpdateAdaptiveResolutionConfig(MessageParcel& data, MessageParcel& reply)
+{
+    sptr<GameAdaptiveResolutionConfig> config = data.ReadParcelable<GameAdaptiveResolutionConfig>();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleUpdateAdaptiveResolutionConfig] read config failed.");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = UpdateAdaptiveResolutionConfig(*config);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleUpdateAdaptiveResolutionConfig] write errCode fail.");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

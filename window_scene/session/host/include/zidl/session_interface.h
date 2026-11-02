@@ -726,6 +726,20 @@ public:
     }
 
     /**
+     * @brief sync the adaptive resolution config from the app to the server.
+     *
+     * The app applies the config locally (viewport/surface/touch hooks) and syncs it
+     * here so the server hooks the display info for the calling uid.
+     *
+     * @param config adaptive resolution config, see GameAdaptiveResolutionConfig
+     * @return WMError::WM_OK means sync success, otherwise failed.
+     */
+    virtual WMError UpdateAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config)
+    {
+        return WMError::WM_OK;
+    }
+
+    /**
      * @brief notify session when compatible mode change
      *
      * @param mode compatible mode.

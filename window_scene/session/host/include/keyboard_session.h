@@ -123,6 +123,8 @@ private:
     bool stateChanged_ = false;
     bool isNeedProcessKeyboardOccupiedAreaInfo(
         const KeyboardLayoutParams& lastParams, const KeyboardLayoutParams& params);
+    void ScaleKeyboardLayoutParams(const KeyboardLayoutParams& params, KeyboardLayoutParams& scaledParams);
+    void AdjustKeyboardLayoutForDpiForceScale(const sptr<WindowSessionProperty>& property);
     void SetSessionBlackListWhenShow(bool isCallingSessionSkip, const sptr<SceneSession>& panelSession);
     void CalculateOccupiedAreaAfterUIRefresh() override;
     WMError HandleActionUpdateKeyboardTouchHotArea(const sptr<WindowSessionProperty>& property,

@@ -30,6 +30,8 @@
             OHOS::Rosen::DmVirtualScreenOption::Unmarshalling*;
             OHOS::Rosen::FfrtQueueHelper::~FfrtQueueHelper*;
             OHOS::Rosen::FfrtQueueHelper::FfrtQueueHelper*;
+            OHOS::Rosen::FfrtQueueHelper::StartStatCollection*;
+            OHOS::Rosen::FfrtQueueHelper::StopStatCollection*;
             OHOS::Rosen::FfrtQueueHelper::SubmitTask*;
             OHOS::Rosen::FfrtQueueHelper::SubmitTaskAndWait*;
             OHOS::Rosen::FfrtQueueHelper::SubmitTaskToHead*;

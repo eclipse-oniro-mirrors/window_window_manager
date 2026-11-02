@@ -436,6 +436,8 @@ enum class ControlAppType : uint8_t {
     PARENT_CONTROL,
     DLP,
     PRIVACY_WINDOW,
+    APP_PROJECTION,
+    SCREEN_SHARED_PROTECTION,
     CONTROL_APP_TYPE_END,
 };
 
@@ -494,6 +496,23 @@ const std::map<WMError, WmErrorCode> WM_JS_TO_ERROR_CODE_MAP {
     {WMError::WM_ERROR_FV_START_FAILED,                WmErrorCode::WM_ERROR_FV_START_FAILED          },
     {WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,        WmErrorCode::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS  },
 };
+
+/**
+ * @brief Convert WMError to corresponding WmErrorCode.
+ *
+ * @param error WMError value to convert.
+ * @param defaultCode Value to return if mapping is not found.
+ * @return Corresponding WmErrorCode or defaultCode if unmapped.
+ */
+inline WmErrorCode ConvertErrorToCode(WMError error,
+    WmErrorCode defaultCode = WmErrorCode::WM_ERROR_STATE_ABNORMALLY)
+{
+    auto iter = WM_JS_TO_ERROR_CODE_MAP.find(error);
+    if (iter != WM_JS_TO_ERROR_CODE_MAP.end()) {
+        return iter->second;
+    }
+    return defaultCode;
+}
 
 /**
  * @brief Enumerates window size change reason.
@@ -1426,6 +1445,22 @@ struct WindowLimits {
     bool IsValid() const
     {
         return minWidth_ <= maxWidth_ && minHeight_ <= maxHeight_;
+    }
+
+    template<typename RectT>
+    RectT ClampRect(const RectT& rect) const
+    {
+        if (!IsValid()) {
+            return rect;
+        }
+        RectT result = rect;
+        result.width_ = std::clamp(rect.width_,
+            static_cast<decltype(rect.width_)>(minWidth_),
+            static_cast<decltype(rect.width_)>(maxWidth_));
+        result.height_ = std::clamp(rect.height_,
+            static_cast<decltype(rect.height_)>(minHeight_),
+            static_cast<decltype(rect.height_)>(maxHeight_));
+        return result;
     }
 
     /**

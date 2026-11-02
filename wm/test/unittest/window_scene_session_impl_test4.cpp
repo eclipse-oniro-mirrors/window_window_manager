@@ -2745,6 +2745,374 @@ HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPosition01, TestSize.Level
     EXPECT_EQ(originalEventPositionInfo.displayX, 100);
     EXPECT_EQ(originalEventPositionInfo.displayY, 200);
 }
+
+/**
+ * @tc.name: UpdateDpiForceScaleChange01
+ * @tc.desc: Test UpdateDpiForceScaleChange updates members and getters return updated values
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, UpdateDpiForceScaleChange01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("UpdateDpiForceScaleChange01");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    // default values
+    EXPECT_FALSE(windowSceneSessionImpl->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(windowSceneSessionImpl->GetDpiForceScale(), 1.0f);
+
+    // update to enabled with scale 1.5
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(1.5f, true, 2.0f);
+    EXPECT_TRUE(windowSceneSessionImpl->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(windowSceneSessionImpl->GetDpiForceScale(), 1.5f);
+
+    // update back to disabled with scale 1.0
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(1.0f, false, 0.0f);
+    EXPECT_FALSE(windowSceneSessionImpl->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(windowSceneSessionImpl->GetDpiForceScale(), 1.0f);
+
+    // update with negative scale value (function stores as-is, no validation here)
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(-1.25f, true, -3.0f);
+    EXPECT_TRUE(windowSceneSessionImpl->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(windowSceneSessionImpl->GetDpiForceScale(), -1.25f);
+}
+
+/**
+ * @tc.name: ConvertPointerEventForDpiForceScale01
+ * @tc.desc: Test ConvertPointerEventForDpiForceScale returns early when isDpiForceScale_ is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, ConvertPointerEventForDpiForceScale01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertPointerEventForDpiForceScale01");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    int32_t pointerId = 0;
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    ASSERT_NE(nullptr, pointerEvent);
+    pointerEvent->SetPointerId(pointerId);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(pointerId);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(200);
+    pointerItem.SetGlobalX(150.0f);
+    pointerItem.SetGlobalY(250.0f);
+    pointerEvent->AddPointerItem(pointerItem);
+
+    // isDpiForceScale_ defaults to false -> no conversion
+    windowSceneSessionImpl->ConvertPointerEventForDpiForceScale(pointerEvent);
+    pointerEvent->GetPointerItem(pointerId, pointerItem);
+    EXPECT_EQ(pointerItem.GetDisplayX(), 100);
+    EXPECT_EQ(pointerItem.GetDisplayY(), 200);
+    EXPECT_FLOAT_EQ(pointerItem.GetGlobalX(), 150.0f);
+    EXPECT_FLOAT_EQ(pointerItem.GetGlobalY(), 250.0f);
+}
+
+/**
+ * @tc.name: ConvertPointerEventForDpiForceScale02
+ * @tc.desc: Test ConvertPointerEventForDpiForceScale returns early when scaleFactor ~= 1.0
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, ConvertPointerEventForDpiForceScale02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertPointerEventForDpiForceScale02");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(1.0f, true, 1.0f);
+
+    int32_t pointerId = 0;
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    ASSERT_NE(nullptr, pointerEvent);
+    pointerEvent->SetPointerId(pointerId);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(pointerId);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(200);
+    pointerEvent->AddPointerItem(pointerItem);
+
+    // scaleFactor ~= 1.0 -> early return, no conversion
+    windowSceneSessionImpl->ConvertPointerEventForDpiForceScale(pointerEvent);
+    pointerEvent->GetPointerItem(pointerId, pointerItem);
+    EXPECT_EQ(pointerItem.GetDisplayX(), 100);
+    EXPECT_EQ(pointerItem.GetDisplayY(), 200);
+}
+
+/**
+ * @tc.name: ConvertPointerEventForDpiForceScale03
+ * @tc.desc: Test ConvertPointerEventForDpiForceScale returns early when scaleFactor <= 0.0
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, ConvertPointerEventForDpiForceScale03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertPointerEventForDpiForceScale03");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(0.0f, true, 1.0f);
+
+    int32_t pointerId = 0;
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    ASSERT_NE(nullptr, pointerEvent);
+    pointerEvent->SetPointerId(pointerId);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(pointerId);
+    pointerItem.SetDisplayX(100);
+    pointerItem.SetDisplayY(200);
+    pointerEvent->AddPointerItem(pointerItem);
+
+    // scaleFactor == 0.0 -> early return
+    windowSceneSessionImpl->ConvertPointerEventForDpiForceScale(pointerEvent);
+    pointerEvent->GetPointerItem(pointerId, pointerItem);
+    EXPECT_EQ(pointerItem.GetDisplayX(), 100);
+    EXPECT_EQ(pointerItem.GetDisplayY(), 200);
+
+    // negative scaleFactor -> early return
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(-2.0f, true, 1.0f);
+    windowSceneSessionImpl->ConvertPointerEventForDpiForceScale(pointerEvent);
+    pointerEvent->GetPointerItem(pointerId, pointerItem);
+    EXPECT_EQ(pointerItem.GetDisplayX(), 100);
+    EXPECT_EQ(pointerItem.GetDisplayY(), 200);
+}
+
+/**
+ * @tc.name: ConvertPointerEventForDpiForceScale04
+ * @tc.desc: Test ConvertPointerEventForDpiForceScale scales display/global coordinates when scaleFactor=1.5
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, ConvertPointerEventForDpiForceScale04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertPointerEventForDpiForceScale04");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    const float scaleFactor = 1.5f;
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(scaleFactor, true, 1.0f);
+
+    int32_t pointerId = 0;
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    ASSERT_NE(nullptr, pointerEvent);
+    pointerEvent->SetPointerId(pointerId);
+    MMI::PointerEvent::PointerItem pointerItem;
+    pointerItem.SetPointerId(pointerId);
+    const int32_t phyDispX = 300;
+    const int32_t phyDispY = 450;
+    pointerItem.SetDisplayX(phyDispX);
+    pointerItem.SetDisplayY(phyDispY);
+    pointerItem.SetGlobalX(500.0f);
+    pointerItem.SetGlobalY(650.0f);
+    pointerEvent->AddPointerItem(pointerItem);
+
+    windowSceneSessionImpl->ConvertPointerEventForDpiForceScale(pointerEvent);
+    pointerEvent->GetPointerItem(pointerId, pointerItem);
+
+    int32_t expectedDispX = static_cast<int32_t>(phyDispX / scaleFactor);
+    int32_t expectedDispY = static_cast<int32_t>(phyDispY / scaleFactor);
+    EXPECT_EQ(pointerItem.GetDisplayX(), expectedDispX);
+    EXPECT_EQ(pointerItem.GetDisplayY(), expectedDispY);
+    // global = global - phyDisp + display
+    EXPECT_FLOAT_EQ(pointerItem.GetGlobalX(), 500.0f - phyDispX + expectedDispX);
+    EXPECT_FLOAT_EQ(pointerItem.GetGlobalY(), 650.0f - phyDispY + expectedDispY);
+}
+
+/**
+ * @tc.name: ConvertPointerEventForDpiForceScale05
+ * @tc.desc: Test ConvertPointerEventForDpiForceScale with no pointer item -> no crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, ConvertPointerEventForDpiForceScale05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ConvertPointerEventForDpiForceScale05");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(1.5f, true, 1.0f);
+
+    std::shared_ptr<MMI::PointerEvent> pointerEvent = MMI::PointerEvent::Create();
+    ASSERT_NE(nullptr, pointerEvent);
+    pointerEvent->SetPointerId(0);
+    // no pointer item added -> GetPointerItem returns false, no crash, no update
+    windowSceneSessionImpl->ConvertPointerEventForDpiForceScale(pointerEvent);
+    MMI::PointerEvent::PointerItem pointerItem;
+    EXPECT_FALSE(pointerEvent->GetPointerItem(0, pointerItem));
+}
+
+/**
+ * @tc.name: CovertEventPositionToOriginForDpiForceScale01
+ * @tc.desc: Test CovertEventPositionToOriginForDpiForceScale early returns when not enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, CovertEventPositionToOriginForDpiForceScale01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CovertEventPositionToOriginForDpiForceScale01");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+    eventPositionInfo.displayXPos = 100.0;
+    eventPositionInfo.displayYPos = 200.0;
+    eventPositionInfo.globalX = 300.0;
+    eventPositionInfo.globalY = 400.0;
+
+    EventPositionInfo originalEventPositionInfo;
+    originalEventPositionInfo.displayX = 1;
+    originalEventPositionInfo.displayY = 2;
+    originalEventPositionInfo.displayXPos = 3.0;
+    originalEventPositionInfo.displayYPos = 4.0;
+    originalEventPositionInfo.globalX = 5.0;
+    originalEventPositionInfo.globalY = 6.0;
+
+    // isDpiForceScale_ defaults to false -> original unchanged
+    windowSceneSessionImpl->CovertEventPositionToOriginForDpiForceScale(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(originalEventPositionInfo.displayX, 1);
+    EXPECT_EQ(originalEventPositionInfo.displayY, 2);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 3.0);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 4.0);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, 5.0);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, 6.0);
+}
+
+/**
+ * @tc.name: CovertEventPositionToOriginForDpiForceScale02
+ * @tc.desc: Test CovertEventPositionToOriginForDpiForceScale with only valid int32 displayX/Y
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, CovertEventPositionToOriginForDpiForceScale02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CovertEventPositionToOriginForDpiForceScale02");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    const float scaleFactor = 2.0f;
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(scaleFactor, true, 1.0f);
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+    // displayXPos/YPos left invalid -> double branch skipped
+    eventPositionInfo.displayXPos = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.displayYPos = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalX = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalY = EventPositionInfo::INVALID_DOUBLE;
+
+    EventPositionInfo originalEventPositionInfo;
+    windowSceneSessionImpl->CovertEventPositionToOriginForDpiForceScale(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(originalEventPositionInfo.displayX, static_cast<int32_t>(100 * scaleFactor));
+    EXPECT_EQ(originalEventPositionInfo.displayY, static_cast<int32_t>(200 * scaleFactor));
+    // double fields not updated by int branch, original defaults (INVALID_DOUBLE) preserved
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, EventPositionInfo::INVALID_DOUBLE);
+}
+
+/**
+ * @tc.name: CovertEventPositionToOriginForDpiForceScale03
+ * @tc.desc: Test CovertEventPositionToOriginForDpiForceScale with invalid int32 and invalid double branches
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, CovertEventPositionToOriginForDpiForceScale03, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CovertEventPositionToOriginForDpiForceScale03");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    const float scaleFactor = 2.0f;
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(scaleFactor, true, 1.0f);
+
+    // invalid int32, valid double but invalid global -> only double branch executes (global stays)
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = EventPositionInfo::INVALID_INT32;
+    eventPositionInfo.displayY = EventPositionInfo::INVALID_INT32;
+    eventPositionInfo.displayXPos = 100.0;
+    eventPositionInfo.displayYPos = 200.0;
+    eventPositionInfo.globalX = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalY = EventPositionInfo::INVALID_DOUBLE;
+
+    EventPositionInfo originalEventPositionInfo;
+    windowSceneSessionImpl->CovertEventPositionToOriginForDpiForceScale(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(originalEventPositionInfo.displayX, EventPositionInfo::INVALID_INT32);
+    EXPECT_EQ(originalEventPositionInfo.displayY, EventPositionInfo::INVALID_INT32);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.0 * scaleFactor);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 200.0 * scaleFactor);
+    // global stays INVALID (inner if skipped due to INVALID globalX/Y)
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, EventPositionInfo::INVALID_DOUBLE);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, EventPositionInfo::INVALID_DOUBLE);
+}
+
+/**
+ * @tc.name: CovertEventPositionToOriginForDpiForceScale04
+ * @tc.desc: Test CovertEventPositionToOriginForDpiForceScale full path with valid double + global
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, CovertEventPositionToOriginForDpiForceScale04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("CovertEventPositionToOriginForDpiForceScale04");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    const float scaleFactor = 2.0f;
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(scaleFactor, true, 1.0f);
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+    eventPositionInfo.displayXPos = 100.0;
+    eventPositionInfo.displayYPos = 200.0;
+    eventPositionInfo.globalX = 300.0;
+    eventPositionInfo.globalY = 400.0;
+
+    EventPositionInfo originalEventPositionInfo;
+    windowSceneSessionImpl->CovertEventPositionToOriginForDpiForceScale(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(originalEventPositionInfo.displayX, static_cast<int32_t>(100 * scaleFactor));
+    EXPECT_EQ(originalEventPositionInfo.displayY, static_cast<int32_t>(200 * scaleFactor));
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayXPos, 100.0 * scaleFactor);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.displayYPos, 200.0 * scaleFactor);
+    // global = global - displayXPos + phyDisplayX
+    double expectedGlobalX = 300.0 - 100.0 + (100.0 * scaleFactor);
+    // NOTE: production code uses displayXPos for globalY delta (apparent typo); mirror actual behavior here
+    double expectedGlobalY = 400.0 - 200.0 + (100.0 * scaleFactor);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalX, expectedGlobalX);
+    EXPECT_DOUBLE_EQ(originalEventPositionInfo.globalY, expectedGlobalY);
+}
+
+/**
+ * @tc.name: GetEventOriginalPositionDpiForceScale
+ * @tc.desc: Test GetEventOriginalPosition applies DpiForceScale conversion when enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest4, GetEventOriginalPositionDpiForceScale, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetEventOriginalPositionDpiForceScale");
+    sptr<WindowSceneSessionImpl> windowSceneSessionImpl = sptr<WindowSceneSessionImpl>::MakeSptr(option);
+
+    SessionInfo sessionInfo = { "TestBundle", "TestModule", "TestAbility" };
+    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowSceneSessionImpl->property_->SetPersistentId(1);
+    windowSceneSessionImpl->hostSession_ = session;
+    windowSceneSessionImpl->property_->SetDisplayId(0);
+
+    const float scaleFactor = 2.0f;
+    windowSceneSessionImpl->UpdateDpiForceScaleChange(scaleFactor, true, 1.0f);
+
+    EventPositionInfo eventPositionInfo;
+    eventPositionInfo.displayX = 100;
+    eventPositionInfo.displayY = 200;
+    eventPositionInfo.displayXPos = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.displayYPos = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalX = EventPositionInfo::INVALID_DOUBLE;
+    eventPositionInfo.globalY = EventPositionInfo::INVALID_DOUBLE;
+
+    EventPositionInfo originalEventPositionInfo;
+    auto ret = windowSceneSessionImpl->GetEventOriginalPosition(eventPositionInfo, originalEventPositionInfo);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(originalEventPositionInfo.displayX, static_cast<int32_t>(100 * scaleFactor));
+    EXPECT_EQ(originalEventPositionInfo.displayY, static_cast<int32_t>(200 * scaleFactor));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

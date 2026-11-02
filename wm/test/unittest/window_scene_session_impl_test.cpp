@@ -21,6 +21,7 @@
 #include "mock_session.h"
 #include "mock_uicontent.h"
 #include "mock_window_adapter.h"
+#include "mock_window_scene_session_impl.h"
 #include "scene_board_judgement.h"
 #include "session/host/include/scene_session.h"
 #include "singleton_mocker.h"
@@ -1065,6 +1066,112 @@ HWTEST_F(WindowSceneSessionImplTest, StartMove01, TestSize.Level1)
 }
 
 /**
+ * @tc.name: IsDragMoveCapabilitySupported
+ * @tc.desc: Each capability independently permits moving, using the current display instead of the device mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, IsDragMoveCapabilitySupported, TestSize.Level1)
+{
+    constexpr DisplayId nonFreeDisplayId = 1;
+    constexpr DisplayId freeDisplayId = 2;
+    struct TestCase {
+        DisplayId displayId;
+        bool isPcAppInPad;
+        bool isDeviceFeatureCapable;
+        bool expected;
+    };
+    const TestCase testCases[] = {
+        { nonFreeDisplayId, false, false, false },
+        { freeDisplayId, false, false, true },
+        { nonFreeDisplayId, true, false, true },
+        { nonFreeDisplayId, false, true, true },
+    };
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    auto window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_ = { freeDisplayId };
+    for (const auto& testCase : testCases) {
+        SCOPED_TRACE(testing::Message() << "displayId=" << testCase.displayId
+            << ", isPcAppInPad=" << testCase.isPcAppInPad
+            << ", isDeviceFeatureCapable=" << testCase.isDeviceFeatureCapable);
+        window->property_->SetDisplayId(testCase.displayId);
+        window->property_->SetIsPcAppInPad(testCase.isPcAppInPad);
+        // The device-wide mode intentionally differs from the expected per-display result.
+        window->windowSystemConfig_.freeMultiWindowEnable_ = !testCase.expected;
+        EXPECT_CALL(*window, IsDeviceFeatureCapableForFreeMultiWindow())
+            .WillOnce(Return(testCase.isDeviceFeatureCapable));
+        EXPECT_EQ(window->WindowSceneSessionImpl::IsDragMoveCapabilitySupported(), testCase.expected);
+    }
+}
+
+/**
+ * @tc.name: StartMoveWindowWithCoordinateUsesCurrentDisplayMode
+ * @tc.desc: Coordinate moves follow the current display mode and preserve unsupported-device errors
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, StartMoveWindowWithCoordinateUsesCurrentDisplayMode, TestSize.Level1)
+{
+    constexpr DisplayId nonFreeDisplayId = 1;
+    constexpr DisplayId freeDisplayId = 2;
+    for (auto windowUIType : { WindowUIType::PHONE_WINDOW, WindowUIType::PAD_WINDOW, WindowUIType::PC_WINDOW }) {
+        SCOPED_TRACE(static_cast<int>(windowUIType));
+        sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+        auto window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
+        window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+        window->property_->SetPersistentId(1);
+        window->property_->SetWindowRect({ 0, 0, 1000, 1000 });
+        window->property_->SetIsPcAppInPad(false);
+        window->windowSystemConfig_.windowUIType_ = windowUIType;
+        window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+        window->windowSystemConfig_.freeMultiWindowEnable_ = true;
+        window->windowSystemConfig_.supportMultiWindowScreenSet_ = { freeDisplayId };
+        EXPECT_CALL(*window, IsDeviceFeatureCapableForFreeMultiWindow()).Times(3).WillRepeatedly(Return(false));
+        SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
+        auto session = sptr<SessionMocker>::MakeSptr(sessionInfo);
+        window->hostSession_ = session;
+        EXPECT_CALL(*session, SyncSessionEvent(_)).Times(1).WillOnce(Return(WSError::WS_OK));
+
+        std::string errMsg;
+        window->property_->SetDisplayId(nonFreeDisplayId);
+        EXPECT_EQ(window->StartMoveWindowWithCoordinate(100, 50, errMsg), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+        EXPECT_EQ(errMsg, "The device is not supported");
+        window->windowSystemConfig_.freeMultiWindowEnable_ = false;
+        window->property_->SetDisplayId(freeDisplayId);
+        EXPECT_EQ(window->StartMoveWindowWithCoordinate(100, 50, errMsg), WmErrorCode::WM_OK);
+        EXPECT_TRUE(errMsg.empty());
+        window->property_->SetDisplayId(nonFreeDisplayId);
+        EXPECT_EQ(window->StartMoveWindowWithCoordinate(100, 50), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+    }
+}
+
+/**
+ * @tc.name: IsStartMovingAllowed
+ * @tc.desc: Capability support allows moving; otherwise only system windows and subwindows are allowed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplTest, IsStartMovingAllowed, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    auto window = sptr<MockWindowSceneSessionImpl>::MakeSptr(option);
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    window->property_->SetIsPcAppInPad(false);
+    EXPECT_CALL(*window, IsDeviceFeatureCapableForFreeMultiWindow()).Times(4).WillRepeatedly(Return(false));
+
+    // Exercise the real capability helper's true path through the current display.
+    window->windowSystemConfig_.supportMultiWindowScreenSet_ = { window->property_->GetDisplayId() };
+    EXPECT_TRUE(window->WindowSceneSessionImpl::IsStartMovingAllowed());
+
+    // Exercise its false path and all branches of the window-type fallback.
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.clear();
+    EXPECT_FALSE(window->WindowSceneSessionImpl::IsStartMovingAllowed());
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_GLOBAL_SEARCH);
+    EXPECT_TRUE(window->WindowSceneSessionImpl::IsStartMovingAllowed());
+    window->property_->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    EXPECT_TRUE(window->WindowSceneSessionImpl::IsStartMovingAllowed());
+}
+
+/**
  * @tc.name: StartMoveWindow_PhoneSystemWindowSuccess
  * @tc.desc: StartMoveWindow Test - Phone device with system window should succeed
  * @tc.type: FUNC
@@ -1122,6 +1229,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowSuccess, TestSize.L
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
@@ -1188,6 +1296,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadWithFreeMultiWindowSucce
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
     window->windowSystemConfig_.freeMultiWindowEnable_ = true;
     window->windowSystemConfig_.freeMultiWindowSupport_ = true;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
@@ -1221,6 +1330,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowWithoutSessionFaile
     window->property_->SetPersistentId(1);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
 }
 
@@ -1240,6 +1350,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowWithoutMoveDragCont
     SessionInfo info = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     window->hostSession_ = sceneSession;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
 }
 
@@ -1260,6 +1371,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PcWindowWithValidSessionSuc
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     window->hostSession_ = sceneSession;
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
@@ -1282,6 +1394,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_RepeatOperationFailed, Test
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     sceneSession->moveDragController_->hasPointDown_ = true;
     sceneSession->moveDragController_->SetStartMoveFlag(true);
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_ERROR_REPEAT_OPERATION);
 }
 
@@ -1412,6 +1525,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMoveWindow_PadFloatingWindowWithFreeMu
     SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
     sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
     window->hostSession_ = session;
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StartMoveWindow(), WmErrorCode::WM_OK);
 }
 
@@ -1496,6 +1610,8 @@ HWTEST_F(WindowSceneSessionImplTest, StopMoveWindow, TestSize.Level1)
     ASSERT_EQ(window->StopMoveWindow(), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
 
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    EXPECT_EQ(window->StopMoveWindow(), WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     ASSERT_EQ(window->StopMoveWindow(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
 
     SessionInfo info = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
@@ -1504,6 +1620,7 @@ HWTEST_F(WindowSceneSessionImplTest, StopMoveWindow, TestSize.Level1)
     ASSERT_EQ(window->StopMoveWindow(), WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
 
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
+    window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
     ASSERT_EQ(window->StopMoveWindow(), WmErrorCode::WM_OK);
 }
 /**
@@ -4724,6 +4841,7 @@ HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsForwardsRequestToHost
     sceneSession->moveDragController_ = sptr<MoveDragController>::MakeSptr(wptr(sceneSession));
     window->hostSession_ = sceneSession;
 
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_OK);
 }
 
@@ -4745,8 +4863,10 @@ HWTEST_F(WindowSceneSessionImplTest, StartMovingWithOptionsReturnsHostSessionErr
     sceneSession->moveDragController_->isStartMove_ = true;
     window->hostSession_ = sceneSession;
 
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     EXPECT_EQ(window->StartMovingWithOptions({}), WMError::WM_ERROR_REPEAT_OPERATION);
 }
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

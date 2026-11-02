@@ -23,6 +23,10 @@
 
 namespace OHOS {
 namespace Rosen {
+
+extern "C" FFI_EXPORT int64_t OHOS_CreateCJWindowStage(
+    const std::shared_ptr<WindowScene>& windowScene);
+
 class CJWindowStageImpl : public OHOS::FFI::FFIData {
     DECL_TYPE(CJWindowStageImpl, OHOS::FFI::FFIData)
 public:

@@ -250,7 +250,7 @@ HWTEST_F(ScreenSessionManagerTest, HookRadius, TestSize.Level1)
     }
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = createDefaultHookInfo();
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
     int radius = 1;
     ssm_->HookRadius(99, radius);
     sptr<DisplayInfo> displayInfo = ssm_->GetDisplayInfoById(0);

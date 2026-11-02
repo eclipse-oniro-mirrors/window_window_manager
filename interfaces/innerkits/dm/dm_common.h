@@ -724,6 +724,7 @@ struct DMRect {
  * @brief hook diaplayinfo deepending on the window size.
  */
 struct DMHookInfo {
+    DisplayId displayId_ = 0;
     uint32_t width_;
     uint32_t height_;
     float_t density_;
@@ -731,8 +732,41 @@ struct DMHookInfo {
     bool enableHookRotation_;
     uint32_t displayOrientation_;
     bool enableHookDisplayOrientation_;
+    float_t dpiForceScale_ = 0.0f;
     DMRect actualRect_ = { 0, 0, 0, 0};
     bool isFullScreenInForceSplit_;
+};
+
+/**
+ * @struct DMAdaptiveResolutionConfig.
+ *
+ * @brief Adaptive resolution config for one uid. Display size is scaled by
+ *        scaleRatio_ for the target app; metrics follow the same ratio (autoMetrics_)
+ *        or the density_ override (0 means keep original, dpi follows density x 160).
+ */
+struct DMAdaptiveResolutionConfig {
+    float scaleRatio_ = 1.0f;
+    bool autoMetrics_ = true;
+    bool notifyDisplay_ = true;
+    float density_ = 0.0f;
+    float xDpi_ = 0.0f;
+    float yDpi_ = 0.0f;
+    bool systemModified_ = false;
+
+    // Effective state only covers fields that change the hooked result;
+    // notifyDisplay_ is a control flag and excluded on purpose. Floats use epsilon.
+    static bool IsNearEqual(float left, float right)
+    {
+        constexpr float ADAPTIVE_RESOLUTION_EPSILON = 0.001f;
+        return (left - right) < ADAPTIVE_RESOLUTION_EPSILON && (right - left) < ADAPTIVE_RESOLUTION_EPSILON;
+    }
+
+    bool HasSameEffect(const DMAdaptiveResolutionConfig& other) const
+    {
+        return IsNearEqual(scaleRatio_, other.scaleRatio_) && autoMetrics_ == other.autoMetrics_ &&
+            IsNearEqual(density_, other.density_) && IsNearEqual(xDpi_, other.xDpi_) &&
+            IsNearEqual(yDpi_, other.yDpi_);
+    }
 };
 
 struct CaptureOption {

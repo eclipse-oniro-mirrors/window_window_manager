@@ -288,6 +288,7 @@
             OHOS::Rosen::WindowManager::DumpSessionAll*;
             OHOS::Rosen::WindowManager::DumpSessionWithId*;
             OHOS::Rosen::WindowManager::GetAccessibilityWindowInfo*;
+            OHOS::Rosen::WindowManager::GetAllGroupInfo*;
             OHOS::Rosen::WindowManager::GetAllMainWindowInfo*;
             OHOS::Rosen::WindowManager::GetAllWindowLayoutInfo*;
             OHOS::Rosen::WindowManager::GetAppDragResizeType*;
@@ -353,6 +354,9 @@
             OHOS::Rosen::WindowManager::SetAppDragResizeType*;
             OHOS::Rosen::WindowManager::SetAppKeyFramePolicy*;
             OHOS::Rosen::WindowManager::SetForegroundWindowNum*;
+            OHOS::Rosen::WindowManager::SetGameAdaptiveResolutionConfig*;
+            OHOS::Rosen::WindowManager::RegisterGameAdaptiveResolutionListener*;
+            OHOS::Rosen::WindowManager::UnregisterGameAdaptiveResolutionListener*;
             OHOS::Rosen::WindowManager::SetGestureNavigationEnabled*;
             OHOS::Rosen::WindowManager::SetGlobalDragResizeType*;
             OHOS::Rosen::WindowManager::SetProcessWatermark*;

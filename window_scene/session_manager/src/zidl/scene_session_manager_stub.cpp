@@ -44,6 +44,9 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
     switch (code) {
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_CREATE_AND_CONNECT_SPECIFIC_SESSION):
             return HandleCreateAndConnectSpecificSession(data, reply);
+        case static_cast<uint32_t>(
+            SceneSessionManagerMessage::TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW):
+            return HandleSetGameAdaptiveResolutionForWindow(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RECOVER_AND_CONNECT_SPECIFIC_SESSION):
             return HandleRecoverAndConnectSpecificSession(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_RECOVER_AND_RECONNECT_SCENE_SESSION):
@@ -67,6 +70,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUnregisterWindowPropertyChangeAgent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_FOCUS_SESSION_INFO):
             return HandleGetFocusSessionInfo(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_ALL_GROUP_INFO):
+            return HandleGetAllGroupInfo(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_FOCUS_SESSION_INFO_BY_ABILITY_TOKEN):
             return HandleGetFocusWindowInfoByAbilityToken(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_SESSION_LABEL):
@@ -320,10 +325,27 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_SET_WINDOW_POSITION):
             return HandleSetWindowPosition(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_IS_HOOK_EXTENSION_WINDOW):
+            return HandleIsHookExtensionWindow(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
     }
+}
+
+int SceneSessionManagerStub::HandleSetGameAdaptiveResolutionForWindow(MessageParcel& data, MessageParcel& reply)
+{
+    sptr<GameAdaptiveResolutionConfig> config = data.ReadParcelable<GameAdaptiveResolutionConfig>();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleSetGameAdaptiveResolutionForWindow] Read config failed");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = SetGameAdaptiveResolutionForWindow(*config);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleSetGameAdaptiveResolutionForWindow] Write errCode failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
 }
 
 int SceneSessionManagerStub::HandleCreateAndConnectSpecificSession(MessageParcel& data, MessageParcel& reply)
@@ -707,6 +729,34 @@ int SceneSessionManagerStub::HandleGetFocusWindowInfoByAbilityToken(MessageParce
     FocusChangeInfo focusInfo;
     GetFocusWindowInfoByAbilityToken(focusInfo, abilityToken);
     reply.WriteParcelable(&focusInfo);
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleGetAllGroupInfo(MessageParcel&, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "in stub");
+    std::unordered_map<DisplayId, DisplayGroupId> displayId2GroupIdMap;
+    std::vector<sptr<FocusChangeInfo>> allFocusInfoList;
+    GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
+    TLOGI(WmsLogTag::WMS_FOCUS, "start reply");
+    if (!MarshallingHelper::MarshallingVectorParcelableObj<FocusChangeInfo>(reply, allFocusInfoList)) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "Failed to write window info");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(displayId2GroupIdMap.size()))) {
+        TLOGE(WmsLogTag::WMS_FOCUS, "write displayId2GroupIdMap size failed");
+        return ERR_INVALID_DATA;
+    }
+    for (const auto& entry : displayId2GroupIdMap) {
+        if (!reply.WriteUint64(entry.first)) {
+            TLOGE(WmsLogTag::WMS_FOCUS, "write displayId failed");
+            return ERR_INVALID_DATA;
+        }
+        if (!reply.WriteUint64(entry.second)) {
+            TLOGE(WmsLogTag::WMS_FOCUS, "write displayGroupId failed");
+            return ERR_INVALID_DATA;
+        }
+    }
     return ERR_NONE;
 }
 
@@ -2472,6 +2522,26 @@ int SceneSessionManagerStub::HandleIsPcWindow(MessageParcel& data, MessageParcel
     WMError errCode = IsPcWindow(isPcWindow);
     if (!reply.WriteBool(isPcWindow)) {
         TLOGE(WmsLogTag::WMS_UIEXT, "Write isPcWindow fail.");
+        return ERR_INVALID_DATA;
+    }
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write errCode fail.");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleIsHookExtensionWindow(MessageParcel& data, MessageParcel& reply)
+{
+    std::string bundleName;
+    if (!data.ReadString(bundleName)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Read bundleName failed.");
+        return ERR_INVALID_DATA;
+    }
+    bool isHook = false;
+    WMError errCode = IsHookExtensionWindow(bundleName, isHook);
+    if (!reply.WriteBool(isHook)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write isHook fail.");
         return ERR_INVALID_DATA;
     }
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {

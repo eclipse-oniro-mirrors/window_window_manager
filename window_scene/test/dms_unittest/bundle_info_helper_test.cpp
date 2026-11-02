@@ -68,11 +68,11 @@ HWTEST_F(BundleInfoHelperTest, GetCurBundleNameTest, TestSize.Level1)
 {
     std::shared_ptr<BundleInfo> bundleInfoPtr = std::make_shared<BundleInfo>();
     bundleInfoPtr->name_ = "test";
-    SysCapUtil::pidBundleInfoMap_[0] = bundleInfoPtr;
+    SysCapUtil::GetPidBundleInfoMap()[0] = bundleInfoPtr;
     BundleInfoHelper::GetCurBundleName();
     BundleInfoHelper::GetBundleNameByPid(1);
     EXPECT_TRUE(SysCapUtil::GetBundleInfo(0) != nullptr);
-    SysCapUtil::pidBundleInfoMap_.clear();
+    SysCapUtil::GetPidBundleInfoMap().clear();
 }
 
 /**
@@ -84,11 +84,11 @@ HWTEST_F(BundleInfoHelperTest, GetBundleNameByPidTest, TestSize.Level1)
 {
     std::shared_ptr<BundleInfo> bundleInfoPtr = std::make_shared<BundleInfo>();
     bundleInfoPtr->name_ = "test";
-    SysCapUtil::pidBundleInfoMap_[0] = bundleInfoPtr;
+    SysCapUtil::GetPidBundleInfoMap()[0] = bundleInfoPtr;
     BundleInfoHelper::GetBundleNameByPid(0);
     BundleInfoHelper::GetBundleNameByPid(1);
     EXPECT_TRUE(SysCapUtil::GetBundleInfo(0) != nullptr);
-    SysCapUtil::pidBundleInfoMap_.clear();
+    SysCapUtil::GetPidBundleInfoMap().clear();
 }
 }
 } // namespace Rosen

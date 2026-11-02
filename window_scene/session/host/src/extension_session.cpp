@@ -15,6 +15,7 @@
 
 #include "session/host/include/extension_session.h"
 
+#include <cmath>
 #include "ipc_skeleton.h"
 
 #include "rs_adapter.h"
@@ -32,6 +33,7 @@ constexpr uint32_t PID_LENGTH = 18;
 constexpr uint32_t PID_MASK = (1 << PID_LENGTH) - 1;
 constexpr uint32_t PERSISTENTID_LENGTH = 12;
 constexpr uint32_t PERSISTENTID_MASK = (1 << PERSISTENTID_LENGTH) - 1;
+constexpr const char* WINDOW_START_DENSITY_KEY = "ohos.extra.param.key.windowStartDensity";
 
 void TryUpdateExtensionPersistentId(int32_t& persistentId)
 {
@@ -262,6 +264,9 @@ WSError ExtensionSession::ConnectInner(
         session->GetSessionProperty()->SetParentPersistentId(property->GetParentPersistentId());
         auto ret = session->Session::ConnectInner(
             sessionStage, eventChannel, nodeId, systemConfig, renderSession, surfaceNode, property, token, pid, uid);
+        if (ret == WSError::WS_OK) {
+            session->SendWindowStartDensity(sessionStage);
+        }
         renderSession = RSUIContextContainer::GetRenderSession();
         if (renderSession == nullptr) {
             TLOGE(WmsLogTag::WMS_UIEXT, "renderSession is nullptr");
@@ -333,6 +338,41 @@ std::shared_ptr<RSUIContext> ExtensionSession::GetFallbackRSUIContext()
         fallbackRSUIDirector_ = std::move(candidateDirector);
     }
     return fallbackRSUIDirector_->GetRSUIContext();
+}
+
+float ExtensionSession::GetWindowStartDensityFromWant(const AAFwk::Want& want)
+{
+    // windowStartDensity may be stored as Integer/Float/Double in WantParams,
+    // each GetXxxParam only matches its own type (IFloat::Query/IDouble::Query are
+    // strict), so try Integer first, then Float, then Double.
+    int intVal = want.GetIntParam(WINDOW_START_DENSITY_KEY, -1);
+    if (intVal >= 0) {
+        return static_cast<float>(intVal);
+    }
+    float floatVal = want.GetFloatParam(WINDOW_START_DENSITY_KEY, -1.0f);
+    if (floatVal >= 0.0f) {
+        return floatVal;
+    }
+    double doubleVal = want.GetDoubleParam(WINDOW_START_DENSITY_KEY, -1.0);
+    if (doubleVal >= 0.0) {
+        return static_cast<float>(doubleVal);
+    }
+    return -1.0f;
+}
+
+void ExtensionSession::SendWindowStartDensity(const sptr<ISessionStage>& sessionStage)
+{
+    const auto& sessionInfo = GetSessionInfo();
+    // send window start density FIRST so it's available when UpdateSessionViewportConfig calculates density
+    float density = -1.0f;
+    if (sessionInfo.want) {
+        density = GetWindowStartDensityFromWant(*sessionInfo.want);
+    }
+    if (density > 0.0f) {
+        TLOGNI(WmsLogTag::WMS_UIEXT, "send SetWindowStartDensity density:%{public}f "
+            "pid:%{public}d", density, GetPersistentId());
+        sessionStage->SetWindowStartDensity(density);
+    }
 }
 
 std::shared_ptr<RSUIContext> ExtensionSession::GetRSUIContext(const char* caller)

@@ -1546,8 +1546,19 @@ WSError Session::UpdateRect(const WSRect& rect, SizeChangeReason reason,
 
 void Session::IsNeedNotifySubSessionParentSizeChange(const WSRect& rect)
 {
-    WSRect lastParentRect = GetLayoutController()->GetLastClientParentSize();
-    if (lastParentRect.width_ != rect.width_ || lastParentRect.height_ != rect.height_) {
+    auto layoutController = GetLayoutController();
+    WSRect lastParentRect = layoutController->GetLastClientParentSize();
+    float lastScaleX = layoutController->GetLastScaleX();
+    float lastScaleY = layoutController->GetLastScaleY();
+    float currScaleX = layoutController->GetScaleX();
+    float currScaleY = layoutController->GetScaleY();
+    // Calculate actual display size considering scale
+    int32_t lastLayoutWidth = lastParentRect.width_ * lastScaleX;
+    int32_t lastLayoutHeight = lastParentRect.height_ * lastScaleY;
+    int32_t currLayoutWidth = static_cast<int32_t>(rect.width_ * currScaleX);
+    int32_t currLayoutHeight = static_cast<int32_t>(rect.height_ * currScaleY);
+    if (lastParentRect.width_ != rect.width_ || lastParentRect.height_ != rect.height_ ||
+        lastLayoutWidth != currLayoutWidth || lastLayoutHeight != currLayoutHeight) {
         Rect parentRect = { rect.posX_, rect.posY_, static_cast<uint32_t>(rect.width_),
             static_cast<uint32_t>(rect.height_)};
         NotifySubSessionParentSizeChange(parentRect);
@@ -1558,11 +1569,12 @@ WSError Session::UpdateRectWithLayoutInfo(const WSRect& rect, SizeChangeReason r
     const std::string& updateReason, const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas, bool onlyUpdateAvoidArea)
 {
-    if (!sessionStage_) {
-        TLOGE(WmsLogTag::WMS_IMMS, "sessionStage_ is nullptr, id: %{public}d", GetPersistentId());
-        return WSError::WS_ERROR_INVALID_SESSION;
-    }
     if (onlyUpdateAvoidArea) {
+        GetLayoutController()->SetSessionRect(rect);
+        if (!sessionStage_) {
+            TLOGE(WmsLogTag::WMS_IMMS, "sessionStage_ is nullptr, id: %{public}d", GetPersistentId());
+            return WSError::WS_ERROR_INVALID_SESSION;
+        }
         for (const auto& [type, avoidArea] : avoidAreas) {
             auto ret = sessionStage_->UpdateAvoidArea(new AvoidArea(avoidArea), type);
             if (ret != WSError::WS_OK) {
@@ -1593,6 +1605,14 @@ WSError Session::UpdateRectWithLayoutInfoInner(const WSRect& rect, SizeChangeRea
     }
     WSRect updateRect = IsNeedConvertToRelativeRect(reason) ?
         GetLayoutController()->ConvertGlobalRectToRelative(rect, GetDisplayId()) : rect;
+    // Special compatible scale: convert physical coordinates to logical coordinates for the client
+    float scaleFactor = GetCoordinateScaleFactor();
+    if (!MathHelper::NearEqual(scaleFactor, 1.0f) && scaleFactor > 0) {
+        updateRect.posX_ = static_cast<int32_t>(updateRect.posX_ / scaleFactor);
+        updateRect.posY_ = static_cast<int32_t>(updateRect.posY_ / scaleFactor);
+        TLOGI(WmsLogTag::WMS_LAYOUT, "dpiforcescale update client rect: id: %{public}d, rect:%{public}s, "
+            "reason:%{public}u %{public}s", persistentId, updateRect.ToString().c_str(), reason, updateReason.c_str());
+    }
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "id:[%d]rect[%d,%d,%d,%d]ConvertToRelativeRect[%d,%d,%d,%d]",
         persistentId, rect.posX_, rect.posY_, rect.width_, rect.height_, updateRect.posX_, updateRect.posY_,
         updateRect.width_, updateRect.height_);
@@ -1738,6 +1758,7 @@ __attribute__((no_sanitize("cfi"))) WSError Session::ConnectInner(const sptr<ISe
     SetCallingPid(pid);
     callingUid_ = uid;
     NotifyPendingAppHookDisplayInfo();
+    isAlreadyDisconnect_ = false;
     UpdateSessionState(SessionState::STATE_CONNECT);
 
     // Window Layout
@@ -1898,6 +1919,7 @@ WSError Session::Reconnect(const sptr<ISessionStage>& sessionStage, const sptr<I
     auto windowRect = property->GetWindowRect();
     layoutRect_ = { windowRect.posX_, windowRect.posY_,
         static_cast<int32_t>(windowRect.width_), static_cast<int32_t>(windowRect.height_) };
+    isAlreadyDisconnect_ = false;
     UpdateSessionState(SessionState::STATE_CONNECT);
     EditSessionInfo().disableDelegator = property->GetIsAbilityHookOff();
     for (const auto& [transitionType, animation] : property->GetTransitionAnimationConfig()) {
@@ -2081,6 +2103,7 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken,
     isStarting_ = false;
     bufferAvailable_ = false;
     isNeedSyncSessionRect_ = true;
+    const bool isFirstDisconnect = !isAlreadyDisconnect_;
     isAlreadyDisconnect_ = true;
     // SCBSystemSession release surfaceNode when it detach
     if (mainHandler_ && !IsSystemSession()) {
@@ -2111,7 +2134,7 @@ WSError Session::Disconnect(bool isFromClient, const std::string& identityToken,
     UpdateSessionState(SessionState::STATE_BACKGROUND);
     UpdateSessionState(SessionState::STATE_DISCONNECT);
     NotifyDisconnect();
-    if (visibilityChangedDetectFunc_) {
+    if (visibilityChangedDetectFunc_ && isFirstDisconnect) {
         visibilityChangedDetectFunc_(GetCallingPid(), isVisible_.load(), false);
     }
     // If session is disconnect, clear it's outline if need.
@@ -3376,7 +3399,11 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
     }
     constexpr int32_t FFRT_SNAPSHOT_TIMEOUT_MS = 5000;
     auto pixelMap = callback->GetResult(options.runInFfrt ? FFRT_SNAPSHOT_TIMEOUT_MS : SNAPSHOT_TIMEOUT_MS);
-    bool hasCaptureError = callback->GetCaptureErrorCode() != CaptureError::CAPTURE_OK;
+    auto captureErrorCode = callback->GetCaptureErrorCode();
+    if (captureErrorCode == CaptureError::WINDOW_CAPTURE_NO_CHILD) {
+        return GetLocalSnapshotWhenNoChild(needBlurSnapshot, rsUICtx);
+    }
+    bool hasCaptureError = captureErrorCode != CaptureError::CAPTURE_OK;
     if (hasCaptureError) {
         TLOGE(WmsLogTag::WMS_PATTERN, "Capture privacy or special layer failed %{public}d", persistentId_);
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_TAKE_CAPTURE, "capture privacy or special layer failed");
@@ -3397,6 +3424,36 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_EMPTY_PIXELMAP, "pixelmap is null");
     }
     return nullptr;
+}
+
+std::shared_ptr<Media::PixelMap> Session::GetLocalSnapshotWhenNoChild(bool needBlurSnapshot,
+    const std::shared_ptr<RSUIContext>& rsUICtx) const
+{
+    TLOGW(WmsLogTag::WMS_PATTERN, "window capture no child %{public}d", persistentId_);
+    if (scenePersistence_ == nullptr) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "scenePersistence is nullptr %{public}d", persistentId_);
+        return nullptr;
+    }
+    auto lastLocalPixelMap = scenePersistence_->GetLocalSnapshotPixelMap(1, 1);
+    if (lastLocalPixelMap == nullptr) {
+        TLOGW(WmsLogTag::WMS_PATTERN, "local snapshot is nullptr %{public}d", persistentId_);
+        return nullptr;
+    }
+    if (!needBlurSnapshot) {
+        TLOGI(WmsLogTag::WMS_PATTERN, "get local snapshot done %{public}d", persistentId_);
+        return lastLocalPixelMap;
+    }
+    if (rsUICtx == nullptr || rsUICtx->GetRSRenderInterface() == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "rsUIContext is null, blur local snapshot failed %{public}d", persistentId_);
+        return nullptr;
+    }
+    auto blurLocalPixelMap = rsUICtx->GetRSRenderInterface()->BlurPixelMap(lastLocalPixelMap, blurRadius_);
+    if (blurLocalPixelMap == nullptr) {
+        TLOGE(WmsLogTag::WMS_PATTERN, "blur local snapshot failed %{public}d", persistentId_);
+        return nullptr;
+    }
+    TLOGI(WmsLogTag::WMS_PATTERN, "get blur local snapshot done %{public}d", persistentId_);
+    return blurLocalPixelMap;
 }
 
 void Session::ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const
@@ -4117,6 +4174,36 @@ void Session::SetUpdateAppHookDisplayInfoFunc(const UpdateAppHookDisplayInfoFunc
     updateAppHookDisplayInfoFunc_ = func;
 }
 
+void Session::SetAdaptiveResolutionConfigFunc(const AdaptiveResolutionConfigFunc& func)
+{
+    adaptiveResolutionConfigFunc_ = func;
+}
+
+void Session::SetAdaptiveResolutionModeChangeFunc(const AdaptiveResolutionModeChangeFunc& func)
+{
+    adaptiveResolutionModeChangeFunc_ = func;
+}
+
+void Session::NotifyAdaptiveResolutionModeChange(WindowMode newMode)
+{
+    if (adaptiveResolutionModeChangeFunc_) {
+        adaptiveResolutionModeChangeFunc_(newMode);
+    }
+}
+
+void Session::SetAdaptiveResolutionHookWindowChangeFunc(
+    const AdaptiveResolutionHookWindowChangeFunc& func)
+{
+    adaptiveResolutionHookWindowChangeFunc_ = func;
+}
+
+void Session::NotifyAdaptiveResolutionHookWindowChange(bool enableHookWindow)
+{
+    if (adaptiveResolutionHookWindowChangeFunc_) {
+        adaptiveResolutionHookWindowChangeFunc_(enableHookWindow);
+    }
+}
+
 void Session::SetAcquireRotateAnimationConfigFunc(const AcquireRotateAnimationConfigFunc& func)
 {
     if (func == nullptr) {
@@ -4685,9 +4772,9 @@ WSError Session::UpdateWindowMode(const WindowModeInfo& windowModeInfo)
     auto preMode = GetWindowMode();
     TLOGI(WmsLogTag::WMS_LAYOUT,
         "[WindowModeUpdate:ServerRecv] id:%{public}d, preMode:%{public}d, mode:%{public}d, "
-        "splitStyle:%{public}d, splitIndex:%{public}d",
-        GetPersistentId(), static_cast<int32_t>(preMode), static_cast<int32_t>(mode),
-        static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex);
+        "splitStyle:%{public}d, splitIndex:%{public}d", GetPersistentId(), static_cast<int32_t>(preMode),
+        static_cast<int32_t>(mode), static_cast<int32_t>(windowModeInfo.splitStyle), windowModeInfo.splitIndex);
+    NotifyAdaptiveResolutionModeChange(mode);
     auto property = GetSessionProperty();
     if (property == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT,

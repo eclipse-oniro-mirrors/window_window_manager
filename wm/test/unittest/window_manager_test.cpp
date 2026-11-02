@@ -1008,6 +1008,19 @@ HWTEST_F(WindowManagerTest, GetFocusWindowInfo, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetAllGroupInfo
+ * @tc.desc: window GetAllGroupInfo
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, GetAllGroupInfo, TestSize.Level1)
+{
+    std::unordered_map<DisplayId, DisplayGroupId> displayId2GroupIdMap;
+    std::vector<sptr<FocusChangeInfo>> allFocusInfoList;
+    ASSERT_NE(nullptr, instance_);
+    instance_->GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
+}
+
+/**
  * @tc.name: MinimizeAllAppWindows
  * @tc.desc: window MinimizeAllAppWindows
  * @tc.type: FUNC

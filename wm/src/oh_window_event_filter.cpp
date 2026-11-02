@@ -53,16 +53,23 @@ KeyEventFilterFunc convert2KeyEventFilterFunc(OH_NativeWindowManager_KeyEventFil
 {
     return [filter](const OHOS::MMI::KeyEvent& keyEvent) {
         Input_KeyEvent* input = OH_Input_CreateKeyEvent();
+        if (input == nullptr) {
+            TLOGNE(WmsLogTag::WMS_EVENT, "create input key event fail");
+            return false;
+        }
         OH_Input_SetKeyEventKeyCode(input, keyEvent.GetKeyCode());
         auto iter = keyEventActionMap.find(keyEvent.GetKeyAction());
         if (iter == keyEventActionMap.end()) {
+            OH_Input_DestroyKeyEvent(&input);
             return false;
         }
         OH_Input_SetKeyEventAction(input, iter->second);
         OH_Input_SetKeyEventActionTime(input, keyEvent.GetActionTime());
         OH_Input_SetKeyEventWindowId(input, keyEvent.GetTargetWindowId());
         OH_Input_SetKeyEventDisplayId(input, keyEvent.GetTargetDisplayId());
-        return filter(input);
+        bool res = filter(input);
+        OH_Input_DestroyKeyEvent(&input);
+        return res;
     };
 }
 
