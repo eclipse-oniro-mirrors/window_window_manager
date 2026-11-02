@@ -2179,7 +2179,9 @@ HWTEST_F(KeyboardSessionTest8, NotifyRootSceneOccupiedAreaChange01, TestSize.Lev
     keyboardSession->property_->SetDisplayId(100);
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
     ASSERT_NE(info, nullptr);
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
     EXPECT_NE(keyboardSession->property_, nullptr);
 }
 
@@ -2189,7 +2191,9 @@ HWTEST_F(KeyboardSessionTest8, NotifyRootSceneOccupiedAreaChange02, TestSize.Lev
     ASSERT_NE(keyboardSession, nullptr);
     keyboardSession->property_->SetDisplayId(0);
     sptr<OccupiedAreaChangeInfo> info = nullptr;
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
     EXPECT_NE(keyboardSession->property_, nullptr);
 }
 
@@ -2199,7 +2203,9 @@ HWTEST_F(KeyboardSessionTest8, NotifyRootSceneOccupiedAreaChange03, TestSize.Lev
     ASSERT_NE(keyboardSession, nullptr);
     keyboardSession->property_->SetDisplayId(DISPLAY_ID_INVALID);
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
     EXPECT_NE(keyboardSession->property_, nullptr);
 }
 

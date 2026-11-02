@@ -357,7 +357,9 @@ HWTEST_F(KeyboardSessionTest6, NotifyRootSceneOccupiedAreaChange01, TestSize.Lev
     keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange = nullptr;
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
     ASSERT_NE(info, nullptr);
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
 }
 
 HWTEST_F(KeyboardSessionTest6, NotifyRootSceneOccupiedAreaChange02, TestSize.Level1)
@@ -365,11 +367,13 @@ HWTEST_F(KeyboardSessionTest6, NotifyRootSceneOccupiedAreaChange02, TestSize.Lev
     auto keyboardSession = GetKeyboardSession("NotifyRoot02", "NotifyRoot02");
     ASSERT_NE(keyboardSession, nullptr);
     keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange =
-        [](const sptr<OccupiedAreaChangeInfo>& info) {};
+        [](const sptr<OccupiedAreaChangeInfo>& info, const sptr<AvoidArea>& avoidArea) {};
     keyboardSession->GetSessionProperty()->SetDisplayId(100);
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
     ASSERT_NE(info, nullptr);
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
 }
 
 HWTEST_F(KeyboardSessionTest6, NotifyRootSceneOccupiedAreaChange03, TestSize.Level1)
@@ -378,7 +382,9 @@ HWTEST_F(KeyboardSessionTest6, NotifyRootSceneOccupiedAreaChange03, TestSize.Lev
     ASSERT_NE(keyboardSession, nullptr);
     keyboardSession->keyboardCallback_ = nullptr;
     sptr<OccupiedAreaChangeInfo> info = nullptr;
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
 }
 
 HWTEST_F(KeyboardSessionTest6, RestoreCallingSession01, TestSize.Level1)

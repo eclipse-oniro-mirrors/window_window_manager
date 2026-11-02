@@ -2969,8 +2969,9 @@ sptr<KeyboardSession::KeyboardSessionCallback> SceneSessionManager::CreateKeyboa
     keyboardCb->onSystemKeyboardAvoidChange = [this](DisplayId displayId, SystemKeyboardAvoidChangeReason reason) {
         this->HandleKeyboardAvoidChange(nullptr, displayId, reason);
     };
-    keyboardCb->onNotifyOccupiedAreaChange = [this](const sptr<OccupiedAreaChangeInfo>& info) {
-        this->onNotifyAvoidAreaChangeForRootFunc_(nullptr, AvoidAreaType::TYPE_KEYBOARD, info);
+    keyboardCb->onNotifyOccupiedAreaChange = [this](const sptr<OccupiedAreaChangeInfo>& info,
+        const sptr<AvoidArea>& avoidArea) {
+        this->onNotifyAvoidAreaChangeForRootFunc_(avoidArea, AvoidAreaType::TYPE_KEYBOARD, info);
     };
     keyboardCb->isLastFrameLayoutFinished = [this]() {
         if (isRootSceneLastFrameLayoutFinishedFunc_ == nullptr) {
