@@ -19963,6 +19963,31 @@ WMError SceneSessionManager::TerminateSessionByPersistentId(int32_t persistentId
     return WMError::WM_OK;
 }
 
+WMError SceneSessionManager::UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_MAIN, "update session exclude param failed, only support SA calling.");
+        return WMError::WM_ERROR_INVALID_PERMISSION;
+    }
+    if (sessionsExcludeParam.empty()) {
+        TLOGE(WmsLogTag::WMS_MAIN, "sessionsExcludeParam is empty.");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    for (const auto& param : sessionsExcludeParam) {
+        auto sceneSession = GetSceneSession(param.persistentId);
+        if (sceneSession == nullptr) {
+            TLOGW(WmsLogTag::WMS_MAIN, "Session id:%{public}d is not found.", param.persistentId);
+            continue;
+        }
+        SessionEventParam eventParam;
+        eventParam.isExcludeFromDockInner = param.isExcludeFromDockInner;
+        sceneSession->OnSessionEvent(SessionEvent::EVENT_MODIFY_EXCLUDE_FROM_DOCK, eventParam);
+        TLOGI(WmsLogTag::WMS_MAIN, "Update sessions exclude param, id:%{public}d, "
+            "isExcludeFromDockInner:%{public}d.", param.persistentId, param.isExcludeFromDockInner);
+    }
+    return WMError::WM_OK;
+}
+
 WSError SceneSessionManager::PendingSessionToBackgroundByPersistentId(const int32_t persistentId,
     bool shouldBackToCaller, uint32_t reason)
 {

@@ -3380,4 +3380,45 @@ WMError SceneSessionManagerLiteProxy::UpdateRogWindowConfig(const RogWindowConfi
     }
     return static_cast<WMError>(ret);
 }
+
+WMError SceneSessionManagerLiteProxy::UpdateSessionsExcludeParam(
+    const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(static_cast<int32_t>(sessionsExcludeParam.size()))) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Write sessionsExcludeParam size failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    for (const auto& param : sessionsExcludeParam) {
+        if (!data.WriteInt32(param.persistentId) || !data.WriteBool(param.isExcludeFromDockInner)) {
+            TLOGE(WmsLogTag::WMS_MAIN, "Write sessionsExcludeParam failed");
+            return WMError::WM_ERROR_IPC_FAILED;
+        }
+    }
+
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "remote is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_MAIN, "SendRequest failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Read ret failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return static_cast<WMError>(ret);
+}
 } // namespace OHOS::Rosen

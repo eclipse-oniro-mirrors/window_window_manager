@@ -138,6 +138,7 @@ public:
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
         TRANS_ID_UPDATE_ROG_WINDOW_CONFIG,
         TRANS_ID_RESTORE_SESSION_TO_FOREGROUND,
+        TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM,
     };
 
     /*
@@ -515,6 +516,8 @@ public:
      * @return Successful call returns WMError: WM-OK, otherwise it indicates failure
      */
     virtual WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) = 0;
+
+    virtual WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam) = 0;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_INTERFACE_H

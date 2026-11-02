@@ -149,6 +149,7 @@ public:
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
+    WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);

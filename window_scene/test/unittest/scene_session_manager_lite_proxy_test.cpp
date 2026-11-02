@@ -1375,6 +1375,141 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RestoreSessionToForeground, TestSize.
     EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::ClearAllErrorFlag();
 }
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_Success
+ * @tc.desc: Test UpdateSessionsExcludeParam with valid param
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_Success, TestSize.Level1)
+{
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    param.isExcludeFromDockInner = true;
+    sessionsExcludeParam.push_back(param);
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_MutliSessions
+ * @tc.desc: Test UpdateSessionsExcludeParam with multiple sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_MutliSessions, TestSize.Level1)
+{
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param1;
+    param1.persistentId = 100;
+    param1.isExcludeFromDockInner = true;
+    SessionsExcludeParam param2;
+    param2.persistentId = 200;
+    param2.isExcludeFromDockInner = false;
+    sessionsExcludeParam.push_back(param1);
+    sessionsExcludeParam.push_back(param2);
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_WriteTokenFailed
+ * @tc.desc: Test UpdateSessionsExcludeParam when WriteInterfaceToken failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_WriteTokenFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    sessionsExcludeParam.push_back(param);
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam),
+        WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_WriteSizeFailed
+ * @tc.desc: Test UpdateSessionsExcludeParam when WriteInt32 of size failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_WriteSizeFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    sessionsExcludeParam.push_back(param);
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam),
+        WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_WriteBoolFieldFailed
+ * @tc.desc: Test UpdateSessionsExcludeParam when WriteBool of field failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_WriteBoolFieldFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    param.isExcludeFromDockInner = true;
+    sessionsExcludeParam.push_back(param);
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam),
+        WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_RemoteNullFailed
+ * @tc.desc: Test UpdateSessionsExcludeParam when remote object is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_RemoteNullFailed, TestSize.Level1)
+{
+    sptr<SceneSessionManagerLiteProxy> liteProxyNullRemote = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    sessionsExcludeParam.push_back(param);
+    EXPECT_EQ(liteProxyNullRemote->UpdateSessionsExcludeParam(sessionsExcludeParam), WMError::WM_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_SendReqFailed
+ * @tc.desc: Test UpdateSessionsExcludeParam when SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_SendReqFailed, TestSize.Level1)
+{
+    iRemoteObjectMocker_->SendRequestResult(1);
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    sessionsExcludeParam.push_back(param);
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam),
+        WMError::WM_ERROR_IPC_FAILED);
+    iRemoteObjectMocker_->SendRequestResult(0);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_ReadRetFailed
+ * @tc.desc: Test UpdateSessionsExcludeParam when ReadInt32 of ret failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, UpdateSessionsExcludeParam_ReadRetFailed, TestSize.Level1)
+{
+    MockMessageParcel::SetReadInt32ErrorFlag(true);
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    sessionsExcludeParam.push_back(param);
+    EXPECT_EQ(sceneSessionManagerLiteProxy_->UpdateSessionsExcludeParam(sessionsExcludeParam),
+        WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetReadInt32ErrorFlag(false);
+}
 }
 }
 }

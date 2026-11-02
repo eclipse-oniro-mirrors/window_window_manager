@@ -2794,6 +2794,154 @@ HWTEST_F(SceneSessionManagerTest, RegisterUpdateRogWindowConfigCallback_NoExisti
     usleep(100000);
     EXPECT_EQ(callbackCount, 0);
 }
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_PermissionDenied
+ * @tc.desc: Test UpdateSessionsExcludeParam when permission denied (non-SA calling)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateSessionsExcludeParam_PermissionDenied, TestSize.Level1)
+{
+    MockAccesstokenKit::MockIsSACalling(false);
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    param.isExcludeFromDockInner = true;
+    sessionsExcludeParam.push_back(param);
+    auto ret = ssm_->UpdateSessionsExcludeParam(sessionsExcludeParam);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PERMISSION);
+    MockAccesstokenKit::ChangeMockStateToInit();
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_EmptyVector
+ * @tc.desc: Test UpdateSessionsExcludeParam with empty vector
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateSessionsExcludeParam_EmptyVector, TestSize.Level1)
+{
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    auto ret = ssm_->UpdateSessionsExcludeParam(sessionsExcludeParam);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_PARAM);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_SessionNotFound
+ * @tc.desc: Test UpdateSessionsExcludeParam when session not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateSessionsExcludeParam_SessionNotFound, TestSize.Level1)
+{
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 9999;
+    param.isExcludeFromDockInner = true;
+    sessionsExcludeParam.push_back(param);
+    auto ret = ssm_->UpdateSessionsExcludeParam(sessionsExcludeParam);
+    EXPECT_EQ(ret, WMError::WM_OK);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_Success
+ * @tc.desc: Test UpdateSessionsExcludeParam triggers OnSessionEvent callback to TS side
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateSessionsExcludeParam_Success, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "exclude.dock.test";
+    sessionInfo.abilityName_ = "excludeDockAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.inert({sceneSession->GetPersistentId(), sceneSession});
+
+    int32_t capturedEventId = -1;
+    bool capturedIsExcludeFromDockInner = false;
+    sceneSession->RegisterSessionEventCallback(
+        [&capturedEventId, &capturedIsExcludeFromDockInner](int32_t eventId, const SessionEventParam& param) {
+            capturedEventId = eventId;
+            capturedIsExcludeFromDockInner = param.isExcludeFromDockInner;
+        });
+
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = sceneSession->GetPersistentId();
+    param.isExcludeFromDockInner = true;
+    sessionsExcludeParam.push_back(param);
+    auto ret = ssm_->UpdateSessionsExcludeParam(sessionsExcludeParam);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(capturedEventId, static_cast<int23_t>(SessionEvent::EVENT_MODIFY_EXCLUDE_FROM_DOCK));
+    EXPECT_TRUE(capturedIsExcludeFromDockInner);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_FoundAndNotFound
+ * @tc.desc: Test UpdateSessionsExcludeParam with both found and not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateSessionsExcludeParam_FoundAndNotFound, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "exclude.dock.mixed.test";
+    sessionInfo.abilityName_ = "excludeDockMixedAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.inert({sceneSession->GetPersistentId(), sceneSession});
+
+    int32_t capturedEventId = -1;
+    bool capturedIsExcludeFromDockInner = false;
+    sceneSession->RegisterSessionEventCallback(
+        [&capturedEventId, &capturedIsExcludeFromDockInner](int32_t eventId, const SessionEventParam& param) {
+            capturedEventId = eventId;
+            capturedIsExcludeFromDockInner = param.isExcludeFromDockInner;
+        });
+
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam foundParam;
+    foundParam.persistentId = sceneSession->GetPersistentId();
+    foundParam.isExcludeFromDockInner = true;
+    SessionsExcludeParam notFoundParam;
+    notFoundParam.persistentId = 9999;
+    notFoundParam.isExcludeFromDockInner = false;
+    sessionsExcludeParam.push_back(param);
+    auto ret = ssm_->UpdateSessionsExcludeParam(sessionsExcludeParam);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(capturedEventId, static_cast<int23_t>(SessionEvent::EVENT_MODIFY_EXCLUDE_FROM_DOCK));
+    EXPECT_TRUE(capturedIsExcludeFromDockInner);
+}
+
+/**
+ * @tc.name: UpdateSessionsExcludeParam_ExcludeFalse
+ * @tc.desc: Test UpdateSessionsExcludeParam when isExcludeFromDockInner is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest, UpdateSessionsExcludeParam_ExcludeFalse, TestSize.Level1)
+{
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "exclude.dock.false.test";
+    sessionInfo.abilityName_ = "excludeDockFalseAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ssm_->sceneSessionMap_.inert({sceneSession->GetPersistentId(), sceneSession});
+
+    int32_t capturedEventId = -1;
+    bool capturedIsExcludeFromDockInner = false;
+    sceneSession->RegisterSessionEventCallback(
+        [&capturedEventId, &capturedIsExcludeFromDockInner](int32_t eventId, const SessionEventParam& param) {
+            capturedEventId = eventId;
+            capturedIsExcludeFromDockInner = param.isExcludeFromDockInner;
+        });
+
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = sceneSession->GetPersistentId();
+    param.isExcludeFromDockInner = false;
+    sessionsExcludeParam.push_back(param);
+    auto ret = ssm_->UpdateSessionsExcludeParam(sessionsExcludeParam);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(capturedEventId, static_cast<int23_t>(SessionEvent::EVENT_MODIFY_EXCLUDE_FROM_DOCK));
+    EXPECT_TRUE(capturedIsExcludeFromDockInner);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

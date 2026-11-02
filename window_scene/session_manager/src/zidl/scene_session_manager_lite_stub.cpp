@@ -231,6 +231,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_ROG_WINDOW_CONFIG):
             return HandleUpdateRogWindowConfig(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM):
+            return HandleUpdateSessionsExcludeParam(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -2135,6 +2137,31 @@ int SceneSessionManagerLiteStub::HandleUpdateRogWindowConfig(MessageParcel& data
     WMError ret = UpdateRogWindowConfig(windowConfig);
     if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         TLOGE(WmsLogTag::WMS_COMPAT, "write ret failed");
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleUpdateSessionsExcludeParam(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    int32_t size = 0;
+    if (!data.ReadInt32(size) || size < 0 || size > MAX_VECTOR_SIZE) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read sessionsExcludeParam size failed");
+        return ERR_INVALID_DATA;
+    }
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    for (int32_t i = 0; i < size; i++) {
+        SessionsExcludeParam param;
+        if (!data.ReadInt32(param.persistentId) || !data.ReadBool(param.isExcludeFromDockInner)) {
+            TLOGE(WmsLogTag::WMS_MAIN, "read sessionsExcludeParam failed");
+            return ERR_INVALID_DATA;
+        }
+        sessionsExcludeParam.push_back(param);
+    }
+    WMError ret = UpdateSessionsExcludeParam(sessionsExcludeParam);
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+        TLOGE(WmsLogTag::WMS_MAIN, "write ret failed");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

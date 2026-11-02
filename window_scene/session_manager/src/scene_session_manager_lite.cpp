@@ -571,4 +571,11 @@ WMError SceneSessionManagerLite::UpdateRogWindowConfig(const RogWindowConfig& wi
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
 }
+
+WMError SceneSessionManagerLite::UpdateSessionsExcludeParam(
+    const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().UpdateSessionsExcludeParam(sessionsExcludeParam);
+}
 } // namespace OHOS::Rosen
