@@ -5019,12 +5019,26 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
     ScreenId ownerId = GetResolutionEffectOwner();
     MarkResolutionEffectIdle();
     SetInternalScreenResolutionEffect(internalSession, realResolutionRect);
-    auto ownerSession = GetScreenSession(ownerId);
-    if (ownerSession != nullptr) {
-        auto ownerProperty = ownerSession->GetScreenProperty();
+    sptr<ScreenSession> externalSession = GetScreenSession(ownerId);
+    if (externalSession == nullptr) {
+        // Owner invalid = never applied or already recovered, so no effect reset is owed (the
+        // owner attribution in RecoveryResolutionEffectOnOwnerExit stays untouched). The current
+        // mirror target still needs its cursor params reconciled to the region it legitimately
+        // holds: the params are meant to describe the stored region, but nothing enforces the
+        // pairing. Session creation writes full mode dims without a region, the mode-switch
+        // property swap moves params alone, and the plain mirror switch writes only the region,
+        // so a stale mirrorWidth has no other cleanup and would skew the multiinput cursor. The
+        // region itself is never touched here — caller-set regions (MakeMirror rect variants)
+        // and super-fold managed folded regions are not ours to wipe.
+        sptr<ScreenSession> internalProbe = nullptr;
+        GetInternalAndExternalSession(internalProbe, externalSession);
+        GetMirrorExternalSession(externalSession);
+        ReconcileMirrorCursorParams(externalSession);
+    } else {
+        auto ownerProperty = externalSession->GetScreenProperty();
         DMRect ownerRealRect = { 0, 0, ownerProperty.GetScreenRealWidth(),
             ownerProperty.GetScreenRealHeight()};
-        SetExternalScreenResolutionEffect(ownerSession, ownerRealRect);
+        SetExternalScreenResolutionEffect(externalSession, ownerRealRect);
     }
     HandleCastVirtualScreenMirrorRegion();
     NotifyScreenModeChange();
@@ -5117,6 +5131,27 @@ bool ScreenSessionManager::HandleCastVirtualScreenMirrorRegion()
     virtualSession->SetMirrorScreenRegion(virtualSession->GetScreenId(), mirrorRegion);
     virtualSession->EnableMirrorScreenRegion();
     return true;
+}
+
+void ScreenSessionManager::ReconcileMirrorCursorParams(const sptr<ScreenSession>& screenSession)
+{
+    if (screenSession == nullptr) {
+        return;
+    }
+    // Align the multiinput cursor params with the mirror region the screen currently holds.
+    // A mismatch is not an anomaly but the stale state being cleaned: creation-time mode dims,
+    // the mode-switch property swap, and region-only plain mirror switches each write one side
+    // without the other. Writers that keep the pairing (this machinery, SuperFoldStateManager's
+    // fold-state refresh) make this idempotent. A NONE region means full-screen mirror ->
+    // width/height 0.
+    DMRect mirrorRegion = screenSession->GetMirrorScreenRegion().second;
+    screenSession->UpdateMirrorWidth(mirrorRegion.width_);
+    screenSession->UpdateMirrorHeight(mirrorRegion.height_);
+    sptr<ScreenSession> phyScreenSession = GetPhysicalScreenSession(screenSession->GetRSScreenId());
+    if (phyScreenSession != nullptr) {
+        phyScreenSession->UpdateMirrorWidth(mirrorRegion.width_);
+        phyScreenSession->UpdateMirrorHeight(mirrorRegion.height_);
+    }
 }
 
 void ScreenSessionManager::GetCastVirtualMirrorSession(sptr<ScreenSession>& virtualSession)

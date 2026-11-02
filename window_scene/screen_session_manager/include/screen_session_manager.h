@@ -1500,6 +1500,14 @@ private:
     bool IsResolutionEffectOwnedByAnyOf(const std::vector<ScreenId>& screenIds) const;
     void MarkResolutionEffectApplied(ScreenId ownerId);
     void MarkResolutionEffectIdle();
+    // Aligns the multiinput cursor params (mirrorWidth/Height) of a screen — and of its physical
+    // backing session — with the mirror region that screen currently holds. Deliberately not
+    // owner-keyed: the params are supposed to describe the stored region, but several writers
+    // break that pairing — creation-time mode dims, the mode-switch property swap moving params
+    // alone, region-only plain mirror switches — so a mismatch is the stale state this cleans;
+    // writers that keep the pairing (this machinery, SuperFoldStateManager's fold-state refresh)
+    // make it idempotent.
+    void ReconcileMirrorCursorParams(const sptr<ScreenSession>& screenSession);
     std::atomic<bool> curResolutionEffectEnable_ = false;
     std::atomic<ScreenId> resolutionEffectOwnerId_ { SCREEN_ID_INVALID };
     void SetOptionConfig(ScreenId screenId, VirtualScreenOption option);
