@@ -1066,6 +1066,8 @@ public:
      * Compatible Mode
      */
     void RegisterPageEnableFunc(PageEnableFunc&& func);
+    WMError IsHookExtensionWindow(const std::string& bundleName, bool& isHook) override;
+    WMError SetHookExtensionWindowList(const std::vector<std::string>& bundleNames);
 
     void SetSelectMode(SelectMode selectMode);
     SelectMode GetSelectMode() const;
@@ -2267,6 +2269,8 @@ private:
     PageEnableFunc pageEnableFunc_;
     WSError NotifyPageEnableFunc(const std::string& bundleName, int32_t windowId,
         const std::string& action, const std::string& message);
+    std::shared_mutex compatibleHookExtensionBundleNameMutex_;
+    std::unordered_set<std::string> compatibleHookExtensionBundleNames_;
 
     std::atomic<SelectMode> selectMode_{SelectMode::INVALID_MODE};
     

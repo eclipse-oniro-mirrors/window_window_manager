@@ -168,6 +168,7 @@
             OHOS::Rosen::SceneSessionManager::SetGestureNavigationEnabledChangeListener*;
             OHOS::Rosen::SceneSessionManager::SetHasRootSceneRequestedVsyncFunc*;
             OHOS::Rosen::SceneSessionManager::SetIsPipEnabled*;
+            OHOS::Rosen::SceneSessionManager::SetHookExtensionWindowList*;
             OHOS::Rosen::SceneSessionManager::SetIsRootSceneLastFrameLayoutFinishedFunc*;
             OHOS::Rosen::SceneSessionManager::SetIsWindowRectAutoSave*;
             OHOS::Rosen::SceneSessionManager::SetMaximizeFullScreen*;
