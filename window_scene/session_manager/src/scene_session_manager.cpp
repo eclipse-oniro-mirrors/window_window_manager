@@ -1235,6 +1235,11 @@ WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId
         sceneSession->SwitchFreeMultiWindow(systemConfig);
         TLOGD(WmsLogTag::WMS_LAYOUT_PC, "Switch single window, windowId: %{public}d, enable: %{public}d",
             windowId, enable);
+        if (enable) {
+            CancelAdaptiveResolutionByWindow(windowId);
+        } else {
+            TryNotifyAdaptiveResolutionAvailable(sceneSession, IsWindowFullScreen(sceneSession));
+        }
         return WSError::WS_OK;
     }
     LoadFreeMultiWindowConfig(enable);
@@ -1247,11 +1252,52 @@ WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId
             sceneSession->SwitchFreeMultiWindow(systemConfig_);
         }
     }
+    // FMW does not support adaptive resolution: cancel on entry, restore on exit.
+    if (enable) {
+        CancelAdaptiveResolutionOnFmwSwitch();
+    } else {
+        RestoreAdaptiveResolutionOnFmwSwitch();
+    }
     UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(enable);
     WindowStyleType type = enable ?
             WindowStyleType::WINDOW_STYLE_FREE_MULTI_WINDOW : WindowStyleType::WINDOW_STYLE_DEFAULT;
     SessionManagerAgentController::GetInstance().NotifyWindowStyleChange(type);
     return WSError::WS_OK;
+}
+
+void SceneSessionManager::CancelAdaptiveResolutionOnFmwSwitch()
+{
+    // Windows keeping fullscreen (no mode change) are covered here; the
+    // mode-change path cancels the rest (idempotent).
+    std::vector<int32_t> adaptiveIds;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        for (const auto& [id, _] : adaptiveResolutionWindows_) {
+            adaptiveIds.push_back(id);
+        }
+    }
+    for (const auto& id : adaptiveIds) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "[SwitchFreeMultiWindow] switchFmwOn, "
+            "cancelling adaptive hook, windowId: %{public}d", id);
+        CancelAdaptiveResolutionByWindow(id);
+    }
+}
+
+void SceneSessionManager::RestoreAdaptiveResolutionOnFmwSwitch()
+{
+    // Windows still animating back to fullscreen are restored later by the
+    // mode-change path (idempotent).
+    std::vector<int32_t> pendingUids;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        for (const auto& [uid, _] : cancelledGameWindowsByUid_) {
+            pendingUids.push_back(uid);
+        }
+    }
+    for (const auto& uid : pendingUids) {
+        NotifyAdaptiveResolutionAvailable(uid,
+            ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(uid));
+    }
 }
 
 WSError SceneSessionManager::GetFreeMultiWindowEnableState(bool& enable)
@@ -21677,6 +21723,23 @@ bool SceneSessionManager::UpdateAdaptiveResolutionMaps(int32_t windowId, int32_t
     return needUpdateDmsHook;
 }
 
+// A ratio-1.0 hook owns no viewport (the free-multi-window exit flips enableHookWindow
+// on with the default ratio); only a real hook conflicts with adaptive resolution.
+static bool IsWindowHookConflict(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        return false;
+    }
+    auto property = sceneSession->GetSessionProperty();
+    if (property == nullptr) {
+        return false;
+    }
+    auto hookWindowInfo = property->GetHookWindowInfo();
+    return hookWindowInfo.enableHookWindow &&
+        !MathHelper::NearEqual(hookWindowInfo.widthHookRatio,
+            HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO);
+}
+
 WMError SceneSessionManager::HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession,
     int32_t callingUid, const GameAdaptiveResolutionConfig& config)
 {
@@ -21691,28 +21754,10 @@ WMError SceneSessionManager::HandleAdaptiveResolutionConfig(const sptr<SceneSess
             "mismatched windowId: %{public}d, session: %{public}d", config.windowId_, persistentId);
         return WMError::WM_ERROR_INVALID_PARAM;
     }
-    // The fullscreen and display-hook-conflict checks only apply to enabling
     if (config.enable_) {
-        if (!IsWindowFullScreen(sceneSession)) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] not fullscreen, "
-                "windowId: %{public}d", persistentId);
-            RecordPendingAdaptiveWindow(callingUid, persistentId);
-            return WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
-        }
-        // Window hook conflict: both own the viewport; local check before any IPC.
-        auto property = sceneSession->GetSessionProperty();
-        if (property != nullptr && property->GetHookWindowInfo().enableHookWindow) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] window hooked already, "
-                "windowId: %{public}d", persistentId);
-            RecordPendingAdaptiveWindow(callingUid, persistentId);
-            return WMError::WM_ERROR_INVALID_OPERATION;
-        }
-        // Sync IPC to DMS: keep after all local checks.
-        if (ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(callingUid)) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] display hooked already, "
-                "uid: %{public}d, windowId: %{public}d", callingUid, config.windowId_);
-            RecordPendingAdaptiveWindow(callingUid, persistentId);
-            return WMError::WM_ERROR_INVALID_OPERATION;
+        WMError ret = CheckAdaptiveResolutionEnable(sceneSession, callingUid, persistentId);
+        if (ret != WMError::WM_OK) {
+            return ret;
         }
     }
     TLOGI(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] windowId: %{public}d, "
@@ -21723,6 +21768,52 @@ WMError SceneSessionManager::HandleAdaptiveResolutionConfig(const sptr<SceneSess
             callingUid, config.enable_, ToDmAdaptiveResolutionConfig(config));
     }
     return WMError::WM_OK;
+}
+
+WMError SceneSessionManager::CheckAdaptiveResolutionEnable(const sptr<SceneSession>& sceneSession,
+    int32_t callingUid, int32_t persistentId)
+{
+    // The checks only apply to enabling; every rejection records a pending restore.
+    if (!IsWindowFullScreen(sceneSession)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] not fullscreen, "
+            "windowId: %{public}d", persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
+    }
+    if (IsWindowHookConflict(sceneSession)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] window hooked already, "
+            "windowId: %{public}d", persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    // Free multi window mode does not support adaptive resolution.
+    if (systemConfig_.freeMultiWindowEnable_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] free multi window mode, "
+            "not supported, windowId: %{public}d", persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
+    }
+    // Sync IPC to DMS: keep after all local checks.
+    if (ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(callingUid)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] display hooked already, "
+            "uid: %{public}d, windowId: %{public}d", callingUid, persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    // Adaptive owns the viewport now; a stale RESIZE gravity left by FMW would
+    // double-stretch once our surface scale resumes.
+    ResetAdaptiveWindowGravity(sceneSession);
+    return WMError::WM_OK;
+}
+
+void SceneSessionManager::ResetAdaptiveWindowGravity(const sptr<SceneSession>& sceneSession)
+{
+    auto surfaceNode = sceneSession != nullptr ? sceneSession->GetSurfaceNode() : nullptr;
+    if (surfaceNode != nullptr) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "[GravityModeChange] Id:%{public}d, adaptive enable, "
+            "reset gravity default", sceneSession->GetPersistentId());
+        surfaceNode->SetFrameGravity(Gravity::DEFAULT);
+    }
 }
 
 bool SceneSessionManager::IsWindowFullScreen(const sptr<SceneSession>& sceneSession)
@@ -21766,7 +21857,7 @@ void SceneSessionManager::CheckAdaptiveResolutionOnHookWindowChange(
         return;
     }
     int32_t persistentId = sceneSession->GetPersistentId();
-    if (enableHookWindow) {
+    if (enableHookWindow && IsWindowHookConflict(sceneSession)) {
         bool hasGameConfig = false;
         {
             std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
@@ -22033,8 +22124,11 @@ bool SceneSessionManager::IsAdaptiveResolutionRestorable(const sptr<SceneSession
     if (sceneSession == nullptr || displayHooked) {
         return false;
     }
-    auto property = sceneSession->GetSessionProperty();
-    if (property != nullptr && property->GetHookWindowInfo().enableHookWindow) {
+    if (IsWindowHookConflict(sceneSession)) {
+        return false;
+    }
+    // Free multi window mode does not support adaptive resolution.
+    if (systemConfig_.freeMultiWindowEnable_) {
         return false;
     }
     return fullscreenNow;

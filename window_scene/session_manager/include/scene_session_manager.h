@@ -879,6 +879,11 @@ public:
     void RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func);
     WMError HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession, int32_t callingUid,
         const GameAdaptiveResolutionConfig& config);
+    WMError CheckAdaptiveResolutionEnable(const sptr<SceneSession>& sceneSession, int32_t callingUid,
+        int32_t persistentId);
+    void ResetAdaptiveWindowGravity(const sptr<SceneSession>& sceneSession);
+    void CancelAdaptiveResolutionOnFmwSwitch();
+    void RestoreAdaptiveResolutionOnFmwSwitch();
     bool UpdateAdaptiveResolutionMaps(int32_t windowId, int32_t callingUid,
         const GameAdaptiveResolutionConfig& config);
     WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override;
