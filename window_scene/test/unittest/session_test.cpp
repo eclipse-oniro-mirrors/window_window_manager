@@ -1699,6 +1699,7 @@ HWTEST_F(WindowSessionTest, NotifyOccupiedAreaChangeInfo, TestSize.Level1)
     info->rect_ = { 0, 1700, 1260, 1020 };
     EXPECT_CALL(*(mockSessionStage), NotifyOccupiedAreaChangeInfo(_, _, _)).Times(1);
     session_->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
+
     const std::shared_ptr<RSTransaction>& rsTransaction = std::make_shared<RSTransaction>();
     EXPECT_NE(nullptr, rsTransaction);
     EXPECT_CALL(*(mockSessionStage), NotifyOccupiedAreaChangeInfo(_, _, _))
