@@ -43,6 +43,7 @@
 #endif
 #ifdef RESOURCE_SCHEDULE_SERVICE_ENABLE
 #include "res_sched_client.h"
+#include "res_sched_json_client.h"
 #endif
 #define RETURN_IF_CONVERT_FAIL(env, jsValue, value, paramName, logTag)                                    \
     do {                                                                                                  \
@@ -4651,7 +4652,7 @@ napi_value JsSceneSessionManager::OnGetRssData(napi_env env, napi_callback_info 
     static std::string pid = std::to_string(getprocpid());
     payload["srcPid"] = pid;
     nlohmann::json reply;
-    ResourceSchedule::ResSchedClient::GetInstance().ReportSyncEvent(resType, 0, payload, reply);
+    ResourceSchedule::ResSchedJsonClient::GetInstance().ReportSyncEvent(resType, 0, payload, reply);
     return RssSession::DealRssReply(env, payload, reply);
 #endif
     return NapiGetUndefined(env);

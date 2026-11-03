@@ -71,6 +71,7 @@
 #include "rdb/scope_guard.h"
 #include "rdb/starting_window_rdb_manager.h"
 #include "res_sched_client.h"
+#include "res_sched_json_client.h"
 #include "rs_adapter.h"
 #include "scene_input_manager.h"
 #include "scene_screen_change_listener.h"
@@ -10900,7 +10901,7 @@ void SceneSessionManager::NotifyRssThawApp(const int32_t uid, const std::string&
         payload.emplace("bundleName", bundleName);
         payload.emplace("reason", reason);
         nlohmann::json reply;
-        ResourceSchedule::ResSchedClient::GetInstance().ReportSyncEvent(resType, 0, payload, reply);
+        ResourceSchedule::ResSchedJsonClient::GetInstance().ReportSyncEvent(resType, 0, payload, reply);
         TLOGNI(WmsLogTag::WMS_FOCUS, "NotifyRssThawApp, uid: %{public}d", uid);
     });
 }
