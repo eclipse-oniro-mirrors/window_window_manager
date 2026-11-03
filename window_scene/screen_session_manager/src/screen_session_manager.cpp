@@ -3876,26 +3876,29 @@ DisplayId ScreenSessionManager::GetFakeDisplayId(sptr<ScreenSession> screenSessi
 std::vector<DisplayId> ScreenSessionManager::GetAllDisplayIds(int32_t userId)
 {
     TLOGD(WmsLogTag::DMS, "enter");
-    ScreenId filterScreenId = INVALID_SCREEN_ID;
+    std::vector<DisplayId> filterScreenIds;
     if (!IsConcurrentUser()) {
         userId = USER_ID_DEFAULT;
     }
     if (IsConcurrentUser() && userId == CONCURRENT_USER_ID_DEFAULT) {
         userId = GetUserIdByCallingUid();
-        filterScreenId = GetUserDisplayId(userId);
-        TLOGNFI(WmsLogTag::DMS, "concurrentuser open, userId: %{public}u, filterScreenId: %{public}" PRIu64"",
-              userId, filterScreenId);
+        TLOGNFI(WmsLogTag::DMS, "concurrent user, userId: %{public}u", userId);
     }
+    filterScreenIds = GetUserDisplayIds(userId);
+    return GetAllDisplayIdsInner(filterScreenIds, userId);
+}
+
+std::vector<DisplayId> ScreenSessionManager::GetAllDisplayIdsInner(
+    const std::vector<DisplayId>& filterScreenIds, const int32_t& userId)
+{
     std::vector<DisplayId> res;
     std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
     for (const auto& [screenId, screenSession] : screenSessionMap_) {
         if (screenSession == nullptr) {
-            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr, ScreenId:%{public}" PRIu64"", screenId);
+            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr, ScreenId:%{public}" PRIu64 "", screenId);
             continue;
         }
         const ScreenProperty& prop = screenSession->GetScreenProperty();
-
-        // collect all virtual screens, regardless of filter
         if (prop.GetScreenType() == ScreenType::VIRTUAL) {
             DisplayId displayId = screenSession->GetDisplayId();
             if (CheckVirtualScreenUser(screenSession, userId)) {
@@ -3903,7 +3906,8 @@ std::vector<DisplayId> ScreenSessionManager::GetAllDisplayIds(int32_t userId)
             }
             continue;
         }
-        if (filterScreenId != INVALID_SCREEN_ID && screenId != filterScreenId) {
+        if (userId != USER_ID_DEFAULT &&
+            std::find(filterScreenIds.begin(), filterScreenIds.end(), screenId) == filterScreenIds.end()) {
             continue;
         }
         DisplayId displayId = screenSession->GetAvailableDisplayId();
@@ -16062,21 +16066,6 @@ DMError ScreenSessionManager::SetMultiScreenMode(ScreenId mainScreenId, ScreenId
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
     }
-    if (IsConcurrentUser()) {
-        auto mianScreenSession = GetScreenSessionByRsId(mainScreenId);
-        auto secondaryScreenSession = GetScreenSessionByRsId(secondaryScreenId);
-        if (mianScreenSession == nullptr || secondaryScreenSession == nullptr) {
-            TLOGNFE(WmsLogTag::DMS, "screenSession is nullptr!");
-            return DMError::DM_ERROR_INVALID_PARAM;
-        }
-        if (!IsDisplayAccessAllowed(mianScreenSession->GetScreenId()) ||
-            !IsDisplayAccessAllowed(secondaryScreenSession->GetScreenId())) {
-            TLOGNFE(WmsLogTag::DMS, "current user does not support access mainScreenId: %{public}" PRIu64
-                "or secondaryScreenId: %{public}" PRIu64, mianScreenSession->GetScreenId(),
-                secondaryScreenSession->GetScreenId());
-            return DMError::DM_ERROR_INVALID_PARAM;
-        }
-    }
     auto ret = CheckMultiScreen(mainScreenId, secondaryScreenId, screenMode);
     if (ret != DMError::DM_OK) {
         return ret;
@@ -16298,11 +16287,6 @@ DMError ScreenSessionManager::SetMultiScreenRelativePosition(MultiScreenPosition
         TLOGNFE(WmsLogTag::DMS, "permission denied! clientName: %{public}s, pid: %{public}d",
             SysCapUtil::GetClientName().c_str(), IPCSkeleton::GetCallingPid());
         return DMError::DM_ERROR_NOT_SYSTEM_APP;
-    }
-    if (!IsDisplayAccessAllowed(mainScreenOptions.screenId_) || !IsDisplayAccessAllowed(secondScreenOption.screenId_)) {
-        TLOGNFI(WmsLogTag::DMS, "current user does not support access mainScreenId: %{public}" PRIu64
-            "or secondaryScreenId: %{public}" PRIu64, mainScreenOptions.screenId_, secondScreenOption.screenId_);
-        return DMError::DM_ERROR_INVALID_PARAM;
     }
     sptr<ScreenSession> firstScreenSession = nullptr;
     sptr<ScreenSession> secondScreenSession = nullptr;
@@ -18699,41 +18683,47 @@ void ScreenSessionManager::GetForegroundConcurrentUser(int32_t uid, std::shared_
 
 int32_t ScreenSessionManager::GetForegroundConcurrentUser(DisplayId displayId)
 {
-    std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
-    auto displayIt = displayConcurrentUserMap_.find(displayId);
     int32_t foregroundUserId = INVALID_USER_ID;
-    if (displayIt == displayConcurrentUserMap_.end()) {
-        TLOGNFI(WmsLogTag::DMS, "Can't find screen in screenConcurrentUsersMap,"
-              "invalid displayId: %{public}" PRIu64, displayId);
-        ErrCode err = AccountSA::OsAccountManager::GetForegroundOsAccountLocalId(displayId, foregroundUserId);
-        if (err != ERR_OK) {
-            TLOGNFE(WmsLogTag::DMS, "errorCode: %{public}d, user: %{public}d", err, foregroundUserId);
+    {
+        std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
+        auto displayIt = displayConcurrentUserMap_.find(displayId);
+        if (displayIt == displayConcurrentUserMap_.end()) {
+            TLOGNFI(WmsLogTag::DMS, "Can't find screen in screenConcurrentUsersMap,"
+                "invalid displayId: %{public}" PRIu64, displayId);
         } else {
-            int32_t pid = INVALID_PID;
-            auto pidIter = userPidMap_.find(foregroundUserId);
-            if (pidIter != userPidMap_.end()) {
-                pid = pidIter->second;
-            } else {
-                return foregroundUserId;
+            const auto& userMap = displayIt->second;
+            for (const auto& it : userMap) {
+                if (it.second.isForeground && !CheckPidInDeathPidVector(it.second.pid)) {
+                    foregroundUserId = it.first;
+                    TLOGNFI(WmsLogTag::DMS, "Get foreground userId: %{public}d on displayId: %{public}" PRIu64,
+                        foregroundUserId, displayId);
+                    break;
+                }
             }
-            TLOGNFI(WmsLogTag::DMS, "Insert foreground userId: %{public}d for displayId: %{public}" PRIu64
-                  " into displayConcurrentUserMap", foregroundUserId, displayId);
-            if (displayId != DISPLAY_ID_INVALID) {
-                TLOGD(WmsLogTag::DMS, "Update display concurrent user");
-                displayConcurrentUserMap_[displayId][foregroundUserId] = {true, pid};
-            }
+            return foregroundUserId;
         }
-        return foregroundUserId;
     }
 
-    const auto& userMap = displayIt->second;
-    for (const auto& it : userMap) {
-        if (it.second.isForeground && !CheckPidInDeathPidVector(it.second.pid)) {
-            foregroundUserId = it.first;
-             TLOGNFI(WmsLogTag::DMS, "Get foreground userId: %{public}d on displayId: %{public}" PRIu64,
-                   foregroundUserId, displayId);
-            break;
+    ErrCode err = AccountSA::OsAccountManager::GetForegroundOsAccountLocalId(displayId, foregroundUserId);
+    if (err != ERR_OK) {
+        TLOGNFE(WmsLogTag::DMS, "errorCode: %{public}d, user: %{public}d", err, foregroundUserId);
+        return foregroundUserId;
+    }
+    int32_t pid = INVALID_PID;
+    {
+        std::lock_guard<std::recursive_mutex> pidLock(userPidMapMutex_);
+        auto pidIter = userPidMap_.find(foregroundUserId);
+        if (pidIter == userPidMap_.end()) {
+            return foregroundUserId;
         }
+        pid = pidIter->second;
+    }
+    TLOGNFI(WmsLogTag::DMS, "Insert foreground userId: %{public}d for displayId: %{public}" PRIu64
+        " into displayConcurrentUserMap", foregroundUserId, displayId);
+    if (displayId != DISPLAY_ID_INVALID) {
+        std::lock_guard<std::mutex> lock(displayConcurrentUserMapMutex_);
+        TLOGD(WmsLogTag::DMS, "Update display concurrent user");
+        displayConcurrentUserMap_[displayId][foregroundUserId] = { true, pid };
     }
     return foregroundUserId;
 }
