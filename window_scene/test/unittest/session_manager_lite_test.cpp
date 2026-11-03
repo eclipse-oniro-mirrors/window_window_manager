@@ -17,6 +17,7 @@
 #include <ipc_skeleton.h>
 #include <iservice_registry.h>
 #include <system_ability_definition.h>
+#include <unistd.h>
 #include "iremote_object_mocker.h"
 #include "iremote_screen_session_manager_mocker.h"
 #include "iremote_session_manager_mocker.h"
@@ -59,6 +60,27 @@ public:
     MOCK_METHOD(sptr<IMockSessionManagerInterface>, GetMockSessionManagerServiceProxy, (), (override));
     MOCK_METHOD(WMError, InitSceneSessionManagerLiteProxy, (), (override));
     MOCK_METHOD(WMError, InitScreenSessionManagerLiteProxy, (), (override));
+};
+
+// IRemoteObject mock that only observes the transaction code routed by the client:
+// the callback proxy (iface_cast<IMockSessionManagerInterface>) forwards every method call to
+// SendRequest; GetSessionManagerService is [ipccode 0] and GetSessionManagerServiceByUserId
+// (implicit next code) is 1 per wmserver/IMockSessionManagerInterface.idl:20-21.
+class MockSmsSendRequestRemote : public IRemoteObject {
+public:
+    MockSmsSendRequestRemote() : IRemoteObject{u"MockSmsSendRequestRemote"} {}
+    ~MockSmsSendRequestRemote() override = default;
+
+    MOCK_METHOD(int, SendRequest, (uint32_t code, MessageParcel& data, MessageParcel& reply,
+        MessageOption& option), (override));
+    int32_t GetObjectRefCount() override { return 0; }
+    bool IsProxyObject() const override { return true; }
+    bool IsObjectDead() const override { return false; }
+    bool CheckObjectLegality() const override { return true; }
+    bool AddDeathRecipient(const sptr<DeathRecipient>& recipient) override { return true; }
+    bool RemoveDeathRecipient(const sptr<DeathRecipient>& recipient) override { return true; }
+    sptr<IRemoteBroker> AsInterface() override { return nullptr; }
+    int Dump(int fd, const std::vector<std::u16string>& args) override { return 0; }
 };
 
 class SessionManagerLiteTest : public testing::Test {
@@ -657,6 +679,81 @@ HWTEST_F(SessionManagerLiteTest, InitSessionManagerServiceProxy, TestSize.Level1
     instance_->InitSessionManagerServiceProxy();
 
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SessionManagerLite::InitSessionManagerServiceProxyRouteCrossUserNonU0
+ * @tc.desc: Cross-user non-U0 request must stay on GetSessionManagerServiceByUserId
+ *           (server :322-325 keeps rejecting non-U0 cross-user with ERR_WOULD_BLOCK). Uses a real
+ *           instance so the real guard (getuid-derived user vs userId_) is exercised.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, InitSessionManagerServiceProxyRouteCrossUserNonU0, TestSize.Level1)
+{
+    int32_t selfUser = GetUserIdByUid(getuid());
+    int32_t crossUser = selfUser + 1024; // anything > 0 and != selfUser, valid in any process user
+    auto remote = sptr<MockSmsSendRequestRemote>::MakeSptr();
+    ASSERT_NE(nullptr, remote);
+    auto instance = sptr<SessionManagerLite>::MakeSptr(crossUser);
+    ASSERT_NE(nullptr, instance);
+    instance->isRecoverListenerRegistered_ = true;
+    instance->mockSessionManagerServiceProxy_ = iface_cast<IMockSessionManagerInterface>(remote);
+    ASSERT_NE(nullptr, instance->mockSessionManagerServiceProxy_);
+
+    // Real guard: crossUser != GetUserIdByUid(getuid()) -> false -> ByUserId kept.
+    EXPECT_CALL(*remote, SendRequest(0, _, _, _)).Times(0);
+    EXPECT_CALL(*remote, SendRequest(1, _, _, _)).Times(1); // ByUserId(crossUser)
+    auto ret = instance->InitSessionManagerServiceProxy();
+    EXPECT_NE(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SessionManagerLite::InitSessionManagerServiceProxyU0ExplicitZeroGuard
+ * @tc.desc: Mandatory guard regression: a U0 caller carrying explicit userId_=0 must keep
+ *           routing to GetSessionManagerServiceByUserId(0) (server :322-325 U0 branch -> Inner(0)),
+ *           never to the no-arg path. Without the guard, 0 == GetUserIdByUid(getuid()) would hold
+ *           for a U0 process and mis-route to no-arg, where the server :300-304 redirects
+ *           clientUserId == SYSTEM_USERID to defaultWMSUserId_ (multi-user semantic drift).
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, InitSessionManagerServiceProxyU0ExplicitZeroGuard, TestSize.Level1)
+{
+    auto remote = sptr<MockSmsSendRequestRemote>::MakeSptr();
+    ASSERT_NE(nullptr, remote);
+    auto instance = sptr<SessionManagerLite>::MakeSptr(SYSTEM_USERID); // U0 explicit userId_=0
+    ASSERT_NE(nullptr, instance);
+    instance->isRecoverListenerRegistered_ = true;
+    instance->mockSessionManagerServiceProxy_ = iface_cast<IMockSessionManagerInterface>(remote);
+    ASSERT_NE(nullptr, instance->mockSessionManagerServiceProxy_);
+
+    // Real guard in any process user: userId_ != SYSTEM_USERID is false -> self-route denied.
+    EXPECT_CALL(*remote, SendRequest(0, _, _, _)).Times(0); // NOT redirected to no-arg/defaultWMSUserId_
+    EXPECT_CALL(*remote, SendRequest(1, _, _, _)).Times(1); // explicit ByUserId(0), U0 branch Inner(0)
+    auto ret = instance->InitSessionManagerServiceProxy();
+    EXPECT_NE(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: SessionManagerLite::InitSessionManagerServiceProxyRouteDefaultInstance
+ * @tc.desc: Behavior invariance: default instance (userId_ == INVALID_USER_ID) keeps the
+ *           baseline first branch -- no-arg GetSessionManagerService(), guard not consulted
+ *           (short-circuit).
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, InitSessionManagerServiceProxyRouteDefaultInstance, TestSize.Level1)
+{
+    auto remote = sptr<MockSmsSendRequestRemote>::MakeSptr();
+    ASSERT_NE(nullptr, remote);
+    auto instance = sptr<SessionManagerLite>::MakeSptr(INVALID_USER_ID); // default instance
+    ASSERT_NE(nullptr, instance);
+    instance->isRecoverListenerRegistered_ = true;
+    instance->mockSessionManagerServiceProxy_ = iface_cast<IMockSessionManagerInterface>(remote);
+    ASSERT_NE(nullptr, instance->mockSessionManagerServiceProxy_);
+
+    EXPECT_CALL(*remote, SendRequest(0, _, _, _)).Times(1); // no-arg GetSessionManagerService
+    EXPECT_CALL(*remote, SendRequest(1, _, _, _)).Times(0);
+    auto ret = instance->InitSessionManagerServiceProxy();
+    EXPECT_NE(WMError::WM_OK, ret);
 }
 
 /**
