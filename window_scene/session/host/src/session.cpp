@@ -5429,7 +5429,7 @@ void Session::SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdC
 }
 
 void Session::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-    const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+    const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     if (!sessionStage_) {
@@ -5441,11 +5441,11 @@ void Session::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
         TLOGD(WmsLogTag::WMS_KEYBOARD, "Occupied area need to empty when in floating mode");
     }
     if (info != nullptr) {
-        TLOGI(WmsLogTag::WMS_KEYBOARD, "Calling id: %{public}d, callingSessionRect: %{public}s"
-            ", safeRect: %{public}s, textFieldPositionY_: %{public}f, textFieldHeight_: %{public}f"
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "Calling id: %{public}d, safeRect: %{public}s"
+            ", textFieldPositionY_: %{public}f, textFieldHeight_: %{public}f"
             ", size of avoidAreas: %{public}d", GetPersistentId(),
-            callingSessionRect.ToString().c_str(), info->rect_.ToString().c_str(),
-            info->textFieldPositionY_, info->textFieldHeight_, static_cast<int32_t>(avoidAreas.size()));
+            info->rect_.ToString().c_str(), info->textFieldPositionY_, info->textFieldHeight_,
+            static_cast<int32_t>(avoidAreas.size()));
         for (const auto& [type, avoidArea] : avoidAreas) {
             TLOGI(WmsLogTag::WMS_KEYBOARD, "avoidAreaType: %{public}u, avoidArea: %{public}s",
                 type, avoidArea.ToString().c_str());
@@ -5453,7 +5453,7 @@ void Session::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
     } else {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "occupied area info is nullptr, id: %{public}d", GetPersistentId());
     }
-    sessionStage_->NotifyOccupiedAreaChangeInfo(info, rsTransaction, callingSessionRect, avoidAreas);
+    sessionStage_->NotifyOccupiedAreaChangeInfo(info, rsTransaction, avoidAreas);
 }
 
 WindowMode Session::GetWindowMode() const

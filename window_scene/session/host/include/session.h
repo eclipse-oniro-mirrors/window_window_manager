@@ -639,7 +639,7 @@ public:
     float GetBrightness() const;
     void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
         const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
-        const Rect& callingSessionRect = {}, const std::map<AvoidAreaType, AvoidArea>& = {});
+        const std::map<AvoidAreaType, AvoidArea>& = {});
     void SetSessionInfoLockedStateChangeListener(const NotifySessionInfoLockedStateChangeFunc& func);
     void NotifySessionInfoLockedStateChange(bool lockedState);
     void SetContextTransparentFunc(const NotifyContextTransparentFunc& func);

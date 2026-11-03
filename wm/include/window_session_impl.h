@@ -300,7 +300,7 @@ public:
         bool notifyInputMethod = true) override;
     void NotifyOccupiedAreaChangeInfoInner(sptr<OccupiedAreaChangeInfo> info);
     void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas) override;
     void NotifyKeyboardWillShow(const KeyboardAnimationInfo& keyboardAnimationInfo);
     void NotifyKeyboardWillHide(const KeyboardAnimationInfo& keyboardAnimationInfo);

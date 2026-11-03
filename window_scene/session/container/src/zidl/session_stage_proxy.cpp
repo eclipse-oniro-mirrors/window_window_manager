@@ -751,7 +751,7 @@ WSErrorCode SessionStageProxy::NotifyTransferComponentDataSync(const AAFwk::Want
 }
 
 void SessionStageProxy::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-    const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+    const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     MessageParcel data;
@@ -767,11 +767,6 @@ void SessionStageProxy::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
         return;
     }
 
-    if (!(data.WriteInt32(callingSessionRect.posX_) && data.WriteInt32(callingSessionRect.posY_) &&
-        data.WriteUint32(callingSessionRect.width_) && data.WriteUint32(callingSessionRect.height_))) {
-        WLOGFE("Write callingSessionRect failed");
-        return;
-    }
     if (!data.WriteUint32(avoidAreas.size())) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Write avoid area size failed");
         return;

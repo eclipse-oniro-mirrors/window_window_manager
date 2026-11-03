@@ -130,7 +130,7 @@ public:
     virtual WSErrorCode NotifyTransferComponentDataSync(const AAFwk::WantParams& wantParams,
         AAFwk::WantParams& reWantParams) = 0;
     virtual void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas) = 0;
     virtual WSError UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) = 0;
     virtual void NotifyScreenshot() = 0;
