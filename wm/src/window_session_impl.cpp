@@ -940,8 +940,13 @@ WMError WindowSessionImpl::Connect()
 void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
 {
     RSUIContextContainer::SetRenderSession(renderSession);
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
-    auto rsUIContext = rsUIDirector_->GetRSUIContext();
+    std::shared_ptr<RSUIDirector> rsUIDirector;
+    {
+        std::lock_guard<std::mutex> lock(rsContextMutex_);
+        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
+        rsUIDirector = rsUIDirector_;
+    }
+    auto rsUIContext = rsUIDirector ? rsUIDirector->GetRSUIContext() : nullptr;
     if (SysCapUtil::GetBundleName() == AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         surfaceNode_->GetRSUIContext() != nullptr) {
         TLOGI(WmsLogTag::WMS_LIFE, "sceneboard need a newSurfaceNode, %{public}s",
@@ -1327,7 +1332,7 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
     RSUIContextContainer::RemoveRSUIContext(GetPersistentId());
     if (IsWindowSessionInvalid()) {
         WLOGFW("session is invalid");
-        ReleaseSurfaceNode();
+        ReleaseRSContext();
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (auto hostSession = GetHostSession()) {
@@ -1357,7 +1362,7 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
         context.reset();
     }
     ClearVsyncStation();
-    ReleaseSurfaceNode();
+    ReleaseRSContext();
     UnregisterFoldStatusListener();
     return WMError::WM_OK;
 }
@@ -1367,11 +1372,26 @@ WMError WindowSessionImpl::Destroy(uint32_t reason, bool isFromInnerkits)
     return Destroy(true, true, reason, isFromInnerkits);
 }
 
-void WindowSessionImpl::ReleaseSurfaceNode()
+void WindowSessionImpl::ReleaseRSContext()
 {
     if (surfaceNode_ != nullptr) {
         surfaceNode_ = nullptr;
         RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
+    }
+    if (handler_ != nullptr) {
+        std::shared_ptr<RSUIDirector> rsUIDirector;
+        std::shared_ptr<RSUIContext> rsUIContext;
+        {
+            std::lock_guard<std::mutex> lock(rsContextMutex_);
+            rsUIDirector_.swap(rsUIDirector);
+            rsUIContext_.swap(rsUIContext);
+        }
+        handler_->PostTask([rsUIDirector = std::move(rsUIDirector), rsUIContext = std::move(rsUIContext)]() mutable {
+            rsUIDirector.reset();
+            rsUIContext.reset();
+        }, __func__);
+    } else {
+        TLOGW(WmsLogTag::WMS_LIFE, "handler is null!");
     }
 }
 
@@ -10970,6 +10990,7 @@ WSError WindowSessionImpl::GetSceneNodeCount(uint32_t& nodeCount)
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s: window is null", where);
             return;
         }
+        std::lock_guard<std::mutex> lock(window->rsContextMutex_);
         if (window->rsUIDirector_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s rsUIDirector is nullptr", where);
             return;
@@ -10991,11 +11012,15 @@ WSError WindowSessionImpl::GetSceneNodeCount(const sptr<IRemoteObject>& callback
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s: window is null", where);
             return;
         }
-        if (window->rsUIDirector_ == nullptr) {
-            TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s rsUIDirector is nullptr", where);
-            return;
+        uint32_t nodeCount {0};
+        {
+            std::lock_guard<std::mutex> lock(window->rsContextMutex_);
+            if (window->rsUIDirector_ == nullptr) {
+                TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s rsUIDirector is nullptr", where);
+                return;
+            }
+            nodeCount = static_cast<uint32_t>(window->rsUIDirector_->GetUIDescendantCount());
         }
-        uint32_t nodeCount = static_cast<uint32_t>(window->rsUIDirector_->GetUIDescendantCount());
         TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s success, count:%{public}u", where, nodeCount);
         auto sceneNodeCountCallback = iface_cast<ISceneNodeCountCallback>(callback);
         if (sceneNodeCountCallback == nullptr) {
@@ -11133,6 +11158,7 @@ WMError WindowSessionImpl::SetIntentParam(const std::string& intentParam,
 std::shared_ptr<RSUIDirector> WindowSessionImpl::GetRSUIDirector() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
+    std::lock_guard<std::mutex> lock(rsContextMutex_);
     TLOGD(WmsLogTag::WMS_SCB, "%{public}s, windowId: %{public}u",
           RSAdapterUtil::RSUIDirectorToStr(rsUIDirector_).c_str(), GetWindowId());
     return rsUIDirector_;
@@ -11141,7 +11167,12 @@ std::shared_ptr<RSUIDirector> WindowSessionImpl::GetRSUIDirector() const
 std::shared_ptr<RSUIContext> WindowSessionImpl::GetRSUIContext() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
-    auto rsUIContext = rsUIDirector_ ? rsUIDirector_->GetRSUIContext() : nullptr;
+    std::shared_ptr<RSUIDirector> rsUIDirector;
+    {
+        std::lock_guard<std::mutex> lock(rsContextMutex_);
+        rsUIDirector = rsUIDirector_;
+    }
+    auto rsUIContext = rsUIDirector ? rsUIDirector->GetRSUIContext() : nullptr;
     TLOGD(WmsLogTag::WMS_SCB, "%{public}s, windowId: %{public}u",
           RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str(), GetWindowId());
     return rsUIContext;
