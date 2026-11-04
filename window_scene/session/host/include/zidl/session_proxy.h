@@ -249,6 +249,7 @@ public:
     WSError NotifyCompatibleModeChange(CompatibleStyleMode mode) override;
     WSError NotifyPageEnable(const std::string& action, const std::string& message) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
+    WMError UpdateAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config) override;
 
     /**
      * Restart app

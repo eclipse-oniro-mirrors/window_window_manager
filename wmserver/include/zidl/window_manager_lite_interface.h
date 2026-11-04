@@ -40,6 +40,10 @@ public:
     virtual WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) { return WMError::WM_OK; };
     virtual WMError UpdateScreenLockStatusForApp(
         const std::string& bundleName, bool isRelease) { return WMError::WM_OK; }
+    virtual WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+    {
+        return WMError::WM_DO_NOTHING;
+    }
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DEFAULT_DISPLAY_ID) = 0;
     virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                                  std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) {};

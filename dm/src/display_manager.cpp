@@ -85,6 +85,7 @@ public:
     std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution();
     sptr<Display> GetDisplayById(DisplayId displayId);
     sptr<Display> GetDisplayById(DisplayId displayId, bool isGetActualInfo);
+    sptr<Display> GetDisplayById(DisplayId displayId, bool isGetActualInfo, bool skipCache);
     sptr<DisplayInfo> GetVisibleAreaDisplayInfoById(DisplayId displayId);
     DMError GetExpandAvailableArea(DisplayId displayId, DMRect& area);
     DMError HasPrivateWindow(DisplayId displayId, bool& hasPrivateWindow);
@@ -797,6 +798,11 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId)
 
 sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId, bool isGetActualInfo)
 {
+    return DisplayManager::Impl::GetDisplayById(displayId, isGetActualInfo, false);
+}
+
+sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId, bool isGetActualInfo, bool skipCache)
+{
     if (displayId == DISPLAY_ID_INVALID) {
         TLOGE(WmsLogTag::DMS, "screen id is invalid");
         return nullptr;
@@ -806,7 +812,7 @@ sptr<Display> DisplayManager::Impl::GetDisplayById(DisplayId displayId, bool isG
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         auto iter = displayMap_.find(displayId);
-        if (iter != displayMap_.end() && !isGetActualInfo) {
+        if (iter != displayMap_.end() && !isGetActualInfo && !skipCache) {
             static uint32_t getDisplayIntervalUs_ = (std::string(program_invocation_name) != "com.ohos.sceneboard")
                                                         ? APP_GET_DISPLAY_INTERVAL_US
                                                         : SCB_GET_DISPLAY_INTERVAL_US;
@@ -883,12 +889,17 @@ sptr<Display> DisplayManager::GetDisplayById(DisplayId displayId)
 
 sptr<Display> DisplayManager::GetDisplayById(DisplayId displayId, bool isGetActualInfo)
 {
+    return GetDisplayById(displayId, isGetActualInfo, false);
+}
+
+sptr<Display> DisplayManager::GetDisplayById(DisplayId displayId, bool isGetActualInfo, bool skipCache)
+{
     if (g_dmIsDestroyed) {
         TLOGI(WmsLogTag::DMS, "DM has been destructed");
         return nullptr;
     }
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    return pImpl_->GetDisplayById(displayId, isGetActualInfo);
+    return pImpl_->GetDisplayById(displayId, isGetActualInfo, skipCache);
 }
 
 sptr<DisplayInfo> DisplayManager::GetVisibleAreaDisplayInfoById(DisplayId displayId)

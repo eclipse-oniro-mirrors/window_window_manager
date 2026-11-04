@@ -49,7 +49,7 @@ public:
     WSErrorCode NotifyTransferComponentDataSync(const AAFwk::WantParams& wantParams,
                                                 AAFwk::WantParams& reWantParams) override;
     void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas) override;
     WSError UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, AvoidAreaType type) override;
     void NotifyScreenshot() override;
@@ -135,6 +135,8 @@ public:
     WSError NotifyAppForceLandscapeConfigUpdated() override;
     WSError UpdateAppHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
+    WSError NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config) override;
     WSError CloseSpecificScene() override;
     void NotifyLifecyclePausedStatus() override;
     void NotifyAppUseControlStatus(bool isUseControl) override;

@@ -191,7 +191,7 @@ if (!ispreview) {
                 "/window/window_manager/libpreviewer_window" + suffix ]
     deps = [ ":previewer_window" ]
 
-    if (current_os == "mingw" || current_os == "mac") {
+    if (current_os == "mingw" || current_os == "mac" || current_os == "linux") {
       deps += [ ":window_stage_copy_modules" ]
       shared_library_path =
           get_label_info(":previewer_window_napi", "root_out_dir")

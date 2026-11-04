@@ -173,7 +173,7 @@ void InputTransferStation::LoadGameController()
     isGameControllerLoaded_ = true;
     void* handle = dlopen(GAME_CONTROLLER_SO_PATH.c_str(), RTLD_LAZY | RTLD_GLOBAL);
     if (handle) {
-        TLOGI(WmsLogTag::WMS_EVENT, "dlopen GameController success");
+        TLOGD(WmsLogTag::WMS_EVENT, "dlopen GameController success");
         gameControllerHandle_.reset(handle);
     } else {
         TLOGW(WmsLogTag::WMS_EVENT, "dlopen %{public}s failed", dlerror());

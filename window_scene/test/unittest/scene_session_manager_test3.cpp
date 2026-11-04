@@ -24,6 +24,7 @@
 #include "session_info.h"
 #include "session/host/include/scene_session.h"
 #include "session/host/include/main_session.h"
+#include "common/include/window_limits_threshold.h"
 #include "window_manager_agent.h"
 #include "window_manager_hilog.h"
 #include "session_manager.h"
@@ -1162,6 +1163,278 @@ HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetDensity13, TestSize.
 
     ssm_->sceneSessionMap_.erase(windowId);
     ssm_->systemConfig_.supportMultiWindowScreenSet_.erase(displayId);
+}
+
+namespace {
+// Target-screen refresh test env: percentage 50, workArea 2000x1000 px, vpr 2.0.
+constexpr int32_t TARGET_SCREEN_TEST_PERCENTAGE = 50;
+constexpr uint32_t TARGET_SCREEN_TEST_CAP_W = 1000; // 2000 * 0.5
+constexpr uint32_t TARGET_SCREEN_TEST_CAP_H = 500;  // 1000 * 0.5
+constexpr float TARGET_SCREEN_TEST_VPR = 2.0f;
+constexpr uint32_t TARGET_SCREEN_TEST_VP_CAP_W = 500; // 2000 * 0.5 / vpr 2.0
+constexpr uint32_t TARGET_SCREEN_TEST_VP_CAP_H = 250; // 1000 * 0.5 / vpr 2.0
+
+ScreenProperty CreateTargetScreenProperty(uint32_t width, uint32_t height, float vpr)
+{
+    ScreenProperty screenProperty;
+    screenProperty.SetAvailableArea(DMRect { 0, 0, width, height });
+    screenProperty.SetVirtualPixelRatio(vpr);
+    return screenProperty;
+}
+
+WindowLimitsThresholdConfig SaveTargetScreenThresholdConfig(bool enable, int32_t percentage)
+{
+    const auto originalConfig = WindowLimitsThreshold::LoadLimitsThresholdConfig();
+    WindowLimitsThresholdConfig config;
+    config.enable = enable;
+    config.limitsThresholdPercentage = percentage;
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(config);
+    return originalConfig;
+}
+} // namespace
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetScreen01
+ * @tc.desc: limitsThresholdEnabled false (limitsEnableProp.boolValue_) or invalid percentage:
+ *           the screen info is ignored and the stored limits are returned unchanged.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetScreen01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits; // PX [1800,2200,1900,2100]
+    limits.maxWidth_ = 2200; limits.maxHeight_ = 2100; limits.minWidth_ = 1800; limits.minHeight_ = 1900;
+    limits.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 20;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    const auto targetScreenProperty = CreateTargetScreenProperty(2000, 1000, TARGET_SCREEN_TEST_VPR);
+
+    // limitsThresholdEnabled = false: skip the refresh even though the min limits exceed the cap.
+    auto originalConfig = SaveTargetScreenThresholdConfig(false, TARGET_SCREEN_TEST_PERCENTAGE);
+    auto ret = ssm_->GetWindowLimits(windowId, out, 0.0f, targetScreenProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 1800u);
+    EXPECT_EQ(out.minHeight_, 1900u);
+
+    // Enabled but percentage out of (0, 100): also skip the refresh.
+    SaveTargetScreenThresholdConfig(true, 0);
+    ret = ssm_->GetWindowLimits(windowId, out, 0.0f, targetScreenProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 1800u);
+    EXPECT_EQ(out.minHeight_, 1900u);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetScreen02
+ * @tc.desc: PX-user, valid screen info, min limits exceed percentage of the work area:
+ *           min refreshed to the work-area caps, max untouched.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetScreen02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits; // PX [1800,2200,1900,2100]
+    limits.maxWidth_ = 2200; limits.maxHeight_ = 2100; limits.minWidth_ = 1800; limits.minHeight_ = 1900;
+    limits.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 21;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    const auto targetScreenProperty = CreateTargetScreenProperty(2000, 1000, TARGET_SCREEN_TEST_VPR);
+
+    auto originalConfig = SaveTargetScreenThresholdConfig(true, TARGET_SCREEN_TEST_PERCENTAGE);
+    // workArea 2000x1000, percentage 50 -> cap [1000, 500]; min [1800,1900] exceeds -> refreshed.
+    auto ret = ssm_->GetWindowLimits(windowId, out, 0.0f, targetScreenProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::PX);
+    EXPECT_EQ(out.minWidth_, TARGET_SCREEN_TEST_CAP_W);
+    EXPECT_EQ(out.minHeight_, TARGET_SCREEN_TEST_CAP_H);
+    EXPECT_EQ(out.maxWidth_, 2200u);
+    EXPECT_EQ(out.maxHeight_, 2100u);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetScreen03
+ * @tc.desc: PX-user, min limits within the work-area caps: nothing to refresh.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetScreen03, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits; // PX [900,2200,400,2100]
+    limits.maxWidth_ = 2200; limits.maxHeight_ = 2100; limits.minWidth_ = 900; limits.minHeight_ = 400;
+    limits.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 22;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    const auto targetScreenProperty = CreateTargetScreenProperty(2000, 1000, TARGET_SCREEN_TEST_VPR);
+
+    auto originalConfig = SaveTargetScreenThresholdConfig(true, TARGET_SCREEN_TEST_PERCENTAGE);
+    // min [900,400] <= cap [1000,500]: unchanged.
+    auto ret = ssm_->GetWindowLimits(windowId, out, 0.0f, targetScreenProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 900u);
+    EXPECT_EQ(out.minHeight_, 400u);
+    EXPECT_EQ(out.maxWidth_, 2200u);
+    EXPECT_EQ(out.maxHeight_, 2100u);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetScreen04
+ * @tc.desc: Screen info not provided, invalid work area, or invalid vpr for vp limits without
+ *           targetDensity: the screen info is ignored and the original limits are returned.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetScreen04, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits; // PX [1800,2200,1900,2100]
+    limits.maxWidth_ = 2200; limits.maxHeight_ = 2100; limits.minWidth_ = 1800; limits.minHeight_ = 1900;
+    limits.pixelUnit_ = PixelUnit::PX;
+    sceneSession->property_->SetWindowLimits(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 23;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    const auto zeroAreaProperty = CreateTargetScreenProperty(0, 0, TARGET_SCREEN_TEST_VPR);
+
+    auto originalConfig = SaveTargetScreenThresholdConfig(true, TARGET_SCREEN_TEST_PERCENTAGE);
+    // Screen info not provided (default constructed property): ignore the screen info.
+    auto ret = ssm_->GetWindowLimits(windowId, out, 0.0f, ScreenProperty());
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 1800u);
+    EXPECT_EQ(out.minHeight_, 1900u);
+
+    // Work area 0x0 carried by the property: ignore the screen info.
+    ret = ssm_->GetWindowLimits(windowId, out, 0.0f, zeroAreaProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 1800u);
+    EXPECT_EQ(out.minHeight_, 1900u);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetScreen05
+ * @tc.desc: VP-user with a valid targetDensity: the refresh runs after the density recalc and the
+ *           work area is converted to vp with the query density (2000x1000 px, 50%, density 2.0
+ *           -> vp cap [500, 250]).
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetScreen05, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits; // VP [700,900,300,400]
+    limits.maxWidth_ = 900; limits.maxHeight_ = 400; limits.minWidth_ = 700; limits.minHeight_ = 300;
+    limits.pixelUnit_ = PixelUnit::VP;
+    limits.vpRatio_ = 0.0f; // no independent density: recalc uses the query density
+    sceneSession->property_->SetWindowLimitsVP(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 24;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+    const auto targetScreenProperty = CreateTargetScreenProperty(2000, 1000, TARGET_SCREEN_TEST_VPR);
+
+    auto originalConfig = SaveTargetScreenThresholdConfig(true, TARGET_SCREEN_TEST_PERCENTAGE);
+    // Density recalc keeps the VP base (density-invariant), then the refresh caps the vp mins:
+    // workArea 2000x1000 * 0.5 / targetDensity 2.0 -> vp cap [500, 250].
+    auto ret = ssm_->GetWindowLimits(windowId, out, 2.0f, targetScreenProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::VP);
+    EXPECT_EQ(out.minWidth_, TARGET_SCREEN_TEST_VP_CAP_W);
+    EXPECT_EQ(out.minHeight_, TARGET_SCREEN_TEST_VP_CAP_H);
+    EXPECT_EQ(out.maxWidth_, 900u);
+    EXPECT_EQ(out.maxHeight_, 400u);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+    ssm_->sceneSessionMap_.erase(windowId);
+}
+
+/**
+ * @tc.name: GetWindowLimitsWithTargetScreen06
+ * @tc.desc: VP-user without a targetDensity: the work area is converted with the vpr carried by
+ *           the screen property (2.0) -> vp cap [500, 250]; a zero vpr skips the refresh.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest3, GetWindowLimitsWithTargetScreen06, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "test1";
+    info.bundleName_ = "test2";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    WindowLimits limits; // VP [700,900,300,400]
+    limits.maxWidth_ = 900; limits.maxHeight_ = 400; limits.minWidth_ = 700; limits.minHeight_ = 300;
+    limits.pixelUnit_ = PixelUnit::VP;
+    limits.vpRatio_ = 0.0f;
+    sceneSession->property_->SetWindowLimitsVP(limits);
+    sceneSession->property_->SetUserWindowLimits(limits);
+
+    int32_t windowId = 25;
+    WindowLimits out;
+    ssm_->sceneSessionMap_.insert({ windowId, sceneSession });
+
+    auto originalConfig = SaveTargetScreenThresholdConfig(true, TARGET_SCREEN_TEST_PERCENTAGE);
+    // No targetDensity: stored VP limits returned, then capped with the property vpr 2.0.
+    const auto targetScreenProperty = CreateTargetScreenProperty(2000, 1000, TARGET_SCREEN_TEST_VPR);
+    auto ret = ssm_->GetWindowLimits(windowId, out, 0.0f, targetScreenProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.pixelUnit_, PixelUnit::VP);
+    EXPECT_EQ(out.minWidth_, TARGET_SCREEN_TEST_VP_CAP_W);
+    EXPECT_EQ(out.minHeight_, TARGET_SCREEN_TEST_VP_CAP_H);
+    EXPECT_EQ(out.maxWidth_, 900u);
+    EXPECT_EQ(out.maxHeight_, 400u);
+
+    // No targetDensity and a zero vpr carried by the property: invalid density, skip the refresh.
+    const auto zeroVprProperty = CreateTargetScreenProperty(2000, 1000, 0.0f);
+    ret = ssm_->GetWindowLimits(windowId, out, 0.0f, zeroVprProperty);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_EQ(out.minWidth_, 700u);
+    EXPECT_EQ(out.minHeight_, 300u);
+
+    WindowLimitsThreshold::SaveLimitsThresholdConfig(originalConfig);
+    ssm_->sceneSessionMap_.erase(windowId);
 }
 
 /**

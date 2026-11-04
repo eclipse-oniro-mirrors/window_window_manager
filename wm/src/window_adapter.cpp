@@ -356,6 +356,14 @@ WMError WindowAdapter::ListWindowInfo(const WindowInfoOption& windowInfoOption, 
     return wmsProxy->ListWindowInfo(windowInfoOption, infos);
 }
 
+WMError WindowAdapter::SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetGameAdaptiveResolutionForWindow(config);
+}
+
 WMError WindowAdapter::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
     const WindowInfoOptions& option, bool useHookedSize)
 {
@@ -1177,6 +1185,17 @@ void WindowAdapter::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId dis
     }
 }
 
+void WindowAdapter::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+    std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    INIT_PROXY_CHECK_RETURN();
+
+    TLOGD(WmsLogTag::WMS_FOCUS, "request on adapter");
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
+    wmsProxy->GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
+}
+
 void WindowAdapter::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
     const sptr<IRemoteObject>& abilityToken)
 {
@@ -1622,6 +1641,14 @@ WMError WindowAdapter::IsPcWindow(bool& isPcWindow)
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->IsPcWindow(isPcWindow);
+}
+
+WMError WindowAdapter::IsHookExtensionWindow(const std::string& bundleName, bool& isHook)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->IsHookExtensionWindow(bundleName, isHook);
 }
 
 WMError WindowAdapter::IsFreeMultiWindowMode(bool& isFreeMultiWindow)

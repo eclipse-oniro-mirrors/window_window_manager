@@ -88,7 +88,7 @@ CJWindowImpl::CJWindowImpl(sptr<Window> ptr)
             return;
         }
         g_cjWindowMap.erase(windowName);
-        TLOGI(WmsLogTag::WMS_DIALOG, "Destroy window %{public}s in js window", windowName.c_str());
+        TLOGNI(WmsLogTag::WMS_DIALOG, "Destroy window %{public}s in js window", windowName.c_str());
     };
     if (windowToken_ == nullptr) {
         TLOGI(WmsLogTag::WMS_DIALOG, "constructe failed");

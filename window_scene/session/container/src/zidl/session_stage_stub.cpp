@@ -296,6 +296,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateAppHookWindowInfo(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE):
             return HandleSetForceSplitEnable(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ADAPTIVE_RESOLUTION_CHANGED):
+            return HandleNotifyAdaptiveResolutionChanged(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_FV_ACTION_EVENT):
             return HandleSendFvActionEvent(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_FV_WINDOW_INFO):
@@ -557,15 +559,6 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Occupied info is nullptr");
         return ERR_INVALID_VALUE;
     }
-    int32_t posX = 0;
-    int32_t posY = 0;
-    uint32_t width = 0;
-    uint32_t height = 0;
-    if (!(data.ReadInt32(posX) && data.ReadInt32(posY) && data.ReadUint32(width) && data.ReadUint32(height))) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "Read callingSessionRect failed");
-        return ERR_INVALID_VALUE;
-    }
-    Rect callingSessionRect = { posX, posY, width, height };
     std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
     uint32_t size = 0;
     if (!data.ReadUint32(size)) {
@@ -602,9 +595,9 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
             TLOGE(WmsLogTag::WMS_KEYBOARD, "transaction unMarsh failed");
             return ERR_INVALID_VALUE;
         }
-        NotifyOccupiedAreaChangeInfo(info, transaction, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, transaction, avoidAreas);
     } else {
-        NotifyOccupiedAreaChangeInfo(info, nullptr, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, nullptr, avoidAreas);
     }
 
     return ERR_NONE;
@@ -1795,6 +1788,23 @@ int SessionStageStub::HandleSetForceSplitEnable(MessageParcel& data, MessageParc
         return ERR_INVALID_DATA;
     }
     SetForceSplitEnable(isForceSplitEnabled, needUpdateViewport, static_cast<SelectMode>(selectModeValue));
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyAdaptiveResolutionChanged(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] in");
+    int32_t statusValue = -1;
+    if (!data.ReadInt32(statusValue)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] Read status failed");
+        return ERR_INVALID_DATA;
+    }
+    sptr<GameAdaptiveResolutionConfig> config = data.ReadParcelable<GameAdaptiveResolutionConfig>();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] config is nullptr!");
+        return ERR_INVALID_DATA;
+    }
+    NotifyAdaptiveResolutionChanged(static_cast<GameAdaptiveResolutionStatus>(statusValue), *config);
     return ERR_NONE;
 }
 

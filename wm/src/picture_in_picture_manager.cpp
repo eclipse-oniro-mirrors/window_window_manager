@@ -301,7 +301,8 @@ sptr<Window> PictureInPictureManager::GetCurrentWindowByMainWindowId(uint32_t wi
 }
 
 sptr<Window> PictureInPictureManager::GetSameGroupWindowByMainWindowId(uint32_t windowId,
-    PiPTemplateType type)
+                                                                       PiPTemplateType type,
+                                                                       PiPWindowState& preState)
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
     PiPGroupConfig group;
@@ -320,6 +321,7 @@ sptr<Window> PictureInPictureManager::GetSameGroupWindowByMainWindowId(uint32_t 
         }
     }
     if (firstController != nullptr) {
+        preState = firstController->GetControllerState();
         return firstController->GetPipWindow();
     }
     return nullptr;

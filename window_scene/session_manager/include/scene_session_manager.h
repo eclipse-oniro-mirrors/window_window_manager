@@ -164,6 +164,8 @@ using NotifyRootSceneAvoidAreaChangeFunc = std::function<void(const sptr<AvoidAr
 using NotifySupportRotationRegisteredFunc = std::function<void()>;
 using NotifySensorRotationChangeFunc = std::function<void(float sensorRotation)>;
 using NotifySmartSensorRotationChangeFunc = std::function<void(float sensorRotation, int16_t reason)>;
+using NotifyDisplayPowerEventChangeFunc = std::function<void(ScreenId screenId,
+    DisplayPowerEvent event, EventStatus status)>;
 using NotifyWatchGestureConsumeResultFunc = std::function<void(int32_t keyCode, bool isConsumed)>;
 using NotifyWatchFocusActiveChangeFunc = std::function<void(bool isActive)>;
 using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(const std::string& id)>;
@@ -217,6 +219,12 @@ public:
      * Fold Screen Status Change Report
      */
     void OnScreenFoldStatusChanged(const std::vector<std::string>& screenFoldInfo) override;
+};
+
+class DisplayPowerEventListener : public IDisplayPowerEventListener {
+public:
+    void OnDisplayPowerEvent(DisplayPowerEvent event, EventStatus status) override;
+    void OnSpecifiedDisplayPowerEvent(ScreenId screenId, DisplayPowerEvent event, EventStatus status) override;
 };
 
 class ScreenConnectionChangeListener : public IScreenConnectionChangeListener {
@@ -465,9 +473,14 @@ public:
         int32_t fingerId) override;
     void SetFocusedSessionDisplayIdIfNeeded(sptr<SceneSession>& newSession);
     std::vector<std::string> trayAppList_;
-    WMError GetWindowLimits(int32_t windowId, WindowLimits& windowLimits, float targetDensity = 0.0f);
+    WMError GetWindowLimits(int32_t windowId, WindowLimits& windowLimits, float targetDensity = 0.0f,
+        const ScreenProperty& targetScreenProperty = ScreenProperty());
     WindowLimits RecalcWindowLimitsByDensity(const sptr<SceneSession>& sceneSession,
         float targetDensity) const;
+    void RecalcWindowLimitsByScreen(WindowLimits& windowLimits,
+        const ScreenProperty& targetScreenProperty, float targetDensity) const;
+    void CapMinLimitsByWorkArea(WindowLimits& windowLimits, const ScreenProperty& targetScreenProperty,
+        float ratioOfWorkArea, float targetDensity) const;
     void RegisterVirtualPixelChangeCallback(NotifyVirtualPixelChangeFunc&& func);
     NotifyVirtualPixelChangeFunc onVirtualPixelChangeCallback_;
     void ConfigDockAutoHide(bool isDockAutoHide);
@@ -698,6 +711,8 @@ public:
     int32_t GetOrResetRsCmdBlockingCount();
     void RegisterGetRsCmdBlockingCountFunc(const sptr<SceneSession>& sceneSession);
     void RegisterUpdateAppHookDisplayInfoFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterAdaptiveResolutionConfigFunc(const sptr<SceneSession>& sceneSession);
+    void RegisterAdaptiveResolutionMonitorFunc(const sptr<SceneSession>& sceneSession);
     void RunAfterNVsyncs(uint32_t vsyncCount, OnCallback&& callback);
 
     /*
@@ -776,6 +791,8 @@ public:
     void SetSupportRotationRegisteredListener(NotifySupportRotationRegisteredFunc&& func);
     void SetSensorRotationChangeListener(NotifySensorRotationChangeFunc&& func);
     void SetSmartSensorRotationChangeListener(NotifySmartSensorRotationChangeFunc&& func);
+    void SetDisplayPowerEventChangeListener(NotifyDisplayPowerEventChangeFunc&& func);
+    void NotifyDisplayPowerEventChanged(ScreenId screenId, DisplayPowerEvent event, EventStatus status);
     WMError NotifyRotationProperty(int32_t persistentId, uint32_t rotation, uint32_t width, uint32_t height);
 
     /*
@@ -860,6 +877,40 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig);
     void RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func);
+    WMError HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession, int32_t callingUid,
+        const GameAdaptiveResolutionConfig& config);
+    WMError CheckAdaptiveResolutionEnable(const sptr<SceneSession>& sceneSession, int32_t callingUid,
+        int32_t persistentId);
+    void ResetAdaptiveWindowGravity(const sptr<SceneSession>& sceneSession);
+    void CancelAdaptiveResolutionOnFmwSwitch();
+    void RestoreAdaptiveResolutionOnFmwSwitch();
+    bool UpdateAdaptiveResolutionMaps(int32_t windowId, int32_t callingUid,
+        const GameAdaptiveResolutionConfig& config);
+    WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override;
+    void NotifyGameAdaptiveAgents(bool cancelled, int32_t windowId);
+    bool IsWindowFullScreen(const sptr<SceneSession>& sceneSession);
+    void CheckAdaptiveResolutionOnModeChange(const sptr<SceneSession>& sceneSession, WindowMode newMode);
+    void CheckAdaptiveResolutionOnHookWindowChange(const sptr<SceneSession>& sceneSession,
+        bool enableHookWindow);
+    void ClearAdaptiveResolutionConfig(int32_t persistentId);
+    void ClearAdaptiveResolutionConfigByUid(int32_t uid);
+    // All cancel paths funnel into CancelAdaptiveResolutionInternal.
+    void CancelAdaptiveResolutionByUid(int32_t uid);
+    void CancelAdaptiveResolutionByWindow(int32_t windowId);
+    void CancelAdaptiveResolutionInternal(int32_t uid, const std::vector<int32_t>& windowIds);
+    void NotifyAdaptiveResolutionAvailable(int32_t uid, bool displayHooked);
+    void TryNotifyAdaptiveResolutionAvailable(const sptr<SceneSession>& sceneSession, bool fullscreenNow);
+    bool TryRestoreAdaptiveResolutionWindow(const sptr<SceneSession>& sceneSession,
+        bool fullscreenNow, bool displayHooked);
+    bool IsAdaptiveResolutionRestorable(const sptr<SceneSession>& sceneSession,
+        bool fullscreenNow, bool displayHooked);
+    bool IsWindowPendingRestore(int32_t uid, int32_t windowId);
+    void EraseCancelledGameWindow(int32_t uid, int32_t windowId);
+    void RecordPendingAdaptiveWindow(int32_t uid, int32_t windowId);
+    std::vector<int32_t> EraseAdaptiveResolutionWindowsByUid(int32_t uid);
+    void ClearAdaptiveResolutionHookInDms(int32_t uid);
+    static DMAdaptiveResolutionConfig ToDmAdaptiveResolutionConfig(
+        const GameAdaptiveResolutionConfig& config);
     sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
         sptr<WindowSessionProperty> property = nullptr);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
@@ -1020,6 +1071,8 @@ public:
      * Compatible Mode
      */
     void RegisterPageEnableFunc(PageEnableFunc&& func);
+    WMError IsHookExtensionWindow(const std::string& bundleName, bool& isHook) override;
+    WMError SetHookExtensionWindowList(const std::vector<std::string>& bundleNames);
 
     void SetSelectMode(SelectMode selectMode);
     SelectMode GetSelectMode() const;
@@ -1616,6 +1669,7 @@ private:
     NotifySupportRotationRegisteredFunc supportRotationRegisteredListener_;
     NotifySensorRotationChangeFunc sensorRotationChangeListener_;
     NotifySmartSensorRotationChangeFunc smartSensorRotationChangeListener_;
+    NotifyDisplayPowerEventChangeFunc displayPowerEventChangeListener_;
 
     /*
      * PiP Window
@@ -2220,6 +2274,8 @@ private:
     PageEnableFunc pageEnableFunc_;
     WSError NotifyPageEnableFunc(const std::string& bundleName, int32_t windowId,
         const std::string& action, const std::string& message);
+    std::shared_mutex compatibleHookExtensionBundleNameMutex_;
+    std::unordered_set<std::string> compatibleHookExtensionBundleNames_;
 
     std::atomic<SelectMode> selectMode_{SelectMode::INVALID_MODE};
     
@@ -2235,6 +2291,12 @@ private:
     RogWindowConfig rogWindowConfig_;
     std::mutex updateRogWindowConfigCallbackMutex_;
     UpdateRogWindowConfigCallbackFunc updateRogWindowConfigCallback_;
+
+    std::mutex adaptiveResolutionMutex_;
+    // windowId -> game uid
+    std::map<int32_t, int32_t> adaptiveResolutionWindows_;
+    // uid -> window ids pending restore or a rejected enable
+    std::map<int32_t, std::set<int32_t>> cancelledGameWindowsByUid_;
 };
 } // namespace OHOS::Rosen
 

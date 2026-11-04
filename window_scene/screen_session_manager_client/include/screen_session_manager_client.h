@@ -116,6 +116,8 @@ public:
     bool IsFoldable();
     void SetVirtualPixelRatioSystem(ScreenId screenId, float virtualPixelRatio) override;
     void UpdateDisplayHookInfo(int32_t uid, bool enable, const DMHookInfo& hookInfo);
+    void UpdateAdaptiveResolutionHook(int32_t uid, bool enable, const DMAdaptiveResolutionConfig& config);
+    bool IsDisplayHookedByUid(int32_t uid) const;
     void GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo) const;
     void NotifyIsFullScreenInForceSplitMode(int32_t uid, bool isFullScreen);
     void SetForceCloseHdr(ScreenId screenId, bool isForceCloseHdr);

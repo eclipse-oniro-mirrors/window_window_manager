@@ -4777,6 +4777,78 @@ void OHOS::Rosen::ScreenSessionManagerProxy::UpdateDisplayHookInfo(int32_t uid, 
     }
 }
 
+void ScreenSessionManagerProxy::UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+    const DMAdaptiveResolutionConfig& config)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] remote is nullptr");
+        return;
+    }
+
+    // Synchronous: the caller (SCB) must not apply the app-side hook before the DMS
+    // hook has landed, otherwise the app's next display query would race this update.
+    MessageOption option(MessageOption::TF_SYNC);
+    MessageParcel reply;
+    MessageParcel data;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] WriteInterfaceToken failed");
+        return;
+    }
+
+    if (!data.WriteInt32(uid) || !data.WriteBool(enable) ||
+        !data.WriteFloat(config.scaleRatio_) || !data.WriteBool(config.autoMetrics_) ||
+        !data.WriteBool(config.notifyDisplay_) || !data.WriteFloat(config.density_) ||
+        !data.WriteFloat(config.xDpi_) || !data.WriteFloat(config.yDpi_) ||
+        !data.WriteBool(config.systemModified_)) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] Write adaptive resolution config failed");
+        return;
+    }
+
+    if (remote->SendRequest(
+        static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_ADAPTIVE_RESOLUTION_HOOK),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] SendRequest failed");
+        return;
+    }
+}
+
+bool ScreenSessionManagerProxy::IsDisplayHookedByUid(int32_t uid)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] remote is nullptr");
+        return false;
+    }
+
+    MessageOption option;
+    MessageParcel reply;
+    MessageParcel data;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] WriteInterfaceToken failed");
+        return false;
+    }
+
+    if (!data.WriteInt32(uid)) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] Write uid failed");
+        return false;
+    }
+
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_IS_DISPLAY_HOOKED_BY_UID),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] SendRequest failed");
+        return false;
+    }
+    bool hooked = false;
+    if (!reply.ReadBool(hooked)) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] read reply failed");
+        return false;
+    }
+    return hooked;
+}
+
 void ScreenSessionManagerProxy::GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo)
 {
     sptr<IRemoteObject> remote = Remote();

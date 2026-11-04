@@ -37,6 +37,7 @@ private:
     int HandleGetUnreliableWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleRequestFocusStatus(MessageParcel& data, MessageParcel& reply);
     int HandleRequestFocusStatusBySA(MessageParcel& data, MessageParcel& reply);
+    int HandleSetGameAdaptiveResolutionForWindow(MessageParcel& data, MessageParcel& reply);
     int HandleCreateAndConnectSpecificSession(MessageParcel& data, MessageParcel& reply);
     int HandleRecoverAndConnectSpecificSession(MessageParcel& data, MessageParcel& reply);
     int HandleRecoverAndReconnectSceneSession(MessageParcel& data, MessageParcel& reply);
@@ -49,6 +50,7 @@ private:
     int HandleRecoverWindowPropertyChangeFlag(MessageParcel& data, MessageParcel& reply);
     int HandleGetFocusSessionInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetFocusWindowInfoByAbilityToken(MessageParcel& data, MessageParcel& reply);
+    int HandleGetAllGroupInfo(MessageParcel& data, MessageParcel& reply);
     int HandleSetSessionLabel(MessageParcel& data, MessageParcel& reply);
     int HandleSetSessionIcon(MessageParcel& data, MessageParcel& reply);
     int HandleIsValidSessionIds(MessageParcel& data, MessageParcel& reply);
@@ -145,6 +147,7 @@ private:
     int HandleIsPcWindow(MessageParcel& data, MessageParcel& reply);
     int HandleIsFreeMultiWindow(MessageParcel& data, MessageParcel& reply);
     int HandleIsPcOrPadFreeMultiWindowMode(MessageParcel& data, MessageParcel& reply);
+    int HandleIsHookExtensionWindow(MessageParcel& data, MessageParcel& reply);
     int HandleIsWindowRectAutoSave(MessageParcel& data, MessageParcel& reply);
     int HandleSetImageForRecent(MessageParcel& data, MessageParcel& reply);
     int HandleSetImageForRecentPixelMap(MessageParcel& data, MessageParcel& reply);

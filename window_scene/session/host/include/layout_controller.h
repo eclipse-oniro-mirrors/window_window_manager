@@ -49,6 +49,8 @@ public:
     void SetAspectRatio(float ratio) { aspectRatio_ = ratio; }
     float GetScaleX() const { return scaleX_; }
     float GetScaleY() const { return scaleY_; }
+    float GetLastScaleX() const { return lastScaleX_; }
+    float GetLastScaleY() const { return lastScaleY_; }
     float GetIgnoreRotateScaleX() const { return ignoreRotateScaleX_; }
     float GetIgnoreRotateScaleY() const { return ignoreRotateScaleY_; }
     float GetPivotX() const { return pivotX_; }
@@ -64,6 +66,8 @@ public:
 private:
     float scaleX_ = 1.0f;
     float scaleY_ = 1.0f;
+    float lastScaleX_ = 1.0f;
+    float lastScaleY_ = 1.0f;
     float ignoreRotateScaleX_ = 1.0f;
     float ignoreRotateScaleY_ = 1.0f;
     float pivotX_ = 0.0f;

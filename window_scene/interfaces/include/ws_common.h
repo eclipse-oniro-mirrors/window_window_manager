@@ -570,6 +570,7 @@ struct SessionInfo {
     bool isAsyncModalBinding_ = false;
     uint32_t parentWindowType_ = 1; // WINDOW_TYPE_APP_MAIN_WINDOW
     SessionViewportConfig config_;
+    std::string brandColorStr_ = "";
 
     /*
      * Multi Instance

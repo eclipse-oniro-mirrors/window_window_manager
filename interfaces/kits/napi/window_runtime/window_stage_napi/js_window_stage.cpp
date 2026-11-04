@@ -359,7 +359,7 @@ napi_value JsWindowStage::OnGetMainWindow(napi_env env, napi_callback_info info)
         auto window = weakScene->GetMainWindow();
         if (window != nullptr) {
             task->Resolve(env, OHOS::Rosen::CreateJsWindowObject(env, window));
-            TLOGNI(WmsLogTag::WMS_LIFE, "Get main window [%{public}u, %{public}s]",
+            TLOGND(WmsLogTag::WMS_LIFE, "Get main window [%{public}u, %{public}s]",
                 window->GetWindowId(), window->GetWindowName().c_str());
         } else {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,

@@ -860,17 +860,17 @@ HWTEST_F(DisplayManagerAgentProxyTest, NotifySpecifiedDisplayPowerEvent_Proxy, T
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    displayManagerAgentProxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
     EXPECT_TRUE(g_logMsg.find("WriteInterfaceToken failed") != std::string::npos);
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteUint64ErrorFlag(true);
-    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    displayManagerAgentProxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
     EXPECT_TRUE(g_logMsg.find("Write screenId failed") != std::string::npos);
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteUint32ErrorFlag(true);
-    proxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
+    displayManagerAgentProxy->NotifySpecifiedDisplayPowerEvent(displayId, event, status);
     EXPECT_TRUE(g_logMsg.find("Write event failed") != std::string::npos);
 
     g_logMsg.clear();

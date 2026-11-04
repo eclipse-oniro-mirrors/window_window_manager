@@ -72,6 +72,7 @@ DataHandlerErr DataHandler::RegisterDataConsumer(SubSystemId subSystemId, DataCo
         return DataHandlerErr::DUPLICATE_REGISTRATION;
     }
     consumers_.emplace(subSystemId, std::move(callback));
+    TLOGI(WmsLogTag::WMS_UIEXT, "Register consumer: %{public}hhu", subSystemId);
     return DataHandlerErr::OK;
 }
 
@@ -79,7 +80,7 @@ void DataHandler::UnregisterDataConsumer(SubSystemId subSystemId)
 {
     std::lock_guard lock(mutex_);
     consumers_.erase(subSystemId);
-    TLOGD(WmsLogTag::WMS_UIEXT, "Unregister consumer for subSystemId: %{public}hhu", subSystemId);
+    TLOGI(WmsLogTag::WMS_UIEXT, "Unregister consumer: %{public}hhu", subSystemId);
 }
 
 bool DataHandler::IsProxyObject() const

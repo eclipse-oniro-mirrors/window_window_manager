@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <mutex>
 #include <shared_mutex>
 
 #include "input_manager.h"
@@ -80,6 +81,8 @@ public:
     void NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycleInfo, void* jsWindowNapiValue);
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
     void NotifySessionSaveSnapShotComplete(int32_t persistentId);
+    void NotifyGameAdaptiveResolutionCancelled(int32_t windowId);
+    void NotifyGameAdaptiveResolutionAvailable(int32_t windowId);
 
     static inline SingletonDelegator<WindowManager> delegator_;
     template<typename T>
@@ -96,6 +99,8 @@ public:
     ListenerSet<IWindowInfoChangedListener> windowModeInfoChangeListeners_;
     ListenerSet<IWindowInfoChangedListener> floatingScaleChangeListeners_;
     ListenerSet<IWindowInfoChangedListener> midSceneStatusChangeListeners_;
+    sptr<WindowManagerAgent> gameAdaptiveListenerAgent_;
+    ListenerSet<IGameAdaptiveResolutionListener> gameAdaptiveListeners_;
     // Window support rotation
     sptr<WindowManagerAgent> windowSupportRotationListenerAgent_;
     ListenerSet<IWindowSupportRotationListener> windowSupportRotationListeners_;
@@ -648,7 +653,7 @@ void WindowManager::Impl::NotifyWindowRectChange(const WindowInfoList& windowInf
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         windowRectChangeListeners.assign(windowRectChangeListeners_.begin(), windowRectChangeListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowRectChangeListeners.size()));
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowRectChangeListeners.size()));
     for (auto& listener : windowRectChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowInfoChanged(windowInfoList);
@@ -664,7 +669,7 @@ void WindowManager::Impl::NotifyWindowGlobalRectChange(const WindowInfoList& win
         windowGlobalRectChangeListeners.assign(
             windowGlobalRectChangeListeners_.begin(), windowGlobalRectChangeListeners_.end());
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowGlobalRectChangeListeners.size()));
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "size=%{public}u", static_cast<uint32_t>(windowGlobalRectChangeListeners.size()));
     for (auto &listener : windowGlobalRectChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowInfoChanged(windowInfoList);
@@ -681,7 +686,7 @@ void WindowManager::Impl::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& li
         wmsWindowDestroyedListener = windowLifeCycleListener_;
     }
     if (wmsWindowDestroyedListener == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
+        TLOGD(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
         return;
     }
     wmsWindowDestroyedListener->OnWindowDestroyed(lifeCycleInfo, jsWindowNapiValue);
@@ -716,6 +721,38 @@ void WindowManager::Impl::NotifySessionSaveSnapShotComplete(int32_t persistentId
     for (const auto& listener : sessionSaveSnapshotCompleteListeners) {
         if (listener != nullptr) {
             listener->OnSessionSaveSnapShotComplete(persistentId);
+        }
+    }
+}
+
+void WindowManager::Impl::NotifyGameAdaptiveResolutionCancelled(int32_t windowId)
+{
+    std::vector<sptr<IGameAdaptiveResolutionListener>> gameAdaptiveListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        gameAdaptiveListeners.assign(gameAdaptiveListeners_.begin(), gameAdaptiveListeners_.end());
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyGameAdaptiveResolutionCancelled] windowId: %{public}d, "
+        "listeners: %{public}zu", windowId, gameAdaptiveListeners.size());
+    for (const auto& listener : gameAdaptiveListeners) {
+        if (listener != nullptr) {
+            listener->OnGameAdaptiveResolutionCancelled(windowId);
+        }
+    }
+}
+
+void WindowManager::Impl::NotifyGameAdaptiveResolutionAvailable(int32_t windowId)
+{
+    std::vector<sptr<IGameAdaptiveResolutionListener>> gameAdaptiveListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        gameAdaptiveListeners.assign(gameAdaptiveListeners_.begin(), gameAdaptiveListeners_.end());
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyGameAdaptiveResolutionAvailable] windowId: %{public}d, "
+        "listeners: %{public}zu", windowId, gameAdaptiveListeners.size());
+    for (const auto& listener : gameAdaptiveListeners) {
+        if (listener != nullptr) {
+            listener->OnGameAdaptiveResolutionAvailable(windowId);
         }
     }
 }
@@ -1102,7 +1139,7 @@ WMError WindowManager::RegisterVisibilityChangedListener(const sptr<IVisibilityC
         ret = ActiveFaultAgentReregister(agentType, pImpl_->windowVisibilityListenerAgent_);
     }
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_SCB, "register failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "register failed, ret=%{public}d", ret);
         pImpl_->windowVisibilityListenerAgent_ = nullptr;
         return ret;
     }
@@ -1116,22 +1153,24 @@ WMError WindowManager::UnregisterVisibilityChangedListener(const sptr<IVisibilit
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER,
         "CUSTOM_ANIMATOR_WindowManager::UnregisterVisibilityChangedListener");
     if (listener == nullptr) {
-        WLOGFE("listener could not be null");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener could not be null");
         return WMError::WM_ERROR_NULLPTR;
     }
     std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
     pImpl_->windowVisibilityListeners_.erase(listener);
 
     WMError ret = WMError::WM_OK;
+    bool unregistered = false;
     if (pImpl_->windowVisibilityListeners_.empty() && pImpl_->windowVisibilityListenerAgent_ != nullptr) {
+        unregistered = true;
         ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
             WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY,
             pImpl_->windowVisibilityListenerAgent_);
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", ret);
         if (ret == WMError::WM_OK) {
             pImpl_->windowVisibilityListenerAgent_ = nullptr;
         }
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, unregistered=%{public}d", ret, unregistered);
     return ret;
 }
 
@@ -2038,6 +2077,13 @@ void WindowManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId dis
     WindowAdapter::GetInstance(userId_).GetFocusWindowInfo(focusInfo, displayId);
 }
 
+void WindowManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+    std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    TLOGD(WmsLogTag::WMS_FOCUS, "In");
+    WindowAdapter::GetInstance(userId_).GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
+}
+
 void WindowManager::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
     const sptr<IRemoteObject>& abilityToken)
 {
@@ -2144,15 +2190,108 @@ WMError WindowManager::ListWindowInfo(const WindowInfoOption& windowInfoOption,
 {
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::ListWindowInfo");
     TLOGI(WmsLogTag::WMS_ATTRIBUTE,
-        "userId: %{public}d windowInfoOption: %{public}u %{public}u %{public}" PRIu64 " %{public}d",
+        "userId=%{public}d, filter=%{public}u, type=%{public}u, winId=%{public}d, displayId=%{public}" PRIu64,
         userId_, static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),
-        windowInfoOption.displayId, windowInfoOption.windowId);
+        windowInfoOption.windowId, windowInfoOption.displayId);
     WMError ret = WindowAdapter::GetInstance(userId_).ListWindowInfo(windowInfoOption, infos);
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: ret=%{public}d", static_cast<int32_t>(ret));
     }
     return ret;
+}
+
+WMError WindowManager::SetGameAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config) const
+{
+    HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "WindowManager::SetGameAdaptiveResolutionConfig");
+    TLOGI(WmsLogTag::WMS_COMPAT, "[SetGameAdaptiveResolutionConfig] userId: %{public}d, "
+        "windowId: %{public}d, config: [%{public}s]",
+        userId_, config.windowId_, config.ToString().c_str());
+    auto window = WindowSessionImpl::GetWindowWithId(static_cast<uint32_t>(config.windowId_));
+    if (window != nullptr) {
+        auto systemConfig = window->GetSystemSessionConfig();
+        if (!systemConfig.IsPhoneWindow() && !systemConfig.IsPadWindow()) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "[SetGameAdaptiveResolutionConfig] not phone/pad device, "
+                "windowId: %{public}d", config.windowId_);
+            return WMError::WM_ERROR_INVALID_OPERATION;
+        }
+    }
+    WMError ret = WindowAdapter::GetInstance(userId_).SetGameAdaptiveResolutionForWindow(config);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[SetGameAdaptiveResolutionConfig] userId: %{public}d, "
+        "windowId: %{public}d, ret: %{public}d", userId_, config.windowId_, static_cast<int32_t>(ret));
+    return ret;
+}
+
+WMError WindowManager::RegisterGameAdaptiveResolutionListener(
+    const sptr<IGameAdaptiveResolutionListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "listener could not be null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (pImpl_->gameAdaptiveListenerAgent_ == nullptr) {
+        pImpl_->gameAdaptiveListenerAgent_ = sptr<WindowManagerAgent>::MakeSptr(userId_);
+    }
+    WMError ret = WindowAdapter::GetInstance(userId_).RegisterWindowManagerAgent(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE, pImpl_->gameAdaptiveListenerAgent_);
+    if (ret == WMError::WM_ERROR_SAMGR) {
+        ret = ActiveFaultAgentReregister(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE, pImpl_->gameAdaptiveListenerAgent_);
+    }
+    if (ret != WMError::WM_OK) {
+        TLOGW(WmsLogTag::WMS_COMPAT, "RegisterWindowManagerAgent failed!");
+        pImpl_->gameAdaptiveListenerAgent_ = nullptr;
+    } else {
+        if (pImpl_->gameAdaptiveListeners_.count(listener)) {
+            TLOGW(WmsLogTag::WMS_COMPAT, "Listener is already registered.");
+            return WMError::WM_OK;
+        }
+        pImpl_->gameAdaptiveListeners_.insert(listener);
+        TLOGI(WmsLogTag::WMS_COMPAT, "[RegisterGameAdaptiveResolutionListener] userId: %{public}d, "
+            "listeners: %{public}zu", userId_, pImpl_->gameAdaptiveListeners_.size());
+    }
+    return ret;
+}
+
+WMError WindowManager::UnregisterGameAdaptiveResolutionListener(
+    const sptr<IGameAdaptiveResolutionListener>& listener)
+{
+    if (listener == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "listener could not be null");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
+    if (pImpl_->gameAdaptiveListeners_.erase(listener) == 0) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "could not find this listener");
+        return WMError::WM_OK;
+    }
+    WMError ret = WMError::WM_OK;
+    if (pImpl_->gameAdaptiveListeners_.empty() && pImpl_->gameAdaptiveListenerAgent_ != nullptr) {
+        ret = WindowAdapter::GetInstance(userId_).UnregisterWindowManagerAgent(
+            WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE,
+            pImpl_->gameAdaptiveListenerAgent_);
+        if (ret == WMError::WM_OK) {
+            pImpl_->gameAdaptiveListenerAgent_ = nullptr;
+        }
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "[UnregisterGameAdaptiveResolutionListener] userId: %{public}d, "
+        "ret: %{public}d, listeners: %{public}zu, agentKept: %{public}d", userId_,
+        static_cast<int32_t>(ret), pImpl_->gameAdaptiveListeners_.size(),
+        pImpl_->gameAdaptiveListenerAgent_ != nullptr);
+    return ret;
+}
+
+void WindowManager::NotifyGameAdaptiveResolutionCancelled(int32_t windowId)
+{
+    pImpl_->NotifyGameAdaptiveResolutionCancelled(windowId);
+}
+
+void WindowManager::NotifyGameAdaptiveResolutionAvailable(int32_t windowId)
+{
+    pImpl_->NotifyGameAdaptiveResolutionAvailable(windowId);
 }
 
 WMError WindowManager::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
@@ -3174,7 +3313,7 @@ void WindowManager::NotifyWMSWindowDestroyed(const WindowLifeCycleInfo& lifeCycl
     {
         std::lock_guard<std::recursive_mutex> lock(pImpl_->mutex_);
         if (pImpl_->windowLifeCycleListener_ == nullptr) {
-            TLOGE(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
+            TLOGD(WmsLogTag::WMS_LIFE, "window destroyed listener is nullptr");
             return;
         }
     }

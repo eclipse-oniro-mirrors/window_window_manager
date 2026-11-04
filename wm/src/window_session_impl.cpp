@@ -16,7 +16,10 @@
 #include "window_session_impl.h"
 #include "session/host/include/zidl/scene_node_count_callback_interface.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
+#include <mutex>
 
 #include <ability_manager_client.h>
 #include <app_mgr_client.h>
@@ -89,6 +92,10 @@ constexpr int32_t MIN_ROTATION_VALUE = 0;
 constexpr int32_t MAX_ROTATION_VALUE = 3;
 constexpr int32_t DISPLAY_ID_C = 999;
 constexpr uint32_t SNAPSHOT_TIMEOUT = 2000; // MS
+constexpr float ADAPTIVE_SCALE_EPSILON = 0.0001f;
+constexpr int32_t ADAPTIVE_MIN_PIXEL = 1;
+constexpr int32_t ADAPTIVE_VIEWPORT_MATCH_TOLERANCE = 2;
+constexpr uint32_t ADAPTIVE_REPAIR_SIZE_DELTA = 4;
 constexpr int32_t SNAPSHOT_ERROR_INVALID_WINDOW = -1;
 constexpr int32_t SNAPSHOT_ERROR_RENDER_CONTEXT = -2;
 constexpr int32_t SNAPSHOT_ERROR_TAKE_CAPTURE = -3;
@@ -325,16 +332,23 @@ bool WindowSessionImpl::isUIExtensionAbilityProcess_ = false;
 
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners, isGamePreLaunch)  \
     do {                                                                        \
+        if ((listeners).size() == 0) {                                          \
+            TLOGE(WmsLogTag::WMS_LIFE, "listeners size is 0!");                 \
+        }                                                                       \
         if (isGamePreLaunch) {                                                  \
             for (auto& listener : (listeners)) {                                \
                 if (listener != nullptr && listener->IsWindowSceneListener()) { \
                     listener->windowLifecycleCb();                              \
+                } else {                                                        \
+                    TLOGE(WmsLogTag::WMS_LIFE, "listeners is null!");           \
                 }                                                               \
             }                                                                   \
         } else {                                                                \
             for (auto& listener : (listeners)) {                                \
                 if (listener != nullptr) {                                      \
                     listener->windowLifecycleCb();                              \
+                } else {                                                        \
+                    TLOGE(WmsLogTag::WMS_LIFE, "listeners is null");            \
                 }                                                               \
             }                                                                   \
         }                                                                       \
@@ -667,8 +681,7 @@ bool WindowSessionImpl::IsWindowSessionInvalid() const
     bool res = ((GetHostSession() == nullptr) || (GetPersistentId() == INVALID_SESSION_ID) ||
         (state_ == WindowState::STATE_DESTROYED));
     if (res) {
-        TLOGW(WmsLogTag::WMS_LIFE, "already destroyed or not created! id: %{public}d state_: %{public}u",
-            GetPersistentId(), state_);
+        TLOGD(WmsLogTag::WMS_LIFE, "id: %{public}d state_: %{public}u", GetPersistentId(), state_);
     }
     return res;
 }
@@ -927,8 +940,13 @@ WMError WindowSessionImpl::Connect()
 void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
 {
     RSUIContextContainer::SetRenderSession(renderSession);
-    RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
-    auto rsUIContext = rsUIDirector_->GetRSUIContext();
+    std::shared_ptr<RSUIDirector> rsUIDirector;
+    {
+        std::lock_guard<std::mutex> lock(rsContextMutex_);
+        RSAdapterUtil::InitRSUIDirector(rsUIDirector_, renderSession, rsUIContext_);
+        rsUIDirector = rsUIDirector_;
+    }
+    auto rsUIContext = rsUIDirector ? rsUIDirector->GetRSUIContext() : nullptr;
     if (SysCapUtil::GetBundleName() == AppExecFwk::Constants::SCENE_BOARD_BUNDLE_NAME &&
         surfaceNode_->GetRSUIContext() != nullptr) {
         TLOGI(WmsLogTag::WMS_LIFE, "sceneboard need a newSurfaceNode, %{public}s",
@@ -945,7 +963,7 @@ void WindowSessionImpl::PostInitSurfaceNode(sptr<IRemoteObject> renderSession)
     }
     surfaceNode_->SetRSUIContext(rsUIContext);
     RSUIContextContainer::SetRSUIContext(GetPersistentId(), rsUIContext);
-    TLOGI(WmsLogTag::WMS_LIFE, "post init surfaceNode success, name: %{public}s", property_->GetWindowName().c_str());
+    TLOGI(WmsLogTag::WMS_LIFE, "name: %{public}s", property_->GetWindowName().c_str());
 }
 
 sptr<WindowSessionImpl> WindowSessionImpl::GetWindowWithId(uint32_t windowId)
@@ -1314,7 +1332,7 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
     RSUIContextContainer::RemoveRSUIContext(GetPersistentId());
     if (IsWindowSessionInvalid()) {
         WLOGFW("session is invalid");
-        ReleaseSurfaceNode();
+        ReleaseRSContext();
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     if (auto hostSession = GetHostSession()) {
@@ -1344,7 +1362,7 @@ WMError WindowSessionImpl::Destroy(bool needNotifyServer, bool needClearListener
         context.reset();
     }
     ClearVsyncStation();
-    ReleaseSurfaceNode();
+    ReleaseRSContext();
     UnregisterFoldStatusListener();
     return WMError::WM_OK;
 }
@@ -1354,11 +1372,26 @@ WMError WindowSessionImpl::Destroy(uint32_t reason, bool isFromInnerkits)
     return Destroy(true, true, reason, isFromInnerkits);
 }
 
-void WindowSessionImpl::ReleaseSurfaceNode()
+void WindowSessionImpl::ReleaseRSContext()
 {
     if (surfaceNode_ != nullptr) {
         surfaceNode_ = nullptr;
         RSTransactionAdapter::FlushImplicitTransaction(GetRSUIContext());
+    }
+    if (handler_ != nullptr) {
+        std::shared_ptr<RSUIDirector> rsUIDirector;
+        std::shared_ptr<RSUIContext> rsUIContext;
+        {
+            std::lock_guard<std::mutex> lock(rsContextMutex_);
+            rsUIDirector_.swap(rsUIDirector);
+            rsUIContext_.swap(rsUIContext);
+        }
+        handler_->PostTask([rsUIDirector = std::move(rsUIDirector), rsUIContext = std::move(rsUIContext)]() mutable {
+            rsUIDirector.reset();
+            rsUIContext.reset();
+        }, __func__);
+    } else {
+        TLOGW(WmsLogTag::WMS_LIFE, "handler is null!");
     }
 }
 
@@ -1810,6 +1843,21 @@ void WindowSessionImpl::FlushLayoutSize(int32_t width, int32_t height)
     if (!WindowHelper::IsMainWindow(GetType())) {
         return;
     }
+    // Adaptive: SCB compares the reported layout against the real window rect;
+    // report the real size when it matches the hooked viewport (±tolerance).
+    if (IsAdaptiveResolutionEnabled()) {
+        Rect windowRect = GetRect();
+        float ratio = GetAdaptiveResolutionConfig().scaleRatio_;
+        int32_t hookedWidth = std::max(ADAPTIVE_MIN_PIXEL,
+            static_cast<int32_t>(std::lround(windowRect.width_ * ratio)));
+        int32_t hookedHeight = std::max(ADAPTIVE_MIN_PIXEL,
+            static_cast<int32_t>(std::lround(windowRect.height_ * ratio)));
+        if (std::abs(width - hookedWidth) <= ADAPTIVE_VIEWPORT_MATCH_TOLERANCE &&
+            std::abs(height - hookedHeight) <= ADAPTIVE_VIEWPORT_MATCH_TOLERANCE) {
+            width = static_cast<int32_t>(windowRect.width_);
+            height = static_cast<int32_t>(windowRect.height_);
+        }
+    }
     WSRect rect = { 0, 0, width, height };
     bool windowSizeChanged = true;
     bool enableFrameLayoutFinishCb = true;
@@ -2223,7 +2271,7 @@ bool WindowSessionImpl::IsNotifyInteractiveDuplicative(bool interactive)
 
 void WindowSessionImpl::NotifyForegroundInteractiveStatus(bool interactive)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "interactive: %{public}d, state: %{public}d", interactive, state_);
+    TLOGI(WmsLogTag::WMS_LIFE, "interactive:%{public}d,state: %{public}d", interactive, state_);
     if (IsWindowSessionInvalid() || state_ != WindowState::STATE_SHOWN) {
         return;
     }
@@ -2392,7 +2440,9 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
                 continue;
             }
             if (UpdateLastAvoidAreaIfChanged(type, avoidArea)) {
-                NotifyAvoidAreaChange(new AvoidArea(avoidArea), type);
+                sptr<AvoidArea> notifyArea = new AvoidArea(avoidArea);
+                HookAvoidAreaForHookedViewport(*notifyArea);
+                NotifyAvoidAreaChange(notifyArea, type);
             }
         }
     }
@@ -2434,12 +2484,13 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
     Rect viewportRect = rect;
     Rect hookedViewportRect = rect;
     HookWindowSizeByHookWindowInfo(hookedViewportRect);
+    bool adaptiveEnabled = IsAdaptiveResolutionEnabled();
     TLOGD(WmsLogTag::WMS_LAYOUT,
         "HookWindowSize[UpdateViewportConfig], id:%{public}d, realRect:%{public}s, hookedRect:%{public}s, "
-        "useHookedSize:%{public}d",
+        "useHookedSize:%{public}d, adaptiveEnabled:%{public}d",
         GetPersistentId(), rect.ToString().c_str(), hookedViewportRect.ToString().c_str(),
-        viewportUseHookedSize_.load());
-    if (viewportUseHookedSize_.load()) {
+        viewportUseHookedSize_.load(), adaptiveEnabled);
+    if (viewportUseHookedSize_.load() || adaptiveEnabled) {
         viewportRect = hookedViewportRect;
     }
     SelectMode selectMode = SelectMode::INVALID_MODE;
@@ -2467,15 +2518,17 @@ void WindowSessionImpl::UpdateViewportConfig(const Rect& rect, WindowSizeChangeR
         WLOGFW("uiContent is null!");
         return;
     }
+    UpdateAdaptiveSurfaceScale(rect, hookedViewportRect);
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER,
         "WindowSessionImpl::UpdateViewportConfig id:%d [%d,%d,%u,%u] reason:%u orientation:%d hooked:%d",
         GetPersistentId(), viewportRect.posX_, viewportRect.posY_, viewportRect.width_, viewportRect.height_,
         reason, orientation, viewportUseHookedSize_.load());
-    if (reason == WindowSizeChangeReason::OCCUPIED_AREA_CHANGE && !avoidAreas.empty()) {
-        uiContent->UpdateViewportConfig(config, reason, rsTransaction, avoidAreas, occupiedAreaInfo_);
-    } else {
-        uiContent->UpdateViewportConfig(config, reason, rsTransaction, GetLastAvoidAreaMapCopy(), occupiedAreaInfo_);
-    }
+    std::map<AvoidAreaType, AvoidArea> avoidAreasForViewport =
+        reason == WindowSizeChangeReason::OCCUPIED_AREA_CHANGE && !avoidAreas.empty() ?
+        avoidAreas : GetLastAvoidAreaMapCopy();
+    HookAvoidAreasForHookedViewport(avoidAreasForViewport);
+    uiContent->UpdateViewportConfig(config, reason, rsTransaction, avoidAreasForViewport,
+        HookOccupiedAreaInfoForHookedViewport(occupiedAreaInfo_));
     if (WindowHelper::IsUIExtensionWindow(GetType())) {
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id: %{public}d, reason: %{public}d, viewportRect: %{public}s, "
             "displayOrientation: %{public}d, config[%{public}u, %{public}u, %{public}u, "
@@ -2850,7 +2903,7 @@ WMError WindowSessionImpl::InitUIContent(const std::string& contentInfo, void* e
 
 void WindowSessionImpl::RegisterUIContenCallback()
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "start");
+    TLOGD(WmsLogTag::WMS_LIFE, "start");
     RegisterWatchFocusActiveChangeCallback();
     RegisterKeyFrameCallback();
 }
@@ -3004,6 +3057,7 @@ void WindowSessionImpl::SetAppHookWindowInfo(const HookWindowInfo& hookWindowInf
 
 void WindowSessionImpl::HookWindowSizeByHookWindowInfo(Rect& rect) const
 {
+    HookWindowSizeByAdaptiveResolution(rect);
     auto hookWindowInfo = GetProperty()->GetHookWindowInfo();
     if (!hookWindowInfo.enableHookWindow || !WindowHelper::IsMainWindow(GetType()) ||
         isFullScreenInForceSplit_.load()) {
@@ -3015,6 +3069,337 @@ void WindowSessionImpl::HookWindowSizeByHookWindowInfo(Rect& rect) const
         TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}u, hook window width, hooked width:%{public}u, "
             "widthHookRatio:%{public}f.", GetWindowId(), rect.width_, hookWindowInfo.widthHookRatio);
     }
+}
+
+// Empty rects stay empty (0 * ratio == 0); unlike window sizes no 1px floor is needed.
+void WindowSessionImpl::ScaleAvoidAreaRectForHookedViewport(Rect& rect, float scaleRatio) const
+{
+    rect.posX_ = static_cast<int32_t>(std::lround(rect.posX_ * scaleRatio));
+    rect.posY_ = static_cast<int32_t>(std::lround(rect.posY_ * scaleRatio));
+    rect.width_ = static_cast<uint32_t>(std::lround(rect.width_ * scaleRatio));
+    rect.height_ = static_cast<uint32_t>(std::lround(rect.height_ * scaleRatio));
+}
+
+void WindowSessionImpl::ScaleAvoidAreaForHookedViewport(AvoidArea& avoidArea, float scaleRatio) const
+{
+    ScaleAvoidAreaRectForHookedViewport(avoidArea.topRect_, scaleRatio);
+    ScaleAvoidAreaRectForHookedViewport(avoidArea.bottomRect_, scaleRatio);
+    ScaleAvoidAreaRectForHookedViewport(avoidArea.leftRect_, scaleRatio);
+    ScaleAvoidAreaRectForHookedViewport(avoidArea.rightRect_, scaleRatio);
+}
+
+bool WindowSessionImpl::IsAdaptiveResolutionEnabled() const
+{
+    return adaptiveResolutionActive_.load();
+}
+
+float WindowSessionImpl::GetAdaptiveInputScaleRatio() const
+{
+    if (!IsAdaptiveResolutionEnabled()) {
+        return 0.0f;
+    }
+    GameAdaptiveResolutionConfig config = GetAdaptiveResolutionConfig();
+    return config.inputHook_ ? config.scaleRatio_ : 0.0f;
+}
+
+GameAdaptiveResolutionConfig WindowSessionImpl::GetAdaptiveResolutionConfig() const
+{
+    std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+    return adaptiveResolutionConfig_;
+}
+
+void WindowSessionImpl::HookWindowSizeByAdaptiveResolution(Rect& rect) const
+{
+    if (!IsAdaptiveResolutionEnabled()) {
+        return;
+    }
+    float scaleRatio = GetAdaptiveResolutionConfig().scaleRatio_;
+    rect.width_ = static_cast<uint32_t>(std::max(ADAPTIVE_MIN_PIXEL,
+        static_cast<int32_t>(std::lround(rect.width_ * scaleRatio))));
+    rect.height_ = static_cast<uint32_t>(std::max(ADAPTIVE_MIN_PIXEL,
+        static_cast<int32_t>(std::lround(rect.height_ * scaleRatio))));
+}
+
+WSError WindowSessionImpl::NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+    const GameAdaptiveResolutionConfig& config)
+{
+    // Apply on the main thread, like every other viewport update (RSNode requirement).
+    auto task = [weakThis = wptr(this), status, config]() {
+        auto window = weakThis.promote();
+        if (window == nullptr) {
+            return;
+        }
+        window->HandleAdaptiveResolutionChanged(status, config);
+    };
+    handler_->PostTask(task, "WMS_NotifyAdaptiveResolutionChanged");
+    return WSError::WS_OK;
+}
+
+void WindowSessionImpl::HandleAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+    const GameAdaptiveResolutionConfig& config)
+{
+    switch (status) {
+        case GameAdaptiveResolutionStatus::SET: {
+            if (config.windowId_ != GetPersistentId()) {
+                TLOGW(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] mismatched windowId: "
+                    "%{public}d, expected: %{public}d", config.windowId_, GetPersistentId());
+                return;
+            }
+            TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] set, Id:%{public}u, "
+                "config: [%{public}s]", GetWindowId(), config.ToString().c_str());
+            ApplyAdaptiveResolutionConfig(config);
+            return;
+        }
+        case GameAdaptiveResolutionStatus::CANCELLED: {
+            // Restore locally; listeners are notified via the SCB agent fan-out.
+            TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] cancelled, Id:%{public}u",
+                GetWindowId());
+            GameAdaptiveResolutionConfig disable = GetAdaptiveResolutionConfig();
+            disable.enable_ = false;
+            disable.windowId_ = GetPersistentId();
+            ApplyAdaptiveResolutionConfig(disable);
+            return;
+        }
+        default:
+            TLOGW(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] unknown status: %{public}d",
+                static_cast<int32_t>(status));
+            return;
+    }
+}
+
+void WindowSessionImpl::ApplyAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config)
+{
+    bool effectChanged = false;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        effectChanged = !adaptiveResolutionConfig_.HasSameEffect(config);
+        adaptiveResolutionConfig_ = config;
+    }
+    adaptiveResolutionActive_.store(config.enable_ && config.IsScaleRatioValid());
+    TLOGI(WmsLogTag::WMS_COMPAT, "[ApplyAdaptiveResolutionConfig] Id:%{public}u, "
+        "effectChanged:%{public}d, active:%{public}d, config:[%{public}s]",
+        GetWindowId(), effectChanged, adaptiveResolutionActive_.load(), config.ToString().c_str());
+    if (effectChanged) {
+        RefreshAdaptiveResolution(config.notifyWindow_);
+    }
+}
+
+void WindowSessionImpl::HookAvoidAreaForHookedViewport(AvoidArea& avoidArea) const
+{
+    if (!IsAdaptiveResolutionEnabled()) {
+        return;
+    }
+    ScaleAvoidAreaForHookedViewport(avoidArea, GetAdaptiveResolutionConfig().scaleRatio_);
+}
+
+void WindowSessionImpl::HookAvoidAreasForHookedViewport(
+    std::map<AvoidAreaType, AvoidArea>& avoidAreas) const
+{
+    if (!IsAdaptiveResolutionEnabled()) {
+        return;
+    }
+    float scaleRatio = GetAdaptiveResolutionConfig().scaleRatio_;
+    for (auto& [type, avoidArea] : avoidAreas) {
+        ScaleAvoidAreaForHookedViewport(avoidArea, scaleRatio);
+    }
+}
+
+// TextField fields are app-reported in the hooked viewport and stay unchanged.
+sptr<OccupiedAreaChangeInfo> WindowSessionImpl::HookOccupiedAreaInfoForHookedViewport(
+    const sptr<OccupiedAreaChangeInfo>& info) const
+{
+    if (info == nullptr || !IsAdaptiveResolutionEnabled()) {
+        return info;
+    }
+    float scaleRatio = GetAdaptiveResolutionConfig().scaleRatio_;
+    auto hookedInfo = sptr<OccupiedAreaChangeInfo>::MakeSptr(info->type_, info->rect_, info->safeHeight_,
+        info->textFieldPositionY_, info->textFieldHeight_);
+    ScaleAvoidAreaRectForHookedViewport(hookedInfo->rect_, scaleRatio);
+    hookedInfo->safeHeight_ = static_cast<uint32_t>(std::lround(hookedInfo->safeHeight_ * scaleRatio));
+    return hookedInfo;
+}
+
+KeyboardAnimationInfo WindowSessionImpl::HookKeyboardAnimationInfoForHookedViewport(
+    const KeyboardAnimationInfo& info) const
+{
+    if (!IsAdaptiveResolutionEnabled()) {
+        return info;
+    }
+    float scaleRatio = GetAdaptiveResolutionConfig().scaleRatio_;
+    KeyboardAnimationInfo hookedInfo = info;
+    ScaleAvoidAreaRectForHookedViewport(hookedInfo.beginRect, scaleRatio);
+    ScaleAvoidAreaRectForHookedViewport(hookedInfo.endRect, scaleRatio);
+    return hookedInfo;
+}
+
+KeyboardPanelInfo WindowSessionImpl::HookKeyboardPanelInfoForHookedViewport(
+    const KeyboardPanelInfo& info) const
+{
+    if (!IsAdaptiveResolutionEnabled()) {
+        return info;
+    }
+    float scaleRatio = GetAdaptiveResolutionConfig().scaleRatio_;
+    KeyboardPanelInfo hookedInfo = info;
+    ScaleAvoidAreaRectForHookedViewport(hookedInfo.rect_, scaleRatio);
+    ScaleAvoidAreaRectForHookedViewport(hookedInfo.beginRect_, scaleRatio);
+    ScaleAvoidAreaRectForHookedViewport(hookedInfo.endRect_, scaleRatio);
+    return hookedInfo;
+}
+
+void WindowSessionImpl::NotifyAvoidAreasForHookedViewport()
+{
+    for (const auto& [type, avoidArea] : GetLastAvoidAreaMapCopy()) {
+        sptr<AvoidArea> notifyArea = new AvoidArea(avoidArea);
+        HookAvoidAreaForHookedViewport(*notifyArea);
+        NotifyAvoidAreaChange(notifyArea, type);
+    }
+}
+
+void WindowSessionImpl::RefreshAdaptiveResolution(bool notifyListeners)
+{
+    Rect windowRect = GetRect();
+    bool defer = state_ != WindowState::STATE_SHOWN || windowRect.width_ == 0 || windowRect.height_ == 0;
+    if (defer) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "[RefreshAdaptiveResolution] Id:%{public}u, defer, state:%{public}d, "
+            "rect:[%{public}s]", GetWindowId(), static_cast<int32_t>(state_), windowRect.ToString().c_str());
+        // The show flow re-delivers UpdateViewportConfig; only the size/rect callbacks
+        // need the pending flags. Avoid areas carry no rect dependency, notify now.
+        if (notifyListeners) {
+            notifySizeChangeInCompatibleMode_.store(true);
+            notifyRectChangeInCompatibleMode_.store(true);
+            TLOGI(WmsLogTag::WMS_COMPAT, "[AdaptiveNotify] avoidArea callbacks (size/rect deferred), "
+                "Id:%{public}u", GetWindowId());
+            NotifyAvoidAreasForHookedViewport();
+        }
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_COMPAT, "[RefreshAdaptiveResolution] Id:%{public}u, refresh now, "
+        "rect:[%{public}s], notifyListeners:%{public}d", GetWindowId(), windowRect.ToString().c_str(),
+        static_cast<int32_t>(notifyListeners));
+    // skipCache: the 25ms local cache may still hold pre-hook values.
+    auto display = SingletonContainer::Get<DisplayManager>().GetDisplayById(
+            property_->GetDisplayId(), false, true);
+    sptr<DisplayInfo> displayInfo = display != nullptr ? display->GetDisplayInfo() : nullptr;
+    bool keyboardOpen = occupiedAreaInfo_ != nullptr && occupiedAreaInfo_->rect_.height_ > 0;
+    if (notifyListeners) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "[AdaptiveNotify] windowSize/rect/avoidArea callbacks, "
+            "reason: HOOK_INFO_CHANGE, Id:%{public}u", GetWindowId());
+        NotifySizeChange(windowRect, WindowSizeChangeReason::HOOK_INFO_CHANGE);
+        NotifyGlobalDisplayRectChange(windowRect, WindowSizeChangeReason::HOOK_INFO_CHANGE);
+        NotifyAvoidAreasForHookedViewport();
+        // Keyboard open during the flip: re-deliver in the hooked coordinate space.
+        if (keyboardOpen) {
+            NotifyOccupiedAreaChangeInfoInner(occupiedAreaInfo_);
+        }
+    }
+    if (!keyboardOpen) {
+        UpdateViewportConfig(windowRect, WindowSizeChangeReason::HOOK_INFO_CHANGE,
+            nullptr, displayInfo, {});
+    } else {
+        // applies the viewport with deltas; its helper fixes the over-scrolled px state.
+        Rect repairRect = windowRect;
+        repairRect.width_ += ADAPTIVE_REPAIR_SIZE_DELTA;
+        repairRect.height_ += ADAPTIVE_REPAIR_SIZE_DELTA;
+        UpdateViewportConfig(repairRect, WindowSizeChangeReason::OCCUPIED_AREA_CHANGE,
+            std::make_shared<RSTransaction>(), displayInfo, {});
+        // restores the original size; the avoid recomputes from the re-measured layout.
+        UpdateViewportConfig(windowRect, WindowSizeChangeReason::OCCUPIED_AREA_CHANGE,
+            std::make_shared<RSTransaction>(), displayInfo, {});
+    }
+}
+
+// Deduped compensating scale: SetPivot(0,0) + SetScale stretch the hooked
+// low-resolution viewport back to the full window. Main thread only (RSNode).
+bool WindowSessionImpl::UpdateAdaptiveSurfaceScale(const Rect& realRect, const Rect& hookedRect)
+{
+    if (surfaceNode_ == nullptr) {
+        return false;
+    }
+    bool needScale = IsAdaptiveResolutionEnabled() &&
+        (hookedRect.width_ != realRect.width_ || hookedRect.height_ != realRect.height_);
+    std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+    if (!needScale) {
+        if (!adaptiveSurfaceScaleApplied_.load()) {
+            return false; // nothing applied, nothing to restore
+        }
+        adaptiveSurfaceScaleApplied_.store(false);
+        adaptiveSurfaceScaleX_ = 1.0f;
+        adaptiveSurfaceScaleY_ = 1.0f;
+        surfaceNode_->SetScale(1.0f, 1.0f);
+        TLOGI(WmsLogTag::WMS_COMPAT, "[ResetAdaptiveSurfaceScale] Id:%{public}u, nodeId:%{public}" PRIu64 ".",
+            GetWindowId(), surfaceNode_->GetId());
+        return true;
+    }
+    float scaleX = static_cast<float>(realRect.width_) / static_cast<float>(hookedRect.width_);
+    float scaleY = static_cast<float>(realRect.height_) / static_cast<float>(hookedRect.height_);
+    if (adaptiveSurfaceScaleApplied_.load() &&
+        adaptiveSurfaceNodeId_ == surfaceNode_->GetId() &&
+        std::abs(adaptiveSurfaceScaleX_ - scaleX) <= ADAPTIVE_SCALE_EPSILON &&
+        std::abs(adaptiveSurfaceScaleY_ - scaleY) <= ADAPTIVE_SCALE_EPSILON) {
+        TLOGD(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveSurfaceScale] same scale already applied, skip");
+        return false; // same values already applied to this surface node
+    }
+    adaptiveSurfaceScaleApplied_.store(true);
+    adaptiveSurfaceNodeId_ = surfaceNode_->GetId();
+    adaptiveSurfaceScaleX_ = scaleX;
+    adaptiveSurfaceScaleY_ = scaleY;
+    surfaceNode_->SetPivot(0.0f, 0.0f);
+    surfaceNode_->SetScale(scaleX, scaleY);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[ApplyAdaptiveSurfaceScale] Id:%{public}u, "
+        "nodeId:%{public}" PRIu64 ", scaleX:%{public}f, scaleY:%{public}f.",
+        GetWindowId(), surfaceNode_->GetId(), scaleX, scaleY);
+    return true;
+}
+
+// XComponent and ArkUI read different coordinate fields; scale them all.
+void WindowSessionImpl::ScalePointerItemForHookedViewport(MMI::PointerEvent::PointerItem& item,
+    float scaleRatio) const
+{
+    item.SetWindowX(static_cast<int32_t>(std::lround(item.GetWindowX() * scaleRatio)));
+    item.SetWindowY(static_cast<int32_t>(std::lround(item.GetWindowY() * scaleRatio)));
+    item.SetWindowXPos(item.GetWindowXPos() * scaleRatio);
+    item.SetWindowYPos(item.GetWindowYPos() * scaleRatio);
+    item.SetDisplayX(static_cast<int32_t>(std::lround(item.GetDisplayX() * scaleRatio)));
+    item.SetDisplayY(static_cast<int32_t>(std::lround(item.GetDisplayY() * scaleRatio)));
+    item.SetDisplayXPos(item.GetDisplayXPos() * scaleRatio);
+    item.SetDisplayYPos(item.GetDisplayYPos() * scaleRatio);
+    item.SetGlobalX(item.GetGlobalX() * scaleRatio);
+    item.SetGlobalY(item.GetGlobalY() * scaleRatio);
+}
+
+void WindowSessionImpl::ScalePointerEventInPlace(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
+    float scaleRatio) const
+{
+    for (auto& item : pointerEvent->GetAllPointerItems()) {
+        ScalePointerItemForHookedViewport(item, scaleRatio);
+        pointerEvent->UpdatePointerItem(item.GetPointerId(), item);
+    }
+}
+
+bool WindowSessionImpl::ScalePointerEventForHookedViewport(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    // All pointer source types (touch, mouse, stylus, ...).
+    float scaleRatio = GetAdaptiveInputScaleRatio();
+    if (pointerEvent == nullptr || scaleRatio <= 0.0f) {
+        return false;
+    }
+    ScalePointerEventInPlace(pointerEvent, scaleRatio);
+    return true;
+}
+
+std::shared_ptr<MMI::PointerEvent> WindowSessionImpl::GetPointerEventForHitTest(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    float scaleRatio = GetAdaptiveInputScaleRatio();
+    if (pointerEvent == nullptr || scaleRatio <= 0.0f) {
+        return pointerEvent;
+    }
+    // The hit test runs in the hooked coordinate space; the original event is
+    // scaled later in NotifyPointerEvent, so hand out a scaled copy here.
+    auto scaledEvent = std::make_shared<MMI::PointerEvent>(*pointerEvent);
+    ScalePointerEventInPlace(scaledEvent, scaleRatio);
+    return scaledEvent;
 }
 
 WMError WindowSessionImpl::SetUIContentInner(const std::string& contentInfo, void* env, void* storage,
@@ -6418,6 +6803,7 @@ void WindowSessionImpl::NotifyAfterForeground(bool needNotifyListeners, bool nee
     if (needNotifyListeners) {
         NotifyAfterLifecycleForeground();
         {
+            HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "NotifyAfterForeground, id: %u", GetWindowId());
             std::lock_guard<std::recursive_mutex> lockListener(lifeCycleListenerMutex_);
             auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
             CALL_LIFECYCLE_LISTENER(AfterForeground, lifecycleListeners, isGamePreLaunch_);
@@ -6491,7 +6877,7 @@ void WindowSessionImpl::NotifyAfterDidForeground(uint32_t reason)
     TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
     if (reason != static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH) &&
         reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
+        TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
         return;
     }
     if (handler_ == nullptr) {
@@ -6506,6 +6892,7 @@ void WindowSessionImpl::NotifyAfterDidForeground(uint32_t reason)
             return;
         }
         TLOGND(WmsLogTag::WMS_LIFE, "%{public}s execute", where);
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "NotifyAfterDidForeground, id: %u", window->GetWindowId());
         auto lifecycleListeners = window->GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterDidForeground, lifecycleListeners, window->isGamePreLaunch_);
     }, where, 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
@@ -6551,7 +6938,7 @@ void WindowSessionImpl::NotifyAfterDidBackground(uint32_t reason)
     TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d", reason);
     if (reason != static_cast<uint32_t>(WindowStateChangeReason::USER_SWITCH) &&
         reason != static_cast<uint32_t>(WindowStateChangeReason::ABILITY_CALL)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
+        TLOGD(WmsLogTag::WMS_LIFE, "reason: %{public}d not notify", reason);
         return;
     }
     if (handler_ == nullptr) {
@@ -7174,22 +7561,23 @@ void WindowSessionImpl::NotifySizeChange(Rect rect, WindowSizeChangeReason reaso
             }
         }
     }
+    std::vector<std::pair<sptr<IWindowRectChangeListener>, bool>> windowRectChangeListeners;
     {
         std::lock_guard<std::mutex> lockRectListener(windowRectChangeListenerMutex_);
-        auto windowRectChangeListeners = GetListeners<IWindowRectChangeListener>();
-        TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, rectChange listenerSize:%{public}zu",
-            GetPersistentId(), windowRectChangeListeners.size());
-        for (auto& [listener, useHookedSize] : windowRectChangeListeners) {
-            if (listener != nullptr) {
-                Rect hookedRect = rect;
-                HookWindowSizeByHookWindowInfo(hookedRect);
-                TLOGD(WmsLogTag::WMS_LAYOUT,
-                    "HookWindowSize[OnRectChange], id:%{public}d, realRect:%{public}s, hookedRect:%{public}s, "
-                    "useHookedSize:%{public}d",
-                    GetPersistentId(), rect.ToString().c_str(), hookedRect.ToString().c_str(), useHookedSize);
-                Rect notifyRect = useHookedSize ? hookedRect : rect;
-                listener->OnRectChange(notifyRect, reason);
-            }
+        windowRectChangeListeners = GetListeners<IWindowRectChangeListener>();
+    }
+    TLOGD(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, rectChange listenerSize:%{public}zu",
+        GetPersistentId(), windowRectChangeListeners.size());
+    for (auto& [listener, useHookedSize] : windowRectChangeListeners) {
+        if (listener != nullptr) {
+            Rect hookedRect = rect;
+            HookWindowSizeByHookWindowInfo(hookedRect);
+            TLOGD(WmsLogTag::WMS_LAYOUT,
+                "HookWindowSize[OnRectChange], id:%{public}d, realRect:%{public}s, hookedRect:%{public}s, "
+                "useHookedSize:%{public}d",
+                GetPersistentId(), rect.ToString().c_str(), hookedRect.ToString().c_str(), useHookedSize);
+            Rect notifyRect = useHookedSize ? hookedRect : rect;
+            listener->OnRectChange(notifyRect, reason);
         }
     }
     Rect hookedRect = rect;
@@ -7524,7 +7912,9 @@ WSError WindowSessionImpl::UpdateAvoidArea(const sptr<AvoidArea>& avoidArea, Avo
             return;
         }
         if (window->UpdateLastAvoidAreaIfChanged(type, *avoidArea)) {
-            window->NotifyAvoidAreaChange(avoidArea, type);
+            sptr<AvoidArea> notifyArea = new AvoidArea(*avoidArea);
+            window->HookAvoidAreaForHookedViewport(*notifyArea);
+            window->NotifyAvoidAreaChange(notifyArea, type);
             window->UpdateViewportConfig(window->GetRect(), WindowSizeChangeReason::AVOID_AREA_CHANGE);
         }
     };
@@ -7792,13 +8182,13 @@ WSError WindowSessionImpl::NotifyTouchOutside()
 WMError WindowSessionImpl::RegisterWindowVisibilityChangeListener(const IWindowVisibilityListenerSptr& listener)
 {
     auto persistentId = GetPersistentId();
-    WLOGFD("Start, persistentId=%{public}d.", persistentId);
     WMError ret = WMError::WM_OK;
     bool isFirstRegister = false;
     {
         std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
         ret = RegisterListener(windowVisibilityChangeListeners_[persistentId], listener);
         if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
             return ret;
         }
         isFirstRegister = windowVisibilityChangeListeners_[persistentId].size() == 1;
@@ -7806,20 +8196,26 @@ WMError WindowSessionImpl::RegisterWindowVisibilityChangeListener(const IWindowV
 
     if (isFirstRegister) {
         ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionWindowVisibilityListener(persistentId, true);
+        if (ret != WMError::WM_OK) {
+            std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
+            UnregisterListenerInMap(windowVisibilityChangeListeners_, persistentId, listener);
+        }
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isFirstRegister=%{public}d, ret=%{public}d",
+        persistentId, isFirstRegister, ret);
     return ret;
 }
 
 WMError WindowSessionImpl::UnregisterWindowVisibilityChangeListener(const IWindowVisibilityListenerSptr& listener)
 {
     auto persistentId = GetPersistentId();
-    WLOGFD("Start, persistentId=%{public}d.", persistentId);
     WMError ret = WMError::WM_OK;
     bool isLastUnregister = false;
     {
         std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
         ret = UnregisterListenerInMap(windowVisibilityChangeListeners_, persistentId, listener);
         if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: winId=%{public}d", persistentId);
             return ret;
         }
         isLastUnregister = windowVisibilityChangeListeners_[persistentId].empty();
@@ -7827,7 +8223,13 @@ WMError WindowSessionImpl::UnregisterWindowVisibilityChangeListener(const IWindo
 
     if (isLastUnregister) {
         ret = SingletonContainer::Get<WindowAdapter>().UpdateSessionWindowVisibilityListener(persistentId, false);
+        if (ret != WMError::WM_OK) {
+            std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
+            RegisterListener(windowVisibilityChangeListeners_[persistentId], listener);
+        }
     }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, isLastUnregister=%{public}d, ret=%{public}d",
+        persistentId, isLastUnregister, ret);
     return ret;
 }
 
@@ -7853,7 +8255,7 @@ WMError WindowSessionImpl::RegisterOcclusionStateChangeListener(const sptr<IOccl
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
             persistentId, static_cast<int32_t>(ret));
         std::lock_guard<std::mutex> lockListener(occlusionStateChangeListenerMutex_);
-        ret = UnregisterListenerInMap(occlusionStateChangeListeners_, persistentId, listener);
+        UnregisterListenerInMap(occlusionStateChangeListeners_, persistentId, listener);
     }
     return ret;
 }
@@ -7883,7 +8285,7 @@ WMError WindowSessionImpl::UnregisterOcclusionStateChangeListener(const sptr<IOc
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed: winId=%{public}d, retCode=%{public}d",
             persistentId, static_cast<int32_t>(ret));
         std::lock_guard<std::mutex> lockListener(occlusionStateChangeListenerMutex_);
-        ret = RegisterListener(occlusionStateChangeListeners_[persistentId], listener);
+        RegisterListener(occlusionStateChangeListeners_[persistentId], listener);
     }
     return ret;
 }
@@ -7906,7 +8308,7 @@ WSError WindowSessionImpl::NotifyWindowOcclusionState(const WindowVisibilityStat
         visibilityState = WindowVisibilityState::WINDOW_VISIBILITY_STATE_TOTALLY_OCCUSION;
     }
     if (visibilityState == lastVisibilityState_) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, sameVisibilityState=%{public}u",
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, sameVisibilityState=%{public}u",
             persistentId, static_cast<uint32_t>(visibilityState));
         return WSError::WS_OK;
     }
@@ -7918,7 +8320,7 @@ WSError WindowSessionImpl::NotifyWindowOcclusionState(const WindowVisibilityStat
             notifyCounter++;
         }
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, visibilityState=%{public}u, notifyCounter=%{public}u",
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, visibilityState=%{public}u, notifyCounter=%{public}u",
         persistentId, static_cast<uint32_t>(visibilityState), notifyCounter);
     return WSError::WS_OK;
 }
@@ -8336,15 +8738,20 @@ bool WindowSessionImpl::IsStageDefaultDensityEnabled()
 
 WSError WindowSessionImpl::NotifyWindowVisibility(bool isVisible)
 {
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "window: name=%{public}s, id=%{public}u, isVisible=%{public}d",
-        GetWindowName().c_str(), GetPersistentId(), isVisible);
-    std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
-    auto windowVisibilityListeners = GetListeners<IWindowVisibilityChangedListener>();
+    std::vector<IWindowVisibilityListenerSptr> windowVisibilityListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowVisibilityChangeListenerMutex_);
+        windowVisibilityListeners = GetListeners<IWindowVisibilityChangedListener>();
+    }
+    uint32_t notifyCounter = 0;
     for (auto& listener : windowVisibilityListeners) {
         if (listener != nullptr) {
             listener->OnWindowVisibilityChangedCallback(isVisible);
+            notifyCounter++;
         }
     }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "id=%{public}d, isVisible=%{public}d, notifyCounter=%{public}u",
+        GetPersistentId(), isVisible, notifyCounter);
     return WSError::WS_OK;
 }
 
@@ -8412,6 +8819,7 @@ void WindowSessionImpl::NotifyPointerEvent(const std::shared_ptr<MMI::PointerEve
                 "Transfer to inputEventConsumer InputTracking id:%{public}d",
                 pointerEvent->GetId());
         }
+        ScalePointerEventForHookedViewport(pointerEvent);
         if (!(inputEventConsumer->OnInputEvent(pointerEvent))) {
             pointerEvent->MarkProcessed();
         }
@@ -8420,6 +8828,7 @@ void WindowSessionImpl::NotifyPointerEvent(const std::shared_ptr<MMI::PointerEve
     if (FilterPointerEvent(pointerEvent)) {
         return;
     }
+    ScalePointerEventForHookedViewport(pointerEvent);
     if (auto uiContent = GetUIContentSharedPtr()) {
         if (pointerEvent->GetPointerAction() != MMI::PointerEvent::POINTER_ACTION_MOVE) {
             TLOGD(WmsLogTag::WMS_EVENT, "eid:%{public}d", pointerEvent->GetId());
@@ -8457,6 +8866,8 @@ WMError WindowSessionImpl::InjectTouchEvent(const std::shared_ptr<MMI::PointerEv
         TLOGI(WmsLogTag::WMS_EVENT, "eid:%{public}d, ac:%{public}d", pointerEvent->GetId(),
             pointerEvent->GetPointerAction());
     }
+    // NotifyPointerEvent, so scale it here separately.
+    ScalePointerEventForHookedViewport(pointerEvent);
     if (auto uiContent = GetUIContentSharedPtr()) {
         TLOGD(WmsLogTag::WMS_EVENT, "Start to process pointerEvent, id: %{public}d", pointerEvent->GetId());
         if (!uiContent->ProcessPointerEvent(pointerEvent)) {
@@ -9040,27 +9451,28 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfoInner(sptr<OccupiedAreaChang
 {
     std::lock_guard<std::recursive_mutex> lockListener(occupiedAreaChangeListenerMutex_);
     auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
+    auto hookedInfo = HookOccupiedAreaInfoForHookedViewport(info);
     for (auto& listener : occupiedAreaChangeListeners) {
         if (listener != nullptr) {
-            listener->OnSizeChange(info);
+            listener->OnSizeChange(hookedInfo);
         }
     }
 }
 
 void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-    const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingWindowRect,
+    const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     if (handler_ == nullptr) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "handler is nullptr");
         return;
     }
-    auto task = [weak = wptr(this), info, rsTransaction, callingWindowRect, avoidAreas]() {
+    auto task = [weak = wptr(this), info, rsTransaction, avoidAreas]() {
         if (info != nullptr) {
             TLOGNI(WmsLogTag::WMS_KEYBOARD, "transaction: %{public}d, safeHeight: %{public}u"
-                ", occupied rect: x %{public}d, y %{public}d, w %{public}u, h %{public}u, "
-                "callingWindowRect: %{public}s", rsTransaction != nullptr, info->safeHeight_, info->rect_.posX_,
-                info->rect_.posY_, info->rect_.width_, info->rect_.height_, callingWindowRect.ToString().c_str());
+                ", occupied rect: x %{public}d, y %{public}d, w %{public}u, h %{public}u",
+                rsTransaction != nullptr, info->safeHeight_, info->rect_.posX_, info->rect_.posY_,
+                info->rect_.width_, info->rect_.height_);
         }
         auto window = weak.promote();
         if (!window) {
@@ -9089,42 +9501,45 @@ void WindowSessionImpl::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
 
 void WindowSessionImpl::NotifyKeyboardWillShow(const KeyboardAnimationInfo& keyboardAnimationInfo)
 {
+    KeyboardAnimationInfo hookedInfo = HookKeyboardAnimationInfoForHookedViewport(keyboardAnimationInfo);
     std::lock_guard<std::recursive_mutex> lockListener(keyboardWillShowListenerMutex_);
     auto keyboardWillShowListeners = GetListeners<IKBWillShowListener>();
     for (const auto& listener : keyboardWillShowListeners) {
         if (listener != nullptr) {
             auto config = GetKeyboardAnimationConfig();
-            auto animation = keyboardAnimationInfo.isShow ? config.curveIn : config.curveOut;
-            listener->OnKeyboardWillShow(keyboardAnimationInfo, animation);
+            auto animation = hookedInfo.isShow ? config.curveIn : config.curveOut;
+            listener->OnKeyboardWillShow(hookedInfo, animation);
         }
     }
 }
 
 void WindowSessionImpl::NotifyKeyboardWillHide(const KeyboardAnimationInfo& keyboardAnimationInfo)
 {
+    KeyboardAnimationInfo hookedInfo = HookKeyboardAnimationInfoForHookedViewport(keyboardAnimationInfo);
     std::lock_guard<std::recursive_mutex> lockListener(keyboardWillHideListenerMutex_);
     auto keyboardWillHideListeners = GetListeners<IKBWillHideListener>();
     for (const auto& listener : keyboardWillHideListeners) {
         if (listener != nullptr) {
             auto config = GetKeyboardAnimationConfig();
-            auto animation = keyboardAnimationInfo.isShow ? config.curveIn : config.curveOut;
-            listener->OnKeyboardWillHide(keyboardAnimationInfo, animation);
+            auto animation = hookedInfo.isShow ? config.curveIn : config.curveOut;
+            listener->OnKeyboardWillHide(hookedInfo, animation);
         }
     }
 }
 
 void WindowSessionImpl::NotifyKeyboardDidShow(const KeyboardPanelInfo& keyboardPanelInfo)
 {
+    KeyboardPanelInfo hookedInfo = HookKeyboardPanelInfoForHookedViewport(keyboardPanelInfo);
     std::lock_guard<std::recursive_mutex> lockListener(keyboardDidShowListenerMutex_);
     auto keyboardDidShowListeners = GetListeners<IKeyboardDidShowListener>();
     for (const auto& listener : keyboardDidShowListeners) {
         if (listener != nullptr) {
-            listener->OnKeyboardDidShow(keyboardPanelInfo);
+            listener->OnKeyboardDidShow(hookedInfo);
         }
     }
     if (auto uiContent = GetUIContentSharedPtr()) {
         AAFwk::Want want;
-        WriteKeyboardInfoToWant(want, keyboardPanelInfo);
+        WriteKeyboardInfoToWant(want, hookedInfo);
         uiContent->SendUIExtProprtyByPersistentId(
             static_cast<uint32_t>(Extension::Businesscode::NOTIFY_KEYBOARD_DID_SHOW), want,
             keyboardDidShowUIExtListenerIds_, static_cast<uint8_t>(SubSystemId::WM_UIEXT));
@@ -9133,16 +9548,17 @@ void WindowSessionImpl::NotifyKeyboardDidShow(const KeyboardPanelInfo& keyboardP
 
 void WindowSessionImpl::NotifyKeyboardDidHide(const KeyboardPanelInfo& keyboardPanelInfo)
 {
+    KeyboardPanelInfo hookedInfo = HookKeyboardPanelInfoForHookedViewport(keyboardPanelInfo);
     std::lock_guard<std::recursive_mutex> lockListener(keyboardDidHideListenerMutex_);
     auto keyboardDidHideListeners = GetListeners<IKeyboardDidHideListener>();
     for (const auto& listener : keyboardDidHideListeners) {
         if (listener != nullptr) {
-            listener->OnKeyboardDidHide(keyboardPanelInfo);
+            listener->OnKeyboardDidHide(hookedInfo);
         }
     }
     if (auto uiContent = GetUIContentSharedPtr()) {
         AAFwk::Want want;
-        WriteKeyboardInfoToWant(want, keyboardPanelInfo);
+        WriteKeyboardInfoToWant(want, hookedInfo);
         uiContent->SendUIExtProprtyByPersistentId(
             static_cast<uint32_t>(Extension::Businesscode::NOTIFY_KEYBOARD_DID_HIDE), want,
             keyboardDidHideUIExtListenerIds_, static_cast<uint8_t>(SubSystemId::WM_UIEXT));
@@ -9596,8 +10012,11 @@ void WindowSessionImpl::NotifyWindowStatusChange(WindowMode mode)
             windowSystemConfig_.skipRedundantWindowStatusNotifications_);
     }
     lastWindowStatus_.store(windowStatus);
-    std::lock_guard<std::recursive_mutex> lockListener(windowStatusChangeListenerMutex_);
-    auto windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();
+    std::vector<sptr<IWindowStatusChangeListener>> windowStatusChangeListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(windowStatusChangeListenerMutex_);
+        windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();
+    }
     for (auto& listener : windowStatusChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowStatusChange(windowStatus);
@@ -10083,7 +10502,7 @@ void WindowSessionImpl::AddSetUIContentTimeoutCheck()
 
 void WindowSessionImpl::NotifySetUIContentComplete()
 {
-    TLOGNI(WmsLogTag::WMS_LIFE, "start");
+    TLOGD(WmsLogTag::WMS_LIFE, "start");
     if (WindowHelper::IsSubWindow(GetType()) || WindowHelper::IsSystemWindow(GetType())) {
         // created by UIExtension
         auto extWindow = FindExtensionWindowWithContext();
@@ -10575,6 +10994,7 @@ WSError WindowSessionImpl::GetSceneNodeCount(uint32_t& nodeCount)
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s: window is null", where);
             return;
         }
+        std::lock_guard<std::mutex> lock(window->rsContextMutex_);
         if (window->rsUIDirector_ == nullptr) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s rsUIDirector is nullptr", where);
             return;
@@ -10596,11 +11016,15 @@ WSError WindowSessionImpl::GetSceneNodeCount(const sptr<IRemoteObject>& callback
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s: window is null", where);
             return;
         }
-        if (window->rsUIDirector_ == nullptr) {
-            TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s rsUIDirector is nullptr", where);
-            return;
+        uint32_t nodeCount {0};
+        {
+            std::lock_guard<std::mutex> lock(window->rsContextMutex_);
+            if (window->rsUIDirector_ == nullptr) {
+                TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s rsUIDirector is nullptr", where);
+                return;
+            }
+            nodeCount = static_cast<uint32_t>(window->rsUIDirector_->GetUIDescendantCount());
         }
-        uint32_t nodeCount = static_cast<uint32_t>(window->rsUIDirector_->GetUIDescendantCount());
         TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s success, count:%{public}u", where, nodeCount);
         auto sceneNodeCountCallback = iface_cast<ISceneNodeCountCallback>(callback);
         if (sceneNodeCountCallback == nullptr) {
@@ -10738,6 +11162,7 @@ WMError WindowSessionImpl::SetIntentParam(const std::string& intentParam,
 std::shared_ptr<RSUIDirector> WindowSessionImpl::GetRSUIDirector() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
+    std::lock_guard<std::mutex> lock(rsContextMutex_);
     TLOGD(WmsLogTag::WMS_SCB, "%{public}s, windowId: %{public}u",
           RSAdapterUtil::RSUIDirectorToStr(rsUIDirector_).c_str(), GetWindowId());
     return rsUIDirector_;
@@ -10746,7 +11171,12 @@ std::shared_ptr<RSUIDirector> WindowSessionImpl::GetRSUIDirector() const
 std::shared_ptr<RSUIContext> WindowSessionImpl::GetRSUIContext() const
 {
     RETURN_IF_RS_CLIENT_MULTI_INSTANCE_DISABLED(nullptr);
-    auto rsUIContext = rsUIDirector_ ? rsUIDirector_->GetRSUIContext() : nullptr;
+    std::shared_ptr<RSUIDirector> rsUIDirector;
+    {
+        std::lock_guard<std::mutex> lock(rsContextMutex_);
+        rsUIDirector = rsUIDirector_;
+    }
+    auto rsUIContext = rsUIDirector ? rsUIDirector->GetRSUIContext() : nullptr;
     TLOGD(WmsLogTag::WMS_SCB, "%{public}s, windowId: %{public}u",
           RSAdapterUtil::RSUIContextToStr(rsUIContext).c_str(), GetWindowId());
     return rsUIContext;

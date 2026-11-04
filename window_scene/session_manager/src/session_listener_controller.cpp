@@ -402,7 +402,7 @@ WMError SessionListenerController::RegisterSessionLifecycleListener(const sptr<I
             listenerMapByBundle_.emplace(bundleName, newListenerList);
         }
     }
-    TLOGI(WmsLogTag::WMS_LIFE, "register sessionLifecycleListener by bundle finished.");
+    TLOGNI(WmsLogTag::WMS_LIFE, "register lifecycleListener by bundle.");
     return WMError::WM_OK;
 }
 
@@ -434,7 +434,7 @@ WMError SessionListenerController::RegisterSessionLifecycleListener(const sptr<I
         newListenerList.emplace_back(listener);
         listenerMapByAppInstance_.emplace(key, newListenerList);
     }
-    TLOGI(WmsLogTag::WMS_LIFE, "register sessionLifecycleListener by bundle+appIndex+appInstanceKey finished.");
+    TLOGNI(WmsLogTag::WMS_LIFE, "register lifecycleListener by bundle+appIndex+appInstanceKey.");
     return WMError::WM_OK;
 }
 
@@ -450,7 +450,7 @@ WMError SessionListenerController::UnregisterSessionLifecycleListener(const sptr
         return WMError::WM_ERROR_INVALID_PARAM;
     }
     RemoveSessionLifecycleListener(target);
-    TLOGI(WmsLogTag::WMS_LIFE, "session lifecycle listener unregister finished.");
+    TLOGNI(WmsLogTag::WMS_LIFE, "lifecycle listener unregister finished.");
     return WMError::WM_OK;
 }
 
@@ -481,7 +481,7 @@ void SessionListenerController::RemoveSessionLifecycleListener(const sptr<IRemot
 
     auto iter = std::remove_if(listenersOfAllBundles_.begin(), listenersOfAllBundles_.end(), compareByAsObject);
     listenersOfAllBundles_.erase(iter, listenersOfAllBundles_.end());
-    TLOGI(WmsLogTag::WMS_LIFE, "Remove listeners from map success.");
+    TLOGNI(WmsLogTag::WMS_LIFE, "Remove listeners successfully");
 }
 
 void SessionListenerController::NotifySessionLifecycleEvent(ISessionLifecycleListener::SessionLifecycleEvent event,
@@ -503,9 +503,8 @@ void SessionListenerController::NotifySessionLifecycleEvent(ISessionLifecycleLis
                 TLOGNE(WmsLogTag::WMS_LIFE, "controller is null.");
                 return;
             }
-            TLOGI(WmsLogTag::WMS_LIFE, "start notify listeners, bundleName:%{public}s, Id:%{public}d, event:%{public}d"
-                ", reason: %{public}u",
-                bundleName.c_str(), persistentId, event, payload.lifeCycleChangeReason_);
+            TLOGNI(WmsLogTag::WMS_LIFE, "notify listeners, bundleName:%{public}s, Id:%{public}d, event:%{public}d"
+                ", reason: %{public}u", bundleName.c_str(), persistentId, event, payload.lifeCycleChangeReason_);
             controller->NotifyListeners(controller->listenerMapById_, persistentId, event, payload);
             controller->NotifyListeners(controller->listenerMapByBundle_, bundleName, event, payload);
             for (const auto& listener : controller->listenersOfAllBundles_) {
@@ -543,7 +542,7 @@ void SessionListenerController::NotifyAppInstanceLifecycleEvent(SessionState sta
             }
             auto filterKey = controller->ResolveAppInstanceFilterKey(session);
             auto payload = controller->ConstructAppInstancePayload(session, state, reason);
-            TLOGI(WmsLogTag::WMS_LIFE,
+            TLOGNI(WmsLogTag::WMS_LIFE,
                 "start notify listeners, bundleName:%{public}s, Id:%{public}d, state:%{public}d, reason: %{public}u",
                 filterKey.bundleName_.c_str(), persistentId, payload.sessionState_, payload.lifeCycleChangeReason_);
             controller->NotifyAppInstanceListeners(filterKey, payload);
@@ -629,7 +628,7 @@ void SessionListenerController::NotifySessionTransferToTargetScreenEvent(const S
                 return;
             }
             TLOGNI(WmsLogTag::WMS_LIFE,
-                "start notify listeners, bundleName:%{public}s, persistentId:%{public}d, event:%{public}d, "
+                "start notify listeners, bundleName:%{public}s, id:%{public}d, event:%{public}d, "
                 "reason: %{public}u",
                 bundleName.c_str(), persistentId, event, payload.lifeCycleChangeReason_);
             controller->NotifyListeners(controller->listenerMapById_, persistentId, event, payload);

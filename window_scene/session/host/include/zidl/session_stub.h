@@ -201,6 +201,7 @@ private:
     int HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyPageEnable(MessageParcel& data, MessageParcel& reply);
     int HandleNotifySplitRatioChanged(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateAdaptiveResolutionConfig(MessageParcel& data, MessageParcel& reply);
 
     int HandleRestartApp(MessageParcel& data, MessageParcel& reply);
 

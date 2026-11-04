@@ -194,6 +194,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandlePendingSessionToBackgroundByPersistentId(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_RESTORE_SESSION_TO_FOREGROUND):
             return HandleRestoreSessionToForeground(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW):
+            return HandleSetGameAdaptiveResolutionForWindow(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_CREATE_NEW_INSTANCE_KEY):
             return HandleCreateNewInstanceKey(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_ROUTER_STACK_INFO):
@@ -827,6 +829,21 @@ int SceneSessionManagerLiteStub::HandleUpdateWindowModeByIdForUITest(MessageParc
     }
     if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Failed to UpdateWindowModeByIdForUITest, errCode:%{public}d", errCode);
+        return ERR_INVALID_DATA;
+    }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleSetGameAdaptiveResolutionForWindow(MessageParcel& data, MessageParcel& reply)
+{
+    sptr<GameAdaptiveResolutionConfig> config = data.ReadParcelable<GameAdaptiveResolutionConfig>();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "read config failed");
+        return ERR_INVALID_DATA;
+    }
+    WMError errCode = SetGameAdaptiveResolutionForWindow(*config);
+    if (!reply.WriteInt32(static_cast<int32_t>(errCode))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "write errCode failed");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;

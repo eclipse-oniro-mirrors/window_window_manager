@@ -47,6 +47,8 @@ public:
         TRANS_ID_NOTIFY_WINDOW_SUPPORT_ROTATION_CHANGE,
         TRANS_ID_NOTIFY_DISPLAY_GROUP_INFO_CHANGE,
         TRANS_ID_NOTIFY_SESSION_SAVE_SNAPSHOT_COMPLETE,
+        TRANS_ID_ON_GAME_ADAPTIVE_RESOLUTION_CANCELLED,
+        TRANS_ID_ON_GAME_ADAPTIVE_RESOLUTION_AVAILABLE,
     };
 
     virtual void UpdateFocusChangeInfo(const sptr<FocusChangeInfo>& focusChangeInfo, bool focused) = 0;
@@ -71,6 +73,8 @@ public:
     virtual void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList) = 0;
     virtual void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo) = 0;
     virtual void NotifySessionSaveSnapShotComplete(int32_t persistentId) = 0;
+    virtual void OnGameAdaptiveResolutionCancelled(int32_t windowId) {}
+    virtual void OnGameAdaptiveResolutionAvailable(int32_t windowId) {}
 };
 } // namespace Rosen
 } // namespace OHOS

@@ -507,6 +507,93 @@ bool IsJsScreenIdUndefind(napi_env env, napi_value jsScreenId, SessionInfo& sess
     return true;
 }
 
+// Parse a dimension of the available area: a non-negative number within the uint32 range.
+static bool ConvertAreaDimensionFromJs(napi_env env, napi_value jsValue, uint32_t& dimension)
+{
+    int64_t value = 0;
+    if (!ConvertFromJsValue(env, jsValue, value) || value < 0 ||
+        value > static_cast<int64_t>(UINT32_MAX)) {
+        return false;
+    }
+    dimension = static_cast<uint32_t>(value);
+    return true;
+}
+
+// Parse the availableArea field { left, top, width, height } from the screen info object;
+// an absent field keeps 0 and an absent availableArea keeps the invalid marker set by the caller.
+static bool ConvertAvailableAreaFromJs(napi_env env, napi_value jsScreenInfo,
+    ScreenProperty& targetScreenProperty)
+{
+    napi_value jsAvailableArea = nullptr;
+    napi_get_named_property(env, jsScreenInfo, "availableArea", &jsAvailableArea);
+    napi_valuetype areaType = GetType(env, jsAvailableArea);
+    if (areaType == napi_undefined || areaType == napi_null) {
+        return true; // availableArea not specified, keep the invalid marker
+    }
+    if (areaType != napi_object) {
+        WLOGFE("The availableArea parameter is not an object");
+        return false;
+    }
+    DMRect area { 0, 0, 0, 0 };
+    napi_value jsPosX = nullptr;
+    napi_get_named_property(env, jsAvailableArea, "left", &jsPosX);
+    if (GetType(env, jsPosX) != napi_undefined && !ConvertFromJsValue(env, jsPosX, area.posX_)) {
+        WLOGFE("Failed to convert parameter to availableArea.left");
+        return false;
+    }
+    napi_value jsPosY = nullptr;
+    napi_get_named_property(env, jsAvailableArea, "top", &jsPosY);
+    if (GetType(env, jsPosY) != napi_undefined && !ConvertFromJsValue(env, jsPosY, area.posY_)) {
+        WLOGFE("Failed to convert parameter to availableArea.top");
+        return false;
+    }
+    napi_value jsWidth = nullptr;
+    napi_get_named_property(env, jsAvailableArea, "width", &jsWidth);
+    if (GetType(env, jsWidth) != napi_undefined && !ConvertAreaDimensionFromJs(env, jsWidth, area.width_)) {
+        WLOGFE("Failed to convert parameter to availableArea.width");
+        return false;
+    }
+    napi_value jsHeight = nullptr;
+    napi_get_named_property(env, jsAvailableArea, "height", &jsHeight);
+    if (GetType(env, jsHeight) != napi_undefined && !ConvertAreaDimensionFromJs(env, jsHeight, area.height_)) {
+        WLOGFE("Failed to convert parameter to availableArea.height");
+        return false;
+    }
+    targetScreenProperty.SetAvailableArea(area);
+    return true;
+}
+
+bool ConvertTargetScreenInfoFromJsValue(napi_env env, napi_value jsScreenInfo,
+    ScreenProperty& targetScreenProperty)
+{
+    // Missing fields keep the invalid markers so the server skips the refresh for incomplete info.
+    targetScreenProperty.SetAvailableArea(DMRect { 0, 0, 0, 0 });
+    targetScreenProperty.SetVirtualPixelRatio(0.0f);
+    napi_valuetype screenInfoType = GetType(env, jsScreenInfo);
+    if (screenInfoType == napi_undefined || screenInfoType == napi_null) {
+        return true; // screen info not provided, keep the invalid markers
+    }
+    if (screenInfoType != napi_object) {
+        WLOGFE("The screen info parameter is not an object");
+        return false;
+    }
+    if (!ConvertAvailableAreaFromJs(env, jsScreenInfo, targetScreenProperty)) {
+        return false;
+    }
+    napi_value jsVpr = nullptr;
+    napi_get_named_property(env, jsScreenInfo, "virtualPixelRatio", &jsVpr);
+    napi_valuetype vprType = GetType(env, jsVpr);
+    if (vprType != napi_undefined && vprType != napi_null) {
+        double vprValue = 0.0;
+        if (!ConvertFromJsValue(env, jsVpr, vprValue) || vprValue < 0.0) {
+            WLOGFE("Failed to convert parameter to virtualPixelRatio");
+            return false;
+        }
+        targetScreenProperty.SetVirtualPixelRatio(static_cast<float>(vprValue));
+    }
+    return true;
+}
+
 bool IsJsIsPersistentRecoverUndefined(napi_env env, napi_value jsIsPersistentRecover, SessionInfo& sessionInfo)
 {
     if (GetType(env, jsIsPersistentRecover) != napi_undefined) {

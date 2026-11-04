@@ -26,6 +26,7 @@
 #include "hitrace_meter.h"
 #include "interfaces/include/ws_common.h"
 #include "nlohmann/json.hpp"
+#include "session/screen/include/screen_property.h"
 #include "window_manager_hilog.h"
 #include "wm_common.h"
 
@@ -258,6 +259,8 @@ bool ConvertSupportRotationInfoFromJsValue(napi_env env, napi_value jsObject,
     SupportRotationInfo& suppoortRotationInfo);
 bool ParseBoolArrayValueFromJsValue(napi_env env, napi_value array, std::vector<bool>& vector);
 bool ConvertWindowModeInfoFromJs(napi_env env, napi_value value, WindowModeInfo& windowModeInfo);
+bool ConvertTargetScreenInfoFromJsValue(napi_env env, napi_value jsScreenInfo,
+    ScreenProperty& targetScreenProperty);
 bool ConvertFloatViewLimitsFromJs(napi_env env, napi_value jsLimits, std::map<uint32_t, FloatViewLimits>& tmp2Limits);
 std::vector<std::pair<double, double>> ConvertRatioLimitsFromJs(napi_env env, napi_value jsLimits);
 template<class T>

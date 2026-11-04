@@ -1025,6 +1025,39 @@ WMError SceneSessionManagerLiteProxy::UpdateWindowModeByIdForUITest(int32_t wind
     return static_cast<WMError>(reply.ReadInt32());
 }
 
+WMError SceneSessionManagerLiteProxy::SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "write interfaceToken failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteParcelable(&config)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "write config failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "remote is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    int32_t ret = remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW),
+        data, reply, option);
+    if (ret != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "Send request failed, ret:%{public}d", ret);
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    int32_t errCode = static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED);
+    if (!reply.ReadInt32(errCode)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "read errCode failed");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    return static_cast<WMError>(errCode);
+}
+
 void SceneSessionManagerLiteProxy::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
 {
     TLOGD(WmsLogTag::WMS_FOCUS, "get focus Winow info lite proxy");

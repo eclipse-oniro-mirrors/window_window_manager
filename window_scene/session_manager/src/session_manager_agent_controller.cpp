@@ -163,10 +163,27 @@ void SessionManagerAgentController::NotifyWaterMarkFlagChangedResult(bool hasWat
 void SessionManagerAgentController::UpdateWindowVisibilityInfo(
     const std::vector<sptr<WindowVisibilityInfo>>& windowVisibilityInfos)
 {
+    std::vector<sptr<IRemoteObject>> agentObjs;
     for (auto& agent : smAgentContainer_.GetAgentsByType(
         WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_WINDOW_VISIBILITY)) {
+        if (agent == nullptr) {
+            continue;
+        }
         agent->UpdateWindowVisibilityInfo(windowVisibilityInfos);
+        agentObjs.push_back(agent->AsObject());
     }
+    std::ostringstream pidStream;
+    {
+        std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
+        for (const auto& obj : agentObjs) {
+            auto it = windowManagerAgentPairMap_.find(obj);
+            if (it != windowManagerAgentPairMap_.end()) {
+                pidStream << std::get<0>(it->second) << ",";
+            }
+        }
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "#agents=%{public}u, pids=[%{public}s]",
+        static_cast<uint32_t>(agentObjs.size()), pidStream.str().c_str());
 }
 
 void SessionManagerAgentController::UpdateVisibleWindowNum(
@@ -316,20 +333,26 @@ void SessionManagerAgentController::NotifyWindowSystemBarPropertyChange(
 void SessionManagerAgentController::NotifyWindowPropertyChange(
     uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList)
 {
-    std::ostringstream pidStream;
+    std::vector<sptr<IRemoteObject>> agentObjs;
     auto agents = smAgentContainer_.GetAgentsByType(WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_PROPERTY);
     for (const auto& agent : agents) {
         if (agent != nullptr) {
             agent->NotifyWindowPropertyChange(propertyDirtyFlags, windowInfoList);
-            std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
-            auto it = windowManagerAgentPairMap_.find(agent->AsObject());
+            agentObjs.push_back(agent->AsObject());
+        }
+    }
+    std::ostringstream pidStream;
+    {
+        std::lock_guard<std::mutex> lock(windowManagerPidUserIdAgentMapMutex_);
+        for (const auto& obj : agentObjs) {
+            auto it = windowManagerAgentPairMap_.find(obj);
             if (it != windowManagerAgentPairMap_.end()) {
                 pidStream << std::get<0>(it->second) << ",";
             }
         }
     }
-    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "#agents=%{public}u, pids=[%{public}s]",
-        static_cast<uint32_t>(agents.size()), pidStream.str().c_str());
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "dirtyFlags=%{public}u, #agents=%{public}u, pids=[%{public}s]",
+        propertyDirtyFlags, static_cast<uint32_t>(agentObjs.size()), pidStream.str().c_str());
 }
 
 void SessionManagerAgentController::NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo)
@@ -352,6 +375,36 @@ void SessionManagerAgentController::NotifySessionSaveSnapShotComplete(int32_t pe
             agent->NotifySessionSaveSnapShotComplete(persistentId);
         } else {
             TLOGE(WmsLogTag::WMS_PATTERN, "agent is nullptr");
+        }
+    }
+}
+
+void SessionManagerAgentController::NotifyGameAdaptiveResolutionCancelled(int32_t windowId)
+{
+    auto agents = smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyGameAdaptiveResolutionCancelled] windowId: %{public}d, "
+        "agents: %{public}zu", windowId, agents.size());
+    for (const auto& agent : agents) {
+        if (agent != nullptr) {
+            agent->OnGameAdaptiveResolutionCancelled(windowId);
+        } else {
+            TLOGE(WmsLogTag::WMS_COMPAT, "agent is nullptr");
+        }
+    }
+}
+
+void SessionManagerAgentController::NotifyGameAdaptiveResolutionAvailable(int32_t windowId)
+{
+    auto agents = smAgentContainer_.GetAgentsByType(
+        WindowManagerAgentType::WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE);
+    TLOGI(WmsLogTag::WMS_COMPAT, "[NotifyGameAdaptiveResolutionAvailable] windowId: %{public}d, "
+        "agents: %{public}zu", windowId, agents.size());
+    for (const auto& agent : agents) {
+        if (agent != nullptr) {
+            agent->OnGameAdaptiveResolutionAvailable(windowId);
+        } else {
+            TLOGE(WmsLogTag::WMS_COMPAT, "agent is nullptr");
         }
     }
 }

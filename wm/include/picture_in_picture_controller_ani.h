@@ -82,6 +82,7 @@ protected:
 private:
     void DeletePIPMode();
     virtual NavigationController* GetNavigationController(const std::string& navId);
+    WMErrorResult ValidateStartPictureInPicture(StartPipType startType);
 };
 } // namespace Rosen
 } // namespace OHOS

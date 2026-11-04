@@ -193,7 +193,7 @@ HWTEST_F(EdidParseTest, ParseBaseEdid13_ManufacturerAndProduct, TestSize.Level1)
 
 /**
  * @tc.name: ParseBaseEdid13_WeekYearAndBpc
- * @tc.desc: Verify week, year and bits-per-primary-color via CEA extension of EDID 1.3
+ * @tc.desc: Verify week, year and bits-per-primary-color of EDID 1.3
  * @tc.type: FUNC
  */
 HWTEST_F(EdidParseTest, ParseBaseEdid13_WeekYearAndBpc, TestSize.Level1)
@@ -202,7 +202,7 @@ HWTEST_F(EdidParseTest, ParseBaseEdid13_WeekYearAndBpc, TestSize.Level1)
     ASSERT_EQ(ParseBaseEdid(EDID_13.data(), EDID_13.size(), &out), 0);
     EXPECT_EQ(out.weekOfManufactureOrModelYearFlag, 37);
     EXPECT_EQ(out.yearOfManufactureOrModelYear, 2024);
-    EXPECT_EQ(out.bitsPerPrimaryColor, 12);
+    EXPECT_EQ(out.bitsPerPrimaryColor, 8);
 }
 
 /**

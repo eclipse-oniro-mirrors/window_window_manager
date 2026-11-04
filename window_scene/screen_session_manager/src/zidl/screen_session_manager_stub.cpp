@@ -1523,6 +1523,30 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             }
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_UPDATE_ADAPTIVE_RESOLUTION_HOOK: {
+            int32_t uid = 0;
+            bool enable = false;
+            DMAdaptiveResolutionConfig config;
+            if (!data.ReadInt32(uid) || !data.ReadBool(enable) ||
+                !data.ReadFloat(config.scaleRatio_) || !data.ReadBool(config.autoMetrics_) ||
+                !data.ReadBool(config.notifyDisplay_) || !data.ReadFloat(config.density_) ||
+                !data.ReadFloat(config.xDpi_) || !data.ReadFloat(config.yDpi_) ||
+                !data.ReadBool(config.systemModified_)) {
+                TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] read config failed");
+                return ERR_INVALID_DATA;
+            }
+            UpdateAdaptiveResolutionHook(uid, enable, config);
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_IS_DISPLAY_HOOKED_BY_UID: {
+            int32_t uid = 0;
+            if (!data.ReadInt32(uid)) {
+                TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] read uid failed");
+                return ERR_INVALID_DATA;
+            }
+            reply.WriteBool(IsDisplayHookedByUid(uid));
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_GET_ALL_PHYSICAL_DISPLAY_RESOLUTION: {
             ProcGetAllDisplayPhysicalResolution(data, reply);
             break;

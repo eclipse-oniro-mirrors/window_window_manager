@@ -147,6 +147,10 @@ public:
     virtual WMError GetUnreliableWindowInfo(int32_t windowId, std::vector<sptr<UnreliableWindowInfo>>& infos) = 0;
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) { return WMError::WM_ERROR_DEVICE_NOT_SUPPORT; }
+    virtual WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) { return WMError::WM_OK; }
     virtual WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
         const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true)
@@ -392,6 +396,7 @@ public:
     virtual WMError IsPcWindow(bool& isPcWindow) { return WMError::WM_OK; }
     virtual WMError IsFreeMultiWindow(bool& isFreeMultiWindow) { return WMError::WM_OK; }
     virtual WMError IsPcOrPadFreeMultiWindowMode(bool& isPcOrPadFreeMultiWindowMode) { return WMError::WM_OK; }
+    virtual WMError IsHookExtensionWindow(const std::string& bundleName, bool& isHook) { return WMError::WM_OK; }
     virtual WMError IsWindowRectAutoSave(const std::string& key, bool& enabled,
         int persistentId) { return WMError::WM_OK; }
     virtual WMError SetImageForRecent(uint32_t imgResourceId, ImageFit imageFit,

@@ -36,7 +36,7 @@ bool CheckCollaboratorType(int32_t type)
 {
     if (type != CollaboratorType::RESERVE_TYPE && type != CollaboratorType::OTHERS_TYPE &&
         type != CollaboratorType::REDIRECT_TYPE) {
-        TLOGE(WmsLogTag::WMS_MAIN, "collaborator type is invalid");
+        TLOGD(WmsLogTag::WMS_MAIN, "collaborator type is invalid");
         return false;
     }
     return true;

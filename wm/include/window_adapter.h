@@ -90,6 +90,7 @@ public:
     virtual WMError ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId);
     virtual WMError GetUnreliableWindowInfo(int32_t windowId, std::vector<sptr<UnreliableWindowInfo>>& infos);
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos);
+    virtual WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config);
     virtual WMError GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
         const WindowInfoOptions& option = WindowInfoOptions(), bool useHookedSize = true);
     virtual WMError GetAllMainWindowInfo(std::vector<sptr<MainWindowInfo>>& infos);
@@ -119,6 +120,8 @@ public:
     virtual void SetMaximizeMode(MaximizeMode maximizeMode);
     virtual MaximizeMode GetMaximizeMode();
     virtual void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID);
+    virtual void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+        std::vector<sptr<FocusChangeInfo>>& allFocusInfoList);
     virtual void GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo, const sptr<IRemoteObject>& abilityToken);
     virtual WMError UpdateSessionAvoidAreaListener(int32_t persistentId, bool haveListener);
     virtual WMError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener);
@@ -209,6 +212,7 @@ public:
     virtual WMError IsPcWindow(bool& isPcWindow);
     virtual WMError IsFreeMultiWindowMode(bool& isFreeMultiWindow);
     virtual WMError IsPcOrPadFreeMultiWindowMode(bool& isPcOrPadFreeMultiWindowMode);
+    virtual WMError IsHookExtensionWindow(const std::string& bundleName, bool& isHook);
     virtual WMError IsWindowRectAutoSave(const std::string& key, bool& enabled, int persistentId);
     virtual WMError ShiftAppWindowPointerEvent(int32_t sourceWindowId, int32_t targetWindowId, int32_t fingerId);
     virtual WMError UseImplicitAnimation(int32_t hostWindowId, bool useImplicit);

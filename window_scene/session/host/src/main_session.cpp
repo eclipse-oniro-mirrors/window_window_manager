@@ -689,6 +689,39 @@ WMError MainSession::NotifySplitRatioChanged(float newRatio)
     return WMError::WM_OK;
 }
 
+WMError MainSession::UpdateAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config)
+{
+    if (config.windowId_ != persistentId_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveResolutionConfig] id: %{public}d, "
+            "mismatched windowId: %{public}d", persistentId_, config.windowId_);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    if (!adaptiveResolutionConfigFunc_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[UpdateAdaptiveResolutionConfig] id: %{public}d, "
+            "config func is null", persistentId_);
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    return adaptiveResolutionConfigFunc_(persistentId_, GetCallingUid(), config);
+}
+
+WSError MainSession::NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+    const GameAdaptiveResolutionConfig& config)
+{
+    PostTask([weakThis = wptr(this), status, config]() {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] session is null");
+            return;
+        }
+        if (!session->sessionStage_) {
+            TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] sessionStage_ is nullptr!");
+            return;
+        }
+        session->sessionStage_->NotifyAdaptiveResolutionChanged(status, config);
+        }, "NotifyAdaptiveResolutionChanged");
+    return WSError::WS_OK;
+}
+
 WSError MainSession::NotifyPageEnable(const std::string& action, const std::string& message)
 {
     TLOGI(WmsLogTag::WMS_COMPAT, "action:%{public}zu, message:%{public}zu", action.length(), message.length());
@@ -760,6 +793,8 @@ WSError MainSession::UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo)
     newInfo.notifyWindowChange = false;
     newInfo.drawableRectHook = hookWindowInfo.drawableRectHook;
     property->SetHookWindowInfo(newInfo);
+    // Adaptive: window-hook/adaptive-hook mutual exclusion monitor.
+    NotifyAdaptiveResolutionHookWindowChange(hookWindowInfo.enableHookWindow);
     if (preInfo.enableHookWindow != hookWindowInfo.enableHookWindow ||
         !MathHelper::NearZero(preInfo.widthHookRatio - hookWindowInfo.widthHookRatio) ||
         preInfo.drawableRectHook != hookWindowInfo.drawableRectHook) {

@@ -3106,6 +3106,7 @@ export class WindowInternal implements Window {
     static readonly DEFAULT_RET_VAL: int = 1;
     static { loadLibrary('windowstageani_module.z') }
     private nativeObj: long;
+    isDestroyed: boolean = false;
     private static nextPromiseId_: int = 0;
     private static orientationPromiseMap_: Map<number, (value: OrientationResult) => void> =
       new Map<number, (value: OrientationResult) => void>();
@@ -5559,6 +5560,7 @@ export enum ScreenshotEventType {
 }
 
 export interface Window {
+    isDestroyed: boolean;
     hide(): Promise<void>;
     hide(callback: AsyncCallback<void>): void;
     createSubWindowWithOptions(name: string, options: SubWindowOptions): Promise<Window>;

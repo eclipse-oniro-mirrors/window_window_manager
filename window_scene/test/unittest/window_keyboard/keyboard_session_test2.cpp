@@ -58,6 +58,7 @@ private:
     sptr<KeyboardSession> GetKeyboardSession(const std::string& abilityName, const std::string& bundleName);
     sptr<SceneSession> GetSceneSession(const std::string& abilityName, const std::string& bundleName);
     sptr<KSSceneSessionMocker> GetSceneSessionMocker(const std::string& abilityName, const std::string& bundleName);
+    sptr<KeyboardSession> CreateScaleTestKeyboardSession(sptr<SceneSession>& callingSession);
 };
 
 void KeyboardSessionTest2::SetUpTestCase() {}
@@ -151,6 +152,40 @@ sptr<KSSceneSessionMocker> KeyboardSessionTest2::GetSceneSessionMocker(const std
     sptr<KSSceneSessionMocker> mockSession = sptr<KSSceneSessionMocker>::MakeSptr(info, nullptr);
 
     return mockSession;
+}
+
+sptr<KeyboardSession> KeyboardSessionTest2::CreateScaleTestKeyboardSession(sptr<SceneSession>& callingSession)
+{
+    SessionInfo info;
+    info.abilityName_ = "ScaleKeyboardLayoutParams";
+    info.bundleName_ = "ScaleKeyboardLayoutParams";
+    uint32_t SessionId = 100;
+    sptr<SceneSession::SpecificSessionCallback> specificCb =
+        sptr<SceneSession::SpecificSessionCallback>::MakeSptr();
+    EXPECT_NE(specificCb, nullptr);
+    sptr<KeyboardSession::KeyboardSessionCallback> keyboardCb =
+        sptr<KeyboardSession::KeyboardSessionCallback>::MakeSptr();
+    EXPECT_NE(keyboardCb, nullptr);
+    sptr<KeyboardSession> keyboardSession = sptr<KeyboardSession>::MakeSptr(info, specificCb, keyboardCb);
+    EXPECT_NE(keyboardSession, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetCallingSessionId(SessionId);
+    keyboardSession->SetSessionProperty(property);
+ 
+    if (callingSession == nullptr) {
+        keyboardSession->keyboardCallback_->onGetSceneSession =
+            [](uint32_t callingSessionId) -> sptr<SceneSession> { return nullptr; };
+    } else {
+        callingSession->persistentId_ = SessionId;
+        keyboardSession->keyboardCallback_->onGetSceneSession =
+            [callingSession](uint32_t callingSessionId) -> sptr<SceneSession> {
+                if (callingSession->persistentId_ == static_cast<int32_t>(callingSessionId)) {
+                    return callingSession;
+                }
+                return nullptr;
+            };
+    }
+    return keyboardSession;
 }
 
 RSSurfaceNode::SharedPtr KeyboardSessionTest2::CreateRSSurfaceNode()
@@ -870,6 +905,77 @@ HWTEST_F(KeyboardSessionTest2, isNeedProcessKeyboardOccupiedAreaInfo, Function |
     property->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
     keyboardSession->SetSessionProperty(property);
     EXPECT_FALSE(keyboardSession->isNeedProcessKeyboardOccupiedAreaInfo(params, lastParams));
+}
+
+/**
+ * @tc.name: ScaleKeyboardLayoutParams001
+ * @tc.desc: callingSession is dpi force scale, keyboard layout rect pos is scaled
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest2, ScaleKeyboardLayoutParams001, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> callingSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->SetIsDpiForceScale(true);
+    callingSession->SetDpiForceScale(2.0f);
+    callingSession->SetWindowStartDensity(2.0f);
+    sptr<KeyboardSession> keyboardSession = CreateScaleTestKeyboardSession(callingSession);
+    ASSERT_NE(keyboardSession, nullptr);
+ 
+    KeyboardLayoutParams params;
+    params.LandscapeKeyboardRect_ = { 10, 20, 100, 200 };
+    params.PortraitKeyboardRect_ = { 30, 40, 300, 400 };
+    KeyboardLayoutParams scaledParams;
+    keyboardSession->ScaleKeyboardLayoutParams(params, scaledParams);
+    EXPECT_EQ(scaledParams.LandscapeKeyboardRect_.posX_, 20);
+    EXPECT_EQ(scaledParams.LandscapeKeyboardRect_.posY_, 40);
+    EXPECT_EQ(scaledParams.PortraitKeyboardRect_.posX_, 60);
+    EXPECT_EQ(scaledParams.PortraitKeyboardRect_.posY_, 80);
+}
+ 
+/**
+ * @tc.name: ScaleKeyboardLayoutParams002
+ * @tc.desc: callingSession is not dpi force scale, keyboard layout rect pos is unchanged
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest2, ScaleKeyboardLayoutParams002, TestSize.Level1)
+{
+    SessionInfo info;
+    sptr<SceneSession> callingSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(callingSession, nullptr);
+    sptr<KeyboardSession> keyboardSession = CreateScaleTestKeyboardSession(callingSession);
+    ASSERT_NE(keyboardSession, nullptr);
+ 
+    KeyboardLayoutParams params;
+    params.LandscapeKeyboardRect_ = { 10, 20, 100, 200 };
+    params.PortraitKeyboardRect_ = { 30, 40, 300, 400 };
+    KeyboardLayoutParams scaledParams = params;
+    keyboardSession->ScaleKeyboardLayoutParams(params, scaledParams);
+    EXPECT_EQ(scaledParams.LandscapeKeyboardRect_.posX_, 10);
+    EXPECT_EQ(scaledParams.LandscapeKeyboardRect_.posY_, 20);
+    EXPECT_EQ(scaledParams.PortraitKeyboardRect_.posX_, 30);
+    EXPECT_EQ(scaledParams.PortraitKeyboardRect_.posY_, 40);
+}
+ 
+/**
+ * @tc.name: ScaleKeyboardLayoutParams003
+ * @tc.desc: callingSession is null, ScaleKeyboardLayoutParams returns without crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(KeyboardSessionTest2, ScaleKeyboardLayoutParams003, TestSize.Level1)
+{
+    sptr<SceneSession> callingSession = nullptr;
+    sptr<KeyboardSession> keyboardSession = CreateScaleTestKeyboardSession(callingSession);
+    ASSERT_NE(keyboardSession, nullptr);
+ 
+    KeyboardLayoutParams params;
+    params.LandscapeKeyboardRect_ = { 10, 20, 100, 200 };
+    params.PortraitKeyboardRect_ = { 30, 40, 300, 400 };
+    KeyboardLayoutParams scaledParams;
+    keyboardSession->ScaleKeyboardLayoutParams(params, scaledParams);
+    EXPECT_EQ(scaledParams.LandscapeKeyboardRect_.posX_, 0);
+    EXPECT_EQ(scaledParams.PortraitKeyboardRect_.posX_, 0);
 }
 } // namespace
 } // namespace Rosen

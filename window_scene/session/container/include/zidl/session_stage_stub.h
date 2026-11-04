@@ -119,6 +119,7 @@ private:
     int HandleNotifyAppForceLandscapeConfigEnableUpdated(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateAppHookWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleSetForceSplitEnable(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyAdaptiveResolutionChanged(MessageParcel& data, MessageParcel& reply);
     int HandleGetRouterStackInfo(MessageParcel& data, MessageParcel& reply);
     int HandleGetSceneNodeCount(MessageParcel& data, MessageParcel& reply);
     int HandleGetSceneNodeCountWithCallback(MessageParcel& data, MessageParcel& reply);

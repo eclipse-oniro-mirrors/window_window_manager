@@ -870,6 +870,106 @@ private:
 };
 
 /**
+ * @struct GameAdaptiveResolutionConfig.
+ *
+ * @brief Config of game adaptive resolution: the window renders at rect x scaleRatio_
+ *        while the surface is scaled back, keeping the layout unchanged.
+ *        Metric overrides (density_/xDpi_/yDpi_) need autoMetrics_ = false; 0 keeps original.
+ */
+struct GameAdaptiveResolutionConfig : public Parcelable {
+    bool enable_{ false };
+    float scaleRatio_{ 1.0f };
+    int32_t windowId_{ -1 };
+    bool inputHook_{ true };
+    bool notifyWindow_{ true };
+    bool notifyDisplay_{ true };
+    bool autoMetrics_{ true };
+    float density_{ 0.0f };
+    float xDpi_{ 0.0f };
+    float yDpi_{ 0.0f };
+
+    static constexpr float MIN_SCALE_RATIO = 0.0f;
+    static constexpr float MAX_SCALE_RATIO = 1.0f;
+
+    bool IsScaleRatioValid() const
+    {
+        return scaleRatio_ > MIN_SCALE_RATIO && scaleRatio_ < MAX_SCALE_RATIO;
+    }
+
+    // Metric overrides: 0 keeps the original; negative values are invalid.
+    bool IsValid() const
+    {
+        return !enable_ || (IsScaleRatioValid() && density_ >= 0.0f &&
+            xDpi_ >= 0.0f && yDpi_ >= 0.0f);
+    }
+
+    // Effective state only covers fields that change the hooked result; control flags
+    // (inputHook_/notifyWindow_/notifyDisplay_) are excluded on purpose.
+    bool HasSameEffect(const GameAdaptiveResolutionConfig& other) const
+    {
+        return enable_ == other.enable_ && MathHelper::NearEqual(scaleRatio_, other.scaleRatio_) &&
+            autoMetrics_ == other.autoMetrics_ && MathHelper::NearEqual(density_, other.density_) &&
+            MathHelper::NearEqual(xDpi_, other.xDpi_) && MathHelper::NearEqual(yDpi_, other.yDpi_);
+    }
+
+    bool Marshalling(Parcel& parcel) const override
+    {
+        return WriteAllFields(parcel);
+    }
+
+    static GameAdaptiveResolutionConfig* Unmarshalling(Parcel& parcel)
+    {
+        auto config = std::make_unique<GameAdaptiveResolutionConfig>();
+        if (!config || !ReadAllFields(parcel, *config)) {
+            return nullptr;
+        }
+        return config.release();
+    }
+
+    std::string ToString() const
+    {
+        std::ostringstream oss;
+        oss << "enable: " << enable_ << ", scaleRatio: " << scaleRatio_ << ", windowId: " << windowId_ <<
+            ", inputHook: " << inputHook_ << ", notifyWindow: " << notifyWindow_ <<
+            ", notifyDisplay: " << notifyDisplay_ << ", autoMetrics: " << autoMetrics_ <<
+            ", density: " << density_ << ", xDpi: " << xDpi_ << ", yDpi: " << yDpi_;
+        return oss.str();
+    }
+
+private:
+    bool WriteAllFields(Parcel& parcel) const
+    {
+        return parcel.WriteBool(enable_) && parcel.WriteFloat(scaleRatio_) && parcel.WriteInt32(windowId_) &&
+            parcel.WriteBool(inputHook_) && parcel.WriteBool(notifyWindow_) && parcel.WriteBool(notifyDisplay_) &&
+            parcel.WriteBool(autoMetrics_) && parcel.WriteFloat(density_) &&
+            parcel.WriteFloat(xDpi_) && parcel.WriteFloat(yDpi_);
+    }
+
+    static bool ReadAllFields(Parcel& parcel, GameAdaptiveResolutionConfig& config)
+    {
+        return parcel.ReadBool(config.enable_) && parcel.ReadFloat(config.scaleRatio_) &&
+            parcel.ReadInt32(config.windowId_) && parcel.ReadBool(config.inputHook_) &&
+            parcel.ReadBool(config.notifyWindow_) && parcel.ReadBool(config.notifyDisplay_) &&
+            parcel.ReadBool(config.autoMetrics_) && parcel.ReadFloat(config.density_) &&
+            parcel.ReadFloat(config.xDpi_) && parcel.ReadFloat(config.yDpi_);
+    }
+};
+
+/**
+ * @brief State of the game adaptive resolution hook pushed from SCB to the app.
+ *
+ * SET carries the config for local apply (SA initiated). CANCELLED carries an
+ * enable=false config; the app restores the real window state and clears its
+ * stored config. AVAILABLE carries no meaningful config; the game module can
+ * re-apply after the conflicting display hook is removed.
+ */
+enum class GameAdaptiveResolutionStatus : int32_t {
+    SET = 0,
+    CANCELLED = 1,
+    AVAILABLE = 2,
+};
+
+/**
  * @brief Enumerates window tag.
  */
 enum class WindowTag : uint32_t {
@@ -4508,6 +4608,7 @@ enum class WindowManagerAgentType : uint32_t {
     WINDOW_MANAGER_AGENT_SUPPORT_ROTATION,
     WINDOW_MANAGER_AGENT_TYPE_DISPLAYGROUP_INFO,
     WINDOW_MANAGER_AGENT_TYPE_SESSION_SAVE_SNAPSHOT_COMPLETE,
+    WINDOW_MANAGER_AGENT_TYPE_GAME_ADAPTIVE,
     WINDOW_MANAGER_AGENT_TYPE_END,
 };
 

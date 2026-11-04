@@ -751,7 +751,7 @@ WSErrorCode SessionStageProxy::NotifyTransferComponentDataSync(const AAFwk::Want
 }
 
 void SessionStageProxy::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-    const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+    const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     MessageParcel data;
@@ -767,11 +767,6 @@ void SessionStageProxy::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo
         return;
     }
 
-    if (!(data.WriteInt32(callingSessionRect.posX_) && data.WriteInt32(callingSessionRect.posY_) &&
-        data.WriteUint32(callingSessionRect.width_) && data.WriteUint32(callingSessionRect.height_))) {
-        WLOGFE("Write callingSessionRect failed");
-        return;
-    }
     if (!data.WriteUint32(avoidAreas.size())) {
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Write avoid area size failed");
         return;
@@ -2992,6 +2987,38 @@ WSError SessionStageProxy::SetForceSplitEnable(bool isForceSplitEnabled, bool ne
         static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE),
         data, reply, option) != ERR_NONE) {
         TLOGE(WmsLogTag::WMS_COMPAT, "SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return WSError::WS_OK;
+}
+
+WSError SessionStageProxy::NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+    const GameAdaptiveResolutionConfig& config)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(static_cast<int32_t>(status))) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] Write status failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteParcelable(&config)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] Write config failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(
+        SessionStageInterfaceCode::TRANS_ID_NOTIFY_ADAPTIVE_RESOLUTION_CHANGED),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[NotifyAdaptiveResolutionChanged] SendRequest failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
     return WSError::WS_OK;

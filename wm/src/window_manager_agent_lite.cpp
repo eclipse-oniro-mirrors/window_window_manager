@@ -91,5 +91,17 @@ void WindowManagerAgentLite::NotifyAccessibilityWindowInfo(const std::vector<spt
     TLOGD(WmsLogTag::WMS_ATTRIBUTE, "userId_=%{public}d", userId_);
     WindowManagerLite::GetInstance(userId_).NotifyAccessibilityWindowInfo(infos, type);
 }
+
+void WindowManagerAgentLite::OnGameAdaptiveResolutionCancelled(int32_t windowId)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "userId_=%{public}d, windowId=%{public}d", userId_, windowId);
+    WindowManagerLite::GetInstance(userId_).NotifyGameAdaptiveResolutionCancelled(windowId);
+}
+
+void WindowManagerAgentLite::OnGameAdaptiveResolutionAvailable(int32_t windowId)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "userId_=%{public}d, windowId=%{public}d", userId_, windowId);
+    WindowManagerLite::GetInstance(userId_).NotifyGameAdaptiveResolutionAvailable(windowId);
+}
 } // namespace Rosen
 } // namespace OHOS

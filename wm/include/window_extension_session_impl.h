@@ -76,6 +76,8 @@ public:
     WMError UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener) override;
     void TriggerBindModalUIExtension() override;
     std::shared_ptr<IDataHandler> GetExtensionDataHandler() const override;
+    WMError RegisterAbilityDataConsumer(const DataConsumeCallback& callback) override;
+    WMError UnregisterAbilityDataConsumer() override;
     WSError SendExtensionData(MessageParcel& data, MessageParcel& reply, MessageOption& option) override;
     WindowMode GetWindowMode() const override;
     WindowMode GetWindowModeCompat() const override;
@@ -131,7 +133,7 @@ public:
     void NotifySessionForeground(uint32_t reason, bool withAnimation) override;
     void NotifySessionBackground(uint32_t reason, bool withAnimation, bool isFromInnerkits) override;
     void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas) override;
     void NotifyKeyboardDidShow(const KeyboardPanelInfo& keyboardPanelInfo) override;
     void NotifyKeyboardDidHide(const KeyboardPanelInfo& keyboardPanelInfo) override;
@@ -293,6 +295,13 @@ private:
      */
     WMError OnHostWindowCompatInfoChange(AAFwk::Want&& data, std::optional<AAFwk::Want>& reply);
     WMError SetCompatInfo(const AAFwk::WantParams& configParam);
+    bool IsHookExtensionWindow();
+
+    /*
+     * Compatible Mode
+     */
+    bool isHookExtensionWindow_ = false;
+    bool isHookExtensionWindowQueried_ = false;
 
     std::shared_ptr<Extension::DataHandler> dataHandler_;
     std::unordered_map<uint32_t, DataConsumeCallback> dataConsumers_;  // Read only after init

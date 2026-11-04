@@ -60,6 +60,7 @@ sptr<AAFwk::SessionInfo> ExtensionSessionManager::SetAbilitySessionInfo(const sp
     abilitySessionInfo->density = sessionInfo.config_.density_;
     abilitySessionInfo->orientation = sessionInfo.config_.orientation_;
     abilitySessionInfo->dpiFollowStrategy = static_cast<uint32_t>(sessionInfo.config_.dpiFollowStrategy_);
+    abilitySessionInfo->brandColorStr = sessionInfo.brandColorStr_;
     if (sessionInfo.want != nullptr) {
         abilitySessionInfo->want = sessionInfo.GetWantSafely();
     }
