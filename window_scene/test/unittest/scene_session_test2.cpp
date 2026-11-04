@@ -556,6 +556,12 @@ HWTEST_F(SceneSessionTest2, ChangeSessionVisibilityWithStatusBar, TestSize.Level
     result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, false);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
 
+    abilitySessionInfo->showParams = std::make_shared<WindowShowParams>();
+    abilitySessionInfo->showParams->windowFocused = false;
+    abilitySessionInfo->showParams->raiseTop = false;
+    result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, true);
+    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
+
     sceneSession->isTerminating_ = true;
     sptr<AAFwk::SessionInfo> terminatingMock = sptr<AAFwk::SessionInfo>::MakeSptr();
     result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, false);

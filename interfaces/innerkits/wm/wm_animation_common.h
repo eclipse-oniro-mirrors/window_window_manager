@@ -345,8 +345,39 @@ struct WindowCreateParams : public Parcelable {
 };
 
 /**
-* @brief Transition animation configuration.
-*/
+ * The show params of window show, delivered by showAbility.
+ */
+struct WindowShowParams : public Parcelable {
+    // Whether the window can get focus when it is shown by showAbility.
+    bool windowFocused = true;
+    // Whether the window is raised to the top layer when it is shown by showAbility.
+    bool raiseTop = true;
+
+    // LCOV_EXCL_START
+    bool Marshalling(Parcel& parcel) const override
+    {
+        if (!parcel.WriteBool(windowFocused) || !parcel.WriteBool(raiseTop)) {
+            return false;
+        }
+        return true;
+    }
+    // LCOV_EXCL_STOP
+
+    static WindowShowParams* Unmarshalling(Parcel& parcel)
+    {
+        WindowShowParams* windowShowParams = new WindowShowParams();
+        if (!parcel.ReadBool(windowShowParams->windowFocused) ||
+            !parcel.ReadBool(windowShowParams->raiseTop)) {
+            delete windowShowParams;
+            return nullptr;
+        }
+        return windowShowParams;
+    }
+};
+
+/**
+ * @brief Transition animation configuration.
+ */
 struct TransitionAnimation : public Parcelable {
     WindowAnimationOption config;
     float opacity = 1.0f;

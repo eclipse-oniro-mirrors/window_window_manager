@@ -6810,6 +6810,18 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
         info.callingTokenId_ = abilitySessionInfo->callingTokenId;
         info.reuse = abilitySessionInfo->reuse;
         info.processOptions = abilitySessionInfo->processOptions;
+        info.showParams = abilitySessionInfo->showParams;
+
+        if (visible && info.showParams != nullptr) {
+            TLOGI(WmsLogTag::WMS_LIFE,
+                "%{public}s id:%{public}d showAbility with params, windowFocused:%{public}d, raiseTop:%{public}d",
+                where, session->GetPersistentId(), info.showParams->windowFocused, info.showParams->raiseTop);
+            if (!info.showParams->windowFocused) {
+                // Keep the window from being focused when it becomes visible, same as start with
+                // PARAM_RESV_WINDOW_FOCUSED. It is restored when the window has been visible.
+                session->SetFocusedOnShow(false);
+            }
+        }
 
         if (session->changeSessionVisibilityWithStatusBarFunc_) {
             session->changeSessionVisibilityWithStatusBarFunc_(info, visible);

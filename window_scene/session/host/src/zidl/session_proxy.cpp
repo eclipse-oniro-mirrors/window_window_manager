@@ -573,6 +573,17 @@ WSError SessionProxy::ChangeSessionVisibilityWithStatusBar(sptr<AAFwk::SessionIn
         }
     }
     data.WriteBool(visible);
+    if (abilitySessionInfo->showParams) {
+        if (!data.WriteBool(true) || !data.WriteParcelable(abilitySessionInfo->showParams.get())) {
+            WLOGFE("Write showParams failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
+    } else {
+        if (!data.WriteBool(false)) {
+            WLOGFE("Write has not showParams failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
+    }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         WLOGFE("remote is null");
