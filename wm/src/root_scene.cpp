@@ -171,7 +171,7 @@ void RootScene::UpdateViewportConfig(const Rect& rect, WindowSizeChangeReason re
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "uiContent_ is nullptr: reason=%{public}u", reason);
         return;
     }
-    auto density = GetDisplayDensity();
+    auto density = GetDisplayDensity(GetDisplayId());
     Ace::ViewportConfig config;
     config.SetSize(rect.width_, rect.height_);
     config.SetPosition(rect.posX_, rect.posY_);

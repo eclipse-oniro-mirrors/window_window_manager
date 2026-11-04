@@ -846,6 +846,9 @@ void SceneSessionManager::InitScheduleUtils()
 void SceneSessionManager::UpdateSessionWithFoldStateChange(DisplayId displayId, SuperFoldStatus status,
     SuperFoldStatus prevStatus)
 {
+    // Fold mode change may switch the current (default) screen, invalidate the cached
+    // per-user default display id so the next lookup re-resolves.
+    InvalidateDefaultDisplayIdCache();
     auto task = [this, displayId, status, where = __func__]() {
         TLOGND(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: status=%{public}u, display=%{public}" PRIu64,
             where, static_cast<uint32_t>(status), displayId);
@@ -4045,7 +4048,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
         return;
     }
     auto callerSession = GetSceneSession(sessionInfo.callerPersistentId_);
-    DisplayId currDisplayId = DEFAULT_DISPLAY_ID;
+    DisplayId currDisplayId = GetInstanceUserDefaultDisplay();
     if (sessionInfo.screenId_ != SCREEN_ID_INVALID) {
         currDisplayId = sessionInfo.screenId_;
     } else if (callerSession) {
@@ -7069,6 +7072,7 @@ WSError SceneSessionManager::InitUserInfo(int32_t userId, std::string& fileDir)
             TLOGND(WmsLogTag::WMS_MAIN, "Create start window directory failed");
         }
         currentUserId_ = userId;
+        InvalidateDefaultDisplayIdCache();
         SceneInputManager::GetInstance().SetCurrentUserId(currentUserId_);
         if (MultiInstanceManager::IsSupportMultiInstance(systemConfig_)) {
             MultiInstanceManager::GetInstance().SetCurrentUserId(currentUserId_);
@@ -7256,6 +7260,7 @@ void SceneSessionManager::HandleUserSwitch(const UserSwitchEventType type, const
         TLOGNI(WmsLogTag::WMS_MULTI_USER,
             "%{public}s: currentUserId: %{public}d, switchEventType: %{public}u, isUserActive: %{public}u",
             where, currentUserId_.load(), type, isUserActive);
+        InvalidateDefaultDisplayIdCache();
         switch (type) {
             case UserSwitchEventType::SWITCHING: {
                 HandleUserSwitching(isUserActive);
@@ -8658,27 +8663,83 @@ std::vector<std::pair<DisplayId, int32_t>> SceneSessionManager::GetAllFocusedSes
     return windowFocusController_->GetAllFocusedSessionList();
 }
 
+// Resolve DISPLAY_ID_INVALID sentinel to the default display of this SCB instance's user;
+// explicit displayId (0 or non-zero) passes through unchanged. Must be called on the IPC
+// thread (GetCallingUid() only reliable there), before PostSyncTask.
 DisplayId SceneSessionManager::ResolveDefaultDisplayId(DisplayId displayId)
 {
     if (displayId != DISPLAY_ID_INVALID) {
         return displayId;
     }
-    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
-    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
-    static const bool g_defaultDisplayResolve =
-        system::GetBoolParameter("persist.window.default_display_resolve", false);
-    if (!g_defaultDisplayResolve) {
+    // Keep the legacy behavior (default display fixed to 0) until multi-instance is enabled,
+    // and avoid the IPC-thread GetCallingUid() on the legacy path.
+    if (!IsMultiInstanceEnabled()) {
         return DEFAULT_DISPLAY_ID;
     }
     int32_t userId = currentUserId_;
     if (userId == DEFAULT_USERID) {
         userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
     }
-    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
-    displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+    DisplayId resolved = GetDefaultDisplayIdByUserId(userId);
     TLOGD(WmsLogTag::WMS_FOCUS,
-        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId, displayId);
+        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId, resolved);
+    return resolved;
+}
+
+// Resolve the default display of this SCB instance's user only (no GetCallingUid fallback),
+// safe to call from any thread (mutex-guarded cache; reads atomic currentUserId_). Returns
+// DEFAULT_DISPLAY_ID on the legacy path (switch off) or before InitUserInfo (startup window).
+DisplayId SceneSessionManager::GetInstanceUserDefaultDisplay()
+{
+    int32_t userId = currentUserId_;
+    if (userId == DEFAULT_USERID) {
+        // Keep the legacy behavior before InitUserInfo (startup window): default display 0.
+        return DEFAULT_DISPLAY_ID;
+    }
+    return GetDefaultDisplayIdByUserId(userId);
+}
+
+// Event-driven per-user default display resolution with cache: resolves userId -> default
+// display id in O(1) on cache hit. On cache miss it falls back to the authoritative DMS
+// resolution and backfills the cache; InvalidateDefaultDisplayIdCache() is called on user
+// switch / screen connect-disconnect / display property change / fold change so stale
+// entries are cleared (lazy refresh).
+DisplayId SceneSessionManager::GetDefaultDisplayIdByUserId(int32_t userId)
+{
+    // Keep the legacy behavior (default display fixed to 0) until multi-instance is enabled.
+    // IsMultiInstanceEnabled() caches its own switch, so querying it per call is cheap.
+    if (!IsMultiInstanceEnabled()) {
+        return DEFAULT_DISPLAY_ID;
+    }
+    {
+        std::lock_guard<std::mutex> lock(userDefaultDisplayIdCacheMutex_);
+        auto iter = userDefaultDisplayIdCache_.find(userId);
+        if (iter != userDefaultDisplayIdCache_.end()) {
+            return iter->second;
+        }
+    }
+    // Cache miss: fall back to the authoritative DMS resolution (existing client channel),
+    // then backfill the cache so the hot path (focus query / window info) is O(1) read. This
+    // mirrors ScreenSessionManager::GetDefaultDisplayIdByUserId on the server side.
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
+    if (defaultDisplay == nullptr) {
+        // Resolution failed; keep legacy fallback and do NOT cache, so the next lookup retries.
+        return DEFAULT_DISPLAY_ID;
+    }
+    DisplayId displayId = defaultDisplay->GetId();
+    {
+        std::lock_guard<std::mutex> lock(userDefaultDisplayIdCacheMutex_);
+        userDefaultDisplayIdCache_[userId] = displayId;
+    }
+    TLOGD(WmsLogTag::WMS_MULTI_USER,
+        "cache default display of user(%{public}d): %{public}" PRIu64, userId, displayId);
     return displayId;
+}
+
+void SceneSessionManager::InvalidateDefaultDisplayIdCache()
+{
+    std::lock_guard<std::mutex> lock(userDefaultDisplayIdCacheMutex_);
+    userDefaultDisplayIdCache_.clear();
 }
 
 void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
@@ -8697,7 +8758,7 @@ void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Display
         if (auto sceneSession = GetSceneSession(focusGroup->GetFocusedSessionId())) {
             focusInfo.windowId_ = sceneSession->GetWindowId();
             focusInfo.displayId_ = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID
-                                        ? DEFAULT_DISPLAY_ID
+                                        ? GetInstanceUserDefaultDisplay()
                                         : sceneSession->GetDisplayId();
             focusInfo.pid_ = sceneSession->GetCallingPid();
             focusInfo.uid_ = sceneSession->GetCallingUid();
@@ -8752,7 +8813,7 @@ void SceneSessionManager::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focu
         }
         focusInfo.windowId_ = currSceneSession->GetWindowId();
         focusInfo.displayId_ = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID
-                                    ? DEFAULT_DISPLAY_ID
+                                    ? GetInstanceUserDefaultDisplay()
                                     : currSceneSession->GetDisplayId();
         focusInfo.pid_ = currSceneSession->GetCallingPid();
         focusInfo.uid_ = currSceneSession->GetCallingUid();
@@ -8796,7 +8857,7 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
             }
             auto focusInfo = sptr<FocusChangeInfo>::MakeSptr(
                 focusedSession->GetWindowId(), curFocusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID ?
-                DEFAULT_DISPLAY_ID : focusedSession->GetDisplayId(), focusedSession->GetDisplayId(),
+                GetInstanceUserDefaultDisplay() : focusedSession->GetDisplayId(), focusedSession->GetDisplayId(),
                 curFocusGroup->GetDisplayGroupId(), curFocusGroup->GetDisplayGroupType(), focusedSession->GetCallingPid(),
                 focusedSession->GetCallingUid(), focusedSession->GetWindowType(), focusedSession->GetAbilityToken());
             allFocusInfoList.emplace_back(focusInfo);
@@ -9269,7 +9330,7 @@ std::string SceneSessionManager::GetFloatWidth(const int width, float value)
 
 void SceneSessionManager::DumpFocusInfo(std::ostringstream& oss)
 {
-    auto defaultFocusedSessionId = windowFocusController_->GetFocusedSessionId(DEFAULT_DISPLAY_ID);
+    auto defaultFocusedSessionId = windowFocusController_->GetFocusedSessionId(GetInstanceUserDefaultDisplay());
     oss << "Focus window: " << defaultFocusedSessionId << std::endl;
     std::vector<std::pair<DisplayId, int32_t>> allFocusedSessionList =
         windowFocusController_->GetAllFocusedSessionList();
@@ -9925,9 +9986,10 @@ WSError SceneSessionManager::RequestSessionUnfocus(int32_t persistentId, FocusCh
 WSError SceneSessionManager::RequestAllAppSessionUnfocusInner()
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "in");
-    auto focusGroup = windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    DisplayId defaultDisplayId = GetInstanceUserDefaultDisplay();
+    auto focusGroup = windowFocusController_->GetFocusGroup(defaultDisplayId);
     if (focusGroup == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, DEFAULT_DISPLAY_ID);
+        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, defaultDisplayId);
         return WSError::WS_ERROR_NULLPTR;
     }
     auto focusedSession = GetSceneSession(focusGroup->GetFocusedSessionId());
@@ -10724,7 +10786,9 @@ void SceneSessionManager::NotifyFocusStatus(const sptr<SceneSession>& sceneSessi
         UpdateBrightness(focusGroup->GetFocusedSessionId());
         FocusIDChange(sceneSession->GetPersistentId(), sceneSession);
     }
-    DisplayId focusGroupId = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID ? DEFAULT_DISPLAY_ID : sceneSession->GetDisplayId();
+    DisplayId focusGroupId = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID
+                                 ? GetInstanceUserDefaultDisplay()
+                                 : sceneSession->GetDisplayId();
     // notify window manager
     sptr<FocusChangeInfo> focusChangeInfo = sptr<FocusChangeInfo>::MakeSptr(
         sceneSession->GetWindowId(),
@@ -16045,6 +16109,9 @@ void DisplayChangeListener::OnDisplayStateChange(DisplayId defaultDisplayId, spt
     const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type)
 {
     TLOGD(WmsLogTag::DEFAULT, "type: %{public}u", type);
+    // Display property changes (resolution / vrr / rotation / scale) may alter the default
+    // screen mapping, so drop the cached per-user default display id.
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
     switch (type) {
         case DisplayStateChangeType::RESOLUTION_CHANGE:
         case DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE: {
@@ -16095,6 +16162,7 @@ void ScreenConnectionChangeListener::OnScreenConnected(const sptr<ScreenSession>
           static_cast<uint32_t>(screenSession->GetGroupType()));
     SceneSessionManager::GetInstance().AddFocusGroup(screenSession->GetDisplayGroupId(), screenSession->GetScreenId(),
     screenSession->GetGroupType());
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
 
     // Window Layout Global Coordinate System: monitors screen position changes in the global coordinate system
     screenSession->RegisterScreenChangeListener(&SceneScreenChangeListener::GetInstance());
@@ -16115,6 +16183,7 @@ void ScreenConnectionChangeListener::OnScreenDisconnected(const sptr<ScreenSessi
           screenSession->GetScreenProperty().GetScreenType());
     SceneSessionManager::GetInstance().RemoveFocusGroup(screenSession->GetDisplayGroupId(),
         screenSession->GetScreenId());
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
 
     // Window Layout Global Coordinate System
     screenSession->UnregisterScreenChangeListener(&SceneScreenChangeListener::GetInstance());
@@ -17232,9 +17301,10 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
 
 void SceneSessionManager::ProcessUpdateLastFocusedAppId(const std::vector<std::pair<uint32_t, uint32_t>>& zOrderList)
 {
-    auto focusGroup = windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    DisplayId defaultDisplayId = GetInstanceUserDefaultDisplay();
+    auto focusGroup = windowFocusController_->GetFocusGroup(defaultDisplayId);
     if (focusGroup == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, DEFAULT_DISPLAY_ID);
+        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, defaultDisplayId);
         return;
     }
     auto lastFocusedAppSessionId = focusGroup->GetLastFocusedAppSessionId();
@@ -17267,7 +17337,7 @@ void SceneSessionManager::ProcessFocusZOrderChange(uint32_t dirty)
         return;
     }
     TLOGD(WmsLogTag::WMS_FOCUS, "has zOrder dirty");
-    auto focusedSessionId = GetFocusedSessionId(DEFAULT_DISPLAY_ID);
+    auto focusedSessionId = GetFocusedSessionId(GetInstanceUserDefaultDisplay());
     auto focusedSession = GetSceneSession(focusedSessionId);
     // only when it's from a high zOrder to a low zOrder
     if (focusedSession == nullptr || focusedSession->GetWindowType() == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
@@ -20042,6 +20112,7 @@ WMError SceneSessionManager::NotifyHookOrientationChange(int32_t persistentId)
 
 void DisplayChangeListener::OnScreenFoldStatusChanged(const std::vector<std::string>& screenFoldInfo)
 {
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
     SceneSessionManager::GetInstance().SetDelayRemoveSnapshot(true);
     SceneSessionManager::GetInstance().ReportScreenFoldStatusChange(screenFoldInfo);
 }
@@ -20087,8 +20158,9 @@ WMError SceneSessionManager::MakeScreenFoldData(const std::vector<std::string>& 
         return WMError::WM_DO_NOTHING;
     }
     AppExecFwk::ElementName element = {};
-    WSError ret = GetFocusSessionElement(element, DEFAULT_DISPLAY_ID);
-    auto sceneSession = GetSceneSession(windowFocusController_->GetFocusedSessionId(DEFAULT_DISPLAY_ID));
+    DisplayId defaultDisplayId = GetInstanceUserDefaultDisplay();
+    WSError ret = GetFocusSessionElement(element, defaultDisplayId);
+    auto sceneSession = GetSceneSession(windowFocusController_->GetFocusedSessionId(defaultDisplayId));
     if (sceneSession == nullptr || ret != WSError::WS_OK) {
         TLOGI(WmsLogTag::DMS, "Error: fail to get focused package name.");
         return WMError::WM_DO_NOTHING;
