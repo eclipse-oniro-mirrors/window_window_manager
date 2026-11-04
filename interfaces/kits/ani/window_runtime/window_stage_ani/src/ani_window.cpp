@@ -231,7 +231,7 @@ void AniWindow::OnSetWindowColorSpace(ani_env* env, ani_int colorSpace)
 
 void AniWindow::SetPreferredOrientation(ani_env* env, ani_object obj, ani_long nativeObj, ani_int orientation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI] orientation:%{public}d", static_cast<int32_t>(orientation));
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI] orientation:%{public}d", static_cast<int32_t>(orientation));
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
         aniWindow->OnSetPreferredOrientation(env, orientation);
@@ -243,7 +243,7 @@ void AniWindow::SetPreferredOrientation(ani_env* env, ani_object obj, ani_long n
 void AniWindow::OnSetPreferredOrientation(ani_env* env, ani_int orientation)
 {
     int32_t orientationValue = static_cast<int32_t>(orientation);
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI] orientation:%{public}d", orientationValue);
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI] orientation:%{public}d", orientationValue);
     WmErrorCode errCode = WmErrorCode::WM_OK;
     Orientation requestedOrientation = Orientation::UNSPECIFIED;
     auto window = GetWindow();
@@ -290,7 +290,7 @@ void AniWindow::OnSetPreferredOrientationWithResult(ani_env* env, ani_int orient
 {
     int32_t orientationValue = static_cast<int32_t>(orientation);
     uint32_t promiseIdValue = static_cast<uint32_t>(promiseId);
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI] orientation:%{public}d promiseId:%{public}u",
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI] orientation:%{public}d promiseId:%{public}u",
         orientationValue, promiseIdValue);
     WmErrorCode errCode = WmErrorCode::WM_OK;
     Orientation requestedOrientation = Orientation::UNSPECIFIED;
@@ -341,7 +341,7 @@ void AniWindow::NotifyOrientationExecutionResultResult(uint32_t promiseId, uint3
 
 ani_int AniWindow::GetPreferredOrientation(ani_env* env, ani_object obj, ani_long nativeObj)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI]");
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
         return aniWindow->OnGetPreferredOrientation(env);
@@ -355,7 +355,7 @@ ani_int AniWindow::GetPreferredOrientation(ani_env* env, ani_object obj, ani_lon
 
 ani_int AniWindow::OnGetPreferredOrientation(ani_env* env)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI]");
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI]");
     Orientation requestedOrientation = Orientation::UNSPECIFIED;
     auto window = GetWindow();
     if (window == nullptr) {
@@ -373,7 +373,7 @@ ani_int AniWindow::OnGetPreferredOrientation(ani_env* env)
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] Orientation %{public}u invalid!",
             static_cast<uint32_t>(requestedOrientation));
     }
-    TLOGNI(WmsLogTag::WMS_ROTATION, "[ANI] Window [%{public}u, %{public}s] Get PreferredOrientation end, "
+    TLOGND(WmsLogTag::WMS_ROTATION, "[ANI] Window [%{public}u, %{public}s] Get PreferredOrientation end, "
         "orientation=%{public}u", window->GetWindowId(), window->GetWindowName().c_str(),
         static_cast<uint32_t>(apiOrientation));
     return static_cast<ani_int>(apiOrientation);
@@ -382,7 +382,7 @@ ani_int AniWindow::OnGetPreferredOrientation(ani_env* env)
 ani_int AniWindow::ConvertOrientationAndRotation(ani_env* env, ani_object obj, ani_long nativeObj,
     ani_int from, ani_int to, ani_int value)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI]");
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI]");
     AniWindow* aniWindow = reinterpret_cast<AniWindow*>(nativeObj);
     if (aniWindow != nullptr) {
         return aniWindow->OnConvertOrientationAndRotation(env, from, to, value);
@@ -394,7 +394,7 @@ ani_int AniWindow::ConvertOrientationAndRotation(ani_env* env, ani_object obj, a
 
 ani_int AniWindow::OnConvertOrientationAndRotation(ani_env* env, ani_int from, ani_int to, ani_int value)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI]");
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI]");
     auto window = GetWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_ROTATION, "[ANI] window is nullptr");

@@ -1462,7 +1462,7 @@ ani_object AniWindowUtils::CreateAniFrameMetrics(ani_env* env, const FrameMetric
 
 ani_object AniWindowUtils::CreateAniRotationChangeInfo(ani_env* env, const RotationChangeInfo& info)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI]");
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI]");
     ani_class aniClass;
     ani_status ret = env->FindClass("@ohos.window.window.RotationChangeInfoInternal", &aniClass);
     if (ret != ANI_OK) {
@@ -1515,7 +1515,7 @@ void AniWindowUtils::ParseRotationChangeResult(ani_env* env, ani_object obj, Rot
         return;
     }
     if (isUndefined) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "[ANI] RotationChangeResult is undefined");
+        TLOGD(WmsLogTag::WMS_ROTATION, "[ANI] RotationChangeResult is undefined");
         return;
     }
     ani_ref rectTypeRef;

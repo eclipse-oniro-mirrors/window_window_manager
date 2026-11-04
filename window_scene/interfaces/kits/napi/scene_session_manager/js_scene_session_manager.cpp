@@ -6328,7 +6328,7 @@ napi_value JsSceneSessionManager::OnRegisterMotionSensor(napi_env env, napi_call
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
+    TLOGD(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
     bool ret = SceneSessionManager::GetInstance().RegisterMotionSensor(motionType);
     napi_value result = nullptr;
     napi_get_boolean(env, ret, &result);
@@ -6353,7 +6353,7 @@ napi_value JsSceneSessionManager::OnUnregisterMotionSensor(napi_env env, napi_ca
                                       "Input parameter is missing or invalid"));
         return NapiGetUndefined(env);
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
+    TLOGD(WmsLogTag::WMS_ROTATION, "motionType: %{public}d", motionType);
     bool ret = SceneSessionManager::GetInstance().UnregisterMotionSensor(motionType);
     napi_value result = nullptr;
     napi_get_boolean(env, ret, &result);
@@ -6949,7 +6949,7 @@ napi_value JsSceneSessionManager::OnNotifySupportRotationChange(napi_env env, na
         TLOGE(WmsLogTag::WMS_ROTATION, "Failed to convert parameter to supportRotationInfo");
         return NapiGetUndefined(env);
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "persistentId: %{public}d, container size: %{public}zu, scene size: %{public}zu",
+    TLOGD(WmsLogTag::WMS_ROTATION, "persistentId: %{public}d, container size: %{public}zu, scene size: %{public}zu",
         supportRotationInfo.persistentId_, supportRotationInfo.containerSupportRotation_.size(),
         supportRotationInfo.sceneSupportRotation_.size());
     SceneSessionManager::GetInstance().NotifySupportRotationChange(supportRotationInfo);

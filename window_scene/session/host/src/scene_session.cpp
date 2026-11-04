@@ -11107,7 +11107,7 @@ WSError SceneSession::ConvertRotationToOrientation(uint32_t rotation,
     DisplayOrientation displayOrientation =
         screenSession->CalcDeviceOrientationWithBounds(targetRotation, foldDisplayMode, bounds);
     orientation = static_cast<uint32_t>(displayOrientation);
-    TLOGI(WmsLogTag::WMS_ROTATION,
+    TLOGD(WmsLogTag::WMS_ROTATION,
         "rotation: %{public}d, width: %{public}d, height: %{public}d, orientation: %{public}d",
         rotation, width, height, orientation);
     return WSError::WS_OK;
@@ -11128,7 +11128,7 @@ void SceneSession::SetPreCalcWindowPropertyCallback(const NotifyPreCalcWindowPro
 
 PreWindowProperty SceneSession::PreCalcWindowProperty()
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "start");
+    TLOGD(WmsLogTag::WMS_ROTATION, "start");
     if (!preCalcWindowPropertyFunc_) {
         TLOGE(WmsLogTag::WMS_ROTATION, "preCalcWindowPropertyFunc_ is null");
         return PreWindowProperty();
@@ -11318,13 +11318,13 @@ WSError SceneSession::GetSceneNodeCountWithTimeout(uint32_t& nodeCount, int32_t 
         nodeCount = 0;
         return WSError::WS_ERROR_NULLPTR;
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "start, winId:%{public}d, timeout:%{public}dms", GetPersistentId(), timeoutMs);
+    TLOGD(WmsLogTag::WMS_ROTATION, "start, winId:%{public}d, timeout:%{public}dms", GetPersistentId(), timeoutMs);
     auto callback = sptr<SceneNodeCountCallback>::MakeSptr();
     callback->ResetResult();
     sessionStage_->GetSceneNodeCount(callback->AsObject());
-    TLOGI(WmsLogTag::WMS_ROTATION, "wait start, winId:%{public}d", GetPersistentId());
+    TLOGD(WmsLogTag::WMS_ROTATION, "wait start, winId:%{public}d", GetPersistentId());
     nodeCount = callback->GetResult(timeoutMs);
-    TLOGI(WmsLogTag::WMS_ROTATION, "wait end, winId:%{public}d, nodeCount:%{public}u", GetPersistentId(), nodeCount);
+    TLOGD(WmsLogTag::WMS_ROTATION, "wait end, winId:%{public}d, nodeCount:%{public}u", GetPersistentId(), nodeCount);
     return WSError::WS_OK;
 }
 
@@ -11362,7 +11362,7 @@ WSError SceneSession::UpdateRotationChangeRegistered(int32_t persistentId, bool 
                 TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
                 return;
             }
-            TLOGI(
+            TLOGD(
                 WmsLogTag::WMS_ROTATION, "persistentId: %{public}d, isRegister: %{public}d", persistentId, isRegister);
             if (isRegister) {
                 session->isRotationChangeCallbackRegistered = true;

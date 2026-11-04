@@ -3633,7 +3633,7 @@ WMError WindowSceneSessionImpl::GetTargetOrientationConfigInfo(Orientation targe
     Ace::ViewportConfig currentConfig = FillTargetOrientationConfig(currentInfo, displayInfo, GetDisplayId());
     currentViewportConfigAndAvoidArea.config = std::make_shared<Ace::ViewportConfig>(currentConfig);
     currentViewportConfigAndAvoidArea.avoidAreas = currentInfo.avoidAreas;
-    TLOGI(WmsLogTag::WMS_ROTATION,
+    TLOGD(WmsLogTag::WMS_ROTATION,
         "win:%{public}u, rotate:%{public}d, rect:%{public}s, avoidAreas:%{public}s,%{public}s,%{public}s,%{public}s",
         GetWindowId(), info.rotation, info.rect.ToString().c_str(),
         info.avoidAreas[AvoidAreaType::TYPE_SYSTEM].ToString().c_str(),
@@ -9661,7 +9661,7 @@ WMError WindowSceneSessionImpl::GetRotationLocked(bool& locked)
     }
  
     locked = property_->GetRotationLocked();
-    TLOGI(WmsLogTag::WMS_ROTATION, "get id %{public}u rotation lock %{public}d.", GetWindowId(), locked);
+    TLOGD(WmsLogTag::WMS_ROTATION, "get id %{public}u rotation lock %{public}d.", GetWindowId(), locked);
     return WMError::WM_OK;
 }
 
