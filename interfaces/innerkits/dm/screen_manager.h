@@ -278,9 +278,10 @@ public:
      * @brief Create virtual screen.
      *
      * @param option Indicates the options of the virtual screen.
+     * @param errorCode Indicates the pointer to obtain the error code, which is optional.
      * @return Screen id.
      */
-    ScreenId CreateVirtualScreen(VirtualScreenOption option);
+    ScreenId CreateVirtualScreen(VirtualScreenOption option, DMError* errorCode = nullptr);
 
     /**
      * @brief Destroy virtual screen.

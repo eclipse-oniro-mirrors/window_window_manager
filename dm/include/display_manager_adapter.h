@@ -167,7 +167,7 @@ class ScreenManagerAdapter : public BaseAdapter {
 WM_DECLARE_SINGLE_INSTANCE(ScreenManagerAdapter);
 public:
     virtual ScreenId CreateVirtualScreen(VirtualScreenOption option,
-        const sptr<IDisplayManagerAgent>& displayManagerAgent);
+        const sptr<IDisplayManagerAgent>& displayManagerAgent, DMError* errorCode = nullptr);
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
     virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion);

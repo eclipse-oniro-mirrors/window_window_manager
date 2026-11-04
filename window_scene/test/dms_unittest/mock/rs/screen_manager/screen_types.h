@@ -220,6 +220,7 @@ typedef enum : uint32_t {
     IPC_ERROR,
     HDI_ERR_NOT_SUPPORT,
     MAIN_THREAD_NULL,
+    HDR_NOT_SUPPORT
 } StatusCode;
 
 typedef enum : uint32_t {

@@ -137,7 +137,8 @@ public:
     void NotifyScreenshot(DisplayId displayId);
     virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) override;
     void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds);
-    ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent) override;
+    ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent,
+        DMError* errorCode = nullptr) override;
     std::vector<uint64_t> FilterMissionIdsBySurfaceNodeIds(const std::vector<uint64_t>& missionIds,
         const std::vector<uint64_t>& surfaceNodeIds);
     bool SetVirtualScreenUser(ScreenId screenId, int32_t userId);
