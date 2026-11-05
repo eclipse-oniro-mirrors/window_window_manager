@@ -18,7 +18,10 @@ import("//build/ohos/cli/ohos_cli_executable.gni")
 import("../../windowmanager_aafwk.gni")
 
 config("ohos_window_command_config") {
-  include_dirs = [ "include" ]
+  include_dirs = [
+    "include",
+    "../../snapshot/include",
+  ]
 }
 
 config("ohos_window_command_exception_config") {
@@ -46,16 +49,21 @@ ohos_static_library("ohos_window_cli_source_set") {
   ]
 
   public_deps = [
+    "${window_base_path}/snapshot:libsnapshot_util",
     "${window_base_path}/window_scene/session_manager:session_manager_lite",
+    "${window_base_path}/dm:libdm",
   ]
 
   external_deps = [
     "ability_runtime:ability_manager",
+    "ability_runtime:mission_info",
     "c_utils:utils",
     "hilog:libhilog",
+    "hitrace:hitrace_meter",
     "image_framework:image_native",
     "ipc:ipc_single",
     "json:nlohmann_json_static",
+    "libjpeg-turbo:turbojpeg",
     "samgr:samgr_proxy",
   ]
 

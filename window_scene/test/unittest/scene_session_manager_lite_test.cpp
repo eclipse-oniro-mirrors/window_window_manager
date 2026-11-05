@@ -128,6 +128,20 @@ HWTEST_F(SceneSessionManagerLiteTest, RecoverWindowPropertyChangeFlag, TestSize.
 }
 
 /**
+ * @tc.name: GetSessionSnapshotById
+ * @tc.desc: test function : GetSessionSnapshotById
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteTest, GetSessionSnapshotById, TestSize.Level1)
+{
+    int32_t winId = 100;
+    SessionSnapshot snapshot;
+    auto expectRet = SceneSessionManager::GetInstance().GetSessionSnapshotById(winId, snapshot);
+    auto ret = SceneSessionManagerLite::GetInstance().GetSessionSnapshotById(winId, snapshot);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
  * @tc.name: SetProcessWatermark
  * @tc.desc: test function : SetProcessWatermark
  * @tc.type: FUNC

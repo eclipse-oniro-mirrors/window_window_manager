@@ -377,6 +377,11 @@ WMError SceneSessionManagerLite::HasFloatingWindowForeground(const sptr<IRemoteO
         hasOrNot);
 }
 
+WMError SceneSessionManagerLite::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+{
+    return SceneSessionManager::GetInstance().GetSessionSnapshotById(persistentId, snapshot);
+}
+
 WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos)
 {

@@ -225,6 +225,90 @@
                     }
                 }
             }
+        },
+        "screenshot": {
+            "description": "ohos-window screenshot - Capture a screenshot of the display on the system.",
+            "requirePermissions": [
+                "ohos.permission.CAPTURE_SCREEN",
+                "ohos.permission.CUSTOM_SCREEN_CAPTURE"
+            ],
+            "inputSchema": {
+                "type": "object",
+                "description": "Sub-options of the ohos-window screenshot command.",
+                "properties": {
+                    "help": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "displayId": {
+                        "type": "integer",
+                        "description": "displayId of the display to capture"
+                    },
+                    "windowId": {
+                        "type": "integer",
+                        "description": "windowId of the window to snapshot"
+                    },
+                    "format": {
+                        "type": "string",
+                        "description": "format of image"
+                    },
+                    "outputPath": {
+                        "type": "string",
+                        "description": "output file directory (default: /data/local/tmp/; when specified, writes to any path the caller has permission to access)"
+                    },
+                    "rect": {
+                        "type": "string",
+                        "description": "capture the specified rectangle region, format x,y,width,height"
+                    },
+                    "excludeWindowIds": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "full-screen capture excluding the specified window ids (windowId semantic, server converts to surface node ids, cannot combine with rect)"
+                    }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "description": "Execution result of the ohos-window screenshot command.",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["result"]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["success", "failed"]
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "message": {
+                                "type": "string"
+                            },
+                            "outputPath": {
+                                "type": "string"
+                            },
+                            "width": {
+                                "type": "integer"
+                            },
+                            "height": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "errCode": {
+                        "type": "string"
+                    },
+                    "errMsg": {
+                        "type": "string"
+                    },
+                    "suggestion": {
+                        "type": "string"
+                    }
+                }
+            }
         }
     },
     "eventSchemas": {}

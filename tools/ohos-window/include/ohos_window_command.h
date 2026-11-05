@@ -21,6 +21,8 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
+#include "dm_common.h"
+#include "display_manager.h"
 #include "wm_common.h"
 #include "shell_command.h"
 #include "zidl/scene_session_manager_lite_interface.h"
@@ -39,11 +41,14 @@ const std::string HELP_MSG =
     "SubCommands:\n"
     "  restore-window            restore a main window to foreground\n"
     "  list-windows              query window information\n"
+    "  screenshot                capture a screenshot of the display\n"
     "\nExamples:\n"
     "  # Restore a main window to foreground\n"
     "  ohos-window restore-window --windowId 100\n\n"
     "  # List all visible windows\n"
-    "  ohos-window list-windows --filter visible\n\n";
+    "  ohos-window list-windows --filter visible\n\n"
+    "  # Capture a full screen screenshot\n"
+    "  ohos-window screenshot\n\n";
 
 const std::string VERSION_MSG = "1.0.0\n";
 
@@ -74,6 +79,34 @@ const std::string HELP_MSG_LIST_WINDOWS =
     "\nExamples:\n"
     "  # List all visible windows\n"
     "  ohos-window list-windows --filter visible\n";
+
+const std::string HELP_MSG_SCREENSHOT =
+    "ohos-window screenshot - Capture a screenshot of the display\n\n"
+    "Usage:\n"
+    "  ohos-window screenshot [options]\n\n"
+    "Parameters:\n"
+    "  --help                                 display this help message\n"
+    "  --displayId <displayId>                displayId of the display to capture (default: default display)\n"
+    "  --outputPath <directory>"
+    "   output file directory (default: /data/local/tmp/; custom path must be writable)\n"
+    "  --rect <x,y,w,h>                       capture the specified rectangle region of the screen\n"
+    "  --excludeWindowIds <id1,id2,...>"
+    "   full-screen capture excluding the specified window ids (windowId semantic, cannot combine with --rect)\n"
+    "  --windowId <windowId>"
+    "   windowId of the window to snapshot, cannot use with --displayId, --rect and --excludeWindowIds options\n"
+    "  --format <jpeg|png>                              format of image, default: jpeg\n"
+    "\nBehavior notes:\n"
+    "  - Default (no options): uses legacy GetScreenshot, supported on all device types.\n"
+    "  - --rect: captures full screen then crops locally (GetScreenshotwithConfig), supported on all device types.\n"
+    "  - --excludeWindowIds: "
+    "   uses GetScreenCapture, whose service-side implementation exists only on some device types (e.g. phone).\n"
+    "\nExamples:\n"
+    "  # Full screen screenshot\n"
+    "  ohos-window screenshot\n"
+    "  # Screenshot the specified rectangle region (x=100, y=200, width=300, height=400)\n"
+    "  ohos-window screenshot --rect 100,200,300,400\n"
+    "  # Full screen screenshot excluding windows 100 and 200 (windowId semantic)\n"
+    "  ohos-window screenshot --excludeWindowIds 100,200\n";
 
 }  // namespace
 
@@ -106,6 +139,21 @@ private:
     void BuildListWindowInfoResultJson(const std::vector<sptr<WindowInfo>>& infos,
         const WindowInfoTypeOption& typeOption);
     void FillWindowMetaInfoJson(const WindowMetaInfo& metaInfo, nlohmann::json& windowJson);
+
+    int32_t RunAsScreenshot();
+    bool ParseScreenshotOption(DisplayId& displayId, std::string& outputPath,
+        bool& isRectSet, Media::Rect& imageRect, std::vector<NodeId>& excludeWindowIds,
+        int32_t& windowId, std::string& imgFormat);
+    bool ParseImageFormatOption(const std::string& valStr, std::string& imgFormat);
+    bool ParseOutputPathOption(const std::string& valStr, std::string& outputDir);
+    bool ParseRectOption(const std::string& rectStr, Media::Rect& imageRect);
+    bool ParseExcludeIdsOption(const std::string& idsStr, std::vector<NodeId>& excludeIds);
+    bool CheckScreenshotOptionConflict(bool isRectSet, const std::vector<NodeId>& excludeWindowIds,
+        int32_t windowId, DisplayId& displayId);
+    std::string GenerateScreenshotPath(const std::string& outputDir, const std::string& imgFormat);
+    std::shared_ptr<Media::PixelMap> GetSnapshot(DisplayId displayId, bool isRectSet, const Media::Rect& imageRect,
+        const std::vector<NodeId>& excludeWindowIds, int32_t windowId);
+    bool SavePixelMapToFile(const std::string& filePath, Media::PixelMap& pixelMap, const std::string& imgFormat);
 
     std::map<int32_t, WmToolErrorInfo> errorInfoMap_;
 };

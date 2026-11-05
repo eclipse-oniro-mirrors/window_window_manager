@@ -760,6 +760,43 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RecoverWindowPropertyChangeFlag, Test
 }
 
 /**
+ * @tc.name: GetSessionSnapshotById01
+ * @tc.desc: get session snapshot by window id
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetSessionSnapshotById01, TestSize.Level1)
+{
+    int32_t winId = 1;
+    SessionSnapshot snapshot;
+    auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    auto ret = tempProxy->GetSessionSnapshotById(winId, snapshot);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    EXPECT_NE(ret, WMError::WM_ERROR_INVALID_CALLING);
+}
+
+/**
  * @tc.name: RecoverProcessWatermark01
  * @tc.desc: recover watermark image for process
  * @tc.type: FUNC

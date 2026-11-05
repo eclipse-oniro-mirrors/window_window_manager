@@ -1225,6 +1225,29 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleRegisterWindowPropertyChangeAgen
 }
 
 /**
+ * @tc.name: HandleGetSessionSnapshotById
+ * @tc.desc: test HandleGetSessionSnapshotById
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleGetSessionSnapshotById, Function | SmallTest | Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    ASSERT_NE(sceneSessionManagerLiteStub_, nullptr);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManagerLite::SceneSessionManagerLiteMessage::TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID);
+    auto res = sceneSessionManagerLiteStub_->ProcessRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+
+    data.WriteInt32(123);
+    res = sceneSessionManagerLiteStub_->HandleGetSessionSnapshotById(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
  * @tc.name: HandleSetProcessWatermark
  * @tc.desc: test HandleSetProcessWatermark
  * @tc.type: FUNC

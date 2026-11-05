@@ -28,6 +28,7 @@ tools/ohos-window/
 |--------|------|----------|----------|
 | `restore-window` | 将指定主窗口恢复到前台 | `--windowId`、`--help` | `ohos.permission.CONTROL_DEVICE` |
 | `list-windows` | 查询窗口信息 | `--windowId`、`--displayId`、`--filter`、`--type`、`--help` | `ohos.permission.CONTROL_DEVICE` |
+| `screenshot` | 屏幕截图（全屏/指定矩形区域/全屏排除指定窗口） | `--displayId`、`--outputPath`、`--rect`、`--excludeWindowIds`、`--windowId`、`--format`、`--help` | `ohos.permission.CAPTURE_SCREEN` |
 | `--help` / `help` | 显示帮助信息 | 无 | 无 |
 
 ### restore-window 子命令参数说明
@@ -50,6 +51,26 @@ tools/ohos-window/
 | `--help` | flag | 显示 list-windows 子命令帮助信息 |
 
 > **注意**：`--filter` 与 `--type` 均可多次指定，以累加过滤条件与返回信息类别。
+
+### screenshot 子命令参数说明
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `--displayId <id>` | integer | 待截图的 displayId（缺省为默认屏） |
+| `--outputPath <path>` | string | 输出文件路径（缺省自动生成带时间戳文件名，位于 `/data/local/tmp` 下）；指定时写入任意有权限访问的路径 |
+| `--rect <x,y,width,height>` | string | 仅截取屏幕指定矩形区域 |
+| `--excludeWindowIds <id1,id2,...>` | string（逗号分隔） | 全屏截图时排除指定 windowId（windowId 语义），仅支持全屏，不可与 `--rect` 组合 |
+| `--windowId <id>` | integer | 截图窗口的ID，不能与`--displayId`/`--rect`/`--excludeWindowIds`一起使用 |
+| `--format <jpeg\|png>` | string | 图片格式，支持jpeg和png，默认jpeg |
+| `--help` | flag | 显示 screenshot 子命令帮助信息 |
+
+> **注意**：
+> - 该子命令的能力对齐系统能力 `@ohos.screenshot`：全屏截图、区域截图（`screenRect`）、排除窗口截图（`blackWindowIds`）。
+> - 不带任何参数时默认全屏截图，走老接口 `GetScreenshot`（服务端 foundation 内置实现），**所有设备类型（phone/PC 等）均支持**。
+> - `--rect` 区域截图走 `GetScreenshotwithConfig`（老接口 `GetScreenshot` + 本地裁剪），**所有设备类型均支持**。
+> - `--excludeWindowIds` 走 `GetScreenCapture`（blackWindowIdList_，windowId 语义），其服务端实现仅存在于部分设备类型（如 phone）的镜像中，**在 PC 等设备上会返回失败**。
+> - `--excludeWindowIds` 与 `--rect` 互斥。
+> - 不指定 `--outputPath` 时默认保存到 `/data/local/tmp/screenshot_<时间戳>.jpeg`（走 `SnapShotUtils` 的默认保存逻辑）；指定 `--outputPath` 时允许写入任意有权限访问的路径（走 `ImagePacker` 直接打包，不再受 `/data/local/tmp` 限制），目标目录需已存在且进程对该路径有写权限。
 
 ## Claw 规范遵循情况
 
