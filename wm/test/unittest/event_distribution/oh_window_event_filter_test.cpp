@@ -521,7 +521,7 @@ HWTEST_F(OHWindowEventFilterTest, Convert2KeyEventFilterFunc, TestSize.Level0)
     WindowSceneSessionImpl::windowSessionMap_.insert(
         std::make_pair("test_window_convert_key", std::make_pair(200, mockWindow)));
 
-    KeyEventFilterFunc capturedFilter = nullptr;
+    OHOS::Rosen::KeyEventFilterFunc capturedFilter = nullptr;
     EXPECT_CALL(*mockWindow, SetKeyEventFilter(_))
         .WillOnce(DoAll(SaveArg<0>(&capturedFilter), Return(WMError::WM_OK)));
     EXPECT_CALL(*mockWindow, SaveNativeKeyEventFilter(_)).WillOnce(Return(WMError::WM_OK));
