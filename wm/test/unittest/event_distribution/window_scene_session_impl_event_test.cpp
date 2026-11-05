@@ -305,6 +305,56 @@ HWTEST_F(WindowSceneSessionImplEventTest, SetWindowMaskWithAlphaSuccess, TestSiz
     auto ret = window->SetWindowMaskWithAlpha(maskData, 2, 2);
     EXPECT_EQ(ret, WMError::WM_OK);
 }
+
+/**
+ * @tc.name: SetDialogBackGestureEnabled
+ * @tc.desc: SetDialogBackGestureEnabled branch coverage
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSceneSessionImplEventTest, SetDialogBackGestureEnabled, TestSize.Level1)
+{
+    // Branch A: window type is not dialog -> WM_ERROR_INVALID_CALLING
+    sptr<WindowOption> optionA = sptr<WindowOption>::MakeSptr();
+    optionA->SetWindowName("SetDialogBackGestureEnabledA");
+    optionA->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sptr<WindowSceneSessionImpl> windowA = sptr<WindowSceneSessionImpl>::MakeSptr(optionA);
+    auto ret = windowA->SetDialogBackGestureEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_ERROR_INVALID_CALLING);
+
+    // Branch B: dialog but hostSession is null -> WM_ERROR_NULLPTR
+    sptr<WindowOption> optionB = sptr<WindowOption>::MakeSptr();
+    optionB->SetWindowName("SetDialogBackGestureEnabledB");
+    optionB->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    sptr<WindowSceneSessionImpl> windowB = sptr<WindowSceneSessionImpl>::MakeSptr(optionB);
+    windowB->hostSession_ = nullptr;
+    ret = windowB->SetDialogBackGestureEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_ERROR_NULLPTR);
+
+    // Branch C: hostSession returns OK -> WM_OK and flag updated
+    sptr<WindowOption> optionC = sptr<WindowOption>::MakeSptr();
+    optionC->SetWindowName("SetDialogBackGestureEnabledC");
+    optionC->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    sptr<WindowSceneSessionImpl> windowC = sptr<WindowSceneSessionImpl>::MakeSptr(optionC);
+    SessionInfo sessionInfo;
+    sptr<SessionMocker> sessionC = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowC->hostSession_ = sessionC;
+    EXPECT_CALL(*sessionC, SetDialogSessionBackGestureEnabled(_)).WillOnce(Return(WSError::WS_OK));
+    ret = windowC->SetDialogBackGestureEnabled(true);
+    EXPECT_EQ(ret, WMError::WM_OK);
+    EXPECT_TRUE(windowC->IsDialogSessionBackGestureEnabled());
+
+    // Branch D: hostSession returns error -> else branch, flag not updated
+    sptr<WindowOption> optionD = sptr<WindowOption>::MakeSptr();
+    optionD->SetWindowName("SetDialogBackGestureEnabledD");
+    optionD->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
+    sptr<WindowSceneSessionImpl> windowD = sptr<WindowSceneSessionImpl>::MakeSptr(optionD);
+    sptr<SessionMocker> sessionD = sptr<SessionMocker>::MakeSptr(sessionInfo);
+    windowD->hostSession_ = sessionD;
+    EXPECT_CALL(*sessionD, SetDialogSessionBackGestureEnabled(_)).WillOnce(Return(WSError::WS_ERROR_INTERNAL_ERROR));
+    ret = windowD->SetDialogBackGestureEnabled(true);
+    EXPECT_NE(ret, WMError::WM_OK);
+    EXPECT_FALSE(windowD->IsDialogSessionBackGestureEnabled());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

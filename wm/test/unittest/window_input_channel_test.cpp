@@ -419,43 +419,6 @@ HWTEST_F(WindowInputChannelTest, HandleKeyEventTest, TestSize.Level1)
     inputChannel->Destroy();
     LOG_SetCallback(nullptr);
 }
-
-/**
- * @tc.name: HandleKeyEventTest1
- * @tc.desc: setDialogBackGestureEnabled branch coverage
- * @tc.type: FUNC
- */
-HWTEST_F(WindowInputChannelTest, HandleKeyEventTest1, TestSize.Level1)
-{
-    // Branch A: window type is not dialog -> WM_ERROR_INVALID_CALLING
-    sptr<WindowOption> optionA = sptr<WindowOption>::MakeSptr();
-    optionA->SetWindowName("HandleKeyEventTest1A");
-    optionA->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
-    sptr<WindowSceneSessionImpl> sessionA = sptr<WindowSceneSessionImpl>::MakeSptr(optionA);
-    EXPECT_EQ(sessionA->SetDialogBackGestureEnabled(true), WMError::WM_ERROR_INVALID_CALLING);
-
-    // Branch B: dialog but hostSession is null -> WM_ERROR_NULLPTR
-    sptr<WindowOption> optionB = sptr<WindowOption>::MakeSptr();
-    optionB->SetWindowName("HandleKeyEventTest1B");
-    optionB->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
-    sptr<WindowSceneSessionImpl> sessionB = sptr<WindowSceneSessionImpl>::MakeSptr(optionB);
-    sessionB->hostSession_ = nullptr;
-    EXPECT_EQ(sessionB->SetDialogBackGestureEnabled(true), WMError::WM_ERROR_NULLPTR);
-
-    // Branch D: hostSession returns error -> else branch, flag not updated
-    sptr<WindowOption> optionD = sptr<WindowOption>::MakeSptr();
-    optionD->SetWindowName("HandleKeyEventTest1D");
-    optionD->SetWindowType(WindowType::WINDOW_TYPE_DIALOG);
-    sptr<WindowSceneSessionImpl> sessionD = sptr<WindowSceneSessionImpl>::MakeSptr(optionD);
-    SessionInfo sessionInfo = { "CreateTestBundle", "CreateTestModule", "CreateTestAbility" };
-    sptr<SessionMocker> session = sptr<SessionMocker>::MakeSptr(sessionInfo);
-    sessionD->hostSession_ = session;
-    EXPECT_CALL(*session, SetDialogSessionBackGestureEnabled(_)).WillOnce(Return(WSError::WS_ERROR_INTERNAL_ERROR));
-    EXPECT_FALSE(sessionD->IsDialogSessionBackGestureEnabled());
-    auto ret = sessionD->SetDialogBackGestureEnabled(true);
-    EXPECT_NE(ret, WMError::WM_OK);
-    EXPECT_FALSE(sessionD->IsDialogSessionBackGestureEnabled());
-}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
