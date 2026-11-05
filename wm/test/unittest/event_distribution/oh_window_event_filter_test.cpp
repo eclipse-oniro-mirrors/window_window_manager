@@ -83,6 +83,13 @@ static bool TouchEventFilterFunc(Input_TouchEvent* touchEvent)
     return false;
 }
 
+static bool g_filterResult = false;
+
+static bool KeyEventFilterFlagFunc(Input_KeyEvent* keyEvent)
+{
+    return g_filterResult;
+}
+
 HWTEST_F(OHWindowEventFilterTest, OH_NativeWindowManager_RegisterKeyEventFilter, TestSize.Level0)
 {
     // Branch 1: Parameter validation - filter is nullptr (must setup window first)
@@ -499,6 +506,46 @@ HWTEST_F(OHWindowEventFilterTest, OH_NativeWindowManager_GetTouchEventFilter, Te
     ret = OH_NativeWindowManager_GetTouchEventFilter(101, &outFilter);
     EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::OK), ret);
     EXPECT_EQ(TouchEventFilterFunc, outFilter);
+
+    WindowSceneSessionImpl::windowSessionMap_.clear();
+}
+
+HWTEST_F(OHWindowEventFilterTest, Convert2KeyEventFilterFunc, TestSize.Level0)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("test_window_convert_key");
+    auto mockWindow = sptr<MockWindowForFilter>::MakeSptr(option);
+    mockWindow->property_->SetPersistentId(200);
+
+    WindowSceneSessionImpl::windowSessionMap_.clear();
+    WindowSceneSessionImpl::windowSessionMap_.insert(
+        std::make_pair("test_window_convert_key", std::make_pair(200, mockWindow)));
+
+    KeyEventFilterFunc capturedFilter = nullptr;
+    EXPECT_CALL(*mockWindow, SetKeyEventFilter(_))
+        .WillOnce(DoAll(SaveArg<0>(&capturedFilter), Return(WMError::WM_OK)));
+    EXPECT_CALL(*mockWindow, SaveNativeKeyEventFilter(_)).WillOnce(Return(WMError::WM_OK));
+    auto ret = OH_NativeWindowManager_RegisterKeyEventFilter(200, KeyEventFilterFlagFunc);
+    EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::OK), ret);
+    ASSERT_NE(capturedFilter, nullptr);
+
+    auto keyEvent = MMI::KeyEvent::Create();
+    ASSERT_NE(keyEvent, nullptr);
+
+    // key action not in keyEventActionMap -> returns false without calling filter
+    g_filterResult = true;
+    keyEvent->SetKeyAction(MMI::KeyEvent::KEY_ACTION_UNKNOWN);
+    EXPECT_FALSE(capturedFilter(*keyEvent));
+
+    // key action in map and filter returns false -> propagate false
+    g_filterResult = false;
+    keyEvent->SetKeyAction(MMI::KeyEvent::KEY_ACTION_DOWN);
+    EXPECT_FALSE(capturedFilter(*keyEvent));
+
+    // key action in map and filter returns true -> propagate true
+    g_filterResult = true;
+    keyEvent->SetKeyAction(MMI::KeyEvent::KEY_ACTION_DOWN);
+    EXPECT_TRUE(capturedFilter(*keyEvent));
 
     WindowSceneSessionImpl::windowSessionMap_.clear();
 }
