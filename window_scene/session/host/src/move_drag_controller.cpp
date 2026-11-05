@@ -1623,7 +1623,7 @@ WSRect MoveDragController::CalcFreeformTargetRect(AreaType type, int32_t tranX, 
     }
     // Special compatible scale: map resize delta from physical to logical coordinates
     float scale = GetDpiForceScale();
-    auto tranXWithScale = tranX; 
+    auto tranXWithScale = tranX;
     auto tranYWithScale = tranY;
     if (GetIsDpiForceScale() && scale > 0) {
         tranXWithScale  = static_cast<int32_t>(tranX / scale);
