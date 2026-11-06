@@ -1314,37 +1314,41 @@ HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTop, TestSize.Level1)
 }
 
 /**
- * @tc.name: RaiseAppMainWindowToTopWithRaiseSuppressed
+ * @tc.name: RaiseAppMainWindowToTopWithRaiseTopOnShow
  * @tc.desc: RaiseAppMainWindowToTop with showAbility raiseTop=false
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopWithRaiseSuppressed, TestSize.Level1)
+HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopWithRaiseTopOnShow, TestSize.Level1)
 {
     SessionInfo info;
-    info.abilityName_ = "RaiseAppMainWindowToTopWithRaiseSuppressed";
-    info.bundleName_ = "RaiseAppMainWindowToTopWithRaiseSuppressed";
+    info.abilityName_ = "RaiseAppMainWindowToTopWithRaiseTopOnShow";
+    info.bundleName_ = "RaiseAppMainWindowToTopWithRaiseTopOnShow";
 
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
     EXPECT_NE(sceneSession, nullptr);
     sceneSession->isActive_ = true;
 
-    // raiseTop=false suppresses the raise and the flag is consumed once
-    sceneSession->raiseTopSuppressedOnShow_ = true;
+    // raiseTopOnShow is true by default, set and get keep consistent
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+    sceneSession->SetRaiseTopOnShow(false);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), false);
+
+    // raiseTop=false suppresses the raise and the flag is restored once
     WSError result = sceneSession->RaiseAppMainWindowToTop();
     EXPECT_EQ(WSError::WS_OK, result);
-    EXPECT_EQ(sceneSession->raiseTopSuppressedOnShow_, false);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
 
-    // after consumption the raise is no longer suppressed
+    // after restoration the raise is no longer suppressed
     result = sceneSession->RaiseAppMainWindowToTop();
     EXPECT_EQ(WSError::WS_OK, result);
-    EXPECT_EQ(sceneSession->raiseTopSuppressedOnShow_, false);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
 
-    // suppression is also consumed when the window is not focused on show
-    sceneSession->raiseTopSuppressedOnShow_ = true;
+    // the flag is also restored when the window is not focused on show
+    sceneSession->SetRaiseTopOnShow(false);
     sceneSession->focusedOnShow_ = false;
     result = sceneSession->RaiseAppMainWindowToTop();
     EXPECT_EQ(WSError::WS_OK, result);
-    EXPECT_EQ(sceneSession->raiseTopSuppressedOnShow_, false);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
     EXPECT_EQ(sceneSession->focusedOnShow_, true);
 }
 

@@ -553,6 +553,9 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
             TLOGI(WmsLogTag::WMS_LIFE, "%{public}s Current state is not a pre-state of foreground, skip", where);
             return WSError::WS_OK;
         }
+        // The normal show path does not go through RaiseAppMainWindowToTop, restore the one-shot
+        // raiseTop state from showAbility here to avoid suppressing a later active raiseToTop.
+        session->SetRaiseTopOnShow(true);
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
             sessionProperty->SetWindowMode(property->GetWindowMode());
@@ -3203,17 +3206,17 @@ WSError SceneSession::RaiseAppMainWindowToTop()
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
         // Consume the one-shot suppression from showAbility with raiseTop=false.
-        bool raiseSuppressed = session->raiseTopSuppressedOnShow_;
-        session->raiseTopSuppressedOnShow_ = false;
+        bool raiseOnShow = session->IsRaiseTopOnShow();
+        session->SetRaiseTopOnShow(true);
         if (session->IsFocusedOnShow()) {
             FocusChangeReason reason = FocusChangeReason::MOVE_UP;
             session->NotifyRequestFocusStatusNotifyManager(true, true, reason);
-            if (raiseSuppressed) {
+            if (raiseOnShow) {
+                session->NotifyClick(true, false);
+            } else {
                 // Only request focus without raising the window to the top.
                 TLOGNI(WmsLogTag::WMS_HIERARCHY, "%{public}s id:%{public}d skip raise, showAbility raiseTop is false",
                     where, session->GetPersistentId());
-            } else {
-                session->NotifyClick(true, false);
             }
         } else {
             session->SetFocusedOnShow(true);
@@ -3221,6 +3224,20 @@ WSError SceneSession::RaiseAppMainWindowToTop()
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
+}
+
+bool SceneSession::IsRaiseTopOnShow() const
+{
+    return raiseTopOnShow_;
+}
+
+void SceneSession::SetRaiseTopOnShow(bool raiseTopOnShow)
+{
+    if (raiseTopOnShow == raiseTopOnShow_) {
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_HIERARCHY, "[%{public}d, %{public}d]", raiseTopOnShow, GetPersistentId());
+    raiseTopOnShow_ = raiseTopOnShow;
 }
 
 WSError SceneSession::OnNeedAvoid(bool status)
@@ -6831,9 +6848,10 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
                 session->SetFocusedOnShow(false);
             }
         }
-        // One-shot for the coming show: suppress the raise triggered by the app window show.
-        session->raiseTopSuppressedOnShow_ =
-            visible && info.showParams != nullptr && !info.showParams->raiseTop;
+        if (visible) {
+            // One-shot for the coming show, restored when the app window shows again.
+            session->SetRaiseTopOnShow(info.showParams == nullptr || info.showParams->raiseTop);
+        }
 
         if (session->changeSessionVisibilityWithStatusBarFunc_) {
             session->changeSessionVisibilityWithStatusBarFunc_(info, visible);

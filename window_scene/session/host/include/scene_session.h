@@ -521,6 +521,8 @@ public:
     virtual int32_t GetSubWindowZLevel() const { return 0; }
     void SetMainWindowTopmostChangeCallback(NotifyMainWindowTopmostChangeFunc&& func);
     WSError RaiseAppMainWindowToTop() override;
+    bool IsRaiseTopOnShow() const;
+    void SetRaiseTopOnShow(bool raiseTopOnShow);
 
     /*
      * Compatible Mode
@@ -1740,9 +1742,9 @@ private:
     /*
      * ShowAbility
      */
-    // showAbility with raiseTop=false suppresses the raise in RaiseAppMainWindowToTop once,
-    // refreshed on each showAbility request and consumed when the app window shows again
-    bool raiseTopSuppressedOnShow_ = false;
+    // whether the window is raised to the top when shown again, same lifecycle as focusedOnShow_:
+    // set to false by showAbility with raiseTop=false, restored when the app window shows again
+    bool raiseTopOnShow_ = true;
 
     /*
      * Window Recover
