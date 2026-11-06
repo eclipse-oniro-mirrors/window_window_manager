@@ -999,7 +999,7 @@ int SessionStub::HandleChangeSessionVisibilityWithStatusBar(MessageParcel& data,
             TLOGE(WmsLogTag::WMS_LIFE, "Read showParams failed.");
             return ERR_INVALID_DATA;
         }
-        TLOGI(WmsLogTag::WMS_LIFE, "showParams windowFocused: %{public}d, raiseTop: %{public}d",
+        TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] stub recv showParams, windowFocused: %{public}d, raiseTop: %{public}d",
             abilitySessionInfo->showParams->windowFocused, abilitySessionInfo->showParams->raiseTop);
     }
     WSError errCode = ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);

@@ -17288,6 +17288,8 @@ void SceneSessionManager::PostProcessFocus()
             continue;
         }
         if (!session->IsFocusedOnShow()) {
+            TLOGI(WmsLogTag::WMS_FOCUS, "[liuyue] id:%{public}d skip focus on show, windowFocused is false",
+                persistentId);
             if (IsSessionVisibleForeground(session)) {
                 session->SetFocusedOnShow(true);
             }

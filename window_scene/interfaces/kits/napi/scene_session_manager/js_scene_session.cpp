@@ -5337,10 +5337,11 @@ void JsSceneSession::OnContextTransparent()
 
 void JsSceneSession::ChangeSessionVisibilityWithStatusBar(const SessionInfo& info, bool visible)
 {
-    WLOGI("bundleName %{public}s, moduleName %{public}s, "
-        "abilityName %{public}s, appIndex %{public}d, reuse %{public}d, visible %{public}d",
-        info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(),
-        info.appIndex_, info.reuse, visible);
+    TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] bridge bundleName %{public}s, appIndex %{public}d, visible %{public}d, "
+        "windowFocused %{public}d, raiseTop %{public}d",
+        info.bundleName_.c_str(), info.appIndex_, visible,
+        info.showParams == nullptr ? -1 : static_cast<int32_t>(info.showParams->windowFocused),
+        info.showParams == nullptr ? -1 : static_cast<int32_t>(info.showParams->raiseTop));
     auto session = weakSession_.promote();
     if (session == nullptr) {
         WLOGFE("session is nullptr, id:%{public}d", persistentId_);
