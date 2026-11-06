@@ -1314,6 +1314,41 @@ HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTop, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RaiseAppMainWindowToTopWithRaiseSuppressed
+ * @tc.desc: RaiseAppMainWindowToTop with showAbility raiseTop=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopWithRaiseSuppressed, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "RaiseAppMainWindowToTopWithRaiseSuppressed";
+    info.bundleName_ = "RaiseAppMainWindowToTopWithRaiseSuppressed";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    sceneSession->isActive_ = true;
+
+    // raiseTop=false suppresses the raise and the flag is consumed once
+    sceneSession->raiseTopSuppressedOnShow_ = true;
+    WSError result = sceneSession->RaiseAppMainWindowToTop();
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->raiseTopSuppressedOnShow_, false);
+
+    // after consumption the raise is no longer suppressed
+    result = sceneSession->RaiseAppMainWindowToTop();
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->raiseTopSuppressedOnShow_, false);
+
+    // suppression is also consumed when the window is not focused on show
+    sceneSession->raiseTopSuppressedOnShow_ = true;
+    sceneSession->focusedOnShow_ = false;
+    result = sceneSession->RaiseAppMainWindowToTop();
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->raiseTopSuppressedOnShow_, false);
+    EXPECT_EQ(sceneSession->focusedOnShow_, true);
+}
+
+/**
  * @tc.name: GetCutoutAvoidArea
  * @tc.desc: GetCutoutAvoidArea
  * @tc.type: FUNC

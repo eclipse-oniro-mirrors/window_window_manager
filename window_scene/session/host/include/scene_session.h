@@ -1738,6 +1738,13 @@ private:
     bool postProcessProperty_ { false };
 
     /*
+     * ShowAbility
+     */
+    // showAbility with raiseTop=false suppresses the raise in RaiseAppMainWindowToTop once,
+    // refreshed on each showAbility request and consumed when the app window shows again
+    bool raiseTopSuppressedOnShow_ = false;
+
+    /*
      * Window Recover
      */
     bool isRecovered_ = false;

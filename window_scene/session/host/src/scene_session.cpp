@@ -3202,10 +3202,19 @@ WSError SceneSession::RaiseAppMainWindowToTop()
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
+        // Consume the one-shot suppression from showAbility with raiseTop=false.
+        bool raiseSuppressed = session->raiseTopSuppressedOnShow_;
+        session->raiseTopSuppressedOnShow_ = false;
         if (session->IsFocusedOnShow()) {
             FocusChangeReason reason = FocusChangeReason::MOVE_UP;
             session->NotifyRequestFocusStatusNotifyManager(true, true, reason);
-            session->NotifyClick(true, false);
+            if (raiseSuppressed) {
+                // Only request focus without raising the window to the top.
+                TLOGNI(WmsLogTag::WMS_HIERARCHY, "%{public}s id:%{public}d skip raise, showAbility raiseTop is false",
+                    where, session->GetPersistentId());
+            } else {
+                session->NotifyClick(true, false);
+            }
         } else {
             session->SetFocusedOnShow(true);
         }
@@ -6822,6 +6831,9 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
                 session->SetFocusedOnShow(false);
             }
         }
+        // One-shot for the coming show: suppress the raise triggered by the app window show.
+        session->raiseTopSuppressedOnShow_ =
+            visible && info.showParams != nullptr && !info.showParams->raiseTop;
 
         if (session->changeSessionVisibilityWithStatusBarFunc_) {
             session->changeSessionVisibilityWithStatusBarFunc_(info, visible);
