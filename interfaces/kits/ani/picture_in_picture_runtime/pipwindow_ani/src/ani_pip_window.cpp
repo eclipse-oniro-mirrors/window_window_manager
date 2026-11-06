@@ -165,6 +165,10 @@ void AniPiPWindow::Finalizer(ani_env* env, ani_long nativeObj)
 bool AniPiPWindow::checkControlsRules(uint32_t pipTemplateType, std::vector<std::uint32_t> controlGroups)
 {
     TLOGI(WmsLogTag::WMS_PIP, "start");
+    if (!PictureInPictureManager::IsTemplateTypeSupported(static_cast<PiPTemplateType>(pipTemplateType))) {
+        TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, unsupported pipTemplateType: %{public}u", pipTemplateType);
+        return false;
+    }
     auto iter = TEMPLATE_CONTROL_MAP.find(static_cast<PiPTemplateType>(pipTemplateType));
     auto controls = iter->second;
     if (controlGroups.size() > MAX_CONTROL_GROUP_NUM) {

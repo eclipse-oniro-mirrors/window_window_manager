@@ -189,7 +189,7 @@ protected:
         uint32_t mainWindowId_ = 0;
     };
 
-    void NotifyOpretationError(WMError errCode, StartPipType startType);
+    void NotifyOperationError(WMError errCode, StartPipType startType);
     WMErrorResult ShowPictureInPictureWindow(StartPipType startType);
     WMErrorResult StartPictureInPictureInner(StartPipType startType);
     WMError StopPictureInPictureInner(StopPipType stopType, bool withAnim);

@@ -138,10 +138,6 @@ static int32_t checkOptionParams(PipOption& option)
             pipTemplateType);
         return -1;
     }
-    if (!PictureInPictureManager::IsTemplateTypeSupported(static_cast<PiPTemplateType>(pipTemplateType))) {
-        TLOGE(WmsLogTag::WMS_PIP, "pipOption param error, pipTemplateType not supported.");
-        return -1;
-    }
     uint32_t defaultWindowSizeType = option.GetDefaultWindowSizeType();
     if (!(defaultWindowSizeType == DefaultWindowSizeType::NOT_SET ||
             defaultWindowSizeType == DefaultWindowSizeType::SMALL ||
