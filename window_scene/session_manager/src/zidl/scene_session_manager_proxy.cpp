@@ -303,7 +303,8 @@ WMError SceneSessionManagerProxy::SetParentWindow(int32_t subWindowId, int32_t n
     return static_cast<WMError>(ret);
 }
 
-WMError SceneSessionManagerProxy::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+WMError SceneSessionManagerProxy::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -336,6 +337,7 @@ WMError SceneSessionManagerProxy::GetSessionSnapshotById(int32_t persistentId, S
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read snapshot is null, persistentId=%{public}d", persistentId);
     }
+    reply.ReadString(extraInfo);
     return static_cast<WMError>(reply.ReadInt32());
 }
 
@@ -343,7 +345,8 @@ WMError SceneSessionManagerProxy::GetSnapshotByWindowId(int32_t persistentId,
     std::shared_ptr<Media::PixelMap>& pixelMap)
 {
     SessionSnapshot snapshot;
-    WMError ret = GetSessionSnapshotById(persistentId, snapshot);
+    std::string extraInfo;
+    WMError ret = GetSessionSnapshotById(persistentId, snapshot, extraInfo);
     if (ret == WMError::WM_OK) {
         pixelMap = snapshot.snapshot;
     }

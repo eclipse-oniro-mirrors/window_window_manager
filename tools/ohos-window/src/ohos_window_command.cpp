@@ -718,13 +718,18 @@ std::shared_ptr<Media::PixelMap> ClawWindowShellCommand::GetSnapshot(DisplayId d
         pixelMap = DisplayManager::GetInstance().GetScreenCapture(captureOption, &errorCode);
     } else if (windowId != INVALID_WINDOW_ID) {
         SessionSnapshot snapshot;
+        std::string extraInfo;
         auto ret = WMError::WM_ERROR_IPC_FAILED;
-        auto proxy = GetSceneSessionManagerLiteProxy();
-        if (proxy != nullptr) {
-            ret = proxy->GetSessionSnapshotById(windowId, snapshot);
+        if (auto proxy = GetSceneSessionManagerLiteProxy()) {
+            ret = proxy->GetSessionSnapshotById(windowId, snapshot, extraInfo);
         }
         if (ret != WMError::WM_OK) {
             WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(ret));
+            PrintError(errorInfo);
+            return nullptr;
+        } else if (!extraInfo.empty()) {
+            WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+                extraInfo, { INVALID_PARAM_SOLUTION } };
             PrintError(errorInfo);
             return nullptr;
         }

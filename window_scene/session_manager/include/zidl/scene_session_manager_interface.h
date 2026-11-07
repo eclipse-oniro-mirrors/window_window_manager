@@ -231,7 +231,8 @@ public:
     virtual WSError MoveSessionsToForeground(const std::vector<std::int32_t>& sessionIds, int32_t topSessionId) = 0;
     virtual WSError MoveSessionsToBackground(const std::vector<std::int32_t>& sessionIds,
         std::vector<std::int32_t>& result) = 0;
-    virtual WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+    virtual WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+        std::string& extraInfo)
     {
         return WMError::WM_OK;
     }

@@ -13149,18 +13149,28 @@ WSError SceneSessionManager::GetSessionSnapshot(const std::string& deviceId, int
     }, __func__);
 }
 
-WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
 {
     if (!SessionPermission::JudgeCallerIsAllowedToUseSystemAPI() && !SessionPermission::IsShellCall() &&
         !SessionPermission::VerifyCallingPermission("ohos.permission.CUSTOM_SCREEN_CAPTURE")) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no permission, winId=%{public}d", persistentId);
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
-    return taskScheduler_->PostSyncTask([this, persistentId, &snapshot, where = __func__]() {
+    return taskScheduler_->PostSyncTask([this, persistentId, &snapshot, &extraInfo, where = __func__]() {
         auto sceneSession = GetSceneSession(persistentId);
         if (!sceneSession) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: no session for winId=%{public}d", where, persistentId);
             return WMError::WM_ERROR_INVALID_PARAM;
+        }
+        if (sceneSession->GetIsPrivacyMode()) {
+            extraInfo = std::to_string(persistentId) + " is a private window";
+        } else {
+            auto state = GetRealSessionState(sceneSession);
+            bool isForeground = state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE;
+            if (!isForeground) {
+                extraInfo = std::to_string(persistentId) + " is not a foreground window";
+            }
         }
         const auto& sessionInfo = sceneSession->GetSessionInfo();
         if (sessionInfo.abilityName_.empty() || sessionInfo.moduleName_.empty() || sessionInfo.bundleName_.empty()) {

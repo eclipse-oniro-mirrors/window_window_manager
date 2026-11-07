@@ -136,8 +136,10 @@ HWTEST_F(SceneSessionManagerLiteTest, GetSessionSnapshotById, TestSize.Level1)
 {
     int32_t winId = 100;
     SessionSnapshot snapshot;
-    auto expectRet = SceneSessionManager::GetInstance().GetSessionSnapshotById(winId, snapshot);
-    auto ret = SceneSessionManagerLite::GetInstance().GetSessionSnapshotById(winId, snapshot);
+    std::string expectExtraInfo;
+    std::string extraInfo;
+    auto expectRet = SceneSessionManager::GetInstance().GetSessionSnapshotById(winId, snapshot, expectExtraInfo);
+    auto ret = SceneSessionManagerLite::GetInstance().GetSessionSnapshotById(winId, snapshot, extraInfo);
     EXPECT_EQ(ret, expectRet);
 }
 

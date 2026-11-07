@@ -768,8 +768,9 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, GetSessionSnapshotById01, TestSize.Le
 {
     int32_t winId = 1;
     SessionSnapshot snapshot;
+    std::string extraInfo;
     auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
-    auto ret = tempProxy->GetSessionSnapshotById(winId, snapshot);
+    auto ret = tempProxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
@@ -778,21 +779,21 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, GetSessionSnapshotById01, TestSize.Le
 
     MockMessageParcel::ClearAllErrorFlag();
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 
     MockMessageParcel::SetWriteInt32ErrorFlag(true);
-    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInt32ErrorFlag(false);
 
     remoteMocker->SetRequestResult(ERR_INVALID_DATA);
-    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
     EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
 
     remoteMocker->SetRequestResult(ERR_NONE);
-    ret = proxy->GetSessionSnapshotById(winId, snapshot);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
     EXPECT_NE(ret, WMError::WM_ERROR_INVALID_CALLING);
 }
 

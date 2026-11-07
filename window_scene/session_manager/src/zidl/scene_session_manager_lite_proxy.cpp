@@ -2537,7 +2537,8 @@ WMError SceneSessionManagerLiteProxy::SetAppKeyFramePolicy(
     return static_cast<WMError>(ret);
 }
 
-WMError SceneSessionManagerLiteProxy::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+WMError SceneSessionManagerLiteProxy::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -2570,6 +2571,7 @@ WMError SceneSessionManagerLiteProxy::GetSessionSnapshotById(int32_t persistentI
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read snapshot is null, persistentId=%{public}d", persistentId);
     }
+    reply.ReadString(extraInfo);
     return static_cast<WMError>(reply.ReadInt32());
 }
 
