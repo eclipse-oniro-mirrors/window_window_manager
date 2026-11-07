@@ -199,8 +199,7 @@ public:
         DragResizeType& dragResizeType) { return WMError::WM_OK; }
     virtual WMError SetAppKeyFramePolicy(const std::string& bundleName,
         const KeyFramePolicy& keyFramePolicy) { return WMError::WM_OK; }
-    virtual WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
-        std::string& extraInfo)
+    virtual WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo)
     {
         return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
     }

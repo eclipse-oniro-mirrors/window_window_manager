@@ -152,7 +152,7 @@ int32_t ClawWindowShellCommand::CreateErrorInfoMap()
 
     errorInfoMap_[static_cast<int32_t>(WMError::WM_ERROR_NULLPTR)] = {
         "ERR_INTERNAL_ERROR", "Internal error.",
-        "Unexpected innernal error.", { IPC_FAILED_SOLUTION }};
+        "Unexpected internal error.", { IPC_FAILED_SOLUTION }};
 
     errorInfoMap_[static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED)] = {
         "ERR_IPC_FAILED", "IPC communication failed.",
@@ -465,19 +465,21 @@ int32_t ClawWindowShellCommand::RunAsScreenshot()
         return ERR_INVALID_VALUE;
     }
 
-    auto pixelMap = GetSnapshot(displayId, isRectSet, imageRect, excludeWindowIds, windowId);
+    std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
+    if (windowId != INVALID_WINDOW_ID) {
+        pixelMap = GetWindowSnapshot(windowId);
+    } else {
+        pixelMap = GetDisplaySnapshot(displayId, isRectSet, imageRect, excludeWindowIds);
+    }
     if (pixelMap == nullptr) {
-        resultReceiver_ = STRING_SCREENSHOT_NG;
         return ERR_INVALID_VALUE;
     }
 
     std::string filePath = GenerateScreenshotPath(outputPath, imgFormat);
     if (!SavePixelMapToFile(filePath, *pixelMap, imgFormat)) {
-        resultReceiver_ = STRING_SCREENSHOT_NG;
         return ERR_INVALID_VALUE;
     }
 
-    resultReceiver_.append(STRING_SCREENSHOT_OK);
     json response;
     response["type"] = "result";
     response["status"] = "success";
@@ -691,8 +693,8 @@ std::string ClawWindowShellCommand::GenerateScreenshotPath(const std::string& ou
     return filepath.string();
 }
 
-std::shared_ptr<Media::PixelMap> ClawWindowShellCommand::GetSnapshot(DisplayId displayId, bool isRectSet,
-    const Media::Rect& imageRect, const std::vector<NodeId>& excludeWindowIds, int32_t windowId)
+std::shared_ptr<Media::PixelMap> ClawWindowShellCommand::GetDisplaySnapshot(DisplayId displayId, bool isRectSet,
+    const Media::Rect& imageRect, const std::vector<NodeId>& excludeWindowIds)
 {
     DmErrorCode errorCode = DmErrorCode::DM_ERROR_SYSTEM_INNORMAL;
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
@@ -716,24 +718,6 @@ std::shared_ptr<Media::PixelMap> ClawWindowShellCommand::GetSnapshot(DisplayId d
         captureOption.isNeedPointer_ = true;
         captureOption.blackWindowIdList_ = excludeWindowIds;
         pixelMap = DisplayManager::GetInstance().GetScreenCapture(captureOption, &errorCode);
-    } else if (windowId != INVALID_WINDOW_ID) {
-        SessionSnapshot snapshot;
-        std::string extraInfo;
-        auto ret = WMError::WM_ERROR_IPC_FAILED;
-        if (auto proxy = GetSceneSessionManagerLiteProxy()) {
-            ret = proxy->GetSessionSnapshotById(windowId, snapshot, extraInfo);
-        }
-        if (ret != WMError::WM_OK) {
-            WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(ret));
-            PrintError(errorInfo);
-            return nullptr;
-        } else if (!extraInfo.empty()) {
-            WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
-                extraInfo, { INVALID_PARAM_SOLUTION } };
-            PrintError(errorInfo);
-            return nullptr;
-        }
-        pixelMap = snapshot.snapshot;
     } else {
         // Default full-screen capture via legacy GetScreenshot, works on all device types.
         pixelMap = DisplayManager::GetInstance().GetScreenshot(displayId, &errorCode, false, true);
@@ -747,6 +731,27 @@ std::shared_ptr<Media::PixelMap> ClawWindowShellCommand::GetSnapshot(DisplayId d
         PrintError(errorInfo);
     }
     return pixelMap;
+}
+
+std::shared_ptr<Media::PixelMap> ClawWindowShellCommand::GetWindowSnapshot(int32_t windowId)
+{
+    SessionSnapshot snapshot;
+    std::string extraInfo;
+    auto ret = WMError::WM_ERROR_IPC_FAILED;
+    if (auto proxy = GetSceneSessionManagerLiteProxy()) {
+        ret = proxy->GetSessionSnapshotById(windowId, snapshot, extraInfo);
+    }
+    if (ret != WMError::WM_OK) {
+        WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(ret));
+        PrintError(errorInfo);
+        return nullptr;
+    } else if (!extraInfo.empty()) {
+        WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
+            extraInfo, { INVALID_PARAM_SOLUTION } };
+        PrintError(errorInfo);
+        return nullptr;
+    }
+    return snapshot.snapshot;
 }
 
 bool ClawWindowShellCommand::SavePixelMapToFile(const std::string& filePath, Media::PixelMap& pixelMap,

@@ -153,8 +153,9 @@ private:
     bool CheckScreenshotOptionConflict(bool isRectSet, const std::vector<NodeId>& excludeWindowIds,
         int32_t windowId, DisplayId& displayId);
     std::string GenerateScreenshotPath(const std::string& outputDir, const std::string& imgFormat);
-    std::shared_ptr<Media::PixelMap> GetSnapshot(DisplayId displayId, bool isRectSet, const Media::Rect& imageRect,
-        const std::vector<NodeId>& excludeWindowIds, int32_t windowId);
+    std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId, bool isRectSet,
+        const Media::Rect& imageRect, const std::vector<NodeId>& excludeWindowIds);
+    std::shared_ptr<Media::PixelMap> GetWindowSnapshot(int32_t windowId);
     bool SavePixelMapToFile(const std::string& filePath, Media::PixelMap& pixelMap, const std::string& imgFormat);
 
     std::map<int32_t, WmToolErrorInfo> errorInfoMap_;
