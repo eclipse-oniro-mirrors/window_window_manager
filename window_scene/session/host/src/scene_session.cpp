@@ -2300,16 +2300,47 @@ void SceneSession::SetAdjustKeyboardLayoutCallback(const NotifyKeyboardLayoutAdj
             TLOGNE(WmsLogTag::WMS_KEYBOARD, "%{public}s property is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
+        sptr<ScreenSession> currentScreenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(
+            session->GetSessionProperty()->GetDisplayId());
+        uint32_t screenWidth = currentScreenSession ? currentScreenSession->GetScreenProperty().GetBounds().rect_.width_ : 1;
+        uint32_t screenHeight = currentScreenSession ? currentScreenSession->GetScreenProperty().GetBounds().rect_.height_ : 1;
+        uint32_t maxDimension = (screenWidth > screenHeight) ? screenWidth : screenHeight;
+        uint32_t minDimension = (screenWidth > screenHeight) ? screenHeight : screenWidth;
         KeyboardLayoutParams params = property->GetKeyboardLayoutParams();
+        params.landscapeAvoidHeight_ = -1;
+        params.portraitAvoidHeight_ = -1;
+
+        params.LandscapeKeyboardRect_.posX_ = 0;
+        params.LandscapeKeyboardRect_.posY_ = minDimension - 1;
+        params.LandscapeKeyboardRect_.width_ = maxDimension;
+        params.LandscapeKeyboardRect_.height_ = 1;
+
+        params.PortraitKeyboardRect_.posX_ = 0;
+        params.PortraitKeyboardRect_.posY_ = maxDimension - 1;
+        params.PortraitKeyboardRect_.width_ = minDimension;
+        params.PortraitKeyboardRect_.height_ = 1;
+
+        params.LandscapePanelRect_.posX_ = 0;
+        params.LandscapePanelRect_.posY_ = minDimension - 1;
+        params.LandscapePanelRect_.width_ = maxDimension;
+        params.LandscapePanelRect_.height_ = 1;
+
+        params.PortraitPanelRect_.posX_ = 0;
+        params.PortraitPanelRect_.posY_ = maxDimension - 1;
+        params.PortraitPanelRect_.width_ = minDimension;
+        params.PortraitPanelRect_.height_ = 1;
+
         session->adjustKeyboardLayoutFunc_(params);
         TLOGNI(WmsLogTag::WMS_KEYBOARD,
             "%{public}s Notify adjust keyboard layout when register, keyboardId: %{public}d, "
             "gravity: %{public}u, landscapeAvoidHeight: %{public}d, PortraitAvoidHeight: %{public}d, "
             "LandscapeKeyboardRect: %{public}s, PortraitKeyboardRect: %{public}s, "
-            "LandscapePanelRect: %{public}s, PortraitPanelRect: %{public}s", where, session->GetPersistentId(),
+            "LandscapePanelRect: %{public}s, PortraitPanelRect: %{public}s, "
+            "screenWidth: %{public}u, screenHeight: %{public}u", where, session->GetPersistentId(),
             static_cast<uint32_t>(params.gravity_), params.landscapeAvoidHeight_, params.portraitAvoidHeight_,
             params.LandscapeKeyboardRect_.ToString().c_str(), params.PortraitKeyboardRect_.ToString().c_str(),
-            params.LandscapePanelRect_.ToString().c_str(), params.PortraitPanelRect_.ToString().c_str());
+            params.LandscapePanelRect_.ToString().c_str(), params.PortraitPanelRect_.ToString().c_str(),
+            screenWidth, screenHeight);
         return WSError::WS_OK;
     }, __func__);
 }
