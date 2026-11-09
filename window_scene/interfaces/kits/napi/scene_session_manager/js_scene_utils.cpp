@@ -2281,6 +2281,18 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         napi_set_named_property(env, objValue, "windowCreateParams", windowCreateParamsObj);
     }
 
+    if (sessionInfo.showParams != nullptr) {
+        napi_value windowShowParamsObj = nullptr;
+        napi_create_object(env, &windowShowParamsObj);
+        if (windowShowParamsObj != nullptr) {
+            napi_set_named_property(env, windowShowParamsObj, "windowFocused",
+                CreateJsValue(env, sessionInfo.showParams->windowFocused));
+            napi_set_named_property(env, windowShowParamsObj, "raiseTop",
+                CreateJsValue(env, sessionInfo.showParams->raiseTop));
+            napi_set_named_property(env, objValue, "windowShowParams", windowShowParamsObj);
+        }
+    }
+
     if (sessionInfo.startWindowOption) {
         napi_value startWindowObj = CreateJsStartWindowOptionObj(env, sessionInfo.startWindowOption);
         napi_set_named_property(env, objValue, "startWindowOption", startWindowObj);

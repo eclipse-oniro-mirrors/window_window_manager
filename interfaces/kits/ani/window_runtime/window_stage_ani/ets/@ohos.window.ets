@@ -1805,6 +1805,16 @@ export class WindowCreateParamsInternal implements WindowCreateParams {
     excludeFromRecent?: boolean;
 }
 
+export interface WindowShowParams {
+    windowFocused?: boolean;
+    raiseTop?: boolean;
+}
+
+export class WindowShowParamsInternal implements WindowShowParams {
+    windowFocused?: boolean;
+    raiseTop?: boolean;
+}
+
 /**
  * Limits of window.
  *
