@@ -33,6 +33,7 @@ enum class ListenerFuncType : uint32_t {
     SESSION_STATE_CHANGE_CB,
     UPDATE_TRANSITION_ANIMATION_CB,
     BUFFER_AVAILABLE_CHANGE_CB,
+    STACK_RECOVERY_FLAG_CB,
     SESSION_EVENT_CB,
     SESSION_RECT_CHANGE_CB,
     SESSION_WINDOW_LIMITS_CHANGE_CB,
@@ -517,6 +518,7 @@ private:
     void ProcessAnimateToTargetPropertyRegister();
     void ProcessSceneOutlineParamsChangeRegister();
     void ProcessRestartAppRegister();
+    void ProcessStackRecoveryFlagChangeRegister();
 
     /*
      * Float View
@@ -553,6 +555,7 @@ private:
     void ChangeSessionVisibilityWithStatusBar(const SessionInfo& info, bool visible);
     void ChangeSessionVisibilityWithStatusBarInner(std::shared_ptr<SessionInfo> sessionInfo, bool visible);
     void OnBufferAvailableChange(const bool isBufferAvailable, bool startWindowInvisible = false);
+    void OnStackRecoveryFlagChange(bool stackRecoveryFlag);
     void OnCreateSubSession(const sptr<SceneSession>& sceneSession, bool isBoundedSystemTray);
     void OnClearSubSession(int32_t subPersistentId);
     void OnBindDialogTarget(const sptr<SceneSession>& sceneSession);

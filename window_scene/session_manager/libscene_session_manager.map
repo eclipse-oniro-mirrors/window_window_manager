@@ -109,6 +109,7 @@
             OHOS::Rosen::SceneSessionManager::NotifySessionTransferToTargetScreenEvent*;
             OHOS::Rosen::SceneSessionManager::NotifySingleHandInfoChange*;
             OHOS::Rosen::SceneSessionManager::NotifyStackEmpty*;
+            OHOS::Rosen::SceneSessionManager::NotifyStackRecoverFromAMS*;
             OHOS::Rosen::SceneSessionManager::NotifyStatusBarConstantlyShow*;
             OHOS::Rosen::SceneSessionManager::NotifyStatusBarShowStatus*;
             OHOS::Rosen::SceneSessionManager::NotifySupportRotationChange*;

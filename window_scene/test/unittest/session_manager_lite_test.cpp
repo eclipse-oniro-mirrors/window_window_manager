@@ -778,5 +778,61 @@ HWTEST_F(SessionManagerLiteTest, InitScreenSessionManagerLiteProxy, TestSize.Lev
     ret = mockInstance.InitScreenSessionManagerLiteProxy();
     EXPECT_EQ(WMError::WM_OK, ret);
 }
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS01
+ * @tc.desc: test NotifyStackRecoverFromAMS with valid persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS01, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS02
+ * @tc.desc: test NotifyStackRecoverFromAMS with isStackRecover false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS02, TestSize.Level1)
+{
+    int32_t persistentId = 200;
+    bool isStackRecover = false;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS03
+ * @tc.desc: test NotifyStackRecoverFromAMS with invalid persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS03, TestSize.Level1)
+{
+    int32_t persistentId = -1;
+    bool isStackRecover = true;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS04
+ * @tc.desc: test NotifyStackRecoverFromAMS with zero persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS04, TestSize.Level1)
+{
+    int32_t persistentId = 0;
+    bool isStackRecover = false;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
+}
 } // namespace
 } // namespace OHOS::Rosen

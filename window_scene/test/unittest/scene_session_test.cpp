@@ -2725,6 +2725,82 @@ HWTEST_F(SceneSessionTest, GetSessionGlobalPosition02, TestSize.Level1)
     EXPECT_EQ(position.x_, expectedX);
     EXPECT_EQ(position.y_, expectedY);
 }
+
+/**
+ * @tc.name: SetStackRecoveryFlagChangeListener01
+ * @tc.desc: test SetStackRecoveryFlagChangeListener and NotifyStackRecoveryFlagChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetStackRecoveryFlagChangeListener01, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetStackRecoveryFlagChangeListener01";
+    info.bundleName_ = "SetStackRecoveryFlagChangeListener01";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    bool callbackInvoked = false;
+    bool callbackFlag = false;
+    sceneSession->SetStackRecoveryFlagChangeListener([&callbackInvoked, &callbackFlag](bool stackRecoveryFlag) {
+        callbackInvoked = true;
+        callbackFlag = stackRecoveryFlag;
+    });
+
+    sceneSession->NotifyStackRecoveryFlagChange(true);
+    EXPECT_TRUE(callbackInvoked);
+    EXPECT_TRUE(callbackFlag);
+
+    callbackInvoked = false;
+    sceneSession->NotifyStackRecoveryFlagChange(false);
+    EXPECT_TRUE(callbackInvoked);
+    EXPECT_FALSE(callbackFlag);
+}
+
+/**
+ * @tc.name: NotifyStackRecoveryFlagChangeNoCallback
+ * @tc.desc: test NotifyStackRecoveryFlagChange when no callback is registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, NotifyStackRecoveryFlagChangeNoCallback, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "NotifyStackRecoveryFlagChangeNoCallback";
+    info.bundleName_ = "NotifyStackRecoveryFlagChangeNoCallback";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    // No callback registered, should not crash
+    sceneSession->NotifyStackRecoveryFlagChange(true);
+    sceneSession->NotifyStackRecoveryFlagChange(false);
+}
+
+/**
+ * @tc.name: SetStackRecoveryFlagChangeListener02
+ * @tc.desc: test SetStackRecoveryFlagChangeListener with multiple callbacks
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest, SetStackRecoveryFlagChangeListener02, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "SetStackRecoveryFlagChangeListener02";
+    info.bundleName_ = "SetStackRecoveryFlagChangeListener02";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+
+    int callCount = 0;
+    sceneSession->SetStackRecoveryFlagChangeListener([&callCount](bool) {
+        callCount++;
+    });
+
+    sceneSession->NotifyStackRecoveryFlagChange(true);
+    EXPECT_EQ(callCount, 1);
+
+    sceneSession->NotifyStackRecoveryFlagChange(false);
+    EXPECT_EQ(callCount, 2);
+
+    sceneSession->NotifyStackRecoveryFlagChange(true);
+    EXPECT_EQ(callCount, 3);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

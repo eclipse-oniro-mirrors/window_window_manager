@@ -192,6 +192,8 @@
             OHOS::Rosen::SceneSession::SetPrivacyModeChangeNotifyFunc*;
             OHOS::Rosen::SceneSession::SetTransitionAnimationCallback*;
             OHOS::Rosen::SceneSession::SetVisibilityChangedDetectFunc*;
+            OHOS::Rosen::SceneSession::SetStackRecoveryFlagChangeListener*;
+            OHOS::Rosen::SceneSession::NotifyStackRecoveryFlagChange*;
             OHOS::Rosen::SceneSession::NotifySingleHandTransformChange*;
             OHOS::Rosen::SceneSession::RegisterForceHideChangeCallback*;
             OHOS::Rosen::SceneSession::SetAdjustKeyboardLayoutCallback*;

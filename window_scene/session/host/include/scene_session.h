@@ -190,6 +190,8 @@ using NotifyDpiForceScaleChangeFunc = std::function<void(float dpiForceScale, bo
     float windowStartDensity)>;
 using CheckAndGetRogScaleFunc = std::function<bool(const std::string bundleName,
     float& scale)>;
+using NotifyStackRecoveryFlagChangeFunc = std::function<void(bool stackRecoveryFlag)>;
+
 
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
@@ -658,6 +660,8 @@ public:
     WMError UpdateAnimationSpeed(float speed);
 
     bool IsAnco() const override;
+    void SetStackRecoveryFlagChangeListener(const NotifyStackRecoveryFlagChangeFunc& func);
+    void NotifyStackRecoveryFlagChange(bool stackRecoveryFlag);
     void SetBlank(bool isAddBlank) override;
     bool GetBlank() const override;
     void SetBufferAvailableCallbackEnable(bool enable);
@@ -1286,6 +1290,7 @@ protected:
     NotifySubModalTypeChangeFunc onSubModalTypeChange_;
     NotifyMainModalTypeChangeFunc onMainModalTypeChange_;
     NotifySetSupportedWindowModesFunc onSetSupportedWindowModesFunc_;
+    NotifyStackRecoveryFlagChangeFunc stackRecoveryFlagChangeFunc_;
     NotifyUpdateFlagFunc onUpdateFlagFunc_;
     NotifyUseImplicitAnimationChangeFunc useImplicitAnimationChangeFunc_;
 

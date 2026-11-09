@@ -233,6 +233,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_ROG_WINDOW_CONFIG):
             return HandleUpdateRogWindowConfig(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_STACK_RECOVER):
+            return HandleNotifyStackRecoverFromAMS(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -2154,6 +2156,23 @@ int SceneSessionManagerLiteStub::HandleUpdateRogWindowConfig(MessageParcel& data
         TLOGE(WmsLogTag::WMS_COMPAT, "write ret failed");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleNotifyStackRecoverFromAMS(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read persistentId failed");
+        return ERR_INVALID_DATA;
+    }
+    bool isStackRecover = false;
+    if (!data.ReadBool(isStackRecover)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read isStackRecover failed");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
 } // namespace OHOS::Rosen

@@ -2341,6 +2341,26 @@ void SceneSession::SetAdjustKeyboardLayoutCallback(const NotifyKeyboardLayoutAdj
     }, __func__);
 }
 
+void SceneSession::SetStackRecoveryFlagChangeListener(const NotifyStackRecoveryFlagChangeFunc& func)
+{
+    PostTask([weakThis = wptr(this), func, where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
+            return WSError::WS_ERROR_DESTROYED_OBJECT;
+        }
+        session->stackRecoveryFlagChangeFunc_ = func;
+        return WSError::WS_OK;
+    }, __func__);
+}
+
+void SceneSession::NotifyStackRecoveryFlagChange(bool stackRecoveryFlag)
+{
+    if (stackRecoveryFlagChangeFunc_) {
+        stackRecoveryFlagChangeFunc_(stackRecoveryFlag);
+    }
+}
+
 void SceneSession::SetSessionPiPControlStatusChangeCallback(const NotifySessionPiPControlStatusChangeFunc& func)
 {
     PostTask([weakThis = wptr(this), func, where = __func__] {
