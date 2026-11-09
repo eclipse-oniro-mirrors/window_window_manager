@@ -22936,9 +22936,9 @@ void SceneSessionManager::RegisterSceneSessionDestructNotifyManagerFunc(const sp
         TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr");
         return;
     }
-    sceneSession->SetSceneSessionDestructNotificationFunc([this](int32_t persistentId) {
+    sceneSession->SetSceneSessionDestructNotificationFunc([this](int32_t persistentId, bool isUserRequestedExit) {
         if (onSceneSessionDestruct_) {
-            onSceneSessionDestruct_(persistentId);
+            onSceneSessionDestruct_(persistentId, isUserRequestedExit);
         }
     });
 }

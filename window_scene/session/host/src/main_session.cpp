@@ -46,8 +46,8 @@ MainSession::~MainSession()
 {
     WLOGD("~MainSession, id: %{public}d", GetPersistentId());
     // exclude when user deletes session in recent.
-    if (SessionHelper::IsMainWindow(GetWindowType()) && notifySceneSessionDestructFunc_ && !isUserRequestedExit_) {
-        notifySceneSessionDestructFunc_(GetPersistentId());
+    if (SessionHelper::IsMainWindow(GetWindowType()) && notifySceneSessionDestructFunc_) {
+        notifySceneSessionDestructFunc_(GetPersistentId(), isUserRequestedExit_);
     }
 }
 

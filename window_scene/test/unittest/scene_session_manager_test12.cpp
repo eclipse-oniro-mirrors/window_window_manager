@@ -2151,7 +2151,7 @@ HWTEST_F(SceneSessionManagerTest12, RequestSceneSession, Function | SmallTest | 
  */
 HWTEST_F(SceneSessionManagerTest12, RegisterSceneSessionDestructCallback, Function | SmallTest | Level2)
 {
-    NotifySceneSessionDestructFunc func = [](int32_t persistentId) { return; };
+    NotifySceneSessionDestructFunc func = [](int32_t persistentId, bool isUserRequestedExit) { return; };
     ssm_->RegisterSceneSessionDestructCallback(std::move(func));
     ASSERT_NE(nullptr, ssm_->onSceneSessionDestruct_);
 }
@@ -2170,7 +2170,7 @@ HWTEST_F(SceneSessionManagerTest12, RegisterSceneSessionDestructNotifyManagerFun
     info.persistentId_ = 999;
     sptr<MainSession> sceneSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(sceneSession, nullptr);
-    NotifySceneSessionDestructFunc func = [](int32_t persistentId) { return; };
+    NotifySceneSessionDestructFunc func = [](int32_t persistentId, bool isUserRequestedExit) { return; };
     ssm_->RegisterSceneSessionDestructCallback(std::move(func));
     ssm_->RegisterSceneSessionDestructNotifyManagerFunc(sceneSession);
     ASSERT_NE(sceneSession->notifySceneSessionDestructFunc_, nullptr);
