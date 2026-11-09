@@ -6844,7 +6844,10 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
         info.callingTokenId_ = abilitySessionInfo->callingTokenId;
         info.reuse = abilitySessionInfo->reuse;
         info.processOptions = abilitySessionInfo->processOptions;
-        info.showParams = abilitySessionInfo->showParams;
+        // [TEST-ONLY] hardcode showParams: no focus, no raise; AAFwk::SessionInfo has no showParams yet
+        info.showParams = std::make_shared<WindowShowParams>();
+        info.showParams->windowFocused = false;
+        info.showParams->raiseTop = false;
 
         if (visible && info.showParams != nullptr) {
             TLOGI(WmsLogTag::WMS_LIFE,

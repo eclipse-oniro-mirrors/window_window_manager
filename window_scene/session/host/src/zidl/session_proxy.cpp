@@ -32,6 +32,7 @@
 #include "rate_limited_logger.h"
 #include "session/host/include/zidl/session_ipc_interface_code.h"
 #include "window_manager_hilog.h"
+#include "wm_animation_common.h"
 namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "SessionProxy" };
@@ -573,21 +574,16 @@ WSError SessionProxy::ChangeSessionVisibilityWithStatusBar(sptr<AAFwk::SessionIn
         }
     }
     data.WriteBool(visible);
-    if (abilitySessionInfo->showParams) {
-        TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] ChangeSessionVisibilityWithStatusBar send with showParams, " \
-            "windowFocused:%{public}d, raiseTop:%{public}d, visible:%{public}d",
-            abilitySessionInfo->showParams->windowFocused, abilitySessionInfo->showParams->raiseTop, visible);
-        if (!data.WriteBool(true) || !data.WriteParcelable(abilitySessionInfo->showParams.get())) {
-            WLOGFE("Write showParams failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
-    } else {
-        TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] ChangeSessionVisibilityWithStatusBar send without showParams, " \
-            "visible:%{public}d", visible);
-        if (!data.WriteBool(false)) {
-            WLOGFE("Write has not showParams failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
+    // [TEST-ONLY] hardcode showParams: no focus, no raise
+    auto showParams = std::make_shared<WindowShowParams>();
+    showParams->windowFocused = false;
+    showParams->raiseTop = false;
+    TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] ChangeSessionVisibilityWithStatusBar send with hardcoded showParams, " \
+        "windowFocused:%{public}d, raiseTop:%{public}d, visible:%{public}d",
+        showParams->windowFocused, showParams->raiseTop, visible);
+    if (!data.WriteBool(true) || !data.WriteParcelable(showParams.get())) {
+        WLOGFE("Write showParams failed");
+        return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {

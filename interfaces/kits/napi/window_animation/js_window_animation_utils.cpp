@@ -456,9 +456,9 @@ bool ConvertWindowShowParamsFromJsValue(napi_env env, napi_value jsObject, Windo
         return false;
     }
     windowShowParams.windowFocused =
-        GetOptionalSharedBoolProp(env, jsObject, "windowFocused").value_or(true);
+        GetOptionalBoolProp(env, jsObject, "windowFocused").value_or(true);
     windowShowParams.raiseTop =
-        GetOptionalSharedBoolProp(env, jsObject, "raiseTop").value_or(true);
+        GetOptionalBoolProp(env, jsObject, "raiseTop").value_or(true);
     TLOGD(WmsLogTag::WMS_ANIMATION, "windowFocused: %{public}d, raiseTop: %{public}d",
         windowShowParams.windowFocused, windowShowParams.raiseTop);
     return true;

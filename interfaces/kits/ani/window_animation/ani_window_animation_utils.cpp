@@ -742,9 +742,9 @@ bool ConvertWindowShowParamsFromAniValue(ani_env* env, ani_object aniObject, Win
     }
 
     windowShowParams.windowFocused =
-        GetOptionalSharedBoolProp(env, aniObject, "windowFocused").value_or(true);
+        GetOptionalBoolProp(env, aniObject, "windowFocused").value_or(true);
     windowShowParams.raiseTop =
-        GetOptionalSharedBoolProp(env, aniObject, "raiseTop").value_or(true);
+        GetOptionalBoolProp(env, aniObject, "raiseTop").value_or(true);
     TLOGD(WmsLogTag::WMS_ANIMATION, "[ANI] windowFocused: %{public}d, raiseTop: %{public}d",
         windowShowParams.windowFocused, windowShowParams.raiseTop);
     return true;
