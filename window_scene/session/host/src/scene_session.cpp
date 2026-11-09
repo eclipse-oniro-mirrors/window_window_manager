@@ -6802,6 +6802,36 @@ void SceneSession::SetSystemTouchable(bool touchable)
     NotifyAccessibilityVisibilityChange();
 }
 
+static SessionInfo MakeSessionInfoDuringVisibilityChange(const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
+    const sptr<SceneSession>& session)
+{
+    SessionInfo info;
+    info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
+    info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
+    info.moduleName_ = abilitySessionInfo->want.GetModuleName();
+    int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
+    info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
+    info.persistentId_ = abilitySessionInfo->persistentId;
+    info.callerPersistentId_ = session->GetPersistentId();
+    info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
+    info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
+    info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
+    info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
+    info.requestId = abilitySessionInfo->requestId;
+    info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
+    info.requestCode = abilitySessionInfo->requestCode;
+    info.callerToken_ = abilitySessionInfo->callerToken;
+    info.startSetting = abilitySessionInfo->startSetting;
+    info.callingTokenId_ = abilitySessionInfo->callingTokenId;
+    info.reuse = abilitySessionInfo->reuse;
+    info.processOptions = abilitySessionInfo->processOptions;
+    // [TEST-ONLY] hardcode showParams: no focus, no raise; AAFwk::SessionInfo has no showParams yet
+    info.showParams = std::make_shared<WindowShowParams>();
+    info.showParams->windowFocused = false;
+    info.showParams->raiseTop = false;
+    return info;
+}
+
 WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
     const sptr<AAFwk::SessionInfo> abilitySessionInfo, bool visible)
 {
@@ -6824,30 +6854,7 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
 
-        SessionInfo info;
-        info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
-        info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
-        info.moduleName_ = abilitySessionInfo->want.GetModuleName();
-        int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
-        info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
-        info.persistentId_ = abilitySessionInfo->persistentId;
-        info.callerPersistentId_ = session->GetPersistentId();
-        info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
-        info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
-        info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
-        info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
-        info.requestId = abilitySessionInfo->requestId;
-        info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
-        info.requestCode = abilitySessionInfo->requestCode;
-        info.callerToken_ = abilitySessionInfo->callerToken;
-        info.startSetting = abilitySessionInfo->startSetting;
-        info.callingTokenId_ = abilitySessionInfo->callingTokenId;
-        info.reuse = abilitySessionInfo->reuse;
-        info.processOptions = abilitySessionInfo->processOptions;
-        // [TEST-ONLY] hardcode showParams: no focus, no raise; AAFwk::SessionInfo has no showParams yet
-        info.showParams = std::make_shared<WindowShowParams>();
-        info.showParams->windowFocused = false;
-        info.showParams->raiseTop = false;
+        SessionInfo info = MakeSessionInfoDuringVisibilityChange(abilitySessionInfo, session);
 
         if (visible && info.showParams != nullptr) {
             TLOGI(WmsLogTag::WMS_LIFE,

@@ -1353,10 +1353,6 @@ HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1
     ASSERT_EQ(res, WSError::WS_ERROR_INVALID_SESSION);
 
     abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
-    // [TEST-ONLY] AAFwk::SessionInfo has no showParams yet, commented out for standalone build
-    // abilitySessionInfo->showParams = std::make_shared<WindowShowParams>();
-    // abilitySessionInfo->showParams->windowFocused = false;
-    // abilitySessionInfo->showParams->raiseTop = false;
     sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
     res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
     ASSERT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
