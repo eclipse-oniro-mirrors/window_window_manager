@@ -9128,12 +9128,14 @@ void ScreenSessionManager::AddVirtualScreenDeathRecipient(const sptr<IRemoteObje
 }
 
 ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
-                                                   const sptr<IRemoteObject>& displayManagerAgent)
+    const sptr<IRemoteObject>& displayManagerAgent, DMError* errorCode)
 {
     DMError err = CheckVirtualScreenPermission();
     if (err == DMError::DM_ERROR_INVALID_PERMISSION) {
+        *errorCode = err;
         return ERROR_ID_NO_PERMISSION;
     } else if (err == DMError::DM_ERROR_NOT_SYSTEM_APP) {
+        *errorCode = err;
         return ERROR_ID_NOT_SYSTEM_APP;
     }
     if (option.virtualScreenType_ != VirtualScreenType::SCREEN_RECORDING) {
@@ -9158,10 +9160,22 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         width = option.renderWidth_;
         height = option.renderHeight_;
     }
-    ScreenId rsId = rsInterface_.CreateVirtualScreen(option.name_, width,
-        height, option.surface_, SCREEN_ID_INVALID, option.flags_, option.missionIds_);
+    RSVirtualScreenOption rsOption;
+    rsOption.name = option.name_;
+    rsOption.width = width;
+    rsOption.height = height;
+    rsOption.surface = option.surface_;
+    rsOption.associatedScreenId = SCREEN_ID_INVALID;
+    rsOption.flags = option.flags_;
+    rsOption.whiteList = option.missionIds_;
+    rsOption.hdrMode = option.hdrMode_;
+    int32_t rsErrorCode = 0;
+    ScreenId rsId = rsInterface_.CreateVirtualScreen(rsOption, &rsErrorCode);
     if (rsId == SCREEN_ID_INVALID) {
-        TLOGNFI(WmsLogTag::DMS, "rsId is invalid");
+        *errorCode = rsErrorCode == StatusCode::HDR_NOT_SUPPORT ? DMError::DM_ERROR_HDR_NOT_SUPPORT
+                                                                : DMError::DM_ERROR_INVALID_PARAM;
+        TLOGNFE(WmsLogTag::DMS, "rsId is invalid, rsErrorCode: %{public}d, errorCode: %{public}d",
+            rsErrorCode, *errorCode);
         return SCREEN_ID_INVALID;
     }
     TLOGNFW(WmsLogTag::DMS, "rsId: %{public}" PRIu64"", rsId);
@@ -9172,6 +9186,7 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
         if (screenSessionMap_.find(option.screenId_) != screenSessionMap_.end()) {
             TLOGNFE(WmsLogTag::DMS, "screenId_ %{public}d already exists", option.screenId_);
+            *errorCode = DMError::DM_ERROR_INVALID_PARAM;
             return SCREEN_ID_INVALID;
         }
         smsScreenId = option.screenId_;
@@ -9188,6 +9203,7 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         if (screenSession == nullptr) {
             TLOGNFW(WmsLogTag::DMS, "screenSession is nullptr");
             screenIdManager_.DeleteScreenId(smsScreenId);
+            *errorCode = DMError::DM_ERROR_NULLPTR;
             return SCREEN_ID_INVALID;
         }
         ApplyVirtualScreenScale(screenSession, option.width_, option.height_, option.renderWidth_, option.renderHeight_);
@@ -9201,10 +9217,6 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         }
         screenSession->SetVirtualScreenFlag(option.virtualScreenFlag_);
         TLOGNFI(WmsLogTag::DMS, "virtualScreenFlag: %{public}d", option.virtualScreenFlag_);
-        if (option.hdrMode_ != HDRMode::NONE) {
-            rsInterface_.SetVirtualScreenHDRMode(rsId, option.hdrMode_);
-        }
-        TLOGNFI(WmsLogTag::DMS, "hdrMode: %{public}d", option.hdrMode_);
         screenSession->SetRecordPolicies(option.recordPolicies_);
         TLOGNFI(WmsLogTag::DMS, "recordPolicies size: %{public}d",
             static_cast<uint32_t>(option.recordPolicies_.size()));
