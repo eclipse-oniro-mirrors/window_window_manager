@@ -6636,20 +6636,21 @@ napi_value JsSceneSessionManager::OnSupportZLevel(napi_env env, napi_callback_in
 
 void JsSceneSessionManager::RegisterSceneSessionDestructCallback()
 {
-    SceneSessionManager::GetInstance().RegisterSceneSessionDestructCallback([this](int32_t persistentId) {
-        this->OnSceneSessionDestruct(persistentId);
+    SceneSessionManager::GetInstance().RegisterSceneSessionDestructCallback([this](int32_t persistentId,
+        bool isUserRequestedExit) {
+        this->OnSceneSessionDestruct(persistentId, isUserRequestedExit);
     });
 }
 
-void JsSceneSessionManager::OnSceneSessionDestruct(int32_t persistentId)
+void JsSceneSessionManager::OnSceneSessionDestruct(int32_t persistentId, bool isUserRequestedExit)
 {
     taskScheduler_->PostMainThreadTask(
-        [this, persistentId, jsCallBack = GetJSCallback(SCENE_SESSION_DESTRUCT_CB), env = env_] {
+        [this, persistentId, isUserRequestedExit, jsCallBack = GetJSCallback(SCENE_SESSION_DESTRUCT_CB), env = env_] {
             if (jsCallBack == nullptr) {
                 TLOGNE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
                 return;
             }
-            napi_value argv[] = { CreateJsValue(env, persistentId) };
+            napi_value argv[] = { CreateJsValue(env, persistentId), CreateJsValue(env, isUserRequestedExit) };
             napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
         }, "OnSceneSessionDestruct, perisistentId: " + std::to_string(persistentId));
 }
