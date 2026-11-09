@@ -2116,6 +2116,10 @@ void ScreenSession::FillScreenInfo(sptr<ScreenInfo> info) const
     info->SetType(property_.GetScreenType());
     info->SetScreenTypeInfo(property_.GetScreenTypeInfo());
     info->SetModeId(activeIdx_);
+    auto logicalBounds = property_.GetBounds();
+    info->SetLogicalWidth(static_cast<uint32_t>(logicalBounds.rect_.GetWidth()));
+    info->SetLogicalHeight(static_cast<uint32_t>(logicalBounds.rect_.GetHeight()));
+    info->SetLogicalRotation(property_.GetScreenRotation());
     info->SetSerialNumber(serialNumber_);
     info->SetMirrorWidth(property_.GetMirrorWidth());
     info->SetMirrorHeight(property_.GetMirrorHeight());
