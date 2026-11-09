@@ -331,6 +331,8 @@ public:
     uint32_t GetScreenAreaHeight() const { return screenAreaHeight_; }
     void CalculateXYDpi(uint32_t phyWidth, uint32_t phyHeight);
     void SetRogScreenResolution(uint32_t width, uint32_t height);
+    uint32_t GetRogWidth() const { return rogWidth_; }
+    uint32_t GetRogHeight() const { return rogHeight_; }
 
 private:
     SuperFoldStatusChangeEvents changeEvent_ {SuperFoldStatusChangeEvents::UNDEFINED};
