@@ -13585,6 +13585,47 @@ void DisplayChangeListener::OnGetSurfaceNodeIdsFromMissionIds(std::vector<uint64
         needWindowTypeList, isNeedForceCheck);
 }
 
+void SceneSessionManager::AddFloatViewMissionIds(std::vector<uint64_t>& missionIds,
+                                                 const std::vector<uint32_t>& needWindowTypeList)
+{
+    if (needWindowTypeList.empty()) {
+        return;
+    }
+
+    if (std::find(needWindowTypeList.begin(), needWindowTypeList.end(),
+                  static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV)) == needWindowTypeList.end()) {
+        return;
+    }
+
+    std::map<int32_t, sptr<SceneSession>>::iterator iter;
+    bool hasOriginFloatView = false;
+    std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+    for (auto missionId : missionIds) {
+        iter = sceneSessionMap_.find(static_cast<int32_t>(missionId));
+        if (iter == sceneSessionMap_.end() || iter->second == nullptr) {
+            continue;
+        }
+        if (iter->second->GetWindowType() == WindowType::WINDOW_TYPE_FV) {
+            hasOriginFloatView = true;
+            break;
+        }
+    }
+
+    if (!hasOriginFloatView) {
+        return;
+    }
+
+    for (const auto& [id, sceneSession] : sceneSessionMap_) {
+        if (sceneSession == nullptr || sceneSession->GetWindowType() != WindowType::WINDOW_TYPE_FV) {
+            continue;
+        }
+
+        if (std::find(missionIds.begin(), missionIds.end(), id) == missionIds.end()) {
+            missionIds.push_back(id);
+        }
+    }
+}
+
 WMError SceneSessionManager::GetSurfaceNodeIdsFromMissionIds(std::vector<uint64_t>& missionIds,
     std::vector<uint64_t>& surfaceNodeIds, const std::vector<uint32_t>& needWindowTypeList, bool isNeedForceCheck)
 {
@@ -13594,6 +13635,8 @@ WMError SceneSessionManager::GetSurfaceNodeIdsFromMissionIds(std::vector<uint64_
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
     auto task = [this, &missionIds, &surfaceNodeIds, &needWindowTypeList, isNeedForceCheck]() {
+        AddFloatViewMissionIds(missionIds, needWindowTypeList);
+
         std::map<int32_t, sptr<SceneSession>>::iterator iter;
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (auto missionId : missionIds) {

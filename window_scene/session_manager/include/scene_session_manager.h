@@ -2301,6 +2301,7 @@ private:
     RogWindowConfig rogWindowConfig_;
     std::mutex updateRogWindowConfigCallbackMutex_;
     UpdateRogWindowConfigCallbackFunc updateRogWindowConfigCallback_;
+    void AddFloatViewMissionIds(std::vector<uint64_t>& missionIds, const std::vector<uint32_t>& needWindowTypeList);
 
     std::mutex adaptiveResolutionMutex_;
     // windowId -> game uid

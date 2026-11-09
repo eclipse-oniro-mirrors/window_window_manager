@@ -337,7 +337,6 @@ const int32_t AOD_POWER_OFF = 1;
 
 const std::string DEVICE_TYPE = system::GetParameter("const.product.devicetype", "unknown");
 const std::vector<std::string> CAPTURE_DEVICE = {"phone", "2in1", "tablet", "default"};
-constexpr uint32_t FLOATING_BALL_TYPE = 2145;
 
 constexpr int32_t COLD_SWITCH_ANIMATE_TIMEOUT_MILLISECONDS = 18000;
 constexpr int32_t HOT_SWITCH_ANIMATE_MODECHANGE_TIMEOUT_MILLISECONDS = 1000;
@@ -16897,7 +16896,8 @@ void ScreenSessionManager::ConvertWindowIdsToSurfaceNodeList(std::vector<uint64_
         TLOGNFE(WmsLogTag::DMS, "clientProxy_ is nullptr");
         return;
     }
-    const std::vector<uint32_t>& needWindowTypeList = { FLOATING_BALL_TYPE };
+    const std::vector<uint32_t>& needWindowTypeList = { static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB),
+                                                        static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV) };
     clientProxy->OnGetSurfaceNodeIdsFromMissionIdsChanged(windowIdList, surfaceNodesList, needWindowTypeList, true);
     if (surfaceNodesList.empty()) {
         *errorCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
