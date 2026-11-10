@@ -1205,7 +1205,10 @@ DMError ScreenSessionManager::RegisterDisplayManagerAgent(
         auto pid = IPCSkeleton::GetCallingPid();
         {
             std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
-            uidAndPidMap_[uid] = pid;
+            auto& pidList = uidAndPidMap_[uid];
+            if (std::find(pidList.begin(), pidList.end(), pid) == pidList.end()) {
+                pidList.push_back(pid);   
+            }
         }
     }
     if (type == DisplayManagerAgentType::BRIGHTNESS_INFO_CHANGED_LISTENER &&
@@ -1243,7 +1246,10 @@ DMError ScreenSessionManager::RegisterDisplayAttributeAgent(const std::vector<st
     auto pid = IPCSkeleton::GetCallingPid();
     {
         std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
-        uidAndPidMap_[uid] = pid;
+        auto& pidList = uidAndPidMap_[uid];
+        if (std::find(pidList.begin(), pidList.end(), pid) == pidList.end()) {
+            pidList.push_back(pid);
+        }
     }
     if (IsConcurrentUser()) {
         int32_t userId = GetUserIdByUid(uid);
@@ -18859,7 +18865,8 @@ bool ScreenSessionManager::GetStoredPidFromUid(int32_t uid, int32_t& agentPid)
 {
     std::shared_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
     auto iter = uidAndPidMap_.find(uid);
-    if (iter == uidAndPidMap_.end() || iter->second != agentPid) {
+    if (iter == uidAndPidMap_.end() ||
+    std::find(iter->second.begin(), iter->second.end(), agentPid) == iter->second.end()) {
         TLOGNI(WmsLogTag::DMS, "no notify");
         return true;
     }
