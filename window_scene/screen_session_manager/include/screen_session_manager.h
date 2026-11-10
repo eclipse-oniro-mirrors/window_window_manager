@@ -1229,7 +1229,7 @@ private:
     std::map<sptr<IRemoteObject>, std::vector<ScreenId>> screenAgentMap_;
     std::map<ScreenId, sptr<ScreenSessionGroup>> smsScreenGroupMap_;
     std::map<uint32_t, std::map<DisplayId, DMHookInfo>> displayHookMap_;
-    std::map<int32_t, int32_t> uidAndPidMap_;
+    std::map<int32_t, std::vector<int32_t>> uidAndPidMap_;
     std::shared_mutex adaptiveResolutionMutex_;
     // uid -> active config
     std::map<int32_t, DMAdaptiveResolutionConfig> adaptiveResolutionMap_;
