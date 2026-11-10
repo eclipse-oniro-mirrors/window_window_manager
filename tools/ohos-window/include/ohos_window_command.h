@@ -88,7 +88,7 @@ const std::string HELP_MSG_SCREENSHOT =
     "  --help                                 show help message\n"
     "  --displayId <displayId>                displayId of the display to capture (default: default display)\n"
     "  --outputPath <directory>"
-    "   output file directory (default: /data/local/tmp/; custom path must be writable)\n"
+    "   output file directory (default: /data/storage/el2/base/temp; custom path must be writable)\n"
     "  --rect <x,y,w,h>                       capture the specified rectangle region of the screen\n"
     "  --excludeWindowIds <id1,id2,...>"
     "   full-screen capture excluding the specified window ids (windowId semantic, cannot combine with --rect)\n"

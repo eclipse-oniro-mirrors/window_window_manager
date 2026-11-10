@@ -57,7 +57,7 @@ tools/ohos-window/
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | `--displayId <id>` | integer | 待截图的 displayId（缺省为默认屏） |
-| `--outputPath <path>` | string | 输出文件路径（缺省自动生成带时间戳文件名，位于 `/data/local/tmp` 下）；指定时写入任意有权限访问的路径 |
+| `--outputPath <path>` | string | 输出文件路径（缺省自动生成带时间戳文件名，位于 `/data/storage/el2/base/temp` 下）；指定时写入任意有权限访问的路径 |
 | `--rect <x,y,width,height>` | string | 仅截取屏幕指定矩形区域 |
 | `--excludeWindowIds <id1,id2,...>` | string（逗号分隔） | 全屏截图时排除指定 windowId（windowId 语义），仅支持全屏，不可与 `--rect` 组合 |
 | `--windowId <id>` | integer | 截图窗口的ID，不能与`--displayId`/`--rect`/`--excludeWindowIds`一起使用，不支持对后台和隐私窗口截图 |

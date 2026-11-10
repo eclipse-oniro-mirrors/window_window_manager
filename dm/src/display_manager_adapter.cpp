@@ -378,7 +378,7 @@ DMError ScreenManagerAdapter::GetScreenCapability(ScreenId screenId, ScreenCapab
 }
 
 ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
-    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+    const sptr<IDisplayManagerAgent>& displayManagerAgent, DMError* errorCode)
 {
     INIT_PROXY_CHECK_RETURN(SCREEN_ID_INVALID);
 
@@ -388,7 +388,8 @@ ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
     }
     TLOGI(WmsLogTag::DMS, "enter");
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->CreateVirtualScreen(option, displayManagerAgent->AsObject());
+        return screenSessionManagerServiceProxy_->CreateVirtualScreen(option,
+            displayManagerAgent->AsObject(), errorCode);
     }
 
     ErrCode errCode;

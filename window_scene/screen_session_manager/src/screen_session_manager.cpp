@@ -337,7 +337,6 @@ const int32_t AOD_POWER_OFF = 1;
 
 const std::string DEVICE_TYPE = system::GetParameter("const.product.devicetype", "unknown");
 const std::vector<std::string> CAPTURE_DEVICE = {"phone", "2in1", "tablet", "default"};
-constexpr uint32_t FLOATING_BALL_TYPE = 2145;
 
 constexpr int32_t COLD_SWITCH_ANIMATE_TIMEOUT_MILLISECONDS = 18000;
 constexpr int32_t HOT_SWITCH_ANIMATE_MODECHANGE_TIMEOUT_MILLISECONDS = 1000;
@@ -5039,12 +5038,26 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
     ScreenId ownerId = GetResolutionEffectOwner();
     MarkResolutionEffectIdle();
     SetInternalScreenResolutionEffect(internalSession, realResolutionRect);
-    auto ownerSession = GetScreenSession(ownerId);
-    if (ownerSession != nullptr) {
-        auto ownerProperty = ownerSession->GetScreenProperty();
+    sptr<ScreenSession> externalSession = GetScreenSession(ownerId);
+    if (externalSession == nullptr) {
+        // Owner invalid = never applied or already recovered, so no effect reset is owed (the
+        // owner attribution in RecoveryResolutionEffectOnOwnerExit stays untouched). The current
+        // mirror target still needs its cursor params reconciled to the region it legitimately
+        // holds: the params are meant to describe the stored region, but nothing enforces the
+        // pairing. Session creation writes full mode dims without a region, the mode-switch
+        // property swap moves params alone, and the plain mirror switch writes only the region,
+        // so a stale mirrorWidth has no other cleanup and would skew the multiinput cursor. The
+        // region itself is never touched here — caller-set regions (MakeMirror rect variants)
+        // and super-fold managed folded regions are not ours to wipe.
+        sptr<ScreenSession> internalProbe = nullptr;
+        GetInternalAndExternalSession(internalProbe, externalSession);
+        GetMirrorExternalSession(externalSession);
+        ReconcileMirrorCursorParams(externalSession);
+    } else {
+        auto ownerProperty = externalSession->GetScreenProperty();
         DMRect ownerRealRect = { 0, 0, ownerProperty.GetScreenRealWidth(),
             ownerProperty.GetScreenRealHeight()};
-        SetExternalScreenResolutionEffect(ownerSession, ownerRealRect);
+        SetExternalScreenResolutionEffect(externalSession, ownerRealRect);
     }
     HandleCastVirtualScreenMirrorRegion();
     NotifyScreenModeChange();
@@ -5137,6 +5150,27 @@ bool ScreenSessionManager::HandleCastVirtualScreenMirrorRegion()
     virtualSession->SetMirrorScreenRegion(virtualSession->GetScreenId(), mirrorRegion);
     virtualSession->EnableMirrorScreenRegion();
     return true;
+}
+
+void ScreenSessionManager::ReconcileMirrorCursorParams(const sptr<ScreenSession>& screenSession)
+{
+    if (screenSession == nullptr) {
+        return;
+    }
+    // Align the multiinput cursor params with the mirror region the screen currently holds.
+    // A mismatch is not an anomaly but the stale state being cleaned: creation-time mode dims,
+    // the mode-switch property swap, and region-only plain mirror switches each write one side
+    // without the other. Writers that keep the pairing (this machinery, SuperFoldStateManager's
+    // fold-state refresh) make this idempotent. A NONE region means full-screen mirror ->
+    // width/height 0.
+    DMRect mirrorRegion = screenSession->GetMirrorScreenRegion().second;
+    screenSession->UpdateMirrorWidth(mirrorRegion.width_);
+    screenSession->UpdateMirrorHeight(mirrorRegion.height_);
+    sptr<ScreenSession> phyScreenSession = GetPhysicalScreenSession(screenSession->GetRSScreenId());
+    if (phyScreenSession != nullptr) {
+        phyScreenSession->UpdateMirrorWidth(mirrorRegion.width_);
+        phyScreenSession->UpdateMirrorHeight(mirrorRegion.height_);
+    }
 }
 
 void ScreenSessionManager::GetCastVirtualMirrorSession(sptr<ScreenSession>& virtualSession)
@@ -9093,12 +9127,14 @@ void ScreenSessionManager::AddVirtualScreenDeathRecipient(const sptr<IRemoteObje
 }
 
 ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
-                                                   const sptr<IRemoteObject>& displayManagerAgent)
+    const sptr<IRemoteObject>& displayManagerAgent, DMError* errorCode)
 {
     DMError err = CheckVirtualScreenPermission();
     if (err == DMError::DM_ERROR_INVALID_PERMISSION) {
+        *errorCode = err;
         return ERROR_ID_NO_PERMISSION;
     } else if (err == DMError::DM_ERROR_NOT_SYSTEM_APP) {
+        *errorCode = err;
         return ERROR_ID_NOT_SYSTEM_APP;
     }
     if (option.virtualScreenType_ != VirtualScreenType::SCREEN_RECORDING) {
@@ -9123,10 +9159,22 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         width = option.renderWidth_;
         height = option.renderHeight_;
     }
-    ScreenId rsId = rsInterface_.CreateVirtualScreen(option.name_, width,
-        height, option.surface_, SCREEN_ID_INVALID, option.flags_, option.missionIds_);
+    RSVirtualScreenOption rsOption;
+    rsOption.name = option.name_;
+    rsOption.width = width;
+    rsOption.height = height;
+    rsOption.surface = option.surface_;
+    rsOption.associatedScreenId = SCREEN_ID_INVALID;
+    rsOption.flags = option.flags_;
+    rsOption.whiteList = option.missionIds_;
+    rsOption.hdrMode = option.hdrMode_;
+    int32_t rsErrorCode = 0;
+    ScreenId rsId = rsInterface_.CreateVirtualScreen(rsOption, &rsErrorCode);
     if (rsId == SCREEN_ID_INVALID) {
-        TLOGNFI(WmsLogTag::DMS, "rsId is invalid");
+        *errorCode = rsErrorCode == StatusCode::HDR_NOT_SUPPORT ? DMError::DM_ERROR_HDR_NOT_SUPPORT
+                                                                : DMError::DM_ERROR_INVALID_PARAM;
+        TLOGNFE(WmsLogTag::DMS, "rsId is invalid, rsErrorCode: %{public}d, errorCode: %{public}d",
+            rsErrorCode, *errorCode);
         return SCREEN_ID_INVALID;
     }
     TLOGNFW(WmsLogTag::DMS, "rsId: %{public}" PRIu64"", rsId);
@@ -9137,6 +9185,7 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         std::lock_guard<std::recursive_mutex> lock(screenSessionMapMutex_);
         if (screenSessionMap_.find(option.screenId_) != screenSessionMap_.end()) {
             TLOGNFE(WmsLogTag::DMS, "screenId_ %{public}d already exists", option.screenId_);
+            *errorCode = DMError::DM_ERROR_INVALID_PARAM;
             return SCREEN_ID_INVALID;
         }
         smsScreenId = option.screenId_;
@@ -9153,6 +9202,7 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         if (screenSession == nullptr) {
             TLOGNFW(WmsLogTag::DMS, "screenSession is nullptr");
             screenIdManager_.DeleteScreenId(smsScreenId);
+            *errorCode = DMError::DM_ERROR_NULLPTR;
             return SCREEN_ID_INVALID;
         }
         ApplyVirtualScreenScale(screenSession, option.width_, option.height_, option.renderWidth_, option.renderHeight_);
@@ -9166,10 +9216,6 @@ ScreenId ScreenSessionManager::CreateVirtualScreen(VirtualScreenOption option,
         }
         screenSession->SetVirtualScreenFlag(option.virtualScreenFlag_);
         TLOGNFI(WmsLogTag::DMS, "virtualScreenFlag: %{public}d", option.virtualScreenFlag_);
-        if (option.hdrMode_ != HDRMode::NONE) {
-            rsInterface_.SetVirtualScreenHDRMode(rsId, option.hdrMode_);
-        }
-        TLOGNFI(WmsLogTag::DMS, "hdrMode: %{public}d", option.hdrMode_);
         screenSession->SetRecordPolicies(option.recordPolicies_);
         TLOGNFI(WmsLogTag::DMS, "recordPolicies size: %{public}d",
             static_cast<uint32_t>(option.recordPolicies_.size()));
@@ -16858,7 +16904,8 @@ void ScreenSessionManager::ConvertWindowIdsToSurfaceNodeList(std::vector<uint64_
     // type on top of the floating ball.
     bool isAllowedExcludeAnyWindow = Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION);
     std::vector<uint32_t> needWindowTypeList = isAllowedExcludeAnyWindow ?
-        std::vector<uint32_t>{} : std::vector<uint32_t>{ FLOATING_BALL_TYPE };
+        std::vector<uint32_t>{} : std::vector<uint32_t>{ FLOATING_BALL_TYPE,
+            static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB), static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV) };
     clientProxy->OnGetSurfaceNodeIdsFromMissionIdsChanged(windowIdList, surfaceNodesList, needWindowTypeList, true);
     if (surfaceNodesList.empty()) {
         *errorCode = DmErrorCode::DM_ERROR_INVALID_PARAM;

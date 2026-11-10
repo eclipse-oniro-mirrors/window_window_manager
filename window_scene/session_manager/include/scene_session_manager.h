@@ -172,7 +172,7 @@ using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(con
 using SetTopWindowBoundaryByIDFunc = std::function<void(const std::string& id)>;
 using SetForegroundWindowNumFunc = std::function<void(uint32_t windowNum)>;
 using MinimizeByWindowIdFunc = std::function<void(const std::vector<int32_t>& windowIds)>;
-using NotifySceneSessionDestructFunc = std::function<void(int32_t persistentId)>;
+using NotifySceneSessionDestructFunc = std::function<void(int32_t persistentId, bool isUserRequestedExit)>;
 using NotifyTransferSessionToTargetScreenFunc = std::function<void(const TransferSessionInfo& info)>;
 using HasRootSceneRequestedVsyncFunc = std::function<bool()>;
 using RequestVsyncByRootSceneWhenModeChangeFunc =
@@ -2301,6 +2301,7 @@ private:
     RogWindowConfig rogWindowConfig_;
     std::mutex updateRogWindowConfigCallbackMutex_;
     UpdateRogWindowConfigCallbackFunc updateRogWindowConfigCallback_;
+    void AddFloatViewMissionIds(std::vector<uint64_t>& missionIds, const std::vector<uint32_t>& needWindowTypeList);
 
     std::mutex adaptiveResolutionMutex_;
     // windowId -> game uid

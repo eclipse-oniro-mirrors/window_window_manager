@@ -454,7 +454,7 @@ void ClawWindowShellCommand::FillWindowMetaInfoJson(const WindowMetaInfo& metaIn
 int32_t ClawWindowShellCommand::RunAsScreenshot()
 {
     DisplayId displayId = DISPLAY_ID_INVALID;
-    std::string outputPath = "/data/local/tmp/";
+    std::string outputPath = "/data/storage/el2/base/temp";
     bool isRectSet = false;
     Media::Rect imageRect;
     std::vector<NodeId> excludeWindowIds;
