@@ -3418,7 +3418,7 @@ WSError SceneSessionManagerLiteProxy::NotifyStackRecoverFromAMS(int32_t persiste
 {
     MessageParcel data;
     MessageParcel reply;
-    MessageOption option(MessageOption::TF_SYNC);
+    MessageOption option(MessageOption::TF_ASYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
         TLOGE(WmsLogTag::WMS_MAIN, "WriteInterfaceToken failed");
         return WSError::WS_ERROR_IPC_FAILED;
@@ -3442,7 +3442,6 @@ WSError SceneSessionManagerLiteProxy::NotifyStackRecoverFromAMS(int32_t persiste
         TLOGE(WmsLogTag::WMS_MAIN, "SendRequest failed");
         return WSError::WS_ERROR_IPC_FAILED;
     }
-    int32_t ret = reply.ReadInt32();
-    return static_cast<WSError>(ret);
+    return WSError::WS_OK;
 }
 } // namespace OHOS::Rosen

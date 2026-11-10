@@ -23,6 +23,8 @@
 #include "iremote_session_manager_mocker.h"
 #include "parameters.h"
 #include "scene_board_judgement.h"
+#include "scene_session_manager.h"
+#include "scene_session_manager_lite.h"
 #include "session_manager.h"
 #include "session_manager_lite.h"
 #include "session_manager_service_recover_interface.h"
