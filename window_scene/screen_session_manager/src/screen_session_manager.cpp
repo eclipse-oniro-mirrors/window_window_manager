@@ -4451,6 +4451,21 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
             break;
         }
     }
+    if (uid != 0 && hookInfo.displayId_ == DISPLAY_ID_INVALID) {
+        DisplayId displayId = DISPLAY_ID_INVALID;
+        sptr defaultScreen = GetDefaultScreenSession();
+        if (defaultScreen) {
+            displayId = defaultScreen->GetDisplayId();
+        } else {
+            TLOGNFI(WmsLogTag::DMS, " defaultScreen is null");
+            return;
+        }
+        TLOGNFI(WmsLogTag::DMS, "displayId: %{public}" PRIu64" ", displayId);
+        DMRect area;
+        if (GetHookedAvailableArea(displayId, uid, area) == DMError::DM_OK) {
+            ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(area, displayId, uid);
+        }
+    }
 }
 
 void ScreenSessionManager::UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
@@ -15022,6 +15037,26 @@ void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, D
         return;
     }
     NotifyDisplayAttributeChanged(displayInfo, attributes);
+}
+
+DMError ScreenSessionManager::GetHookedAvailableArea(DisplayId displayId, int32_t uid, DMRect& area)
+{
+    auto displayInfo = GetDisplayInfoById(displayId, true);
+    if (displayInfo == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "can not get displayInfo.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    sptr session = GetScreenSession(displayInfo->GetScreenId());
+    sptr hooked = HookDisplayInfoByUid(displayInfo, session, uid);
+    if (hooked == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "hook display info failed, uid: %{public}d", uid);
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    area = { 0, 0, hooked->GetAvailableWidth(), hooked->GetAvailableHeight() };
+    TLOGNFI(WmsLogTag::DMS,
+        "displayId: %{public}" PRIu64 ", uid: %{public}d, AvailableArea: [%{public}d, %{public}d, %{public}u, %{public}u]",
+        static_cast(displayId), uid, area.posX_, area.posY_, area.width_, area.height_);
+    return DMError::DM_OK;
 }
 
 DMError ScreenSessionManager::GetAvailableArea(DisplayId displayId, DMRect& area)
