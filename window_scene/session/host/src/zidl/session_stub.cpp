@@ -994,14 +994,11 @@ int SessionStub::HandleChangeSessionVisibilityWithStatusBar(MessageParcel& data,
         return ERR_INVALID_DATA;
     }
     if (hasShowParams) {
-        // [TEST-ONLY] consume showParams locally, AAFwk::SessionInfo has no showParams yet
-        std::shared_ptr<WindowShowParams> showParams(data.ReadParcelable<WindowShowParams>());
-        if (showParams == nullptr) {
+        abilitySessionInfo->showParams.reset(data.ReadParcelable<WindowShowParams>());
+        if (abilitySessionInfo->showParams == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "Read showParams failed.");
             return ERR_INVALID_DATA;
         }
-        TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] stub recv showParams, windowFocused: %{public}d, raiseTop: %{public}d",
-            showParams->windowFocused, showParams->raiseTop);
     }
     WSError errCode = ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
     reply.WriteUint32(static_cast<uint32_t>(errCode));

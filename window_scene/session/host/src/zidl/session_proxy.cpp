@@ -574,16 +574,16 @@ WSError SessionProxy::ChangeSessionVisibilityWithStatusBar(sptr<AAFwk::SessionIn
         }
     }
     data.WriteBool(visible);
-    // [TEST-ONLY] hardcode showParams: no focus, no raise
-    auto showParams = std::make_shared<WindowShowParams>();
-    showParams->windowFocused = false;
-    showParams->raiseTop = false;
-    TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] ChangeSessionVisibilityWithStatusBar send with hardcoded showParams, " \
-        "windowFocused:%{public}d, raiseTop:%{public}d, visible:%{public}d",
-        showParams->windowFocused, showParams->raiseTop, visible);
-    if (!data.WriteBool(true) || !data.WriteParcelable(showParams.get())) {
-        WLOGFE("Write showParams failed");
-        return WSError::WS_ERROR_IPC_FAILED;
+    if (abilitySessionInfo->showParams) {
+        if (!data.WriteBool(true) || !data.WriteParcelable(abilitySessionInfo->showParams.get())) {
+            WLOGFE("Write showParams failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
+    } else {
+        if (!data.WriteBool(false)) {
+            WLOGFE("Write has not showParams failed");
+            return WSError::WS_ERROR_IPC_FAILED;
+        }
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {

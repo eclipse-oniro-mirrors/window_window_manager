@@ -555,10 +555,6 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
         }
         // The normal show path does not go through RaiseAppMainWindowToTop, restore the one-shot
         // raiseTop state from showAbility here to avoid suppressing a later active raiseToTop.
-        if (!session->IsRaiseTopOnShow()) {
-            TLOGI(WmsLogTag::WMS_HIERARCHY, "[liuyue] id:%{public}d ForegroundTask restore raiseTopOnShow",
-                session->GetPersistentId());
-        }
         session->SetRaiseTopOnShow(true);
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
@@ -3212,18 +3208,11 @@ WSError SceneSession::RaiseAppMainWindowToTop()
         // Consume the one-shot suppression from showAbility with raiseTop=false.
         bool raiseOnShow = session->IsRaiseTopOnShow();
         session->SetRaiseTopOnShow(true);
-        TLOGI(WmsLogTag::WMS_HIERARCHY, "[liuyue] id:%{public}d RaiseAppMainWindowToTop, raiseOnShow:%{public}d, " \
-            "focusedOnShow:%{public}d", session->GetPersistentId(), raiseOnShow, session->IsFocusedOnShow());
         if (session->IsFocusedOnShow()) {
             FocusChangeReason reason = FocusChangeReason::MOVE_UP;
             session->NotifyRequestFocusStatusNotifyManager(true, true, reason);
             if (raiseOnShow) {
                 session->NotifyClick(true, false);
-            } else {
-                // Only request focus without raising the window to the top.
-                TLOGNI(WmsLogTag::WMS_HIERARCHY,
-                    "[liuyue] id:%{public}d skip raise, showAbility raiseTop is false",
-                    session->GetPersistentId());
             }
         } else {
             session->SetFocusedOnShow(true);
@@ -3243,8 +3232,6 @@ void SceneSession::SetRaiseTopOnShow(bool raiseTopOnShow)
     if (raiseTopOnShow == raiseTopOnShow_) {
         return;
     }
-    TLOGI(WmsLogTag::WMS_HIERARCHY, "[liuyue] SetRaiseTopOnShow [%{public}d, %{public}d]",
-        raiseTopOnShow, GetPersistentId());
     raiseTopOnShow_ = raiseTopOnShow;
 }
 
@@ -6825,10 +6812,7 @@ static SessionInfo MakeSessionInfoDuringVisibilityChange(const sptr<AAFwk::Sessi
     info.callingTokenId_ = abilitySessionInfo->callingTokenId;
     info.reuse = abilitySessionInfo->reuse;
     info.processOptions = abilitySessionInfo->processOptions;
-    // [TEST-ONLY] hardcode showParams: no focus, no raise; AAFwk::SessionInfo has no showParams yet
-    info.showParams = std::make_shared<WindowShowParams>();
-    info.showParams->windowFocused = false;
-    info.showParams->raiseTop = false;
+    info.showParams = abilitySessionInfo->showParams;
     return info;
 }
 
@@ -6857,21 +6841,14 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
         SessionInfo info = MakeSessionInfoDuringVisibilityChange(abilitySessionInfo, session);
 
         if (visible && info.showParams != nullptr) {
-            TLOGI(WmsLogTag::WMS_LIFE,
-                "[liuyue] %{public}s id:%{public}d showAbility with params, windowFocused:%{public}d, raiseTop:%{public}d",
-                where, session->GetPersistentId(), info.showParams->windowFocused, info.showParams->raiseTop);
             if (!info.showParams->windowFocused) {
                 // Keep the window from being focused when it becomes visible, same as start with
                 // PARAM_RESV_WINDOW_FOCUSED. It is restored when the window has been visible.
-                TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] id:%{public}d windowFocused false, SetFocusedOnShow(false)",
-                    session->GetPersistentId());
                 session->SetFocusedOnShow(false);
             }
         }
         if (visible) {
             // One-shot for the coming show, restored when the app window shows again.
-            TLOGI(WmsLogTag::WMS_LIFE, "[liuyue] id:%{public}d SetRaiseTopOnShow:%{public}d",
-                session->GetPersistentId(), info.showParams == nullptr || info.showParams->raiseTop);
             session->SetRaiseTopOnShow(info.showParams == nullptr || info.showParams->raiseTop);
         }
 
