@@ -909,6 +909,7 @@ private:
     int Dump(int fd, const std::vector<std::u16string>& args) override;
     sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession,
         int32_t uid = INVALID_UID);
+    DMError GetHookedAvailableArea(DisplayId displayId, int32_t uid, DMRect& area);
     void ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo, const sptr<ScreenSession>& screenSession,
         const DMHookInfo& info);
     bool IsAdaptiveResolutionActive(int32_t uid, DMAdaptiveResolutionConfig& config);
