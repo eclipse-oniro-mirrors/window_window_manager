@@ -1469,7 +1469,7 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_SendR
     sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
     ASSERT_NE(proxy, nullptr);
 
-    remoteMocker->SetRequestResult(ERR_IOERR);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
     auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
     EXPECT_EQ(result, WSError::WS_ERROR_IPC_FAILED);
     remoteMocker->SetRequestResult(ERR_NONE);
