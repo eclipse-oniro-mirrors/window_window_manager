@@ -551,7 +551,7 @@ WindowManager_MainWindowInfo* PackMainWindowInfoList(
     const std::vector<OHOS::sptr<MainWindowInfo>>& infos)
 {
     if (infos.empty()) {
-        return static_cast<WindowManager_MainWindowInfo*>(malloc(sizeof(WindowManager_MainWindowInfo)));
+        return nullptr;
     }
     size_t totalLabelLen = 0;
     for (size_t i = 0; i < infos.size(); i++) {
@@ -1346,6 +1346,9 @@ int32_t OH_WindowManager_GetAllMainWindowInfo(
  
 void OH_WindowManager_ReleaseAllMainWindowInfo(WindowManager_MainWindowInfo* infoList)
 {
+    if (infoList == nullptr) {
+        return;
+    }
     WINDOW_MANAGER_FREE_MEMORY(infoList);
 }
  
