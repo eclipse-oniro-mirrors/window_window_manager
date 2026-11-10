@@ -4406,8 +4406,7 @@ bool ScreenSessionManager::ConvertScreenIdToRsScreenId(ScreenId screenId, Screen
     return screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId);
 }
 
-void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable,
-    const DMHookInfo& hookInfo)
+void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const DMHookInfo& hookInfo)
 {
     if (!SessionPermission::IsSystemCalling()) {
         TLOGNFE(WmsLogTag::DMS, "permission denied!");
@@ -4453,19 +4452,7 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable,
         }
     }
     if (uid != 0 && hookInfo.displayId_ == DISPLAY_ID_INVALID) {
-        DisplayId displayId = DISPLAY_ID_INVALID;
-        sptr defaultScreen = GetDefaultScreenSession();
-        if (defaultScreen) {
-            displayId = defaultScreen->GetDisplayId();
-        } else {
-            TLOGNFI(WmsLogTag::DMS, " defaultScreen is null");
-            return;
-        }
-        TLOGNFI(WmsLogTag::DMS, "displayId: %{public}" PRIu64" ", displayId);
-        DMRect area;
-        if (GetHookedAvailableArea(displayId, uid, area) == DMError::DM_OK) {
-            ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(area, displayId, uid);
-        }
+        NotifyHookAvailableAreaChanged(uid);
     }
 }
 
@@ -15002,6 +14989,23 @@ void ScreenSessionManager::NotifyHookAvailableAreaChanged(DMRect area, DisplayId
         ", scale=%{public}f, area=[%{public}d,%{public}d,%{public}u,%{public}u]",
         uid, displayId, curScale, hookArea.posX_, hookArea.posY_, hookArea.width_, hookArea.height_);
     ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(hookArea, displayId, uid);
+}
+
+void ScreenSessionManager::NotifyHookAvailableAreaChanged(int32_t uid)
+{
+    DisplayId displayId = DISPLAY_ID_INVALID;
+    sptr defaultScreen = GetDefaultScreenSession();
+    if (defaultScreen) {
+        displayId = defaultScreen->GetDisplayId();
+    } else {
+        TLOGNFI(WmsLogTag::DMS, " defaultScreen is null");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS, "displayId: %{public}" PRIu64" ", displayId);
+    DMRect area;
+    if (GetHookedAvailableArea(displayId, uid, area) == DMError::DM_OK) {
+        ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(area, displayId, uid);
+    }
 }
 
 void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId)
