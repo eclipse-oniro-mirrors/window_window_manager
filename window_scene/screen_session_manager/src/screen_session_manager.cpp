@@ -15055,7 +15055,7 @@ DMError ScreenSessionManager::GetHookedAvailableArea(DisplayId displayId, int32_
     area = { 0, 0, hooked->GetAvailableWidth(), hooked->GetAvailableHeight() };
     TLOGNFI(WmsLogTag::DMS,
         "displayId: %{public}" PRIu64 ", uid: %{public}d, AvailableArea: [%{public}d, %{public}d, %{public}u, %{public}u]",
-        static_cast(displayId), uid, area.posX_, area.posY_, area.width_, area.height_);
+        static_cast<DisplayId>(displayId), uid, area.posX_, area.posY_, area.width_, area.height_);
     return DMError::DM_OK;
 }
 
