@@ -482,6 +482,7 @@ public:
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
     void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId);
     void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid);
+    void NotifyHookAvailableAreaChanged(int32_t uid);
     void NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId);
     void NotifyFoldToExpandCompletion(bool foldToExpand) override;
     void NotifyScreenConnectCompletion(ScreenId screenId) override;
