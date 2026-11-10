@@ -254,7 +254,7 @@
                     },
                     "outputPath": {
                         "type": "string",
-                        "description": "output file directory (default: /data/local/tmp/; when specified, writes to any path the caller has permission to access)"
+                        "description": "output file directory (default: /data/storage/el2/base/temp; when specified, writes to any path the caller has permission to access)"
                     },
                     "rect": {
                         "type": "string",

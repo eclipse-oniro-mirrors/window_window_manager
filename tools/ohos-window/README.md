@@ -28,7 +28,7 @@ tools/ohos-window/
 |--------|------|----------|----------|
 | `restore-window` | 将指定主窗口恢复到前台 | `--windowId`、`--help` | `ohos.permission.CONTROL_DEVICE` |
 | `list-windows` | 查询窗口信息 | `--windowId`、`--displayId`、`--filter`、`--type`、`--help` | `ohos.permission.CONTROL_DEVICE` |
-| `screenshot` | 屏幕/窗口截图（全屏/指定矩形区域/全屏排除指定窗口） | `--displayId`、`--outputPath`、`--rect`、`--excludeWindowIds`、`--windowId`、`--format`、`--help` | `ohos.permission.CAPTURE_SCREEN` |
+| `screenshot` | 屏幕/窗口截图（全屏/指定矩形区域/全屏排除指定窗口） | `--displayId`、`--outputPath`、`--rect`、`--excludeWindowIds`、`--windowId`、`--format`、`--help` | `ohos.permission.CUSTOM_SCREEN_CAPTURE` |
 | `--help` / `help` | 显示帮助信息 | 无 | 无 |
 
 ### restore-window 子命令参数说明
@@ -70,7 +70,6 @@ tools/ohos-window/
 > - `--rect` 区域截图走 `GetScreenshotwithConfig`（老接口 `GetScreenshot` + 本地裁剪），**所有设备类型均支持**。
 > - `--excludeWindowIds` 走 `GetScreenCapture`（blackWindowIdList_，windowId 语义），其服务端实现仅存在于部分设备类型（如 phone）的镜像中，**在 PC 等设备上会返回失败**。
 > - `--excludeWindowIds` 与 `--rect` 互斥。
-> - 不指定 `--outputPath` 时默认保存到 `/data/local/tmp/screenshot_<时间戳>.jpeg`（走 `SnapShotUtils` 的默认保存逻辑）；指定 `--outputPath` 时允许写入任意有权限访问的路径（走 `ImagePacker` 直接打包，不再受 `/data/local/tmp` 限制），目标目录需已存在且进程对该路径有写权限。
 
 ## Claw 规范遵循情况
 
