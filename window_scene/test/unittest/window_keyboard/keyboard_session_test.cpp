@@ -290,14 +290,16 @@ HWTEST_F(KeyboardSessionTest, NotifyRootSceneOccupiedAreaChange, TestSize.Level1
     EXPECT_NE(keyboardSession, nullptr);
     auto occupiedInfo = sptr<OccupiedAreaChangeInfo>::MakeSptr();
     ASSERT_NE(nullptr, occupiedInfo);
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(nullptr, avoidArea);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo, avoidArea);
     keyboardSession->GetSessionProperty()->SetDisplayId(2025);
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo, avoidArea);
     keyboardSession->GetSessionProperty()->SetDisplayId(0);
     keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange = nullptr;
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo, avoidArea);
     keyboardSession->keyboardCallback_ = nullptr;
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo, avoidArea);
 }
 
 /**
@@ -319,11 +321,13 @@ HWTEST_F(KeyboardSessionTest, NotifyRootSceneOccupiedAreaChange02, TestSize.Leve
     ASSERT_NE(keyboardSession, nullptr);
     auto occupiedInfo = sptr<OccupiedAreaChangeInfo>::MakeSptr();
     ASSERT_NE(occupiedInfo, nullptr);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
     auto ret = 1;
     keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange =
-        [&ret](const sptr<OccupiedAreaChangeInfo>& info) -> void { ret += 1; };
+        [&ret](const sptr<OccupiedAreaChangeInfo>& info, const sptr<AvoidArea>& avoidArea) -> void { ret += 1; };
     keyboardSession->GetSessionProperty()->SetDisplayId(ScreenSessionManagerClient::GetInstance().GetDefaultScreenId());
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(occupiedInfo, avoidArea);
     EXPECT_NE(ret, 1);
 }
 
