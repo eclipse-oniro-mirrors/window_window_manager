@@ -23,8 +23,6 @@
 #include <atomic>
 #include <chrono>
 #include <climits>
-#include <sstream>
-#include "configuration.h"
 #include <hitrace_meter.h>
 #include <type_traits>
 #ifdef IMF_ENABLE
@@ -36,6 +34,9 @@
 #include <key_event.h>
 #include <transaction/rs_sync_transaction_controller.h>
 #include <transaction/rs_transaction.h>
+#include <future>
+#include <sstream>
+#include "configuration.h"
 #include <ui/rs_surface_node.h>
 #include <ui_extension_utils.h>
 #include <feature/window_keyframe/rs_window_keyframe_node.h>
@@ -129,6 +130,7 @@ const int32_t SCREEN_LOCK_Z_ORDER = 2000;
 constexpr uint8_t MAX_DOWN_TIMES = 100;
 constexpr int32_t GET_SCENE_NODE_COUNT_TIMEOUT = 50;
 constexpr const long PRE_CALC_WINDOW_PROPERTY_TIMEOUT = 1000;
+constexpr int64_t GET_DRAG_MOVE_MOUNTED_NODE_TIMEOUT_MS = 1000;
 const std::string WANT_PARAM_GAME_PRELAUNCH = "ohos.params.gamePrelaunch";
 
 const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
@@ -5625,7 +5627,37 @@ std::shared_ptr<Rosen::RSNode> SceneSession::GetWindowDragMoveMountedNode(Displa
         TLOGE(WmsLogTag::WMS_LAYOUT, "findScenePanelRsNodeByZOrderFunc_ is null");
         return nullptr;
     }
-    return findScenePanelRsNodeByZOrderFunc_(displayId, targetZOrder);
+    FindScenePanelRsNodeByZOrderFunc findFunc = findScenePanelRsNodeByZOrderFunc_;
+    auto mainRunner = mainHandler_ != nullptr ? mainHandler_->GetEventRunner() : nullptr;
+    if (mainRunner == nullptr || mainRunner->IsCurrentRunnerThread()) {
+        return findFunc(displayId, targetZOrder);
+    }
+    auto nodePromise = std::make_shared<std::promise<std::shared_ptr<Rosen::RSNode>>>();
+    auto nodeFuture = nodePromise->get_future();
+    auto findTask = [findFunc, nodePromise, displayId, targetZOrder] {
+        nodePromise->set_value(findFunc(displayId, targetZOrder));
+    };
+    auto startTime = std::chrono::steady_clock::now();
+    bool postResult = mainHandler_->PostTask(std::move(findTask), "wms:FindWindowDragMoveMountedNode", 0,
+        AppExecFwk::EventQueue::Priority::IMMEDIATE);
+    if (!postResult) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "post find mounted node task to main thread failed, "
+            "displayId: %{public}" PRIu64 ", persistentId: %{public}d", displayId, GetPersistentId());
+        return nullptr;
+    }
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "wms:FindWindowDragMoveMountedNode");
+    if (nodeFuture.wait_for(std::chrono::milliseconds(GET_DRAG_MOVE_MOUNTED_NODE_TIMEOUT_MS)) ==
+        std::future_status::timeout) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "find mounted node timeout, displayId: %{public}" PRIu64
+            ", persistentId: %{public}d, timeoutMs: %{public}" PRId64, displayId, GetPersistentId(),
+            GET_DRAG_MOVE_MOUNTED_NODE_TIMEOUT_MS);
+        return nullptr;
+    }
+    int64_t elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - startTime).count();
+    TLOGI(WmsLogTag::WMS_LAYOUT, "find mounted node cost: %{public}" PRId64 "us, displayId: %{public}" PRIu64
+        ", persistentId: %{public}d", elapsedUs, displayId, GetPersistentId());
+    return nodeFuture.get();
 }
 
 /** @note @window.drag */
