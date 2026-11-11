@@ -2501,16 +2501,6 @@ float SceneSession::GetCoordinateScaleFactor() const
     return 1.0f;
 }
 
-float SceneSession::ClampAndRoundDpiScale(float dpiScale)
-{
-    // Keep runtime recalculation (cross-screen / DPI change) consistent with the SCB start path:
-    // limit to [minDpiScale_, maxDpiScale_] (loaded from window_manager_config.xml
-    // appDpiScaleConfig) and round up to DPI_SCALE_STEP precision.
-    float clamped = MathHelper::Clamp(dpiScale, minDpiScale_, maxDpiScale_);
-    // Subtract a small epsilon before ceil to avoid floating-point tail bits causing an extra step up.
-    return std::ceil(clamped / DPI_SCALE_STEP - 1e-6f) * DPI_SCALE_STEP;
-}
-
 void SceneSession::UpdateDpiForceScale()
 {
     // Recalculate dpiForceScale when density changes or session crosses screens.

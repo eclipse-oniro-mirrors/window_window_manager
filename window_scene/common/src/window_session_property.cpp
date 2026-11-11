@@ -2008,14 +2008,14 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
     SetHookSceneMessage(property->GetHookSceneMessage());
     isCrossProcessWindow_ = property->isCrossProcessWindow_;
     SetWidthHookRatio(property->GetHookWindowInfo().widthHookRatio);
+    isDpiForceScale_ = property->isDpiForceScale_;
+    windowStartDensity_ = property->windowStartDensity_;
     titleHoverShowEnabled_ = property->titleHoverShowEnabled_;
     dockHoverShowEnabled_ = property->dockHoverShowEnabled_;
     {
         std::lock_guard<std::mutex> lock(supportWindowModesMutex_);
         supportedWindowModes_ = property->supportedWindowModes_;
     }
-    isDpiForceScale_ = property->isDpiForceScale_;
-    windowStartDensity_ = property->windowStartDensity_;
 }
 
 bool WindowSessionProperty::Write(Parcel& parcel, WSPropertyChangeAction action)
