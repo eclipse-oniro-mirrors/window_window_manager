@@ -1375,9 +1375,6 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RestoreSessionToForeground, TestSize.
     EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::ClearAllErrorFlag();
 }
-}
-}
-}
 /**
  * @tc.name: NotifyStackRecoverFromAMS_Proxy_NullRemote
  * @tc.desc: test NotifyStackRecoverFromAMS proxy with null remote
@@ -1538,4 +1535,7 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_Param
 
     auto result4 = proxy->NotifyStackRecoverFromAMS(999999, true);
     EXPECT_EQ(result4, WSError::WS_OK);
+}
+}
+}
 }
