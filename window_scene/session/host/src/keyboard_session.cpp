@@ -415,14 +415,20 @@ void KeyboardSession::NotifyOccupiedAreaChanged(const sptr<SceneSession>& callin
         TLOGE(WmsLogTag::WMS_KEYBOARD, "occupiedAreaInfo is null");
         return;
     }
+    std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
     if (callingSession->IsSystemSession()) {
-        NotifyRootSceneOccupiedAreaChange(occupiedAreaInfo);
+        callingSession->GetAllAvoidAreas(avoidAreas);
+        auto it = avoidAreas.find(AvoidAreaType::TYPE_KEYBOARD);
+        sptr<AvoidArea> keyboardAvoidArea = nullptr;
+        if (it != avoidAreas.end()) {
+            keyboardAvoidArea = new AvoidArea(it->second);
+        }
+        NotifyRootSceneOccupiedAreaChange(occupiedAreaInfo, keyboardAvoidArea);
         TLOGI(WmsLogTag::WMS_KEYBOARD, "Calling id: %{public}d, safeRect: %{public}s"
             ", textFieldPositionY_: %{public}f, textFieldHeight_: %{public}f",
             callingSession->GetPersistentId(), occupiedAreaInfo->rect_.ToString().c_str(),
             occupiedAreaInfo->textFieldPositionY_, occupiedAreaInfo->textFieldHeight_);
     } else {
-        std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
         if (needRecalculateAvoidAreas) {
             callingSession->GetAllAvoidAreas(avoidAreas);
         }
@@ -941,7 +947,8 @@ void KeyboardSession::RecalculatePanelRectForAvoidArea(WSRect& panelRect)
     TLOGI(WmsLogTag::WMS_KEYBOARD, "IsLandscape %{public}d, avoidHeight %{public}d", isLandscape, panelRect.height_);
 }
 
-void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info)
+void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info,
+    const sptr<AvoidArea>& avoidArea)
 {
     ScreenId defaultScreenId = ScreenSessionManagerClient::GetInstance().GetDefaultScreenId();
     auto displayId = GetSessionProperty()->GetDisplayId();
@@ -954,7 +961,7 @@ void KeyboardSession::NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaC
         TLOGE(WmsLogTag::WMS_KEYBOARD, "callback is nullptr");
         return;
     }
-    keyboardCallback_->onNotifyOccupiedAreaChange(info);
+    keyboardCallback_->onNotifyOccupiedAreaChange(info, avoidArea);
 }
 
 WSError KeyboardSession::ChangeKeyboardEffectOption(const KeyboardEffectOption& effectOption)

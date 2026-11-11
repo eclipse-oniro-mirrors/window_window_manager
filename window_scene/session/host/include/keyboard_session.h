@@ -36,7 +36,8 @@ using OnGetFocusedSessionIdCallback = std::function<int32_t()>;
 using OnCallingSessionIdChangeCallback = std::function<void(uint32_t callingSessionId)>;
 using OnSystemKeyboardAvoidChangeCallback = std::function<void(DisplayId displayId,
     SystemKeyboardAvoidChangeReason reason)>;
-using NotifyOccupiedAreaChangeCallback = std::function<void(const sptr<OccupiedAreaChangeInfo>& info)>;
+using NotifyOccupiedAreaChangeCallback = std::function<void(const sptr<OccupiedAreaChangeInfo>& info,
+    const sptr<AvoidArea>& avoidArea)>;
 using IsLastFrameLayoutFinishedCallback = std::function<bool()>;
 
 class KeyboardSession : public SystemSession {
@@ -102,7 +103,7 @@ private:
     std::shared_ptr<RSTransaction> GetRSTransaction();
     std::string GetSessionScreenName();
     void NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason reason);
-    void NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info);
+    void NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info, const sptr<AvoidArea>& avoidArea);
     bool IsNeedRaiseSubWindow(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect);
     void PostKeyboardAnimationSyncTimeoutTask();
     void HandleCrossScreenChild(bool isMoveOrDrag);
