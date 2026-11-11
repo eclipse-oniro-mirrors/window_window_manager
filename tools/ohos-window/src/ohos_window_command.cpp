@@ -73,6 +73,12 @@ const std::string OPTION_VAL_IMAGE_FMT_PNG = "png";
 const std::string STRING_SCREENSHOT_OK = "capture screenshot successfully.";
 const std::string STRING_SCREENSHOT_NG = "error: failed to capture screenshot.";
 
+constexpr int32_t YEAR_OFFSET = 1900;
+constexpr int32_t MONTH_OFFSET = 1;
+constexpr int32_t RECT_LEFT_INDEX = 0;
+constexpr int32_t RECT_TOP_INDEX = 1;
+constexpr int32_t RECT_WIDTH_INDEX = 2;
+constexpr int32_t RECT_HEIGHT_INDEX = 3;
 constexpr int32_t SCREENSHOT_RECT_PARAM_COUNT = 4;
 constexpr size_t MAX_WINDOW_ID_LIST_COUNT = 64;
 }  // namespace
@@ -602,10 +608,10 @@ bool ClawWindowShellCommand::ParseRectOption(const std::string& rectStr, Media::
         PrintError(errorInfo);
         return false;
     }
-    imageRect.left = values[0];
-    imageRect.top = values[1];
-    imageRect.width = values[2];
-    imageRect.height = values[3];
+    imageRect.left = values[RECT_LEFT_INDEX];
+    imageRect.top = values[RECT_TOP_INDEX];
+    imageRect.width = values[RECT_WIDTH_INDEX];
+    imageRect.height = values[RECT_HEIGHT_INDEX];
     return true;
 }
 
@@ -681,7 +687,7 @@ std::string ClawWindowShellCommand::GenerateScreenshotPath(const std::string& ou
         struct tm* tmVal = localtime(&tv.tv_sec);
         if (tmVal != nullptr) {
             snprintf_s(timeStr, sizeof(timeStr), sizeof(timeStr) - 1, "_%04d-%02d-%02d_%02d-%02d-%02d",
-                tmVal->tm_year + 1900, tmVal->tm_mon + 1, tmVal->tm_mday,
+                tmVal->tm_year + YEAR_OFFSET, tmVal->tm_mon + MONTH_OFFSET, tmVal->tm_mday,
                 tmVal->tm_hour, tmVal->tm_min, tmVal->tm_sec);
         }
     }
