@@ -8244,7 +8244,7 @@ WMError WindowSceneSessionImpl::SetWindowMaskWithAlpha(const uint8_t* windowMask
     std::shared_ptr<Media::PixelMap> mask = HandleWindowMaskWithAlpha(windowMask, maskWidth, maskHeight);
     if (mask == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "Failed to create pixelMap of window mask");
-        return WMError::WM_ERROR_INVALID_WINDOW;
+        return WMError::WM_ERROR_INVALID_OPERATION;
     }
     return ApplyWindowMask(mask);
 }

@@ -1276,7 +1276,7 @@ int32_t OH_WindowManager_InjectTouchEvent(
             return;
         }
         TLOGND(WmsLogTag::WMS_EVENT, "%{public}s, windowId:%{public}d", where, windowId);
-        errCode = OH_WINDOW_TO_ERROR_CODE_MAP.at(window->InjectTouchEvent(pointerEvent));
+        errCode = ConvertWMErrorToWindowErrorCode(window->InjectTouchEvent(pointerEvent));
     }, __func__);
     if (errCode != WindowManager_ErrorCode::OK) {
         HISTOGRAM_ENUMERATION_WINDOW_MANAGER_ERROR_CODE("ArkUI.window.OH_WindowManager_InjectTouchEvent", errCode);
