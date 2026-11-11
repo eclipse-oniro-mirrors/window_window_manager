@@ -2596,11 +2596,60 @@ HWTEST_F(SceneSessionTest6, UpdateDpiForceScale04, Function | SmallTest | Level1
     session->SetIsDpiForceScale(true);
     session->SetWindowStartDensity(2.0f);
     // GetScreenDensityById returns 0.0 (invalid display) -> currScreenDensity=0, skip
-    // Note: the round+clamp main path (currScreenDensity > 0) cannot be unit-tested
-    // here because DisplayManager::GetDisplayById is a non-mockable singleton.
     session->property_->SetDisplayId(static_cast<DisplayId>(999999));
     session->UpdateDpiForceScale(1.0f, 1.0f, 0.05f);
     EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
+}
+
+/**
+ * @tc.name: UpdateDpiForceScale05
+ * @tc.desc: Test UpdateDpiForceScale skips when dpiScaleStep is non-positive
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, UpdateDpiForceScale05, Function | SmallTest | Level1)
+{
+    auto display = DisplayManager::GetInstance().GetDefaultDisplay();
+    ASSERT_NE(display, nullptr);
+    float currDensity = display->GetVirtualPixelRatio();
+    ASSERT_GT(currDensity, 0.0f);
+
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->SetIsDpiForceScale(true);
+    session->property_->SetDisplayId(display->GetId());
+    session->SetWindowStartDensity(currDensity);
+    session->SetDpiForceScale(1.25f);
+    // densities are positive, but dpiScaleStep == 0.0f -> skip recalculation
+    session->UpdateDpiForceScale(0.5f, 2.0f, 0.0f);
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.25f);
+
+    // negative dpiScaleStep -> still skip recalculation
+    session->UpdateDpiForceScale(0.5f, 2.0f, -0.05f);
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.25f);
+}
+
+/**
+ * @tc.name: UpdateDpiForceScale06
+ * @tc.desc: Test UpdateDpiForceScale recalculates and clamps when dpiScaleStep is positive
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest6, UpdateDpiForceScale06, Function | SmallTest | Level1)
+{
+    auto display = DisplayManager::GetInstance().GetDefaultDisplay();
+    ASSERT_NE(display, nullptr);
+    float currDensity = display->GetVirtualPixelRatio();
+    ASSERT_GT(currDensity, 0.0f);
+
+    SessionInfo info;
+    sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
+    session->SetIsDpiForceScale(true);
+    session->property_->SetDisplayId(display->GetId());
+    // ratio = currDensity / windowStartDensity = 2.0, which exceeds maxDpiScale
+    session->SetWindowStartDensity(currDensity / 2.0f);
+    session->SetDpiForceScale(1.0f);
+    // positive step -> recalculate, round up to step and clamp to [0.5, 1.5]
+    session->UpdateDpiForceScale(0.5f, 1.5f, 0.05f);
+    EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.5f);
 }
 
 /**

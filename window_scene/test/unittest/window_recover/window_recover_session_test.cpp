@@ -798,6 +798,46 @@ HWTEST_F(WindowRecoverSessionTest, OnSessionRecoverStateChange, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OnSessionRecoverStateChange_DpiForceScale
+ * @tc.desc: Test dpi force scale state is restored to sceneSession on finish reconnect
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowRecoverSessionTest, OnSessionRecoverStateChange_DpiForceScale, TestSize.Level1)
+{
+    EXPECT_NE(nullptr, ssm_);
+    ssm_->recoverSceneSessionFunc_ = NotifyRecoverSceneSessionFuncTest;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    property->SetPersistentId(170);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+
+    // sceneSession not found -> hit the nullptr branch and return without crash
+    ssm_->sceneSessionMap_.clear();
+    ssm_->OnSessionRecoverStateChange(SessionRecoverState::SESSION_FINISH_RECONNECT, property);
+
+    SessionInfo info;
+    info.abilityName_ = "OnSessionRecoverStateChange_DpiForceScale";
+    info.bundleName_ = "OnSessionRecoverStateChange_DpiForceScale";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(nullptr, sceneSession);
+    sceneSession->SetSessionProperty(property);
+    ssm_->sceneSessionMap_.insert({ 170, sceneSession });
+
+    // dpi force scale enabled -> property values are restored to sceneSession
+    property->SetIsDpiForceScale(true);
+    property->SetWindowStartDensity(2.0f);
+    ssm_->OnSessionRecoverStateChange(SessionRecoverState::SESSION_FINISH_RECONNECT, property);
+    EXPECT_TRUE(ssm_->GetSceneSession(170)->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(ssm_->GetSceneSession(170)->GetWindowStartDensity(), 2.0f);
+
+    // dpi force scale disabled -> the restored state follows the property again
+    property->SetIsDpiForceScale(false);
+    property->SetWindowStartDensity(0.0f);
+    ssm_->OnSessionRecoverStateChange(SessionRecoverState::SESSION_FINISH_RECONNECT, property);
+    EXPECT_FALSE(ssm_->GetSceneSession(170)->GetIsDpiForceScale());
+    EXPECT_FLOAT_EQ(ssm_->GetSceneSession(170)->GetWindowStartDensity(), 0.0f);
+}
+
+/**
  * @tc.name: RegisterRecoverStateChangeListener
  * @tc.desc: normal test
  * @tc.type: FUNC
