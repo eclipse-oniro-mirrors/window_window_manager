@@ -735,6 +735,8 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
             if (sceneSession == nullptr) {
                 break;
             }
+            sceneSession->SetIsDpiForceScale(property->GetIsDpiForceScale());
+            sceneSession->SetWindowStartDensity(property->GetWindowStartDensity());
             sceneSession->NotifyIsFullScreenInForceSplitMode(property->IsFullScreenInForceSplitMode());
             sceneSession->NotifyModeSwitchInfo();
             RecoverSupportedWindowModes(sceneSession, property);

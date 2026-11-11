@@ -415,6 +415,10 @@ public:
     std::vector<std::string> GetCombinedCompatibleConfig() const;
     void SetSelectMode(SelectMode selectMode);
     SelectMode GetSelectMode() const;
+    void SetIsDpiForceScale(bool isDpiForceScale);
+    bool GetIsDpiForceScale() const;
+    void SetWindowStartDensity(float windowStartDensity);
+    float GetWindowStartDensity() const;
 
     /*
      * Keyboard
@@ -642,6 +646,8 @@ private:
     uint32_t apiVersion_ = 0;
     bool isAbilityHookOff_ = false;
     bool isAbilityHook_ = false;
+    bool isDpiForceScale_ = false;
+    float windowStartDensity_ = 0.0f;
 
     /*
      * Sub Window

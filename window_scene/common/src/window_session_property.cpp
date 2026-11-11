@@ -1744,7 +1744,9 @@ bool WindowSessionProperty::Marshalling(Parcel& parcel) const
         parcel.WriteBool(dockHoverShowEnabled_) &&
         MarshallingSupportWindowModes(parcel) &&
         MarshallingFvTemplateInfo(parcel) &&
-        parcel.WriteString(GetHookSceneMessage());
+        parcel.WriteString(GetHookSceneMessage()) &&
+        parcel.WriteBool(isDpiForceScale_) &&
+        parcel.WriteFloat(windowStartDensity_);
 }
 
 WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
@@ -1878,6 +1880,8 @@ WindowSessionProperty* WindowSessionProperty::Unmarshalling(Parcel& parcel)
     UnmarshallingSupportWindowModes(parcel, property);
     UnmarshallingFvTemplateInfo(parcel, property);
     property->SetHookSceneMessage(parcel.ReadString());
+    property->SetIsDpiForceScale(parcel.ReadBool());
+    property->SetWindowStartDensity(parcel.ReadFloat());
     return property;
 }
 
@@ -2010,6 +2014,8 @@ void WindowSessionProperty::CopyFrom(const sptr<WindowSessionProperty>& property
         std::lock_guard<std::mutex> lock(supportWindowModesMutex_);
         supportedWindowModes_ = property->supportedWindowModes_;
     }
+    isDpiForceScale_ = property->isDpiForceScale_;
+    windowStartDensity_ = property->windowStartDensity_;
 }
 
 bool WindowSessionProperty::Write(Parcel& parcel, WSPropertyChangeAction action)
@@ -2840,6 +2846,26 @@ std::string WindowSessionProperty::GetHookSceneMessage() const
 {
     std::lock_guard<std::mutex> lock(hookSceneMessageMutex_);
     return hookSceneMessage_;
+}
+
+void WindowSessionProperty::SetIsDpiForceScale(bool isDpiForceScale)
+{
+    isDpiForceScale_ = isDpiForceScale;
+}
+ 
+bool WindowSessionProperty::GetIsDpiForceScale() const
+{
+    return isDpiForceScale_;
+}
+ 
+void WindowSessionProperty::SetWindowStartDensity(float windowStartDensity)
+{
+    windowStartDensity_ = windowStartDensity;
+}
+ 
+float WindowSessionProperty::GetWindowStartDensity() const
+{
+    return windowStartDensity_;
 }
 
 void WindowSessionProperty::SetCombinedCompatibleConfig(const std::vector<std::string>& combinedCompatibleConfig)
