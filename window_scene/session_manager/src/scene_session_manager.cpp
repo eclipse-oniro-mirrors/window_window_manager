@@ -1028,6 +1028,7 @@ void SceneSessionManager::ConfigWindowSceneXml()
     ConfigAppsWithDeduplicatedWindowStatus();
     ConfigSnapshotScale();
     ConfigPersistentScaledSnapshot();
+    ConfigAppDpiScale();
     ConfigWindowSceneXml(config);
     ConfigWindowLayout(config["windowLayout"]);
 }
@@ -2252,6 +2253,46 @@ void SceneSessionManager::ConfigSnapshotScale()
         }
         snapshotScale_ = snapshotScale[0];
     }
+}
+
+void SceneSessionManager::ConfigAppDpiScale()
+{
+    // Parse <appDpiScaleConfig enable="true"><maxDpiScale>1.5</maxDpiScale>
+    // <minDpiScale>0.5</minDpiScale></appDpiScaleConfig> from window_manager_config.xml and push
+    // the clamp range to SceneSession. native side must NOT self-define the range; it reads the
+    // same config the SCB side reads so the start path and runtime recalculation stay consistent.
+    const auto& config = WindowSceneConfig::GetConfig();
+    WindowSceneConfig::ConfigItem appDpiScaleConfig = config["appDpiScaleConfig"];
+    if (!appDpiScaleConfig.IsMap()) {
+        TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig not configured, keep default range");
+        return;
+    }
+    auto enableItem = appDpiScaleConfig.GetProp("enable");
+    if (enableItem.IsBool() && !enableItem.boolValue_) {
+        TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig enable=false, keep default range");
+        return;
+    }
+    float maxDpiScale = SceneSession::GetMaxDpiScale();
+    float minDpiScale = SceneSession::GetMinDpiScale();
+    auto maxItem = appDpiScaleConfig["maxDpiScale"];
+    if (maxItem.IsFloats() && maxItem.floatsValue_ && maxItem.floatsValue_->size() == 1 &&
+        (*maxItem.floatsValue_)[0] > 0.0f) {
+        maxDpiScale = (*maxItem.floatsValue_)[0];
+    }
+    auto minItem = appDpiScaleConfig["minDpiScale"];
+    if (minItem.IsFloats() && minItem.floatsValue_ && minItem.floatsValue_->size() == 1 &&
+        (*minItem.floatsValue_)[0] > 0.0f) {
+        minDpiScale = (*minItem.floatsValue_)[0];
+    }
+    if (minDpiScale > maxDpiScale) {
+        TLOGE(WmsLogTag::WMS_MAIN, "appDpiScaleConfig invalid range, min:%{public}f > max:%{public}f, "
+            "keep default range", minDpiScale, maxDpiScale);
+        return;
+    }
+    SceneSession::SetMinDpiScale(minDpiScale);
+    SceneSession::SetMaxDpiScale(maxDpiScale);
+    TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig parsed, minDpiScale:%{public}f, maxDpiScale:%{public}f",
+        minDpiScale, maxDpiScale);
 }
 
 void SceneSessionManager::ConfigPersistentScaledSnapshot()

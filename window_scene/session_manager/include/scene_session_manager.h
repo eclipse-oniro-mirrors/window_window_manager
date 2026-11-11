@@ -1215,6 +1215,7 @@ private:
     void ConfigDialogWindowSizeLimits(const WindowSceneConfig::ConfigItem& dialogWindowSizeConifg);
     void ConfigSnapshotScale();
     void ConfigFreeMultiWindow();
+    void ConfigAppDpiScale();
     void LoadFreeMultiWindowConfig(bool enable);
     void DoUpdateSceneSessionWant(const SessionInfo& sessionInfo);
     void AddOptionWindowMetaInfo(sptr<WindowInfo> &windowInfo, const sptr<SceneSession> &session);
