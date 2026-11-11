@@ -2327,16 +2327,47 @@ void SceneSession::SetAdjustKeyboardLayoutCallback(const NotifyKeyboardLayoutAdj
             TLOGNE(WmsLogTag::WMS_KEYBOARD, "%{public}s property is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
+        sptr<ScreenSession> currentScreenSession = ScreenSessionManagerClient::GetInstance().GetScreenSessionById(
+            session->GetSessionProperty()->GetDisplayId());
+        uint32_t screenWidth = currentScreenSession ? currentScreenSession->GetScreenProperty().GetBounds().rect_.width_ : 1;
+        uint32_t screenHeight = currentScreenSession ? currentScreenSession->GetScreenProperty().GetBounds().rect_.height_ : 1;
+        uint32_t maxDimension = (screenWidth > screenHeight) ? screenWidth : screenHeight;
+        uint32_t minDimension = (screenWidth > screenHeight) ? screenHeight : screenWidth;
         KeyboardLayoutParams params = property->GetKeyboardLayoutParams();
+        params.landscapeAvoidHeight_ = -1;
+        params.portraitAvoidHeight_ = -1;
+
+        params.LandscapeKeyboardRect_.posX_ = 0;
+        params.LandscapeKeyboardRect_.posY_ = minDimension - 1;
+        params.LandscapeKeyboardRect_.width_ = maxDimension;
+        params.LandscapeKeyboardRect_.height_ = 1;
+
+        params.PortraitKeyboardRect_.posX_ = 0;
+        params.PortraitKeyboardRect_.posY_ = maxDimension - 1;
+        params.PortraitKeyboardRect_.width_ = minDimension;
+        params.PortraitKeyboardRect_.height_ = 1;
+
+        params.LandscapePanelRect_.posX_ = 0;
+        params.LandscapePanelRect_.posY_ = minDimension - 1;
+        params.LandscapePanelRect_.width_ = maxDimension;
+        params.LandscapePanelRect_.height_ = 1;
+
+        params.PortraitPanelRect_.posX_ = 0;
+        params.PortraitPanelRect_.posY_ = maxDimension - 1;
+        params.PortraitPanelRect_.width_ = minDimension;
+        params.PortraitPanelRect_.height_ = 1;
+
         session->adjustKeyboardLayoutFunc_(params);
         TLOGNI(WmsLogTag::WMS_KEYBOARD,
             "%{public}s Notify adjust keyboard layout when register, keyboardId: %{public}d, "
             "gravity: %{public}u, landscapeAvoidHeight: %{public}d, PortraitAvoidHeight: %{public}d, "
             "LandscapeKeyboardRect: %{public}s, PortraitKeyboardRect: %{public}s, "
-            "LandscapePanelRect: %{public}s, PortraitPanelRect: %{public}s", where, session->GetPersistentId(),
+            "LandscapePanelRect: %{public}s, PortraitPanelRect: %{public}s, "
+            "screenWidth: %{public}u, screenHeight: %{public}u", where, session->GetPersistentId(),
             static_cast<uint32_t>(params.gravity_), params.landscapeAvoidHeight_, params.portraitAvoidHeight_,
             params.LandscapeKeyboardRect_.ToString().c_str(), params.PortraitKeyboardRect_.ToString().c_str(),
-            params.LandscapePanelRect_.ToString().c_str(), params.PortraitPanelRect_.ToString().c_str());
+            params.LandscapePanelRect_.ToString().c_str(), params.PortraitPanelRect_.ToString().c_str(),
+            screenWidth, screenHeight);
         return WSError::WS_OK;
     }, __func__);
 }
@@ -11107,7 +11138,7 @@ WSError SceneSession::ConvertRotationToOrientation(uint32_t rotation,
     DisplayOrientation displayOrientation =
         screenSession->CalcDeviceOrientationWithBounds(targetRotation, foldDisplayMode, bounds);
     orientation = static_cast<uint32_t>(displayOrientation);
-    TLOGI(WmsLogTag::WMS_ROTATION,
+    TLOGD(WmsLogTag::WMS_ROTATION,
         "rotation: %{public}d, width: %{public}d, height: %{public}d, orientation: %{public}d",
         rotation, width, height, orientation);
     return WSError::WS_OK;
@@ -11128,7 +11159,7 @@ void SceneSession::SetPreCalcWindowPropertyCallback(const NotifyPreCalcWindowPro
 
 PreWindowProperty SceneSession::PreCalcWindowProperty()
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "start");
+    TLOGD(WmsLogTag::WMS_ROTATION, "start");
     if (!preCalcWindowPropertyFunc_) {
         TLOGE(WmsLogTag::WMS_ROTATION, "preCalcWindowPropertyFunc_ is null");
         return PreWindowProperty();
@@ -11318,13 +11349,13 @@ WSError SceneSession::GetSceneNodeCountWithTimeout(uint32_t& nodeCount, int32_t 
         nodeCount = 0;
         return WSError::WS_ERROR_NULLPTR;
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "start, winId:%{public}d, timeout:%{public}dms", GetPersistentId(), timeoutMs);
+    TLOGD(WmsLogTag::WMS_ROTATION, "start, winId:%{public}d, timeout:%{public}dms", GetPersistentId(), timeoutMs);
     auto callback = sptr<SceneNodeCountCallback>::MakeSptr();
     callback->ResetResult();
     sessionStage_->GetSceneNodeCount(callback->AsObject());
-    TLOGI(WmsLogTag::WMS_ROTATION, "wait start, winId:%{public}d", GetPersistentId());
+    TLOGD(WmsLogTag::WMS_ROTATION, "wait start, winId:%{public}d", GetPersistentId());
     nodeCount = callback->GetResult(timeoutMs);
-    TLOGI(WmsLogTag::WMS_ROTATION, "wait end, winId:%{public}d, nodeCount:%{public}u", GetPersistentId(), nodeCount);
+    TLOGD(WmsLogTag::WMS_ROTATION, "wait end, winId:%{public}d, nodeCount:%{public}u", GetPersistentId(), nodeCount);
     return WSError::WS_OK;
 }
 
@@ -11362,7 +11393,7 @@ WSError SceneSession::UpdateRotationChangeRegistered(int32_t persistentId, bool 
                 TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
                 return;
             }
-            TLOGI(
+            TLOGD(
                 WmsLogTag::WMS_ROTATION, "persistentId: %{public}d, isRegister: %{public}d", persistentId, isRegister);
             if (isRegister) {
                 session->isRotationChangeCallbackRegistered = true;

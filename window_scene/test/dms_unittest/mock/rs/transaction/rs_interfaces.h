@@ -27,6 +27,7 @@
 #include "screen_manager/rs_screen_mode_info.h"
 #include "common/rs_event_def.h"
 #include "screen_manager/rs_surface_region_config.h"
+#include "dm_common.h"
 
 
 namespace OHOS {
@@ -79,6 +80,17 @@ using FirstFrameCommitCallback = std::function<void(uint64_t, int64_t)>;
 using ScreenSupportedHDRFormatsCallback = std::function<void(ScreenId,
     std::vector<ScreenHDRFormat>& specialHdrFormats)>;
 
+struct RSVirtualScreenOption {
+    std::string name;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    sptr<Surface> surface = nullptr;
+    ScreenId associatedScreenId = 0;
+    int32_t flags = 0;
+    std::vector<NodeId> whiteList = {};
+    HDRMode hdrMode = HDRMode::NONE;
+};
+
 class RSInterfaces {
 public:
     static RSInterfaces& GetInstance()
@@ -90,6 +102,7 @@ public:
     ScreenId GetDefaultScreenId();
     ScreenId CreateVirtualScreen(const std::string& name, uint32_t width, uint32_t height, sptr<Surface> surface,
                                  ScreenId associatedScreenId = 0, int flags = 0, std::vector<NodeId> whiteList = {});
+    ScreenId CreateVirtualScreen(const RSVirtualScreenOption &option, int32_t *errorCode = nullptr);
     int32_t SetVirtualScreenTypeBlackList(ScreenId id, std::vector<NodeType>& typeBlackListVector);
     int32_t SetVirtualScreenSecurityExemptionList(ScreenId id, const std::vector<NodeId>& securityExemptionList);
     int32_t SetScreenSecurityMask(ScreenId id, std::shared_ptr<Media::PixelMap> securityMask);

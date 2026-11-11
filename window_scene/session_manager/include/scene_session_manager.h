@@ -172,7 +172,7 @@ using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(con
 using SetTopWindowBoundaryByIDFunc = std::function<void(const std::string& id)>;
 using SetForegroundWindowNumFunc = std::function<void(uint32_t windowNum)>;
 using MinimizeByWindowIdFunc = std::function<void(const std::vector<int32_t>& windowIds)>;
-using NotifySceneSessionDestructFunc = std::function<void(int32_t persistentId)>;
+using NotifySceneSessionDestructFunc = std::function<void(int32_t persistentId, bool isUserRequestedExit)>;
 using NotifyTransferSessionToTargetScreenFunc = std::function<void(const TransferSessionInfo& info)>;
 using HasRootSceneRequestedVsyncFunc = std::function<bool()>;
 using RequestVsyncByRootSceneWhenModeChangeFunc =
@@ -1082,6 +1082,12 @@ protected:
     virtual ~SceneSessionManager();
 
 private:
+    friend class DisplayChangeListener;
+    friend class ScreenConnectionChangeListener;
+    // Invalidate the per-user default display id cache. Hooked to user switch,
+    // screen connect/disconnect, display change and fold change so the next default display
+    // lookup re-resolves the authoritative value instead of returning a stale id.
+    void InvalidateDefaultDisplayIdCache();
     std::atomic<bool> enterRecent_ { false };
     std::atomic<bool> scbIsRecent_ { false };
     bool isKeyboardPanelEnabled_ = false;
@@ -1746,13 +1752,17 @@ private:
     /*
      * Multi User
      */
-    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this SCB instance's user;
-    // explicit displayId (0 or non-zero) passes through unchanged. Must be called on the IPC
-    // thread (GetCallingUid() only reliable there), before PostSyncTask.
     DisplayId ResolveDefaultDisplayId(DisplayId displayId);
+    DisplayId GetInstanceUserDefaultDisplay();
+    DisplayId GetDefaultDisplayIdByUserId(int32_t userId);
     static constexpr int32_t DEFAULT_USERID = -1;
     std::atomic<int32_t> currentUserId_ { DEFAULT_USERID };
     std::atomic<bool> isUserBackground_ { false };
+    // Event-driven cache: userId -> default display id. Populated on cache miss by falling back to
+    // the authoritative DMS resolution (GetDefaultDisplaySync), cleared on user switch / screen
+    // connect-disconnect / display property change / fold change (lazy re-resolution). O(1) read on hit.
+    std::unordered_map<int32_t, DisplayId> userDefaultDisplayIdCache_;
+    std::mutex userDefaultDisplayIdCacheMutex_;
 
     std::atomic<int32_t> flushWindowInfoCount_ { 0 };
     std::atomic<bool> isDelayFlushWindowInfoMode_ { false };
@@ -2291,6 +2301,7 @@ private:
     RogWindowConfig rogWindowConfig_;
     std::mutex updateRogWindowConfigCallbackMutex_;
     UpdateRogWindowConfigCallbackFunc updateRogWindowConfigCallback_;
+    void AddFloatViewMissionIds(std::vector<uint64_t>& missionIds, const std::vector<uint32_t>& needWindowTypeList);
 
     std::mutex adaptiveResolutionMutex_;
     // windowId -> game uid

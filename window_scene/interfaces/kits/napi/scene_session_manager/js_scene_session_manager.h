@@ -464,7 +464,7 @@ private:
     napi_value OnGetApplicationInfo(napi_env env, napi_callback_info info);
     napi_value OnSupportCreateFloatWindow(napi_env env, napi_callback_info info);
     void RegisterSceneSessionDestructCallback();
-    void OnSceneSessionDestruct(int32_t persistentId);
+    void OnSceneSessionDestruct(int32_t persistentId, bool isUserRequestedExit);
     void RegisterTransferSessionToTargetScreenCallback();
     void OnTransferSessionToTargetScreen(const TransferSessionInfo& info);
     static napi_value NotifySessionTransferToTargetScreenEvent(napi_env env, napi_callback_info info);

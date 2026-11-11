@@ -37,12 +37,12 @@ MotionManager& MotionManager::GetInstance()
 
 MotionManager::MotionManager()
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager created");
+    TLOGD(WmsLogTag::WMS_ROTATION, "MotionManager created");
 }
 
 MotionManager::~MotionManager()
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager destroyed");
+    TLOGD(WmsLogTag::WMS_ROTATION, "MotionManager destroyed");
     UnsubscribeAllMotionSensors();
     SessionUnloadMotionSensor();
 }
@@ -50,7 +50,7 @@ MotionManager::~MotionManager()
 void MotionManager::Init()
 {
     if (isInitialized_) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager already initialized");
+        TLOGD(WmsLogTag::WMS_ROTATION, "MotionManager already initialized");
         return;
     }
     
@@ -61,13 +61,13 @@ void MotionManager::Init()
 #endif
     
     isInitialized_ = true;
-    TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager initialized");
+    TLOGD(WmsLogTag::WMS_ROTATION, "MotionManager initialized");
 }
 
 void MotionManager::SetMotionEventListener(IMotionEventListener* listener)
 {
     motionEventListener_ = listener;
-    TLOGI(WmsLogTag::WMS_ROTATION, "Motion event listener set");
+    TLOGD(WmsLogTag::WMS_ROTATION, "Motion event listener set");
 }
 
 bool MotionManager::SubscribeMotionSensorInternal(MotionType motionType)
@@ -234,7 +234,7 @@ void MotionManager::SmartRotationMotionEventCallback(const MotionSensorEvent& mo
     }
     if (motionData.type == MotionType::SMART_MOTION_TYPE &&
         (motionData.status == 4 || motionData.status == 5)) { // 4,5: invalid data
-        TLOGI(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, motionData: %{public}d", patchData[0]);
+        TLOGD(WmsLogTag::WMS_ROTATION, "Smart rotation motion callback, motionData: %{public}d", patchData[0]);
         motionRotation = ConvertMotionActionToDeviceRotation(patchData[0]);
         if (dataLen >= 2) { // 2 : Length of Data
             reason = patchData[1];
@@ -266,7 +266,7 @@ void MotionManager::HandleMotionEvent(MotionType motionType, float rotation, int
 
 void MotionManager::HandleDeviceSensorRotation(float rotation)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "rotation: %{public}f", rotation);
+    TLOGD(WmsLogTag::WMS_ROTATION, "rotation: %{public}f", rotation);
     if (lastMotionRotation_ == rotation) {
         TLOGD(WmsLogTag::WMS_ROTATION, "rotation unchanged, skip notification");
         return;
@@ -317,7 +317,7 @@ void MotionManager::Reset()
     lastSmartMotionRotation_ = -1.0f;
     motionEventListener_ = nullptr;
     isInitialized_ = false;
-    TLOGI(WmsLogTag::WMS_ROTATION, "MotionManager reset");
+    TLOGD(WmsLogTag::WMS_ROTATION, "MotionManager reset");
 }
 
 void MotionManager::TestHandleMotionEvent(MotionType motionType, float rotation, int16_t reason)

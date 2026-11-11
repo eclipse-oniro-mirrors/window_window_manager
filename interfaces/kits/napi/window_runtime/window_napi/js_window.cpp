@@ -118,7 +118,7 @@ JsWindow::JsWindow(const sptr<Window>& window, napi_env env)
     };
     NotifyOrientationExecutionResultFunc orientationExecutionResultFunc = [this](
         uint32_t promiseId, OrientationExecutionResult result) {
-        TLOGNI(WmsLogTag::WMS_ROTATION, "Notify orientation result [%{public}u, %{public}u]", promiseId, result);
+        TLOGND(WmsLogTag::WMS_ROTATION, "Notify orientation result [%{public}u, %{public}u]", promiseId, result);
         this->NotifyOrientationExecutionResult(promiseId, result);
     };
     windowToken_->RegisterWindowDestroyedListener(func);
@@ -2362,7 +2362,7 @@ static void SetMoveWindowToAsyncTask(NapiAsyncTask::ExecuteCallback& execute, Na
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToAsync", *errCodePtr);
-            std::string errorMsg = "JsWindow::OnMoveWindowToAsync failed";
+            std::string errorMsg = "[window][moveWindowToAsync]msg: OnMoveWindowToAsync failed";
             APPEND_ERROR_MESSAGE_PTR(errorMsg, errMsgPtr);
             task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, errorMsg));
         }
@@ -2461,7 +2461,7 @@ static void SetMoveWindowToGlobalAsyncTask(NapiAsyncTask::ExecuteCallback& execu
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.moveWindowToGlobal", *errCodePtr);
             task.Reject(env, JsErrUtils::CreateJsError(
-                env, *errCodePtr, "JsWindow::OnMoveWindowToGlobal failed"));
+                env, *errCodePtr, "[window][moveWindowToGlobal]msg: OnMoveWindowToGlobal failed"));
         }
     };
 }
@@ -4764,7 +4764,7 @@ napi_value JsWindow::OnSetPreferredOrientation(napi_env env, napi_callback_info 
         }
         weakWindow->SetRequestedOrientation(requestedOrientation);
         task->Resolve(env, NapiGetUndefined(env));
-        TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u",
+        TLOGND(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u",
             where, weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(),
             static_cast<uint32_t>(requestedOrientation));
     };
@@ -4811,7 +4811,7 @@ napi_value JsWindow::OnSetPreferredOrientationWithResult(napi_env env, napi_call
             return;
         }
         WMError ret = weakWindow->SetPreferredOrientationWithResult(requestedOrientation, promiseId);
-        TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u"
+        TLOGND(WmsLogTag::WMS_ROTATION, "%{public}s end, window [%{public}u, %{public}s] orientation=%{public}u"
             " primiseId=%{public}d result=%{public}d", where, weakWindow->GetWindowId(),
             weakWindow->GetWindowName().c_str(), static_cast<uint32_t>(requestedOrientation), promiseId, ret);
         WmErrorCode errCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
@@ -4843,7 +4843,7 @@ void JsWindow::NotifyOrientationExecutionResult(uint32_t promiseId, OrientationE
     }
     const char* const where = __func__;
     auto asyncTask = [task = napiAsyncTask, env = env_, executionResult, where] {
-        TLOGNI(WmsLogTag::WMS_ROTATION, "%{public}s result=%{public}u", where, executionResult);
+        TLOGND(WmsLogTag::WMS_ROTATION, "%{public}s result=%{public}u", where, executionResult);
         if (env == nullptr) {
             TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s env is null", where);
             return;
@@ -8960,7 +8960,7 @@ static NapiAsyncTask::CompleteCallback GetEnableDragCompleteCallback(
             task.Resolve(env, NapiGetUndefined(env));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.enableDrag", *errCodePtr);
-            std::string errorMsg = "Set enable drag failed.";
+            std::string errorMsg = "[window][enableDrag]msg: Set enable drag failed.";
             if (errMsgPtr != nullptr && !errMsgPtr->empty()) {
                 errorMsg += ": " + *errMsgPtr;
             }
@@ -9600,7 +9600,7 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy",
                 WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env,
-                WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "window is null"));
+                WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "[window][setFollowParentMultiScreenPolicy]msg: Window is null"));
             return;
         }
         if (!WindowHelper::IsSubWindow(window->GetType())) {
@@ -9609,7 +9609,8 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy",
                 WmErrorCode::WM_ERROR_INVALID_CALLING);
             task->Reject(env, JsErrUtils::CreateJsError(env,
-                WmErrorCode::WM_ERROR_INVALID_CALLING, "invalid window type"));
+                WmErrorCode::WM_ERROR_INVALID_CALLING,
+                "[window][setFollowParentMultiScreenPolicy]msg: Invalid window type"));
             return;
         }
         std::string errMsg;
@@ -9618,7 +9619,7 @@ static std::function<void()> GetFollowParentMultiScreenPolicyTask(const wptr<Win
             WmErrorCode wmErrorCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
             TLOGNE(WmsLogTag::WMS_MAIN, "OnSetFollowParentMultiScreenPolicy failed, ret is %{public}d", wmErrorCode);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setFollowParentMultiScreenPolicy", wmErrorCode);
-            std::string errorMsg = "Set multi-screen simultaneous display failed";
+            std::string errorMsg = "[window][setFollowParentMultiScreenPolicy]msg: Set multi-screen simultaneous display failed.";
             APPEND_ERROR_MESSAGE(errorMsg, errMsg);
             task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, errorMsg));
             return;
@@ -11678,7 +11679,8 @@ static void SetDragKeyFramePolicyTask(NapiAsyncTask::ExecuteCallback& execute,
         } else {
             TLOGNE(WmsLogTag::WMS_LAYOUT_PC, "%{public}s failed, ret %{public}d", where, *errCodePtr);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDragKeyFramePolicy", *errCodePtr);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr, "set key frame policy failed"));
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
+                "[window][setDragKeyFramePolicy]msg: set key frame policy failed"));
         }
     };
 }
@@ -11691,13 +11693,15 @@ napi_value JsWindow::OnSetDragKeyFramePolicy(napi_env env, napi_callback_info in
     if (argc != INDEX_ONE || argv[INDEX_ZERO] == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "argc is invalid: %{public}zu", argc);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDragKeyFramePolicy", WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setDragKeyFramePolicy]msg: The number of parameters is invalid");
     }
     KeyFramePolicy keyFramePolicy;
     if (!ParseKeyFramePolicy(env, argv[INDEX_ZERO], keyFramePolicy)) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Failed to convert parameter to keyFramePolicy");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setDragKeyFramePolicy", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][setDragKeyFramePolicy]msg: Failed to convert parameter to keyFramePolicy");
     }
     wptr<Window> weakToken(windowToken_);
     NapiAsyncTask::ExecuteCallback execute;
@@ -11734,7 +11738,7 @@ napi_value JsWindow::OnSetSupportedWindowModes(napi_env env, napi_callback_info 
         auto window = weakWindow.promote();
         if (window == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(WMError::WM_ERROR_NULLPTR),
-                "The window is not created or destoryed."));
+                "[window][setSupportedWindowModes]msg: The window is not created or destroyed."));
             return;
         }
         std::string errMsg;
@@ -12216,7 +12220,7 @@ napi_value JsWindow::OnGetRotationLocked(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_ROTATION, "Get rotation locked failed");
         return NapiThrowError(env, code, errMsgPrefix + "get rotation locked failed");
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "window [%{public}u, %{public}s] locked = %{public}d",
+    TLOGD(WmsLogTag::WMS_ROTATION, "window [%{public}u, %{public}s] locked = %{public}d",
         windowToken_->GetWindowId(), windowToken_->GetWindowName().c_str(), locked);
     return CreateJsValue(env, locked);
 }

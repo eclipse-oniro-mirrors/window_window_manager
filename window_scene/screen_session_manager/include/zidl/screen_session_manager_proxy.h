@@ -80,7 +80,7 @@ public:
     virtual DisplayState GetDisplayState(DisplayId displayId) override;
     virtual bool TryToCancelScreenOff() override;
     ScreenId CreateVirtualScreen(VirtualScreenOption option,
-        const sptr<IRemoteObject>& displayManagerAgent) override;
+        const sptr<IRemoteObject>& displayManagerAgent, DMError* errorCode = nullptr) override;
     virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) override;
 
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false) override;

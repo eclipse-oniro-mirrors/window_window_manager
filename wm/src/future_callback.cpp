@@ -57,7 +57,7 @@ WSError FutureCallback::OnUpdateGlobalDisplayRect(
 // LCOV_EXCL_START
 WSError FutureCallback::OnUpdateTargetOrientationInfo(OrientationInfo& info, OrientationInfo& currentInfo)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "update the target orientation info");
+    TLOGD(WmsLogTag::WMS_ROTATION, "update the target orientation info");
     getTargetRotationFuture_.SetValue(std::make_pair(info, currentInfo));
     return WSError::WS_DO_NOTHING;
 }

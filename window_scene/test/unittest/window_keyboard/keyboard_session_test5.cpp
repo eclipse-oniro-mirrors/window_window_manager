@@ -1027,7 +1027,9 @@ HWTEST_F(KeyboardSessionTest5, NotifyRootSceneOccupiedAreaChange01, TestSize.Lev
     auto keyboardSession = GetKeyboardSession("NotifyRoot01", "NotifyRoot01");
     keyboardSession->property_->SetDisplayId(100);
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
 }
 
 HWTEST_F(KeyboardSessionTest5, NotifyRootSceneOccupiedAreaChange02, TestSize.Level1)
@@ -1035,15 +1037,20 @@ HWTEST_F(KeyboardSessionTest5, NotifyRootSceneOccupiedAreaChange02, TestSize.Lev
     auto keyboardSession = GetKeyboardSession("NotifyRoot02", "NotifyRoot02");
     keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange = nullptr;
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
 }
 
 HWTEST_F(KeyboardSessionTest5, NotifyRootSceneOccupiedAreaChange03, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("NotifyRoot03", "NotifyRoot03");
-    keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange = [](const sptr<OccupiedAreaChangeInfo>& info) {};
+    keyboardSession->keyboardCallback_->onNotifyOccupiedAreaChange =
+        [](const sptr<OccupiedAreaChangeInfo>& info, const sptr<AvoidArea>& avoidArea) {};
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
 }
 
 HWTEST_F(KeyboardSessionTest5, IsNeedRaiseSubWindow01, TestSize.Level1)

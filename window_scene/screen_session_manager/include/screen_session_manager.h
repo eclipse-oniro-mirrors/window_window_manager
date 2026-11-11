@@ -137,7 +137,8 @@ public:
     void NotifyScreenshot(DisplayId displayId);
     virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) override;
     void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds);
-    ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent) override;
+    ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent,
+        DMError* errorCode = nullptr) override;
     std::vector<uint64_t> FilterMissionIdsBySurfaceNodeIds(const std::vector<uint64_t>& missionIds,
         const std::vector<uint64_t>& surfaceNodeIds);
     bool SetVirtualScreenUser(ScreenId screenId, int32_t userId);
@@ -779,6 +780,7 @@ protected:
     int32_t connectScreenNumber_ = 0;
 
 private:
+    DisplayId GetDefaultDisplayIdByUserId(int32_t userId = CONCURRENT_USER_ID_DEFAULT);
     void SaveScreenCapabilityToDB();
     void UpdateSessionByActiveModeChange(sptr<ScreenSession> screenSession, RSScreenModeInfo screenMode);
     int32_t GetActiveIdxInModes(const std::vector<sptr<SupportedScreenModes>>& modes,
@@ -1228,7 +1230,7 @@ private:
     std::map<sptr<IRemoteObject>, std::vector<ScreenId>> screenAgentMap_;
     std::map<ScreenId, sptr<ScreenSessionGroup>> smsScreenGroupMap_;
     std::map<uint32_t, std::map<DisplayId, DMHookInfo>> displayHookMap_;
-    std::map<int32_t, int32_t> uidAndPidMap_;
+    std::map<int32_t, std::vector<int32_t>> uidAndPidMap_;
     std::shared_mutex adaptiveResolutionMutex_;
     // uid -> active config
     std::map<int32_t, DMAdaptiveResolutionConfig> adaptiveResolutionMap_;
@@ -1501,6 +1503,14 @@ private:
     bool IsResolutionEffectOwnedByAnyOf(const std::vector<ScreenId>& screenIds) const;
     void MarkResolutionEffectApplied(ScreenId ownerId);
     void MarkResolutionEffectIdle();
+    // Aligns the multiinput cursor params (mirrorWidth/Height) of a screen — and of its physical
+    // backing session — with the mirror region that screen currently holds. Deliberately not
+    // owner-keyed: the params are supposed to describe the stored region, but several writers
+    // break that pairing — creation-time mode dims, the mode-switch property swap moving params
+    // alone, region-only plain mirror switches — so a mismatch is the stale state this cleans;
+    // writers that keep the pairing (this machinery, SuperFoldStateManager's fold-state refresh)
+    // make it idempotent.
+    void ReconcileMirrorCursorParams(const sptr<ScreenSession>& screenSession);
     std::atomic<bool> curResolutionEffectEnable_ = false;
     std::atomic<ScreenId> resolutionEffectOwnerId_ { SCREEN_ID_INVALID };
     void SetOptionConfig(ScreenId screenId, VirtualScreenOption option);
