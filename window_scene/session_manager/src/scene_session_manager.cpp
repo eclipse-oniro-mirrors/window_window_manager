@@ -23959,6 +23959,11 @@ WSError SceneSessionManager::NotifyStackRecoverFromAMS(int32_t persistentId, boo
         TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not SA calling, id %{public}d", persistentId);
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
+    bool isFoundationCall = SessionPermission::IsFoundationCall();
+    if (!isFoundationCall) {
+        TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not SA foundation, id %{public}d", persistentId);
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
     TLOGI(WmsLogTag::WMS_MAIN, "id %{public}d, isStackRecover %{public}d", persistentId, isStackRecover);
     auto sceneSession = GetSceneSession(persistentId);
     if (sceneSession == nullptr) {
