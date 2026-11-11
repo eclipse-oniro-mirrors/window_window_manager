@@ -1180,7 +1180,7 @@ public:
     /*
      * dpi force scale for PC Window
      */
-    void UpdateDpiForceScale();
+    void UpdateDpiForceScale(float minDpiScale, float maxDpiScale, float dpiScaleStep);
     void SetDpiForceScaleChangeNotifyFunc(const NotifyDpiForceScaleChangeFunc& func);
     // Notify client (app process) of dpiForceScale change for coordinate conversion.
     void NotifyDpiForceScaleToClient();
@@ -1194,10 +1194,6 @@ public:
     void SetWindowStartDensity(float density) { windowStartDensity_ = density; }
     float GetScreenDensityById(DisplayId displayId);
     float GetCoordinateScaleFactor() const override;
-    void SetMinDpiScale(float scale) { minDpiScale_ = scale; }
-    void SetMaxDpiScale(float scale) { maxDpiScale_ = scale; }
-    float GetMinDpiScale() { return minDpiScale_; }
-    float GetMaxDpiScale() { return maxDpiScale_; }
 
 protected:
     void NotifyIsCustomAnimationPlaying(bool isPlaying);
@@ -1871,9 +1867,6 @@ private:
     bool isDpiForceScale_ {false};
     float dpiForceScale_ {1.0f};
     float windowStartDensity_ {0.0f};
-    float DPI_SCALE_STEP {0.05f};
-    float minDpiScale_ {1.0f};
-    float maxDpiScale_ {1.0f};
     NotifyDpiForceScaleChangeFunc dpiForceScaleChangeFunc_ = nullptr;
     /**
      * Window pattern

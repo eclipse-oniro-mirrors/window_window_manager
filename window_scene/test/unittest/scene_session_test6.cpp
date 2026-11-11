@@ -2543,7 +2543,7 @@ HWTEST_F(SceneSessionTest6, UpdateDpiForceScale01, Function | SmallTest | Level1
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     // isDpiForceScale_ defaults to false -> early return, dpiForceScale_ unchanged
     float before = session->GetDpiForceScale();
-    session->UpdateDpiForceScale();
+    session->UpdateDpiForceScale(1.0f, 1.0f, 0.05f);
     EXPECT_FLOAT_EQ(session->GetDpiForceScale(), before);
 }
 
@@ -2559,7 +2559,7 @@ HWTEST_F(SceneSessionTest6, UpdateDpiForceScale02, Function | SmallTest | Level1
     session->SetIsDpiForceScale(true);
     // property_ is set by SceneSession constructor; force nullptr to hit early return
     session->property_ = nullptr;
-    session->UpdateDpiForceScale();
+    session->UpdateDpiForceScale(1.0f, 1.0f, 0.05f);
     EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
 }
 
@@ -2574,13 +2574,13 @@ HWTEST_F(SceneSessionTest6, UpdateDpiForceScale03, Function | SmallTest | Level1
     sptr<SceneSession> session = sptr<SceneSession>::MakeSptr(info, nullptr);
     session->SetIsDpiForceScale(true);
     session->SetWindowStartDensity(0.0f); // non-positive -> early return
-    session->UpdateDpiForceScale();
+    session->UpdateDpiForceScale(1.0f, 1.0f, 0.05f);
     EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
 
     // windowStartDensity positive, but screen density 0 (invalid display) -> still skip
     session->SetWindowStartDensity(2.0f);
     session->property_->SetDisplayId(static_cast<DisplayId>(999999)); // no such display
-    session->UpdateDpiForceScale();
+    session->UpdateDpiForceScale(1.0f, 1.0f, 0.05f);
     EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
 }
 
@@ -2599,7 +2599,7 @@ HWTEST_F(SceneSessionTest6, UpdateDpiForceScale04, Function | SmallTest | Level1
     // Note: the round+clamp main path (currScreenDensity > 0) cannot be unit-tested
     // here because DisplayManager::GetDisplayById is a non-mockable singleton.
     session->property_->SetDisplayId(static_cast<DisplayId>(999999));
-    session->UpdateDpiForceScale();
+    session->UpdateDpiForceScale(1.0f, 1.0f, 0.05f);
     EXPECT_FLOAT_EQ(session->GetDpiForceScale(), 1.0f);
 }
 

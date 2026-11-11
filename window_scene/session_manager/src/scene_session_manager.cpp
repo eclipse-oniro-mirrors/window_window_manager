@@ -2258,9 +2258,9 @@ void SceneSessionManager::ConfigSnapshotScale()
 void SceneSessionManager::ConfigAppDpiScale()
 {
     // Parse <appDpiScaleConfig enable="true"><maxDpiScale>1.5</maxDpiScale>
-    // <minDpiScale>0.5</minDpiScale></appDpiScaleConfig> from window_manager_config.xml and push
-    // the clamp range to SceneSession. native side must NOT self-define the range; it reads the
-    // same config the SCB side reads so the start path and runtime recalculation stay consistent.
+    // <minDpiScale>0.5</minDpiScale></appDpiScaleConfig> from window_manager_config.xml and keep
+    // the clamp range here. native side must NOT self-define the range; it reads the same config
+    // the SCB side reads so the start path and runtime recalculation stay consistent.
     const auto& config = WindowSceneConfig::GetConfig();
     WindowSceneConfig::ConfigItem appDpiScaleConfig = config["appDpiScaleConfig"];
     if (!appDpiScaleConfig.IsMap()) {
@@ -2272,8 +2272,8 @@ void SceneSessionManager::ConfigAppDpiScale()
         TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig enable=false, keep default range");
         return;
     }
-    float maxDpiScale = SceneSession::GetMaxDpiScale();
-    float minDpiScale = SceneSession::GetMinDpiScale();
+    float maxDpiScale = GetMaxDpiScale();
+    float minDpiScale = GetMinDpiScale();
     auto maxItem = appDpiScaleConfig["maxDpiScale"];
     if (maxItem.IsFloats() && maxItem.floatsValue_ && maxItem.floatsValue_->size() == 1 &&
         (*maxItem.floatsValue_)[0] > 0.0f) {
@@ -2289,8 +2289,8 @@ void SceneSessionManager::ConfigAppDpiScale()
             "keep default range", minDpiScale, maxDpiScale);
         return;
     }
-    SceneSession::SetMinDpiScale(minDpiScale);
-    SceneSession::SetMaxDpiScale(maxDpiScale);
+    SetMinDpiScale(minDpiScale);
+    SetMaxDpiScale(maxDpiScale);
     TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig parsed, minDpiScale:%{public}f, maxDpiScale:%{public}f",
         minDpiScale, maxDpiScale);
 }
@@ -16129,7 +16129,7 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
                     sceneSession->GetPersistentId(), sceneSession->GetWindowType(),
                     sceneSession->GetSessionState(), sceneSession->IsVisible());
             }
-            sceneSession->UpdateDpiForceScale();
+            sceneSession->UpdateDpiForceScale(minDpiScale_, maxDpiScale_, DPI_SCALE_STEP);
         }
         UpdateDisplayRegion(displayInfo);
         return WSError::WS_OK;
@@ -16968,7 +16968,7 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
 #endif
     sceneSession->NotifyRemoveAppLockSnapshot();
     sceneSession->UpdateDensity();
-    sceneSession->UpdateDpiForceScale();
+    sceneSession->UpdateDpiForceScale(minDpiScale_, maxDpiScale_, DPI_SCALE_STEP);
     if (fromScreenId != screenId) {
         sceneSession->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));
         sceneSession->MarkAvoidAreaAsDirty();
