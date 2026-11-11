@@ -34,6 +34,7 @@ const std::string CHANGE_SESSION_VISIBILITY_WITH_STATUS_BAR = "changeSessionVisi
 const std::string SESSION_STATE_CHANGE_CB = "sessionStateChange";
 const std::string UPDATE_TRANSITION_ANIMATION_CB = "updateTransitionAnimation";
 const std::string BUFFER_AVAILABLE_CHANGE_CB = "bufferAvailableChange";
+const std::string STACK_RECOVERY_FLAG_CB = "stackRecoveryFlagChange";
 const std::string SESSION_EVENT_CB = "sessionEvent";
 const std::string SESSION_RECT_CHANGE_CB = "sessionRectChange";
 const std::string SESSION_WINDOW_LIMITS_CHANGE_CB = "sessionWindowLimitsChange";
@@ -150,6 +151,7 @@ const std::map<std::string, ListenerFuncType> ListenerFuncMap {
     {PENDING_SCENE_CB,                      ListenerFuncType::PENDING_SCENE_CB},
     {CHANGE_SESSION_VISIBILITY_WITH_STATUS_BAR,
         ListenerFuncType::CHANGE_SESSION_VISIBILITY_WITH_STATUS_BAR},
+    {STACK_RECOVERY_FLAG_CB,            ListenerFuncType::STACK_RECOVERY_FLAG_CB},
     {SESSION_STATE_CHANGE_CB,               ListenerFuncType::SESSION_STATE_CHANGE_CB},
     {UPDATE_TRANSITION_ANIMATION_CB,        ListenerFuncType::UPDATE_TRANSITION_ANIMATION_CB},
     {BUFFER_AVAILABLE_CHANGE_CB,            ListenerFuncType::BUFFER_AVAILABLE_CHANGE_CB},
@@ -1938,6 +1940,23 @@ void JsSceneSession::ProcessRaiseMainWindowAboveTargetRegister()
     TLOGD(WmsLogTag::WMS_HIERARCHY, "success");
 }
 
+void JsSceneSession::ProcessStackRecoveryFlagChangeRegister()
+{
+    auto session = weakSession_.promote();
+    if (session == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr, id:%{public}d", persistentId_);
+        return;
+    }
+    session->SetStackRecoveryFlagChangeListener([weakThis = wptr(this)](bool stackRecoveryFlag) {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "ProcessStackRecoveryFlagChangeRegister jsSceneSession is null");
+            return;
+        }
+        jsSceneSession->OnStackRecoveryFlagChange(stackRecoveryFlag);
+    });
+}
+
 void JsSceneSession::ProcessSessionEventRegister()
 {
     auto session = weakSession_.promote();
@@ -2317,6 +2336,28 @@ void JsSceneSession::ProcessContextTransparentRegister()
     session->SetContextTransparentFunc(func);
     TLOGD(WmsLogTag::DEFAULT, "success");
 }
+
+void JsSceneSession::OnStackRecoveryFlagChange(bool stackRecoveryFlag)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "stack recovery flag change to: %{public}d, id:%{public}d",
+        stackRecoveryFlag, persistentId_);
+    taskScheduler_->PostMainThreadTask([weakThis = wptr(this), persistentId = persistentId_,
+        stackRecoveryFlag, env = env_] {
+        auto jsSceneSession = weakThis.promote();
+        if (!jsSceneSession || jsSceneSessionMap_.find(persistentId) == jsSceneSessionMap_.end()) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "jsSceneSession id:%{public}d has been destroyed", persistentId);
+            return;
+        }
+        auto jsCallBack = jsSceneSession->GetJSCallback(STACK_RECOVERY_FLAG_CB);
+        if (!jsCallBack) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
+            return;
+        }
+        napi_value argv[] = { CreateJsValue(env, stackRecoveryFlag) };
+        napi_call_function(env, NapiGetUndefined(env), jsCallBack->GetNapiValue(), ArraySize(argv), argv, nullptr);
+    }, __func__);
+}
+
 
 void JsSceneSession::OnSessionEvent(uint32_t eventId, const SessionEventParam& param)
 {
@@ -3498,6 +3539,9 @@ void JsSceneSession::ProcessRegisterCallback(ListenerFuncType listenerFuncType)
             break;
         case static_cast<uint32_t>(ListenerFuncType::BUFFER_AVAILABLE_CHANGE_CB):
             ProcessBufferAvailableChangeRegister();
+            break;
+        case static_cast<uint32_t>(ListenerFuncType::STACK_RECOVERY_FLAG_CB):
+            ProcessStackRecoveryFlagChangeRegister();
             break;
         case static_cast<uint32_t>(ListenerFuncType::SESSION_EVENT_CB):
             ProcessSessionEventRegister();

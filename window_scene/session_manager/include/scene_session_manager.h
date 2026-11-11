@@ -877,6 +877,7 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig);
     void RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func);
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover);
     WMError HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession, int32_t callingUid,
         const GameAdaptiveResolutionConfig& config);
     WMError CheckAdaptiveResolutionEnable(const sptr<SceneSession>& sceneSession, int32_t callingUid,

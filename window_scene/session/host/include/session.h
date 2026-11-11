@@ -557,6 +557,8 @@ public:
     void SetBufferAvailable(bool bufferAvailable, bool startWindowInvisible = false);
     bool GetBufferAvailable() const;
     void SetNeedSnapshot(bool needSnapshot);
+    void SetTryUseSnapshot(bool tryUseSnapshot);
+    bool GetTryUseSnapshot() const;
     virtual void SetExitSplitOnBackground(bool isExitSplitOnBackground);
     virtual bool IsExitSplitOnBackground() const;
     virtual bool NeedStartingWindowExitAnimation() const { return true; }
@@ -1192,6 +1194,7 @@ protected:
 
     SystemSessionConfig systemConfig_;
     bool needSnapshot_ = false;
+    bool tryUseSnapshot_ = false;
     float snapshotScale_ = 0.5;
     bool enablePersistentScaledSnapshot_ = false;
     sptr<ScenePersistence> scenePersistence_ = nullptr;

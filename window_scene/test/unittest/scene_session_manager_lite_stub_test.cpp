@@ -355,6 +355,10 @@ public:
     {
         return WMError::WM_OK;
     }
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override
+    {
+        return WSError::WS_OK;
+    }
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override
     {
         return WMError::WM_OK;
@@ -2154,6 +2158,129 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleRestoreSessionToForeground_ReadF
     MessageParcel reply;
     int res = sceneSessionManagerLiteStub_->HandleRestoreSessionToForeground(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_Success
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with valid parameters
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_Success, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100);
+    data.WriteBool(true);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_ReadPersistentIdFailed
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS when read persistentId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_ReadPersistentIdFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_ReadBoolFailed
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS when read isStackRecover failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_ReadBoolFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(200);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_FalseFlag
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with isStackRecover false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_FalseFlag, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(300);
+    data.WriteBool(false);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_ZeroPersistentId
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with zero persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_ZeroPersistentId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(0);
+    data.WriteBool(true);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_NegativePersistentId
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with negative persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_NegativePersistentId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(-1);
+    data.WriteBool(false);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_NotifyStackRecoverFromAMS
+ * @tc.desc: test OnRemoteRequest routes NotifyStackRecoverFromAMS transaction code
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, OnRemoteRequest_NotifyStackRecoverFromAMS, TestSize.Level1)
+{
+    using MsgType = SceneSessionManagerLiteStub::SceneSessionManagerLiteMessage;
+    uint32_t code = static_cast<uint32_t>(MsgType::TRANS_ID_NOTIFY_STACK_RECOVER);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SceneSessionManagerLiteStub::GetDescriptor());
+    data.WriteInt32(100);
+    data.WriteBool(true);
+    auto res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_NotifyStackRecoverFromAMS_InvalidToken
+ * @tc.desc: test OnRemoteRequest NotifyStackRecoverFromAMS with invalid interface token
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, OnRemoteRequest_NotifyStackRecoverFromAMS_InvalidToken, TestSize.Level1)
+{
+    using MsgType = SceneSessionManagerLiteStub::SceneSessionManagerLiteMessage;
+    uint32_t code = static_cast<uint32_t>(MsgType::TRANS_ID_NOTIFY_STACK_RECOVER);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(u"InvalidToken");
+    auto res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ERR_TRANSACTION_FAILED, res);
 }
 } // namespace
 } // namespace Rosen

@@ -3413,4 +3413,35 @@ WMError SceneSessionManagerLiteProxy::UpdateRogWindowConfig(const RogWindowConfi
     }
     return static_cast<WMError>(ret);
 }
+
+WSError SceneSessionManagerLiteProxy::NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_ASYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_MAIN, "WriteInterfaceToken failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Write persistentId failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(isStackRecover)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "Write isStackRecover failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_MAIN, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(
+        SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_STACK_RECOVER),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_MAIN, "SendRequest failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    return WSError::WS_OK;
+}
 } // namespace OHOS::Rosen

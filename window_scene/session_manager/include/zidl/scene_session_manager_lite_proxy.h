@@ -150,6 +150,7 @@ public:
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);

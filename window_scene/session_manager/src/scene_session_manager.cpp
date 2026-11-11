@@ -4964,6 +4964,10 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
         sceneSession->SetActive(false);
         sceneSession->UpdatePrivacyModeControlInfo();
 
+        // Clear stack recovery flags when session goes to background
+        sceneSession->SetTryUseSnapshot(false);
+        sceneSession->NotifyStackRecoveryFlagChange(false);
+
         if (isToDesktop) {
             sceneSession->EditSessionInfo().callerToken_ = nullptr;
             sceneSession->EditSessionInfo().callingTokenId_ = 0;
@@ -23992,6 +23996,27 @@ void SceneSessionManager::SetSelectMode(SelectMode selectMode)
 SelectMode SceneSessionManager::GetSelectMode() const
 {
     return selectMode_.load();
+}
+
+WSError SceneSessionManager::NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not SA calling, id %{public}d", persistentId);
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    bool isFoundationCall = SessionPermission::IsFoundationCall();
+    if (!isFoundationCall) {
+        TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not foundation calling, id %{public}d", persistentId);
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    TLOGI(WmsLogTag::WMS_MAIN, "id %{public}d, isStackRecover %{public}d", persistentId, isStackRecover);
+    auto sceneSession = GetSceneSession(persistentId);
+    if (sceneSession == nullptr) {
+        TLOGNE(WmsLogTag::WMS_MAIN, "session is nullptr");
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    sceneSession->NotifyStackRecoveryFlagChange(isStackRecover);
+    return WSError::WS_OK;
 }
 
 } // namespace OHOS::Rosen

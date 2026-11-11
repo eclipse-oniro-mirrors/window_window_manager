@@ -576,4 +576,10 @@ WMError SceneSessionManagerLite::UpdateRogWindowConfig(const RogWindowConfig& wi
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
 }
+
+WSError SceneSessionManagerLite::NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+}
 } // namespace OHOS::Rosen

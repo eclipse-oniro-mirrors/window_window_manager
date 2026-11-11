@@ -143,6 +143,7 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override;
 };
 } // namespace OHOS::Rosen
 

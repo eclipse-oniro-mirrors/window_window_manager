@@ -5731,6 +5731,16 @@ void Session::SetNeedSnapshot(bool needSnapshot)
     needSnapshot_ = needSnapshot;
 }
 
+void Session::SetTryUseSnapshot(bool tryUseSnapshot)
+{
+    tryUseSnapshot_ = tryUseSnapshot;
+}
+
+bool Session::GetTryUseSnapshot() const
+{
+    return tryUseSnapshot_;
+}
+
 void Session::SetExitSplitOnBackground(bool isExitSplitOnBackground)
 {
     TLOGW(WmsLogTag::WMS_MULTI_WINDOW, "id: %{public}d, SetExitSplitOnBackground not implement", persistentId_);
