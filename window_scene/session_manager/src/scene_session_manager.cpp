@@ -13184,6 +13184,7 @@ WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, Sessio
         float snapShotScale = sceneSession->GetFloatingScale() > 1.0f ? 1.0f : sceneSession->GetFloatingScale();
         Session::SnapshotOptions options;
         options.scaleParam = snapShotScale;
+        options.ignorePersistence = true;
         if (auto oriSnapshot = sceneSession->Snapshot(options)) {
             if (sceneSession->GetFloatingScale() > 1.0f) {
                 oriSnapshot->scale(sceneSession->GetFloatingScale(), sceneSession->GetFloatingScale());

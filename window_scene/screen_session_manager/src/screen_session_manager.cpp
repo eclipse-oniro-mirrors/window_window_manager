@@ -16909,9 +16909,9 @@ void ScreenSessionManager::ConvertWindowIdsToSurfaceNodeList(std::vector<uint64_
     // For callers holding CUSTOM_SCREEN_CAPTURE permission, allow excluding windows of any
     // type on top of the floating ball.
     bool isAllowedExcludeAnyWindow = Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION);
-    std::vector<uint32_t> needWindowTypeList = isAllowedExcludeAnyWindow ?
-        std::vector<uint32_t>{} : std::vector<uint32_t>{ FLOATING_BALL_TYPE,
-            static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB), static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV) };
+    std::vector<uint32_t> needWindowTypeList = isAllowedExcludeAnyWindow ? std::vector<uint32_t>{} :
+        std::vector<uint32_t>{ static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB),
+                               static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV) };
     clientProxy->OnGetSurfaceNodeIdsFromMissionIdsChanged(windowIdList, surfaceNodesList, needWindowTypeList, true);
     if (surfaceNodesList.empty()) {
         *errorCode = DmErrorCode::DM_ERROR_INVALID_PARAM;

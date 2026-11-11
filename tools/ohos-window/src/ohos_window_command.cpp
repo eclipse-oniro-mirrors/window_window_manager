@@ -747,13 +747,13 @@ std::shared_ptr<Media::PixelMap> ClawWindowShellCommand::GetWindowSnapshot(int32
     if (auto proxy = GetSceneSessionManagerLiteProxy()) {
         ret = proxy->GetSessionSnapshotById(windowId, snapshot, extraInfo);
     }
-    if (ret != WMError::WM_OK) {
-        WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(ret));
-        PrintError(errorInfo);
-        return nullptr;
-    } else if (!extraInfo.empty()) {
+    if (!extraInfo.empty()) {
         WmToolErrorInfo errorInfo = { ERR_INVALID_INPUT, "Invalid input parameters.",
             extraInfo, { INVALID_PARAM_SOLUTION } };
+        PrintError(errorInfo);
+        return nullptr;
+    } else if (ret != WMError::WM_OK) {
+        WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(ret));
         PrintError(errorInfo);
         return nullptr;
     }
