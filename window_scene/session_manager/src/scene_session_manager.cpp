@@ -23961,7 +23961,7 @@ WSError SceneSessionManager::NotifyStackRecoverFromAMS(int32_t persistentId, boo
     }
     bool isFoundationCall = SessionPermission::IsFoundationCall();
     if (!isFoundationCall) {
-        TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not SA foundation, id %{public}d", persistentId);
+        TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not foundation calling, id %{public}d", persistentId);
         return WSError::WS_ERROR_INVALID_PERMISSION;
     }
     TLOGI(WmsLogTag::WMS_MAIN, "id %{public}d, isStackRecover %{public}d", persistentId, isStackRecover);
