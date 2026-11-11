@@ -791,6 +791,8 @@ napi_value JsWindowManager::OnCreateWindow(napi_env env, napi_callback_info info
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnCreateWindow") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][createWindow]msg: send event failed"));
     }
     return result;
 }
@@ -934,7 +936,7 @@ napi_value JsWindowManager::OnFindWindowSync(napi_env env, napi_callback_info in
     }
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][createWindow]msg: Parameter verification failed."));
+            "[window][findWindow]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -994,7 +996,8 @@ napi_value JsWindowManager::OnMinimizeAll(napi_env env, napi_callback_info info)
     WmErrorCode errCode = MinimizeAllParamParse(env, argc, argv, displayId, excludeWindowId);
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         TLOGE(WmsLogTag::WMS_LIFE, "JsWindowManager::OnMinimizeAll failed, Invalidate params.");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][minimizeAll]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -1014,7 +1017,7 @@ napi_value JsWindowManager::OnMinimizeAll(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::WMS_LIFE, "OnMinimizeAll success");
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "OnMinimizeAll failed"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][minimizeAll]msg: Minimize all failed."));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnMinimizeAll") != napi_status::napi_ok) {
@@ -1839,13 +1842,16 @@ napi_value JsWindowManager::OnGetAllMainWindowInfo(napi_env env, napi_callback_i
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [env, task = napiAsyncTask, where = __func__] {
         std::vector<sptr<MainWindowInfo>> infos;
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        auto retIt = WM_JS_TO_ERROR_CODE_MAP.find(
             SingletonContainer::Get<WindowManager>().GetAllMainWindowInfo(infos));
+        WmErrorCode ret = (retIt != WM_JS_TO_ERROR_CODE_MAP.end()) ?
+            retIt->second : WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, CreateJsMainWindowInfoArrayObject(env, infos));
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s success", where);
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "failed"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                "[window][getAllMainWindowInfo]msg: Get all main window info failed."));
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s failed", where);
         }
     };
@@ -2560,7 +2566,10 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         if (subWindow == nullptr || wmError != WMError::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s create window failed", where);
             napi_delete_reference(env, callbackRef);
-            task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(wmError),
+            auto retIt = WM_JS_TO_ERROR_CODE_MAP.find(wmError);
+            WmErrorCode ret = (retIt != WM_JS_TO_ERROR_CODE_MAP.end()) ?
+                retIt->second : WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
                 "[window][CreateSubWindowAndBindParent]msg: Create window failed"));
             return;
         }
@@ -2573,7 +2582,10 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         if (registerResult != WmErrorCode::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s register listener failed", where);
             napi_delete_reference(env, callbackRef);
-            subWindow->Destroy();
+            auto destroyRet = subWindow->Destroy();
+            if (destroyRet != WMError::WM_OK) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s destroy window failed, ret=%{public}d", where, destroyRet);
+            }
             task->Reject(env, JsErrUtils::CreateJsError(env, registerResult,
                 "[window][CreateSubWindowAndBindParent]msg: " + (errMsg.empty()? "Create window failed" : errMsg)));
             return;

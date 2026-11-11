@@ -20,6 +20,7 @@
 #include <cstring>
 #include <functional>
 #include <mutex>
+#include <new>
 #include <unordered_map>
 
 #include "image/pixelmap_native.h"
@@ -86,7 +87,11 @@ std::shared_ptr<OHOS::AppExecFwk::EventHandler> GetMainEventHandler()
 WindowManager_ErrorCode ShowWindowInner(int32_t windowId)
 {
     auto eventHandler = GetMainEventHandler();
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::OK;
+    if (eventHandler == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "eventHandler is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+    }
+    WindowManager_ErrorCode ret = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     eventHandler->PostSyncTask([windowId, &ret] {
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
@@ -119,8 +124,13 @@ WindowManager_ErrorCode IsWindowShownInner(int32_t windowId, bool* isShow)
         TLOGE(WmsLogTag::WMS_LIFE, "isShow is null");
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
+    *isShow = false;
     auto eventHandler = GetMainEventHandler();
-    WindowManager_ErrorCode ret = WindowManager_ErrorCode::OK;
+    if (eventHandler == nullptr) {
+        TLOGE(WmsLogTag::WMS_LIFE, "eventHandler is null, windowId:%{public}d", windowId);
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
+    }
+    WindowManager_ErrorCode ret = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     eventHandler->PostSyncTask([windowId, isShow, &ret] {
         auto window = Window::GetWindowWithId(windowId);
         if (window == nullptr) {
@@ -540,6 +550,9 @@ void TransformedToWindowManagerRect(const Rect& rect, WindowManager_Rect& wmRect
 WindowManager_MainWindowInfo* PackMainWindowInfoList(
     const std::vector<OHOS::sptr<MainWindowInfo>>& infos)
 {
+    if (infos.empty()) {
+        return nullptr;
+    }
     size_t totalLabelLen = 0;
     for (size_t i = 0; i < infos.size(); i++) {
         totalLabelLen += infos[i]->label_.size() + 1;
@@ -600,20 +613,29 @@ void RegisterCallBackFunc(const OHOS::sptr<GetSnapshotCallback>& getSnapshotCall
                 callback(nullptr, 0);
                 return;
             }
-            const OH_PixelmapNative** pixelmapArray = new const OH_PixelmapNative* [pixelMaps.size()];
-            if (pixelmapArray == nullptr) {
+            size_t count = pixelMaps.size();
+            if (count > static_cast<size_t>(MAX_SESSION_LIMIT_ALL_APP) ||
+                count > (SIZE_MAX - sizeof(size_t)) / sizeof(OH_PixelmapNative*)) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "count is invalid: %{public}zu", count);
+                callback(nullptr, 0);
+                return;
+            }
+            size_t blockSize = sizeof(size_t) + count * sizeof(OH_PixelmapNative*);
+            char* block = new (std::nothrow) char[blockSize];
+            if (block == nullptr) {
                 TLOGNE(WmsLogTag::WMS_LIFE, "alloc failed");
                 callback(nullptr, 0);
                 return;
             }
-            for (size_t i = 0; i < pixelMaps.size(); i++) {
+            *reinterpret_cast<size_t*>(block) = count;
+            auto pixelmapArray = reinterpret_cast<const OH_PixelmapNative**>(block + sizeof(size_t));
+            for (size_t i = 0; i < count; i++) {
                 if (!pixelMaps[i]) {
                     pixelmapArray[i] = nullptr;
                 } else {
                     pixelmapArray[i] = new OH_PixelmapNative(pixelMaps[i]);
                 }
             }
-            size_t count = pixelMaps.size();
             callback(pixelmapArray, count);
         });
 }
@@ -1291,7 +1313,7 @@ int32_t OH_WindowManager_GetAllMainWindowInfo(
         TLOGE(WmsLogTag::WMS_LIFE, "param is nullptr");
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
-    WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
+    WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "eventHandler is null");
@@ -1324,17 +1346,24 @@ int32_t OH_WindowManager_GetAllMainWindowInfo(
  
 void OH_WindowManager_ReleaseAllMainWindowInfo(WindowManager_MainWindowInfo* infoList)
 {
+    if (infoList == nullptr) {
+        return;
+    }
     WINDOW_MANAGER_FREE_MEMORY(infoList);
 }
  
 int32_t OH_WindowManager_GetMainWindowSnapshot(int32_t* windowIdList, size_t windowIdListSize,
     WindowManager_WindowSnapshotConfig config, OH_WindowManager_WindowSnapshotCallback callback)
 {
-    if (windowIdList == nullptr || windowIdListSize <= 0 || windowIdListSize > MAX_SESSION_LIMIT_ALL_APP) {
-        TLOGNE(WmsLogTag::WMS_LIFE, "param is nullptr");
+    if (windowIdList == nullptr || windowIdListSize == 0 || windowIdListSize > MAX_SESSION_LIMIT_ALL_APP) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "invalid param");
         return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
     }
-    WindowManager_ErrorCode errCode = WindowManager_ErrorCode::OK;
+    if (callback == nullptr) {
+        TLOGNE(WmsLogTag::WMS_LIFE, "callback is nullptr");
+        return WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM;
+    }
+    WindowManager_ErrorCode errCode = WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL;
     auto eventHandler = GetMainEventHandler();
     if (eventHandler == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "eventHandler is null");
@@ -1348,15 +1377,30 @@ int32_t OH_WindowManager_GetMainWindowSnapshot(int32_t* windowIdList, size_t win
         RegisterCallBackFunc(getSnapshotCallback, callback);
         auto ret = SingletonContainer::Get<WindowManager>().GetMainWindowSnapshot(
             windowIdVector, windowSnapshotConfiguration, getSnapshotCallback->AsObject());
-        errCode = OH_WINDOW_TO_ERROR_CODE_MAP.find(ret) == OH_WINDOW_TO_ERROR_CODE_MAP.end() ?
-            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL : OH_WINDOW_TO_ERROR_CODE_MAP.at(ret);
+        auto it = OH_WINDOW_TO_ERROR_CODE_MAP.find(ret);
+        errCode = it == OH_WINDOW_TO_ERROR_CODE_MAP.end() ?
+            WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_SYSTEM_ABNORMAL : it->second;
         }, __func__);
     return errCode;
 }
  
 void OH_WindowManager_ReleaseMainWindowSnapshot(const OH_PixelmapNative* snapshotPixelMapList)
 {
-    WINDOW_MANAGER_FREE_MEMORY(snapshotPixelMapList);
+    if (snapshotPixelMapList == nullptr) {
+        return;
+    }
+    char* block = reinterpret_cast<char*>(const_cast<OH_PixelmapNative*>(snapshotPixelMapList)) - sizeof(size_t);
+    size_t count = *reinterpret_cast<size_t*>(block);
+    if (count > static_cast<size_t>(MAX_SESSION_LIMIT_ALL_APP)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "invalid count: %{public}zu", count);
+        delete[] block;
+        return;
+    }
+    auto pixelmapArray = reinterpret_cast<const OH_PixelmapNative**>(block + sizeof(size_t));
+    for (size_t i = 0; i < count; i++) {
+        delete pixelmapArray[i];
+    }
+    delete[] block;
 }
 
 int32_t OH_WindowManager_RegisterFrameMetricsMeasuredCallback(
