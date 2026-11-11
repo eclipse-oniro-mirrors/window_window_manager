@@ -14997,18 +14997,6 @@ DMError ScreenSessionManager::GetAvailableArea(DisplayId displayId, DMRect& area
         return DMError::DM_ERROR_NULLPTR;
     }
     area = screenSession->GetAvailableArea();
-    if (IsHook()) {
-        DMHookInfo hookinfo;
-        hookinfo.displayId_ = displayId;
-        GetDisplayHookInfo(IPCSkeleton::GetCallingUid(), hookinfo);
-        if (hookinfo.dpiForceScale_ > 0) {
-            area.width_ = static_cast<uint32_t>(area.width_ / hookinfo.dpiForceScale_);
-            area.height_ = static_cast<uint32_t>(area.height_ / hookinfo.dpiForceScale_);
-        }
-        TLOGNFI(WmsLogTag::WMS_IMMS, "GetDisplayHookInfo uid=%{public}d, displayId=%{public}" PRIu64 ", "
-            "avaiWidth=%{public}u, avaiHeight=%{public}u, scale=%{public}f",
-            GetCallingUid(), displayId, area.width_, area.height_, hookinfo.dpiForceScale_);
-    }
     return DMError::DM_OK;
 }
 
