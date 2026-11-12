@@ -632,6 +632,7 @@ void JsSceneSession::BindNativeMethod(napi_env env, napi_value objValue, const c
     BindNativeFunction(env, objValue, "activateDragBySystem", moduleName, JsSceneSession::ActivateDragBySystem);
     BindNativeFunction(env, objValue, "on", moduleName, JsSceneSession::RegisterCallback);
     BindNativeFunction(env, objValue, "updateNativeVisibility", moduleName, JsSceneSession::UpdateNativeVisibility);
+    BindNativeFunction(env, objValue, "releaseGpuMemory", moduleName, JsSceneSession::ReleaseGpuMemory);
     BindNativeFunction(env, objValue, "clearAllModifiers", moduleName, JsSceneSession::ClearAllModifiers);
     BindNativeFunction(env, objValue, "updatePropertyWhenTriggerMode", moduleName,
         JsSceneSession::UpdatePropertyWhenTriggerMode);
@@ -2742,6 +2743,12 @@ napi_value JsSceneSession::UpdateNativeVisibility(napi_env env, napi_callback_in
     return (me != nullptr) ? me->OnUpdateNativeVisibility(env, info) : nullptr;
 }
 
+napi_value JsSceneSession::ReleaseGpuMemory(napi_env env, napi_callback_info info)
+{
+    JsSceneSession* me = CheckParamsAndGetThis<JsSceneSession>(env, info);
+    return (me != nullptr) ? me->OnReleaseGpuMemory(env, info) : nullptr;
+}
+
 napi_value JsSceneSession::ClearAllModifiers(napi_env env, napi_callback_info info)
 {
     TLOGD(WmsLogTag::DEFAULT, "[NAPI]");
@@ -3851,6 +3858,28 @@ napi_value JsSceneSession::OnUpdateNativeVisibility(napi_env env, napi_callback_
     }
     session->UpdateNativeVisibility(visible);
     TLOGD(WmsLogTag::DEFAULT, "end");
+    return NapiGetUndefined(env);
+}
+
+napi_value JsSceneSession::OnReleaseGpuMemory(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value argv[1] = {nullptr};
+    if (napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr) != napi_ok || argc < 1) {
+        TLOGE(WmsLogTag::DEFAULT, "Missing releaseGpuMemory parameter");
+        return NapiGetUndefined(env);
+    }
+    bool shouldRelease = false;
+    if (napi_get_value_bool(env, argv[0], &shouldRelease) != napi_ok) {
+        TLOGE(WmsLogTag::DEFAULT, "Expected a boolean parameter");
+        return NapiGetUndefined(env);
+    }
+    if (!shouldRelease) {
+        return NapiGetUndefined(env);
+    }
+    if (auto session = weakSession_.promote()) {
+        session->ReleaseGpuMemory();
+    }
     return NapiGetUndefined(env);
 }
 
