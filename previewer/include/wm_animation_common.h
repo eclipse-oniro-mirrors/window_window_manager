@@ -335,9 +335,7 @@ struct WindowCreateParams : public Parcelable {
     }
 };
 
-/**
- * The show params of window show, delivered by showAbility.
- */
+// The show params of window show, delivered by showAbility.
 struct WindowShowParams : public Parcelable {
     // Whether the window can get focus when it is shown by showAbility.
     bool windowFocused = true;

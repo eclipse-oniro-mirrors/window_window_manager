@@ -62,6 +62,22 @@ bool WriteAbilitySessionInfoBasic(MessageParcel& data, sptr<AAFwk::SessionInfo> 
     return true;
 }
 
+bool WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name)
+{
+    if (member != nullptr) {
+        if (!data.WriteBool(true) || !data.WriteParcelable(member)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write %{public}s failed", name);
+            return false;
+        }
+    } else {
+        if (!data.WriteBool(false)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write has not %{public}s failed", name);
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * @brief Write a Rect to MessageParcel.
  *
@@ -562,28 +578,12 @@ WSError SessionProxy::ChangeSessionVisibilityWithStatusBar(sptr<AAFwk::SessionIn
             return WSError::WS_ERROR_IPC_FAILED;
         }
     }
-    if (abilitySessionInfo->startSetting) {
-        if (!data.WriteBool(true) || !data.WriteParcelable(abilitySessionInfo->startSetting.get())) {
-            WLOGFE("Write startSetting failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
-    } else {
-        if (!data.WriteBool(false)) {
-            WLOGFE("Write has not startSetting failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
+    if (!WriteOptionalParcelable(data, abilitySessionInfo->startSetting.get(), "startSetting")) {
+        return WSError::WS_ERROR_IPC_FAILED;
     }
     data.WriteBool(visible);
-    if (abilitySessionInfo->showParams) {
-        if (!data.WriteBool(true) || !data.WriteParcelable(abilitySessionInfo->showParams.get())) {
-            WLOGFE("Write showParams failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
-    } else {
-        if (!data.WriteBool(false)) {
-            WLOGFE("Write has not showParams failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
+    if (!WriteOptionalParcelable(data, abilitySessionInfo->showParams.get(), "showParams")) {
+        return WSError::WS_ERROR_IPC_FAILED;
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {

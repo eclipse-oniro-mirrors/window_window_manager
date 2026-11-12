@@ -639,9 +639,6 @@ struct SessionInfo {
 
     std::shared_ptr<WindowCreateParams> windowCreateParams = nullptr;
 
-    /*
-     * ShowAbility
-     */
     // show params delivered by showAbility, valid for the show triggered by it
     std::shared_ptr<WindowShowParams> showParams = nullptr;
 };

@@ -1337,29 +1337,60 @@ HWTEST_F(SessionProxyTest, GetIsMidScene, TestSize.Level1)
  */
 HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "SessionProxyTest: ChangeSessionVisibilityWithStatusBar start";
-    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
-    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
-
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
     bool visible = true;
-    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
-    WSError res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
-    ASSERT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
-    sProxy = sptr<SessionProxy>::MakeSptr(nullptr);
-    res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
-    ASSERT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
-    abilitySessionInfo = nullptr;
-    res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
-    ASSERT_EQ(res, WSError::WS_ERROR_INVALID_SESSION);
 
+    // Case 1: abilitySessionInfo is null
+    sptr<AAFwk::SessionInfo> abilitySessionInfo = nullptr;
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_INVALID_SESSION);
+
+    // Case 2: write interface token failed
     abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // Case 3: write abilitySessionInfo basic failed
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+
+    // Case 4: remote is null
+    sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(nullProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_IPC_FAILED);
+
+    // Case 5: send request failed
+    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    EXPECT_EQ(failProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_IPC_FAILED);
+
+    // Case 6: send request success without optional members
+    abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_OK);
+
+    // Case 7: send request success with showParams
     abilitySessionInfo->showParams = std::make_shared<WindowShowParams>();
     abilitySessionInfo->showParams->windowFocused = false;
     abilitySessionInfo->showParams->raiseTop = false;
-    sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
-    res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
-    ASSERT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
-    GTEST_LOG_(INFO) << "SessionProxyTest: ChangeSessionVisibilityWithStatusBar end";
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_OK);
+
+    // Case 8: write optional parcelable member failed
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    MockMessageParcel::SetWriteParcelableErrorCount(2); // skip want and processOptions in basic info
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+    MockMessageParcel::SetWriteParcelableErrorCount(0);
 }
 
 /**

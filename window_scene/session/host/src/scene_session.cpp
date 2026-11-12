@@ -553,8 +553,7 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
             TLOGI(WmsLogTag::WMS_LIFE, "%{public}s Current state is not a pre-state of foreground, skip", where);
             return WSError::WS_OK;
         }
-        // The normal show path does not go through RaiseAppMainWindowToTop, restore the one-shot
-        // raiseTop state from showAbility here to avoid suppressing a later active raiseToTop.
+        // Restore the one-shot raiseTop state from showAbility on the normal show path.
         session->SetRaiseTopOnShow(true);
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
@@ -6842,8 +6841,7 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
 
         if (visible && info.showParams != nullptr) {
             if (!info.showParams->windowFocused) {
-                // Keep the window from being focused when it becomes visible, same as start with
-                // PARAM_RESV_WINDOW_FOCUSED. It is restored when the window has been visible.
+                // Same as start with PARAM_RESV_WINDOW_FOCUSED, restored when the window has been visible.
                 session->SetFocusedOnShow(false);
             }
         }
