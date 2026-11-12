@@ -1391,6 +1391,24 @@ HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1
         WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteParcelableErrorFlag(false);
     MockMessageParcel::SetWriteParcelableErrorCount(0);
+
+    // Case 9: write presence flag of a null member failed
+    abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteBoolErrorCount(2); // skip reuse and callerToken flag, fail the startSetting flag
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorCount(0);
+
+    // Case 10: write presence flag of a non-null member failed
+    abilitySessionInfo->showParams = std::make_shared<WindowShowParams>();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteBoolErrorCount(4); // skip reuse, callerToken, startSetting flags and visible
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
+        WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorCount(0);
 }
 
 /**
