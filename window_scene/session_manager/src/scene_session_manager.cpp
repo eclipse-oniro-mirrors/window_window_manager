@@ -18095,7 +18095,7 @@ WMError SceneSessionManager::ListWindowInfo(const WindowInfoOption& windowInfoOp
         }
         return WMError::WM_OK;
     }, __func__);
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, size=%{public}u",
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, size=%{public}u",
         static_cast<int32_t>(ret), static_cast<uint32_t>(infos.size()));
     return ret;
 }
