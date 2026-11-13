@@ -89,6 +89,7 @@ const std::map<WindowType, ApiWindowType> NATIVE_JS_TO_WINDOW_TYPE_MAP {
     { WindowType::WINDOW_TYPE_FLOAT_NAVIGATION,         ApiWindowType::TYPE_FLOAT_NAVIGATION         },
     { WindowType::WINDOW_TYPE_DYNAMIC,                  ApiWindowType::TYPE_DYNAMIC                  },
     { WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION, ApiWindowType::TYPE_MUTISCREEN_COLLABORATION },
+    { WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER, ApiWindowType::TYPE_ACCESSIBILITY_CALL_HELPER },
 };
 
 const std::map<ApiWindowType, WindowType> JS_TO_NATIVE_WINDOW_TYPE_MAP {
@@ -119,6 +120,7 @@ const std::map<ApiWindowType, WindowType> JS_TO_NATIVE_WINDOW_TYPE_MAP {
     { ApiWindowType::TYPE_FLOAT_NAVIGATION,         WindowType::WINDOW_TYPE_FLOAT_NAVIGATION         },
     { ApiWindowType::TYPE_DYNAMIC,                  WindowType::WINDOW_TYPE_DYNAMIC                  },
     { ApiWindowType::TYPE_MUTISCREEN_COLLABORATION, WindowType::WINDOW_TYPE_MUTISCREEN_COLLABORATION },
+    { ApiWindowType::TYPE_ACCESSIBILITY_CALL_HELPER, WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER },
     { ApiWindowType::TYPE_MAIN,                     WindowType::WINDOW_TYPE_APP_MAIN_WINDOW          },
 };
 
@@ -278,6 +280,8 @@ napi_value WindowTypeInit(napi_env env)
         static_cast<int32_t>(ApiWindowType::TYPE_DYNAMIC)));
     napi_set_named_property(env, objValue, "TYPE_MUTISCREEN_COLLABORATION", CreateJsValue(env,
         static_cast<int32_t>(ApiWindowType::TYPE_MUTISCREEN_COLLABORATION)));
+    napi_set_named_property(env, objValue, "TYPE_ACCESSIBILITY_CALL_HELPER", CreateJsValue(env,
+        static_cast<int32_t>(ApiWindowType::TYPE_ACCESSIBILITY_CALL_HELPER)));
 
     return objValue;
 }
