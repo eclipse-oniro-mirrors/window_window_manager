@@ -92,7 +92,7 @@ bool WriteRect(MessageParcel& data, const Rect& rect)
 } // namespace
 
 // External linkage for direct unit test calls.
-bool WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name)
+bool SessionProxy::WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name)
 {
     if (member != nullptr) {
         if (!data.WriteBool(true) || !data.WriteParcelable(member)) {
