@@ -1217,10 +1217,10 @@ const SystemSessionConfig& SceneSessionManager::GetSystemSessionConfig() const
 
 WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable)
 {
-    return SwitchFreeMultiWindow(enable, 0);
+    return SwitchFreeMultiWindow(enable, 0, true);
 }
 
-WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId)
+WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId, bool isForce)
 {
     if (!systemConfig_.freeMultiWindowSupport_) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "device not support");
@@ -1253,7 +1253,17 @@ WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId
             if (sceneSession == nullptr) {
                 continue;
             }
-            sceneSession->SwitchFreeMultiWindow(systemConfig_);
+            if (!isForce) {
+                auto sessionConfig = systemConfig_;
+                bool displayInFreeMulti = systemConfig_.IsDisplayInFreeMultiWindow(
+                    sceneSession->GetDisplayId());
+                sessionConfig.freeMultiWindowEnable_ = displayInFreeMulti;
+                sessionConfig.defaultWindowMode_ = displayInFreeMulti ?
+                    WindowMode::WINDOW_MODE_FLOATING : WindowMode::WINDOW_MODE_FULLSCREEN;
+                sceneSession->SwitchFreeMultiWindow(sessionConfig);
+            } else {
+                sceneSession->SwitchFreeMultiWindow(systemConfig_);
+            }
         }
     }
     // FMW does not support adaptive resolution: cancel on entry, restore on exit.
@@ -1262,7 +1272,7 @@ WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId
     } else {
         RestoreAdaptiveResolutionOnFmwSwitch();
     }
-    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(enable);
+    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(enable, isForce);
     WindowStyleType type = enable ?
             WindowStyleType::WINDOW_STYLE_FREE_MULTI_WINDOW : WindowStyleType::WINDOW_STYLE_DEFAULT;
     SessionManagerAgentController::GetInstance().NotifyWindowStyleChange(type);
@@ -20091,13 +20101,20 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
     return WMError::WM_OK;
 }
 
-void SceneSessionManager::UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow)
+void SceneSessionManager::UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow,
+    bool isForce)
 {
     std::shared_lock lock(sceneSessionMapMutex_);
     for (const auto& [_, session] : sceneSessionMap_) {
         if (session && SessionHelper::IsMainWindow(session->GetWindowType())) {
             auto hookWindowInfo = session->GetSessionProperty()->GetHookWindowInfo();
-            hookWindowInfo.enableHookWindow = !isOpenFreeMultiWindow;
+            if (!isForce) {
+                bool displayInFreeMulti = systemConfig_.IsDisplayInFreeMultiWindow(
+                    session->GetDisplayId());
+                hookWindowInfo.enableHookWindow = !displayInFreeMulti;
+            } else {
+                hookWindowInfo.enableHookWindow = !isOpenFreeMultiWindow;
+            }
             session->UpdateHookWindowInfo(hookWindowInfo);
         }
     }

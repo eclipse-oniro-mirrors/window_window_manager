@@ -659,7 +659,7 @@ public:
      * Free Multi Window
      */
     WSError SwitchFreeMultiWindow(bool enable);
-    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId);
+    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId, bool isForce = true);
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError SetForegroundWindowNum(uint32_t windowNum) override;
     void RegisterSetForegroundWindowNumCallback(SetForegroundWindowNumFunc&& func);
@@ -706,7 +706,7 @@ public:
     void SetHasRootSceneRequestedVsyncFunc(HasRootSceneRequestedVsyncFunc&& func);
     void SetRequestVsyncByRootSceneWhenModeChangeFunc(RequestVsyncByRootSceneWhenModeChangeFunc&& func);
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
-    void UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow);
+    void UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow, bool isForce = true);
     void UpdateRsCmdBlockingCount(bool enable);
     int32_t GetOrResetRsCmdBlockingCount();
     void RegisterGetRsCmdBlockingCountFunc(const sptr<SceneSession>& sceneSession);

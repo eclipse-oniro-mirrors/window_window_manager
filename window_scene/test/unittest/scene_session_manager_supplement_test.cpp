@@ -2176,6 +2176,134 @@ HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowWithWindowId_Ze
     auto config = ssm_->GetSystemSessionConfig();
     ASSERT_EQ(config.freeMultiWindowEnable_, true);
 }
+
+/**
+ * @tc.name: SwitchFreeMultiWindowNotForce_DisplayInFreeMulti
+ * @tc.desc: Test SwitchFreeMultiWindow with isForce=false when display is in freeMultiWindow set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowNotForce_DisplayInFreeMulti, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    constexpr uint64_t TEST_DISPLAY_ID = 100;
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(TEST_DISPLAY_ID);
+ 
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SwitchFreeMultiWindowNotForce_DisplayInFreeMulti";
+    sessionInfo.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->GetSessionProperty()->SetDisplayId(TEST_DISPLAY_ID);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, INVALID_SESSION_ID, false);
+    ASSERT_EQ(res, WSError::WS_OK);
+    auto config = ssm_->GetSystemSessionConfig();
+    ASSERT_EQ(config.freeMultiWindowEnable_, true);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowNotForce_DisplayNotInFreeMulti
+ * @tc.desc: Test SwitchFreeMultiWindow with isForce=false when display is NOT in freeMultiWindow set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowNotForce_DisplayNotInFreeMulti, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    constexpr uint64_t TEST_DISPLAY_ID = 200;
+    // display not in supportMultiWindowScreenSet_
+ 
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SwitchFreeMultiWindowNotForce_DisplayNotInFreeMulti";
+    sessionInfo.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->GetSessionProperty()->SetDisplayId(TEST_DISPLAY_ID);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, INVALID_SESSION_ID, false);
+    ASSERT_EQ(res, WSError::WS_OK);
+    // displayInFreeMulti is false, so freeMultiWindowEnable_ should be false after LoadFreeMultiWindowConfig(true)
+    // but the per-session config used for SwitchFreeMultiWindow should have freeMultiWindowEnable_ = false
+    auto config = ssm_->GetSystemSessionConfig();
+    ASSERT_EQ(config.freeMultiWindowEnable_, true); // LoadFreeMultiWindowConfig sets it to true
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowNotForce_MultipleDisplays
+ * @tc.desc: Test SwitchFreeMultiWindow with isForce=false for sessions on different displays
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowNotForce_MultipleDisplays, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    constexpr uint64_t DISPLAY_ID_IN_FREE = 100;
+    constexpr uint64_t DISPLAY_ID_NOT_IN_FREE = 200;
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(DISPLAY_ID_IN_FREE);
+ 
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "SwitchFreeMultiWindowNotForce_Multi1";
+    sessionInfo1.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession1 = ssm_->CreateSceneSession(sessionInfo1, nullptr);
+    ASSERT_NE(sceneSession1, nullptr);
+    sceneSession1->GetSessionProperty()->SetDisplayId(DISPLAY_ID_IN_FREE);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession1 });
+ 
+    SessionInfo sessionInfo2;
+    sessionInfo2.bundleName_ = "SwitchFreeMultiWindowNotForce_Multi2";
+    sessionInfo2.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession2 = ssm_->CreateSceneSession(sessionInfo2, nullptr);
+    ASSERT_NE(sceneSession2, nullptr);
+    sceneSession2->GetSessionProperty()->SetDisplayId(DISPLAY_ID_NOT_IN_FREE);
+    ssm_->sceneSessionMap_.insert({ 2, sceneSession2 });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, INVALID_SESSION_ID, false);
+    ASSERT_EQ(res, WSError::WS_OK);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowForce_DefaultBehavior
+ * @tc.desc: Test SwitchFreeMultiWindow with isForce=true (default) applies globally
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowForce_DefaultBehavior, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    constexpr uint64_t TEST_DISPLAY_ID = 300;
+    // isForce=true should ignore per-display check and apply globally
+ 
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "SwitchFreeMultiWindowForce_DefaultBehavior";
+    sessionInfo.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->GetSessionProperty()->SetDisplayId(TEST_DISPLAY_ID);
+    ssm_->sceneSessionMap_.insert({ 1, sceneSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, INVALID_SESSION_ID, true);
+    ASSERT_EQ(res, WSError::WS_OK);
+    auto config = ssm_->GetSystemSessionConfig();
+    ASSERT_EQ(config.freeMultiWindowEnable_, true);
+}
+ 
+/**
+ * @tc.name: SwitchFreeMultiWindowNotForce_NullSession
+ * @tc.desc: Test SwitchFreeMultiWindow with isForce=false when session is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, SwitchFreeMultiWindowNotForce_NullSession, TestSize.Level1)
+{
+    ssm_->systemConfig_.freeMultiWindowSupport_ = true;
+    sptr<SceneSession> nullSession;
+    ssm_->sceneSessionMap_.insert({ 1, nullSession });
+ 
+    auto res = ssm_->SwitchFreeMultiWindow(true, INVALID_SESSION_ID, false);
+    ASSERT_EQ(res, WSError::WS_OK);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

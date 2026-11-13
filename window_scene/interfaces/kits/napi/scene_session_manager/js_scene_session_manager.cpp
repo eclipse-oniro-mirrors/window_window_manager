@@ -5157,7 +5157,20 @@ napi_value JsSceneSessionManager::OnSwitchFreeMultiWindow(napi_env env, napi_cal
             }
         }
     }
-    SceneSessionManager::GetInstance().SwitchFreeMultiWindow(enable, windowId);
+    bool isForce = true;
+    if (argc > ARGC_TWO) {
+        napi_valuetype valueType;
+        napi_typeof(env, argv[ARGC_TWO], &valueType);
+        if (valueType != napi_undefined) {
+            if (!ConvertFromJsValue(env, argv[ARGC_TWO], isForce)) {
+                TLOGE(WmsLogTag::WMS_LAYOUT_PC, "Failed to convert parameter to isForce");
+                napi_throw(env, CreateJsError(env, static_cast<int32_t>(WSErrorCode::WS_ERROR_INVALID_PARAM),
+                    "Input parameter is missing or invalid"));
+                return NapiGetUndefined(env);
+            }
+        }
+    }
+    SceneSessionManager::GetInstance().SwitchFreeMultiWindow(enable, windowId, isForce);
     return NapiGetUndefined(env);
 }
 
