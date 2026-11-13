@@ -62,22 +62,6 @@ bool WriteAbilitySessionInfoBasic(MessageParcel& data, sptr<AAFwk::SessionInfo> 
     return true;
 }
 
-bool WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name)
-{
-    if (member != nullptr) {
-        if (!data.WriteBool(true) || !data.WriteParcelable(member)) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Write %{public}s failed", name);
-            return false;
-        }
-    } else {
-        if (!data.WriteBool(false)) {
-            TLOGE(WmsLogTag::WMS_LIFE, "Write has not %{public}s failed", name);
-            return false;
-        }
-    }
-    return true;
-}
-
 /**
  * @brief Write a Rect to MessageParcel.
  *
@@ -106,6 +90,23 @@ bool WriteRect(MessageParcel& data, const Rect& rect)
     return true;
 }
 } // namespace
+
+// External linkage for direct unit test calls.
+bool WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name)
+{
+    if (member != nullptr) {
+        if (!data.WriteBool(true) || !data.WriteParcelable(member)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write %{public}s failed", name);
+            return false;
+        }
+    } else {
+        if (!data.WriteBool(false)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write has not %{public}s failed", name);
+            return false;
+        }
+    }
+    return true;
+}
 
 WSError SessionProxy::Foreground(
     sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken, bool isAlreadyShown)

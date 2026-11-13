@@ -39,6 +39,7 @@ namespace {
 
 namespace OHOS {
 namespace Rosen {
+bool WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name);
 class SessionProxyTest : public testing::Test {
 public:
     SessionProxyTest() {}
@@ -1409,6 +1410,29 @@ HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1
         WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteBoolErrorFlag(false);
     MockMessageParcel::SetWriteBoolErrorCount(0);
+}
+
+/**
+ * @tc.name: WriteOptionalParcelable
+ * @tc.desc: WriteOptionalParcelable test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, WriteOptionalParcelable, TestSize.Level1)
+{
+    MessageParcel data;
+    auto showParams = std::make_shared<WindowShowParams>();
+
+    EXPECT_TRUE(WriteOptionalParcelable(data, nullptr, "nullMember"));
+    EXPECT_TRUE(WriteOptionalParcelable(data, showParams.get(), "showParams"));
+
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_FALSE(WriteOptionalParcelable(data, nullptr, "nullMember"));
+    EXPECT_FALSE(WriteOptionalParcelable(data, showParams.get(), "showParams"));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    EXPECT_FALSE(WriteOptionalParcelable(data, showParams.get(), "showParams"));
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
 }
 
 /**
