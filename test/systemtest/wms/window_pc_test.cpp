@@ -340,7 +340,7 @@ HWTEST_F(WindowPCTest, SetWindowTitleMoveEnabled03, TestSize.Level1)
 
 /**
  * @tc.name: StartMoveWindow_MainWindow_InvalidCalling
- * @tc.desc: MAIN_WINDOW with unset windowUIType returns INVALID_CALLING
+ * @tc.desc: MAIN_WINDOW without start-moving capability returns INVALID_CALLING
  * @tc.type: FUNC
  */
 HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_InvalidCalling, TestSize.Level1)
@@ -358,9 +358,11 @@ HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_InvalidCalling, TestSize.Level
     window->hostSession_ = session;
     window->property_->SetPersistentId(10071);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->property_->SetIsPcAppInPad(false);
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.clear();
 
-    // windowUIType_ is not set, IsPcOrFreeMultiWindowCapabilityEnabled returns false
-    // CheckCanStartMoveWindowByWindowType returns false for MAIN_WINDOW
+    // The current display does not support free multi-window mode and PC app compatibility is disabled.
+    // IsStartMovingAllowed returns false for MAIN_WINDOW
     ASSERT_EQ(WmErrorCode::WM_ERROR_INVALID_CALLING, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -368,7 +370,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_InvalidCalling, TestSize.Level
 
 /**
  * @tc.name: StartMoveWindow_MainWindow_PhoneWindow
- * @tc.desc: MAIN_WINDOW with PHONE_WINDOW returns INVALID_CALLING
+ * @tc.desc: MAIN_WINDOW on a phone display without free multi-window mode returns INVALID_CALLING
  * @tc.type: FUNC
  */
 HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PhoneWindow, TestSize.Level1)
@@ -386,9 +388,11 @@ HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PhoneWindow, TestSize.Level1)
     window->hostSession_ = session;
     window->property_->SetPersistentId(10072);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->property_->SetIsPcAppInPad(false);
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.clear();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
 
-    // CheckCanStartMoveWindowByWindowType returns false for MAIN_WINDOW on PHONE_WINDOW
+    // IsStartMovingAllowed rejects the main window without start-moving capability.
     ASSERT_EQ(WmErrorCode::WM_ERROR_INVALID_CALLING, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -396,7 +400,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PhoneWindow, TestSize.Level1)
 
 /**
  * @tc.name: StartMoveWindow_MainWindow_PcWindow
- * @tc.desc: MAIN_WINDOW with PC_WINDOW returns OK
+ * @tc.desc: MAIN_WINDOW on a PC display in free multi-window mode returns OK
  * @tc.type: FUNC
  */
 HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PcWindow, TestSize.Level1)
@@ -414,9 +418,12 @@ HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PcWindow, TestSize.Level1)
     window->hostSession_ = session;
     window->property_->SetPersistentId(10073);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->property_->SetIsPcAppInPad(false);
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.clear();
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.insert(window->property_->GetDisplayId());
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
 
-    // IsPcOrFreeMultiWindowCapabilityEnabled returns true
+    // IsStartMovingAllowed allows moving on the current display in free multi-window mode.
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -424,7 +431,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PcWindow, TestSize.Level1)
 
 /**
  * @tc.name: StartMoveWindow_MainWindow_PadWindow
- * @tc.desc: MAIN_WINDOW with PAD_WINDOW returns INVALID_CALLING
+ * @tc.desc: MAIN_WINDOW on a pad display without free multi-window mode returns INVALID_CALLING
  * @tc.type: FUNC
  */
 HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PadWindow, TestSize.Level1)
@@ -442,9 +449,11 @@ HWTEST_F(WindowPCTest, StartMoveWindow_MainWindow_PadWindow, TestSize.Level1)
     window->hostSession_ = session;
     window->property_->SetPersistentId(10074);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
+    window->property_->SetIsPcAppInPad(false);
+    window->windowSystemConfig_.supportMultiWindowScreenSet_.clear();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
 
-    // CheckCanStartMoveWindowByWindowType returns false for MAIN_WINDOW on PAD_WINDOW without free multi window
+    // IsStartMovingAllowed rejects the main window without start-moving capability.
     ASSERT_EQ(WmErrorCode::WM_ERROR_INVALID_CALLING, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -473,7 +482,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SubWindow_Success, TestSize.Level1)
     window->property_->SetPersistentId(10075);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
 
-    // CheckCanStartMoveWindowByWindowType returns true for SUB_WINDOW regardless of windowUIType
+    // IsStartMovingAllowed returns true for SUB_WINDOW regardless of windowUIType
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -501,7 +510,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SubWindow_PhoneWindow, TestSize.Level1)
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
 
-    // CheckCanStartMoveWindowByWindowType returns true for SUB_WINDOW
+    // IsStartMovingAllowed returns true for SUB_WINDOW
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -529,7 +538,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SubWindow_PcWindow, TestSize.Level1)
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
 
-    // IsPcOrFreeMultiWindowCapabilityEnabled returns true
+    // IsStartMovingAllowed allows this window type independently of start-moving capability.
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -557,7 +566,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SubWindow_PadWindow, TestSize.Level1)
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
 
-    // CheckCanStartMoveWindowByWindowType returns true for SUB_WINDOW
+    // IsStartMovingAllowed returns true for SUB_WINDOW
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -586,7 +595,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SystemSubWindow_Success, TestSize.Level1)
     window->property_->SetPersistentId(10079);
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
 
-    // CheckCanStartMoveWindowByWindowType returns true for SYSTEM_SUB_WINDOW regardless of windowUIType
+    // IsStartMovingAllowed returns true for SYSTEM_SUB_WINDOW regardless of windowUIType
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -614,7 +623,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SystemSubWindow_PhoneWindow, TestSize.Lev
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
 
-    // CheckCanStartMoveWindowByWindowType returns true for SYSTEM_SUB_WINDOW
+    // IsStartMovingAllowed returns true for SYSTEM_SUB_WINDOW
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -642,7 +651,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SystemSubWindow_PcWindow, TestSize.Level1
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
 
-    // IsPcOrFreeMultiWindowCapabilityEnabled returns true
+    // IsStartMovingAllowed allows this window type independently of start-moving capability.
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);
@@ -670,7 +679,7 @@ HWTEST_F(WindowPCTest, StartMoveWindow_SystemSubWindow_PadWindow, TestSize.Level
     window->uiContent_ = std::make_unique<Ace::UIContentMocker>();
     window->windowSystemConfig_.windowUIType_ = WindowUIType::PAD_WINDOW;
 
-    // CheckCanStartMoveWindowByWindowType returns true for SYSTEM_SUB_WINDOW
+    // IsStartMovingAllowed returns true for SYSTEM_SUB_WINDOW
     ASSERT_EQ(WmErrorCode::WM_OK, window->StartMoveWindow());
 
     window->Destroy(true, true);

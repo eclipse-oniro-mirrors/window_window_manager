@@ -66,6 +66,7 @@ private:
     int HandleUnregisterWindowManagerAgent(MessageParcel& data, MessageParcel& reply);
     int HandleCheckWindowId(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateWindowModeByIdForUITest(MessageParcel& data, MessageParcel& reply);
+    int HandleSetGameAdaptiveResolutionForWindow(MessageParcel& data, MessageParcel& reply);
     int HandleCheckUIExtensionCreation(MessageParcel& data, MessageParcel& reply);
     int HandleSetGlobalDragResizeType(MessageParcel& data, MessageParcel& reply);
     int HandleGetGlobalDragResizeType(MessageParcel& data, MessageParcel& reply);
@@ -124,6 +125,7 @@ private:
     int HandleUnregisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateRogWindowConfig(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyStackRecoverFromAMS(MessageParcel& data, MessageParcel& reply);
     int ProcessRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option);
 };
 } // namespace OHOS::Rosen

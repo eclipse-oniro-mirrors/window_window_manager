@@ -94,6 +94,9 @@ public:
     WSError UpdateHookWindowInfo(const HookWindowInfo& hookWindowInfo) override;
     WSError SetForceSplitEnable(bool isForceSplitEnabled, bool needUpdateViewport, SelectMode selectMode) override;
     WMError NotifySplitRatioChanged(float newRatio) override;
+    WMError UpdateAdaptiveResolutionConfig(const GameAdaptiveResolutionConfig& config) override;
+    WSError NotifyAdaptiveResolutionChanged(GameAdaptiveResolutionStatus status,
+        const GameAdaptiveResolutionConfig& config) override;
     void RegisterSplitRatioChangeCallback(SplitRatioChangeCallback&& callback) override;
 
     /*

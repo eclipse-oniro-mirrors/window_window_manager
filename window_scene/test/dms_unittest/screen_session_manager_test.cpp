@@ -1237,7 +1237,7 @@ HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid02, TestSize.Level1)
     ASSERT_NE(displayInfo, nullptr);
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
     EXPECT_NE(ssm_->displayHookMap_.find(uid), ssm_->displayHookMap_.end());
     displayInfo = ssm_->HookDisplayInfoByUid(displayInfo, screenSession);
     EXPECT_EQ(displayInfo->GetWidth(), dmHookInfo.width_);
@@ -1265,7 +1265,7 @@ HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid03, TestSize.Level1)
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
     dmHookInfo.enableHookDisplayOrientation_ = false;
     dmHookInfo.displayOrientation_ = INVALID_DISPLAY_ORIENTATION;
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
     EXPECT_NE(ssm_->displayHookMap_.find(uid), ssm_->displayHookMap_.end());
     displayInfo = ssm_->HookDisplayInfoByUid(displayInfo, screenSession);
     EXPECT_EQ(displayInfo->GetWidth(), dmHookInfo.width_);
@@ -1293,18 +1293,18 @@ HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid04, TestSize.Level1)
     
     uint32_t originalWidth = displayInfo->GetWidth();
     uint32_t originalHeight = displayInfo->GetHeight();
-    
+
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
     dmHookInfo.isFullScreenInForceSplit_ = true;
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
     EXPECT_NE(ssm_->displayHookMap_.find(uid), ssm_->displayHookMap_.end());
     displayInfo = ssm_->HookDisplayInfoByUid(displayInfo, screenSession);
     EXPECT_EQ(displayInfo->GetWidth(), originalWidth);
     EXPECT_EQ(displayInfo->GetHeight(), originalHeight);
     ssm_->displayHookMap_.erase(uid);
-    
+
     dmHookInfo.isFullScreenInForceSplit_ = false;
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
     displayInfo = ssm_->HookDisplayInfoByUid(displayInfo, screenSession);
     EXPECT_EQ(displayInfo->GetWidth(), dmHookInfo.width_);
     EXPECT_EQ(displayInfo->GetHeight(), dmHookInfo.height_);

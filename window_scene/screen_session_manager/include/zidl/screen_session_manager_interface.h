@@ -49,9 +49,12 @@ public:
     virtual void UpdateDisplayHookInfo(int32_t uid, bool enable, const DMHookInfo& hookInfo) {}
     virtual void GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo) {}
     virtual void NotifyIsFullScreenInForceSplitMode(int32_t uid, bool isFullScreen) {}
+    virtual void UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+        const DMAdaptiveResolutionConfig& config) {}
+    virtual bool IsDisplayHookedByUid(int32_t uid) { return false; }
 
-    virtual ScreenId CreateVirtualScreen(VirtualScreenOption option,
-        const sptr<IRemoteObject>& displayManagerAgent) { return SCREEN_ID_INVALID; }
+    virtual ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent,
+        DMError* errorCode = nullptr) { return SCREEN_ID_INVALID; }
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false)
         { return DMError::DM_OK; }
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<IBufferProducer> surface)

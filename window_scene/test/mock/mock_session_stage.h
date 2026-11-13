@@ -31,6 +31,8 @@ public:
         const SceneAnimationConfig& config, const std::map<AvoidAreaType, AvoidArea>& avoidAreas));
     MOCK_METHOD(WSError, UpdateGlobalDisplayRectFromServer, (const WSRect& rect, SizeChangeReason reason), (override));
     MOCK_METHOD0(UpdateDensity, void(void));
+    MOCK_METHOD3(UpdateDpiForceScaleChange, void(float dpiForceScale, bool isDpiForceScale,
+        float windowStartDensity));
     MOCK_METHOD0(UpdateOrientation, WSError(void));
     MOCK_METHOD1(UpdateSessionViewportConfig, WSError(const SessionViewportConfig& config));
     MOCK_METHOD0(HandleBackEvent, WSError(void));
@@ -40,8 +42,8 @@ public:
     MOCK_METHOD2(NotifyTransferComponentDataSync, WSErrorCode(const AAFwk::WantParams& wantParams,
         AAFwk::WantParams& reWantParams));
     MOCK_METHOD1(MarkProcessed, WSError(int32_t eventId));
-    MOCK_METHOD4(NotifyOccupiedAreaChangeInfo, void(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingWindowRect,
+    MOCK_METHOD3(NotifyOccupiedAreaChangeInfo, void(sptr<OccupiedAreaChangeInfo> info,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas));
     MOCK_METHOD2(UpdateAvoidArea, WSError(const sptr<AvoidArea>& avoidArea, AvoidAreaType type));
     MOCK_METHOD1(DumpSessionElementInfo, void(const std::vector<std::string>& params));

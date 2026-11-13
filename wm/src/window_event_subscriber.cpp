@@ -26,7 +26,7 @@ const std::string TOUCH_PREDICT_ENABLE = "touch.events.touchpredict";
 
 void WindowEventSubscribeProxy::SubscribeEvent()
 {
-    TLOGI(WmsLogTag::WMS_EVENT, "Subscribe %{public}s Event", TOUCH_PREDICT_ENABLE.c_str());
+    TLOGD(WmsLogTag::WMS_EVENT, "Subscribe %{public}s Event", TOUCH_PREDICT_ENABLE.c_str());
     std::lock_guard<std::mutex> lock(mutex_);
     if (windowEventReceiver_ == nullptr) {
         // create subscribe info

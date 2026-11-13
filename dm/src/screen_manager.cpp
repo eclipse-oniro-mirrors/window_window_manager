@@ -42,7 +42,7 @@ public:
     ~Impl();
 
     static inline SingletonDelegator<ScreenManager> delegator;
-    ScreenId CreateVirtualScreen(VirtualScreenOption option);
+    ScreenId CreateVirtualScreen(VirtualScreenOption option, DMError* errorCode);
     sptr<Screen> GetScreen(ScreenId screenId);
     sptr<ScreenGroup> GetScreenGroup(ScreenId screenId);
     DMError GetAllScreens(std::vector<sptr<Screen>>& screens, bool isNeedUnused = false);
@@ -710,17 +710,20 @@ DMError ScreenManager::RemoveVirtualScreenWhiteList(ScreenId screenId, const std
     return errCode;
 }
 
-ScreenId ScreenManager::CreateVirtualScreen(VirtualScreenOption option)
+ScreenId ScreenManager::CreateVirtualScreen(VirtualScreenOption option, DMError* errorCode)
 {
-    return pImpl_->CreateVirtualScreen(option);
+    return pImpl_->CreateVirtualScreen(option, errorCode);
 }
 
-ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
+ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option, DMError* errorCode)
 {
     if (option.screenId_ != -1) {
         if (option.screenId_ < MIN_VIRTUAL_SCREEN_ID || option.screenId_ > MAX_VIRTUAL_SCREEN_ID) {
             TLOGE(WmsLogTag::DMS, "screenId_ %{public}d is out of range [%{public}d, %{public}d]",
                 option.screenId_, MIN_VIRTUAL_SCREEN_ID, MAX_VIRTUAL_SCREEN_ID);
+            if (errorCode != nullptr) {
+                *errorCode = DMError::DM_ERROR_INVALID_PARAM;
+            }
             return SCREEN_ID_INVALID;
         }
     }
@@ -734,7 +737,13 @@ ScreenId ScreenManager::Impl::CreateVirtualScreen(VirtualScreenOption option)
     if (option.caller_ == VirtualScreenCaller::UNKNOWN) {
         option.caller_ = VirtualScreenCaller::NATIVE_SCREEN_MANAGER;
     }
-    return SingletonContainer::Get<ScreenManagerAdapter>().CreateVirtualScreen(option, virtualScreenAgent_);
+    DMError errCode = DMError::DM_ERROR_NULLPTR;
+    ScreenId screenId = SingletonContainer::Get<ScreenManagerAdapter>().CreateVirtualScreen(option,
+        virtualScreenAgent_, &errCode);
+    if (errorCode != nullptr) {
+        *errorCode = errCode;
+    }
+    return screenId;
 }
 
 DMError ScreenManager::DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty)

@@ -256,6 +256,21 @@ public:
     sptr<Display> GetDisplayById(DisplayId displayId, bool isGetActualInfo);
 
     /**
+     * @brief Get the display object by id with an optional cache bypass.
+     *
+     * Same as GetDisplayById(displayId, isGetActualInfo), but skipCache bypasses the
+     * local display info cache while keeping the DMS-side hooks applied. Use it right
+     * after changing hook-affecting state, when the up-to-date hooked view is needed
+     * immediately.
+     *
+     * @param displayId Id of the target display.
+     * @param isGetActualInfo Whether to get actual display info.
+     * @param skipCache Whether to bypass the local display info cache.
+     * @return Default display object.
+     */
+    sptr<Display> GetDisplayById(DisplayId displayId, bool isGetActualInfo, bool skipCache);
+
+    /**
      * @brief Get the display object by id.Only for PC.
      *
      * @param displayId Id of the target display.

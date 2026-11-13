@@ -983,6 +983,125 @@ HWTEST_F(ScreenSessionManagerProxyTest, IsOnboardDisplay, TestSize.Level1)
 }
 
 /**
+ * @tc.name: IsDisplayHookedByUid
+ * @tc.desc: every error branch returns false
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, IsDisplayHookedByUid, TestSize.Level1)
+{
+    // null remote
+    sptr<ScreenSessionManagerProxy> nullProxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    ASSERT_NE(nullProxy, nullptr);
+    EXPECT_FALSE(nullProxy->IsDisplayHookedByUid(100));
+
+    auto remote = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remote, nullptr);
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remote);
+    ASSERT_NE(proxy, nullptr);
+    auto noSend = [&]() {
+        EXPECT_CALL(*remote, SendRequest(_, _, _, _)).Times(0);
+        EXPECT_FALSE(proxy->IsDisplayHookedByUid(100));
+        Mock::VerifyAndClearExpectations(&*remote);
+    };
+    // token / uid write failures: no send fires
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    noSend();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    noSend();
+    MockMessageParcel::ClearAllErrorFlag();
+    // send failure
+    EXPECT_CALL(*remote, SendRequest(_, _, _, _)).WillOnce(Return(ERR_INVALID_DATA));
+    EXPECT_FALSE(proxy->IsDisplayHookedByUid(100));
+    Mock::VerifyAndClearExpectations(&*remote);
+    // reply read failure (the send succeeded)
+    EXPECT_CALL(*remote, SendRequest(_, _, _, _)).WillOnce(Return(ERR_NONE));
+    MockMessageParcel::SetReadBoolErrorFlag(true);
+    EXPECT_FALSE(proxy->IsDisplayHookedByUid(100));
+    MockMessageParcel::SetReadBoolErrorFlag(false);
+    Mock::VerifyAndClearExpectations(&*remote);
+    // read succeeds (the mock leaves the value false): the final return executes
+    EXPECT_CALL(*remote, SendRequest(_, _, _, _)).WillOnce(Return(ERR_NONE));
+    EXPECT_FALSE(proxy->IsDisplayHookedByUid(100));
+    Mock::VerifyAndClearExpectations(&*remote);
+}
+
+/**
+ * @tc.name: UpdateAdaptiveResolutionHookVariants
+ * @tc.desc: every write failure short-circuits before the send; the clean path sends
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, UpdateAdaptiveResolutionHookVariants, TestSize.Level1)
+{
+    DMAdaptiveResolutionConfig config;
+    config.scaleRatio_ = 0.5f;
+    config.autoMetrics_ = true;
+    config.notifyDisplay_ = false;
+    config.density_ = 1.0f;
+    config.xDpi_ = 480.0f;
+    config.yDpi_ = 460.0f;
+    constexpr float WRITE_FAIL_FLOAT = -1.0f; // the mock's write-failure sentinel
+    auto remote = sptr<RemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(remote, nullptr);
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remote);
+    ASSERT_NE(proxy, nullptr);
+    auto callAndVerifyNoSend = [&](const DMAdaptiveResolutionConfig& cfg) {
+        EXPECT_CALL(*remote, SendRequest(_, _, _, _)).Times(0);
+        proxy->UpdateAdaptiveResolutionHook(100, true, cfg);
+        Mock::VerifyAndClearExpectations(&*remote);
+    };
+
+    // remote == nullptr: returns before any parcel work
+    sptr<ScreenSessionManagerProxy> nullProxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    ASSERT_NE(nullProxy, nullptr);
+    nullProxy->UpdateAdaptiveResolutionHook(100, true, config);
+
+    // token failure
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    callAndVerifyNoSend(config);
+
+    // uid write failed (first Int32 of the chain)
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    callAndVerifyNoSend(config);
+
+    // bool positions: enable, autoMetrics, notifyDisplay, systemModified
+    for (int skip = 0; skip < 4; skip++) {
+        MockMessageParcel::ClearAllErrorFlag();
+        MockMessageParcel::SetWriteBoolErrorFlag(true);
+        MockMessageParcel::SetWriteBoolErrorCount(skip);
+        callAndVerifyNoSend(config);
+    }
+
+    // float positions by sentinel value: scaleRatio, density, xDpi, yDpi
+    for (int field = 0; field < 4; field++) {
+        MockMessageParcel::ClearAllErrorFlag();
+        DMAdaptiveResolutionConfig bad = config;
+        switch (field) {
+            case 0: bad.scaleRatio_ = WRITE_FAIL_FLOAT; break;
+            case 1: bad.density_ = WRITE_FAIL_FLOAT; break;
+            case 2: bad.xDpi_ = WRITE_FAIL_FLOAT; break;
+            default: bad.yDpi_ = WRITE_FAIL_FLOAT; break;
+        }
+        callAndVerifyNoSend(bad);
+    }
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorCount(0); // counts are not covered by ClearAllErrorFlag
+    MockMessageParcel::SetWriteInt32ErrorCount(0);
+
+    // the send itself fails after all writes passed
+    EXPECT_CALL(*remote, SendRequest(_, _, _, _)).Times(1).WillOnce(Return(ERR_INVALID_DATA));
+    proxy->UpdateAdaptiveResolutionHook(100, true, config);
+    Mock::VerifyAndClearExpectations(&*remote);
+
+    // clean path: all nine writes pass and the sync send fires exactly once
+    EXPECT_CALL(*remote, SendRequest(_, _, _, _)).Times(1).WillOnce(Return(ERR_NONE));
+    proxy->UpdateAdaptiveResolutionHook(100, true, config);
+    Mock::VerifyAndClearExpectations(&*remote);
+}
+
+/**
  * @tc.name: SetVirtualMirrorScreenScaleMode
  * @tc.desc: SetVirtualMirrorScreenScaleMode
  * @tc.type: FUNC

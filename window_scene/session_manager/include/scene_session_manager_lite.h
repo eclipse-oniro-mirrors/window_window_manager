@@ -69,6 +69,7 @@ public:
         const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
     WMError CheckWindowId(int32_t windowId, int32_t& pid) override;
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
+    WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override;
     WMError CheckUIExtensionCreation(int32_t windowId, uint32_t tokenId, const AppExecFwk::ElementName& element,
         AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid) override;
     WMError GetVisibilityWindowInfo(std::vector<sptr<WindowVisibilityInfo>>& infos) override;
@@ -142,6 +143,7 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override;
 };
 } // namespace OHOS::Rosen
 

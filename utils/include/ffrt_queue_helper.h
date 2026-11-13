@@ -16,6 +16,11 @@
 #ifndef OHOS_ROSEN_WINDOW_SCENE_FFRT_QUEUE_HELPER_H
 #define OHOS_ROSEN_WINDOW_SCENE_FFRT_QUEUE_HELPER_H
 
+#include <atomic>
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include "timeout_future.h"
 
 namespace ffrt {
@@ -28,11 +33,26 @@ public:
     FfrtQueueHelper();
     ~FfrtQueueHelper();
     bool SubmitTaskAndWait(std::function<void()>&& task, uint64_t timeout);
+    bool SubmitTaskAndWait(std::function<void()>&& task, uint64_t timeout, const std::string& name);
     void SubmitTask(std::function<void()>&& task);
+    void SubmitTask(std::function<void()>&& task, const std::string& name);
     void SubmitTaskToHead(std::function<void()>&& task);
+    void SubmitTaskToHead(std::function<void()>&& task, const std::string& name);
+
+    void StartStatCollection();
+    void StopStatCollection();
+
+private:
+    void StartStatTimer();
+    void ParseAndReportStat();
+    static void OnStatTimer(void* data);
 
 private:
     std::unique_ptr<ffrt::queue> ffrtQueue_;
+    std::unique_ptr<char[]> statBuffer_;
+    uint32_t statBufferSize_ = 0;
+    int statTimer_ = -1;
+    std::atomic<bool> statEnabled_ {false};
 };
 } // namespace OHOS::Rosen
 

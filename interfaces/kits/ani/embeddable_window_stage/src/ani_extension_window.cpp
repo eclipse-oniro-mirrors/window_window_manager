@@ -337,7 +337,7 @@ ani_object AniExtensionWindow::SnapshotSync(ani_env* env)
     }
     auto window = extensionWindow_->GetWindow();
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->Snapshot(pixelMap));
+    WmErrorCode ret = ConvertErrorToCode(window->Snapshot(pixelMap));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]windowId:%{public}u snapshotSync failed, code:%{public}d",
             window->GetWindowId(), ret);
@@ -361,7 +361,7 @@ ani_object AniExtensionWindow::SnapshotIgnorePrivacy(ani_env* env)
     }
     auto window = extensionWindow_->GetWindow();
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SnapshotIgnorePrivacy(pixelMap));
+    WmErrorCode ret = ConvertErrorToCode(window->SnapshotIgnorePrivacy(pixelMap));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]windowId:%{public}u snapshotIgnorePrivacy failed, code:%{public}d",
             window->GetWindowId(), ret);
@@ -684,7 +684,7 @@ static void UnregisterExtWindowCallback(ani_env* env, ani_object obj, ani_long n
     }
     WmErrorCode ret = aniExtWinPtr->UnregisterListener(env, type, callback);
     if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Unregister failde: %{public}d", static_cast<int32_t>(ret));
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Unregister failed: %{public}d", static_cast<int32_t>(ret));
         AniWindowUtils::AniThrowError(env, ret);
     }
 }
@@ -804,7 +804,7 @@ static void ExtWindowOnRectChange(ani_env* env, ani_object obj, ani_long nativeO
 
     WmErrorCode ret = aniExtWinPtr->OnRegisterRectChangeCallback(env, reason, callback);
     if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Register failde: %{public}d", static_cast<int32_t>(ret));
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Register failed: %{public}d", static_cast<int32_t>(ret));
         AniWindowUtils::AniThrowError(env, ret);
     }
 }
@@ -824,7 +824,7 @@ static void ExtWindowOffRectChange(ani_env* env, ani_object obj, ani_long native
     }
     WmErrorCode ret = aniExtWinPtr->OnUnRegisterRectChangeCallback(env, callback);
     if (ret != WmErrorCode::WM_OK) {
-        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Unregister failde: %{public}d", static_cast<int32_t>(ret));
+        TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]Unregister failed: %{public}d", static_cast<int32_t>(ret));
         AniWindowUtils::AniThrowError(env, ret);
     }
 }

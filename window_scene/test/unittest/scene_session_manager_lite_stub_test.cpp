@@ -188,6 +188,15 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     {
         return WMError::WM_OK;
     }
+    WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override
+    {
+        lastGameConfig_ = config;
+        return gameConfigResult_;
+    }
+
+public:
+    GameAdaptiveResolutionConfig lastGameConfig_;
+    WMError gameConfigResult_ = WMError::WM_OK;
     WMError GetMainWindowInfos(int32_t topNum, std::vector<MainWindowInfo>& topNInfo) override
     {
         MainWindowInfo mainWindowInfo;
@@ -346,6 +355,10 @@ class MockSceneSessionManagerLiteStub : public SceneSessionManagerLiteStub {
     {
         return WMError::WM_OK;
     }
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override
+    {
+        return WSError::WS_OK;
+    }
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override
     {
         return WMError::WM_OK;
@@ -378,7 +391,7 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
-    sptr<SceneSessionManagerLiteStub> sceneSessionManagerLiteStub_ = nullptr;
+    sptr<MockSceneSessionManagerLiteStub> sceneSessionManagerLiteStub_ = nullptr;
 };
 
 void SceneSessionManagerLiteStubTest::SetUpTestCase() {}
@@ -1049,6 +1062,45 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateWindowModeByIdForUITest01,
     res = sceneSessionManagerLiteStub_->
         SceneSessionManagerLiteStub::HandleUpdateWindowModeByIdForUITest(data2, reply);
     EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: HandleSetGameAdaptiveResolutionForWindow01
+ * @tc.desc: test function : HandleSetGameAdaptiveResolutionForWindow with invalid parcel
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetGameAdaptiveResolutionForWindow01, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    auto res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleSetGameAdaptiveResolutionForWindow(data, reply);
+    EXPECT_EQ(ERR_INVALID_DATA, res);
+}
+
+/**
+ * @tc.name: HandleSetGameAdaptiveResolutionForWindow02
+ * @tc.desc: test function : HandleSetGameAdaptiveResolutionForWindow decodes and forwards the config
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleSetGameAdaptiveResolutionForWindow02, TestSize.Level1)
+{
+    GameAdaptiveResolutionConfig config;
+    config.enable_ = true;
+    config.scaleRatio_ = 0.5f;
+    config.windowId_ = 11;
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteParcelable(&config);
+    auto res = sceneSessionManagerLiteStub_->
+        SceneSessionManagerLiteStub::HandleSetGameAdaptiveResolutionForWindow(data, reply);
+    EXPECT_EQ(ERR_NONE, res);
+    int32_t errCode = static_cast<int32_t>(WMError::WM_ERROR_IPC_FAILED);
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WMError::WM_OK));
+    EXPECT_EQ(sceneSessionManagerLiteStub_->lastGameConfig_.windowId_, 11);
+    EXPECT_EQ(sceneSessionManagerLiteStub_->lastGameConfig_.scaleRatio_, 0.5f);
+    EXPECT_TRUE(sceneSessionManagerLiteStub_->lastGameConfig_.enable_);
 }
 
 /**
@@ -2106,6 +2158,129 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleRestoreSessionToForeground_ReadF
     MessageParcel reply;
     int res = sceneSessionManagerLiteStub_->HandleRestoreSessionToForeground(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_Success
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with valid parameters
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_Success, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100);
+    data.WriteBool(true);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_ReadPersistentIdFailed
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS when read persistentId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_ReadPersistentIdFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_ReadBoolFailed
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS when read isStackRecover failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_ReadBoolFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(200);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_FalseFlag
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with isStackRecover false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_FalseFlag, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(300);
+    data.WriteBool(false);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_ZeroPersistentId
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with zero persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_ZeroPersistentId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(0);
+    data.WriteBool(true);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: HandleNotifyStackRecoverFromAMS_NegativePersistentId
+ * @tc.desc: test HandleNotifyStackRecoverFromAMS with negative persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleNotifyStackRecoverFromAMS_NegativePersistentId, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(-1);
+    data.WriteBool(false);
+    int res = sceneSessionManagerLiteStub_->HandleNotifyStackRecoverFromAMS(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_NotifyStackRecoverFromAMS
+ * @tc.desc: test OnRemoteRequest routes NotifyStackRecoverFromAMS transaction code
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, OnRemoteRequest_NotifyStackRecoverFromAMS, TestSize.Level1)
+{
+    using MsgType = SceneSessionManagerLiteStub::SceneSessionManagerLiteMessage;
+    uint32_t code = static_cast<uint32_t>(MsgType::TRANS_ID_NOTIFY_STACK_RECOVER);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(SceneSessionManagerLiteStub::GetDescriptor());
+    data.WriteInt32(100);
+    data.WriteBool(true);
+    auto res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ERR_NONE, res);
+}
+
+/**
+ * @tc.name: OnRemoteRequest_NotifyStackRecoverFromAMS_InvalidToken
+ * @tc.desc: test OnRemoteRequest NotifyStackRecoverFromAMS with invalid interface token
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, OnRemoteRequest_NotifyStackRecoverFromAMS_InvalidToken, TestSize.Level1)
+{
+    using MsgType = SceneSessionManagerLiteStub::SceneSessionManagerLiteMessage;
+    uint32_t code = static_cast<uint32_t>(MsgType::TRANS_ID_NOTIFY_STACK_RECOVER);
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    data.WriteInterfaceToken(u"InvalidToken");
+    auto res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(ERR_TRANSACTION_FAILED, res);
 }
 } // namespace
 } // namespace Rosen

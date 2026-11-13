@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -785,7 +785,7 @@ WMError WindowSceneSessionImpl::Create(const std::shared_ptr<AbilityRuntime::Con
     SetContext(context);
     identityToken_ = identityToken;
     property_->SetIsAbilityHookOff(isModuleAbilityHookEnd);
-    TLOGI(WmsLogTag::WMS_LIFE, "SetIsAbilityHookOff %{public}d", isModuleAbilityHookEnd);
+    TLOGD(WmsLogTag::WMS_LIFE, "SetIsAbilityHookOff %{public}d", isModuleAbilityHookEnd);
     AdjustWindowAnimationFlag();
     if (context && context->GetApplicationInfo() &&
         context->GetApplicationInfo()->apiCompatibleVersion >= 9 && // 9: api version
@@ -1211,6 +1211,7 @@ void WindowSceneSessionImpl::OnWindowRecoverStateChange(bool isSpecificSession, 
             UpdateFinishRecoverProperty(isSpecificSession);
             RecoverSessionListener();
             RecoverSessionProperty();
+            ResyncAdaptiveResolution();
             RecoverExtension();
             break;
         default:
@@ -1344,6 +1345,58 @@ void WindowSceneSessionImpl::ResetSuperFoldDisplayY(const std::shared_ptr<MMI::P
     }
 }
 
+float WindowSceneSessionImpl::GetDpiForceScale() const
+{
+    return dpiForceScale_;
+}
+
+bool WindowSceneSessionImpl::GetIsDpiForceScale() const
+{
+    return isDpiForceScale_;
+}
+
+void WindowSceneSessionImpl::UpdateDpiForceScaleChange(float dpiForceScale, bool isDpiForceScale,
+    float windowStartDensity)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "[DpiForceScale] Update client DpiForceScale pid=%{public}d, "
+        "scale=%{public}f→%{public}f, isDpiForceScale=%{public}d→%{public}d, startDensity=%{public}f→%{public}f",
+        GetPersistentId(), dpiForceScale_, dpiForceScale, isDpiForceScale_, isDpiForceScale,
+        windowStartDensity_, windowStartDensity);
+    dpiForceScale_ = dpiForceScale;
+    isDpiForceScale_ = isDpiForceScale;
+    windowStartDensity_ = windowStartDensity;
+}
+
+void WindowSceneSessionImpl::ConvertPointerEventForDpiForceScale(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    if (!GetIsDpiForceScale()) {
+        return;
+    }
+    float scaleFactor = GetDpiForceScale();
+    if (MathHelper::NearEqual(scaleFactor, 1.0f) || scaleFactor <= 0.0f) {
+        return;
+    }
+    int32_t pointerId = pointerEvent->GetPointerId();
+    MMI::PointerEvent::PointerItem pointerItem;
+    if (pointerEvent->GetPointerItem(pointerId, pointerItem)) {
+        int32_t phyDispX = pointerItem.GetDisplayX();
+        int32_t phyDispY = pointerItem.GetDisplayY();
+        int32_t displayX = static_cast<int32_t>(phyDispX / scaleFactor);
+        int32_t displayY = static_cast<int32_t>(phyDispY / scaleFactor);
+        auto globalX = pointerItem.GetGlobalX() - phyDispX + displayX;
+        auto globalY = pointerItem.GetGlobalY() - phyDispY + displayY;
+        pointerItem.SetDisplayX(displayX);
+        pointerItem.SetDisplayY(displayY);
+        pointerItem.SetGlobalX(globalX);
+        pointerItem.SetGlobalY(globalY);
+        TLOGD(WmsLogTag::WMS_EVENT, "[DpiForceScale] convert winId=%{private}d, pointerId=%{private}d"
+            "scale=%{private}f, phyDisp=[%{private}d,%{private}d]→logDisp=[%{private}d,%{private}d]",
+            GetPersistentId(),pointerId, scaleFactor, phyDispX, phyDispY, displayX, displayY);
+        pointerEvent->UpdatePointerItem(pointerId, pointerItem);
+    }
+}
+
 void WindowSceneSessionImpl::ConsumePointerEventInner(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
     MMI::PointerEvent::PointerItem& pointerItem, bool isHitTargetDraggable)
 {
@@ -1387,6 +1440,7 @@ void WindowSceneSessionImpl::ConsumePointerEventInner(const std::shared_ptr<MMI:
         DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD) {
         ResetSuperFoldDisplayY(pointerEvent);
     }
+    ConvertPointerEventForDpiForceScale(pointerEvent);
     if (needNotifyEvent) {
         NotifyPointerEvent(pointerEvent);
     } else {
@@ -1428,7 +1482,9 @@ void WindowSceneSessionImpl::ConsumePointerEvent(const std::shared_ptr<MMI::Poin
         return;
     }
     if (auto uiContent = GetUIContentSharedPtr()) {
-        uiContent->ProcessPointerEvent(pointerEvent,
+        // Runs the hit test in the hooked coordinate space; returns the original event
+        // untouched (no copy) when the adaptive input hook is inactive.
+        uiContent->ProcessPointerEvent(GetPointerEventForHitTest(pointerEvent),
             [weakThis = wptr(this), pointerEvent, pointerItem](bool isHitTargetDraggable) mutable {
                 auto window = weakThis.promote();
                 if (window == nullptr) {
@@ -1743,6 +1799,9 @@ void WindowSceneSessionImpl::CalculateNewLimitsByLimits(WindowLimits& newLimits,
     // set; snapshot-invalid attached limits must be converted with this one (see
     // CalculateAttachedWindowLimitsIntersection), so thread it out from the same displayInfo.
     displayPixelRatio = displayInfo->GetVirtualPixelRatio();
+    if (GetIsDpiForceScale()) {
+        virtualPixelRatio = windowStartDensity_;
+    }
 
     // systemLimits: physical pixels, systemLimitsVP: virtual pixels
     const auto& [systemLimits, systemLimitsVP] = GetSystemSizeLimits(displayWidth, displayHeight, virtualPixelRatio);
@@ -2280,7 +2339,7 @@ void WindowSceneSessionImpl::PreLayoutOnShow(WindowType type, const sptr<Display
         }
     }
     const auto& requestRect = GetRequestRect();
-    TLOGI(WmsLogTag::WMS_LIFE, "name: %{public}s, id: %{public}d, type: %{public}u, requestRect:%{public}s",
+    TLOGI(WmsLogTag::WMS_LAYOUT, "name: %{public}s, id: %{public}d, type: %{public}u, requestRect:%{public}s",
         property_->GetWindowName().c_str(), GetPersistentId(), type, requestRect.ToString().c_str());
     if (requestRect.width_ != 0 && requestRect.height_ != 0) {
         UpdateViewportConfig(requestRect, WindowSizeChangeReason::RESIZE, nullptr, info);
@@ -2498,7 +2557,7 @@ void WindowSceneSessionImpl::NotifyFreeMultiWindowModeResume()
 
 void WindowSceneSessionImpl::Resume(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d, isDidForeground: %{public}d, isGamePreLaunch:%{public}d",
+    TLOGD(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d, isDidForeground: %{public}d, isGamePreLaunch:%{public}d",
         isColdStart_, isDidForeground_, isGamePreLaunch);
     isDidForeground_ = true;
     isColdStart_ = false;
@@ -2507,7 +2566,7 @@ void WindowSceneSessionImpl::Resume(bool isGamePreLaunch)
 
 void WindowSceneSessionImpl::Pause(bool isGamePreLaunch)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d isGamePreLaunch: %{public}d",
+    TLOGD(WmsLogTag::WMS_LIFE, "isColdStart: %{public}d isGamePreLaunch: %{public}d",
         isColdStart_, isGamePreLaunch);
     isColdStart_ = false;
     NotifyAfterLifecyclePaused();
@@ -2533,7 +2592,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
     }
 
     const auto type = GetType();
-    TLOGI(WmsLogTag::WMS_LIFE, "Window hide [id:%{public}d, type: %{public}d, reason:%{public}u, state:%{public}u, "
+    TLOGI(WmsLogTag::WMS_LIFE, "id:%{public}d, type: %{public}d, reason:%{public}u, state:%{public}u, "
         "requestState:%{public}u, isFromInnerkits:%{public}d",
         GetPersistentId(), type, reason, state_, requestState_, isFromInnerkits);
     if (IsWindowSessionInvalid()) {
@@ -2610,8 +2669,7 @@ WMError WindowSceneSessionImpl::Hide(uint32_t reason, bool withAnimation, bool i
     NotifyWindowStatusChange(GetWindowMode());
     NotifyWindowStatusDidChange(GetWindowMode());
     escKeyEventTriggered_ = false;
-    TLOGI(WmsLogTag::WMS_LIFE, "Window hide end, id:%{public}d, type: %{public}d",
-        property_->GetPersistentId(), type);
+    TLOGI(WmsLogTag::WMS_LIFE, "end, id:%{public}d", property_->GetPersistentId());
     return res;
 }
 
@@ -3208,6 +3266,20 @@ WMError WindowSceneSessionImpl::GetEventOriginalPosition(const EventPositionInfo
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
     originalEventPositionInfo = eventPositionInfo;
+    if (GetIsDpiForceScale()) {
+        auto phyDisplayX = static_cast<int32_t>(eventPositionInfo.displayX * GetDpiForceScale());
+        auto phyDisplayY = static_cast<int32_t>(eventPositionInfo.displayY * GetDpiForceScale());
+        originalEventPositionInfo.displayX = phyDisplayX;
+        originalEventPositionInfo.displayY = phyDisplayY;
+        originalEventPositionInfo.displayXPos = phyDisplayX;
+        originalEventPositionInfo.displayYPos = phyDisplayY;
+        originalEventPositionInfo.globalX = eventPositionInfo.globalX - eventPositionInfo.displayX + phyDisplayX;
+        originalEventPositionInfo.globalY = eventPositionInfo.globalY - eventPositionInfo.displayY + phyDisplayY;
+        TLOGD(WmsLogTag::WMS_EVENT, "displayX:%{private}d, displayY:%{private}d"
+            "globalX:%{private}f, globalY:%{private}f",
+            originalEventPositionInfo.displayX, originalEventPositionInfo.displayY,
+            originalEventPositionInfo.globalX, originalEventPositionInfo.globalY);
+    }
     if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() &&
         property_->GetDisplayId() == DISPLAY_ID_C &&
         DisplayManager::GetInstance().GetFoldStatus() == FoldStatus::HALF_FOLD &&
@@ -3319,7 +3391,9 @@ void WindowSceneSessionImpl::LimitWindowSize(uint32_t& width, uint32_t& height)
 
     // Float camera window has special limits
     LimitCameraFloatWindowMininumSize(width, height, vpr);
-
+    if (GetIsDpiForceScale()) {
+        vpr = windowStartDensity_;
+    }
     // Work-area capping enabled: when vpr is unchanged and the effective limits fit the
     // caps, skip the funnel re-run. The funnel recalculates from the raw user limits, so
     // a no-op re-run would regress capped results to uncapped values when the cap is
@@ -3401,10 +3475,12 @@ WMError WindowSceneSessionImpl::Resize(uint32_t width, uint32_t height, std::str
     const auto& requestRect = GetRequestRect();
 
     Rect newRect = { requestRect.posX_, requestRect.posY_, width, height };
+    auto windowLimits = property_->GetWindowLimits();
     TLOGI(WmsLogTag::WMS_LAYOUT, "Id:%{public}d, state: %{public}d, type: %{public}d, mode: %{public}d, requestRect: "
-        "%{public}s, windowRect: %{public}s, newRect: %{public}s",
+        "%{public}s, windowRect: %{public}s, newRect: %{public}s, windowLimits: [%{public}d, %{public}d, %{public}d, %{public}d]",
         property_->GetPersistentId(), state_, GetType(), GetWindowMode(), requestRect.ToString().c_str(),
-        windowRect.ToString().c_str(), newRect.ToString().c_str());
+        windowRect.ToString().c_str(), newRect.ToString().c_str(),
+        windowLimits.minWidth_, windowLimits.maxWidth_, windowLimits.minHeight_, windowLimits.maxHeight_);
 
     property_->SetRequestRect(newRect);
 
@@ -3557,7 +3633,7 @@ WMError WindowSceneSessionImpl::GetTargetOrientationConfigInfo(Orientation targe
     Ace::ViewportConfig currentConfig = FillTargetOrientationConfig(currentInfo, displayInfo, GetDisplayId());
     currentViewportConfigAndAvoidArea.config = std::make_shared<Ace::ViewportConfig>(currentConfig);
     currentViewportConfigAndAvoidArea.avoidAreas = currentInfo.avoidAreas;
-    TLOGI(WmsLogTag::WMS_ROTATION,
+    TLOGD(WmsLogTag::WMS_ROTATION,
         "win:%{public}u, rotate:%{public}d, rect:%{public}s, avoidAreas:%{public}s,%{public}s,%{public}s,%{public}s",
         GetWindowId(), info.rotation, info.rect.ToString().c_str(),
         info.avoidAreas[AvoidAreaType::TYPE_SYSTEM].ToString().c_str(),
@@ -3919,6 +3995,7 @@ WMError WindowSceneSessionImpl::GetAvoidAreaByType(AvoidAreaType type, AvoidArea
     CHECK_HOST_SESSION_RETURN_ERROR_IF_NULL(hostSession, WMError::WM_ERROR_NULLPTR);
     WSRect sessionRect = { rect.posX_, rect.posY_, rect.width_, rect.height_ };
     avoidArea = hostSession->GetAvoidAreaByType(type, sessionRect, apiVersion);
+    HookAvoidAreaForHookedViewport(avoidArea);
     getAvoidAreaCnt_++;
     TLOGI_LMT(TEN_SECONDS, RECORD_100_TIMES, WmsLogTag::WMS_IMMS,
         "win %{public}u type %{public}d times %{public}u area %{public}s",
@@ -3945,6 +4022,7 @@ WMError WindowSceneSessionImpl::GetAvoidAreaByTypeIgnoringVisibility(AvoidAreaTy
         rect.posX_, rect.posY_, static_cast<int32_t>(rect.width_), static_cast<int32_t>(rect.height_)
     };
     avoidArea = hostSession->GetAvoidAreaByTypeIgnoringVisibility(type, sessionRect);
+    HookAvoidAreaForHookedViewport(avoidArea);
     TLOGI(WmsLogTag::WMS_IMMS, "win [%{public}u %{public}s] type %{public}d area %{public}s",
           GetWindowId(), GetWindowName().c_str(), type, avoidArea.ToString().c_str());
     return WMError::WM_OK;
@@ -5531,9 +5609,21 @@ bool WindowSceneSessionImpl::CheckIsPcAppInPadFullScreenOnMobileWindowMode()
     return false;
 }
 
-bool WindowSceneSessionImpl::CheckCanStartMoveWindowByWindowType()
+bool WindowSceneSessionImpl::IsDragMoveCapabilitySupported() const
 {
-    if (IsPcOrFreeMultiWindowCapabilityEnabled()) {
+    const bool isDisplayInFreeMultiWindow = IsDisplayInFreeMultiWindow();
+    const bool isPcAppInPad = property_->GetIsPcAppInPad();
+    const bool isDeviceFeatureCapable = IsDeviceFeatureCapableForFreeMultiWindow();
+    TLOGD(WmsLogTag::WMS_LAYOUT, "id: %{public}d, displayId: %{public}" PRIu64
+          ", isDisplayInFreeMultiWindow: %{public}d, isPcAppInPad: %{public}d, isDeviceFeatureCapable: %{public}d",
+          GetPersistentId(), property_->GetDisplayId(), isDisplayInFreeMultiWindow,
+          isPcAppInPad, isDeviceFeatureCapable);
+    return isDisplayInFreeMultiWindow || isPcAppInPad || isDeviceFeatureCapable;
+}
+
+bool WindowSceneSessionImpl::IsStartMovingAllowed() const
+{
+    if (IsDragMoveCapabilitySupported()) {
         return true;
     }
     WindowType windowType = GetType();
@@ -5550,7 +5640,7 @@ WmErrorCode WindowSceneSessionImpl::StartMoveWindow(std::string& errMsg)
 {
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowSceneSessionImpl::StartMoveWindow");
     errMsg.clear();
-    if (!CheckCanStartMoveWindowByWindowType()) {
+    if (!IsStartMovingAllowed()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid window type:%{public}u", GetType());
         RETURN_ERR(errMsg, "Invalid window type", WmErrorCode::WM_ERROR_INVALID_CALLING);
     }
@@ -5587,7 +5677,7 @@ WMError WindowSceneSessionImpl::StartMovingWithOptions(const StartMovingOptions&
 {
     errMsg.clear();
     auto windowId = GetPersistentId();
-    if (!CheckCanStartMoveWindowByWindowType()) {
+    if (!IsStartMovingAllowed()) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "Invalid window type: %{public}u, id: %{public}d", GetType(), windowId);
         RETURN_ERR(errMsg, "Invalid window type", WMError::WM_ERROR_INVALID_CALLING);
     }
@@ -5630,7 +5720,7 @@ WmErrorCode WindowSceneSessionImpl::StartMoveWindowWithCoordinate(int32_t offset
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "invalid window type:%{public}u", GetType());
         RETURN_ERR(errMsg, "Invalid window type", WmErrorCode::WM_ERROR_INVALID_CALLING);
     }
-    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
+    if (!IsDragMoveCapabilitySupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         RETURN_ERR(errMsg, "The device is not supported", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
     }
@@ -5686,7 +5776,7 @@ WmErrorCode WindowSceneSessionImpl::StopMoveWindow(std::string& errMsg)
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "invalid window type:%{public}u", GetType());
         RETURN_ERR(errMsg, "Invalid window type", WmErrorCode::WM_ERROR_INVALID_CALLING);
     }
-    if (!IsPcOrFreeMultiWindowCapabilityEnabled()) {
+    if (!IsDragMoveCapabilitySupported()) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "The device is not supported");
         RETURN_ERR(errMsg, "The device is not supported", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
     }
@@ -6423,7 +6513,7 @@ WMError WindowSceneSessionImpl::SetWindowCornerRadius(float cornerRadius)
         return WMError::WM_ERROR_INVALID_CALLING;
     }
 
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Set id %{public}u corner radius %{public}f.", GetWindowId(), cornerRadius);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}u, cornerRadius: %{public}f", GetWindowId(), cornerRadius);
     if (MathHelper::LessNotEqual(cornerRadius, 0.0f)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "The corner radius is less than zero.");
         return WMError::WM_ERROR_INVALID_PARAM;
@@ -6516,7 +6606,7 @@ WMError WindowSceneSessionImpl::SetWindowShadowRadius(float radius)
         return WMError::WM_ERROR_INVALID_CALLING;
     }
 
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Set id %{public}u shadow radius %{public}f.", GetWindowId(), radius);
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "id: %{public}u, shadowRadius: %{public}f", GetWindowId(), radius);
     if (MathHelper::LessNotEqual(radius, 0.0f)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "The shadow radius is less than zero.");
         return WMError::WM_ERROR_INVALID_PARAM;
@@ -6954,8 +7044,9 @@ WMError WindowSceneSessionImpl::SetDialogBackGestureEnabled(bool isEnabled)
         return WMError::WM_ERROR_NULLPTR;
     }
     WMError ret = static_cast<WMError>(hostSession->SetDialogSessionBackGestureEnabled(isEnabled));
-    dialogSessionBackGestureEnabled_ = isEnabled;
-    if (ret != WMError::WM_OK) {
+    if (ret == WMError::WM_OK) {
+        dialogSessionBackGestureEnabled_ = isEnabled;
+    } else {
         TLOGE(WmsLogTag::WMS_DIALOG, "set window failed with errCode:%{public}d", static_cast<int32_t>(ret));
     }
     return ret;
@@ -8135,7 +8226,7 @@ WMError WindowSceneSessionImpl::SetWindowMask(const std::vector<std::vector<uint
     std::shared_ptr<Media::PixelMap> mask = HandleWindowMask(windowMask);
     if (mask == nullptr) {
         TLOGE(WmsLogTag::WMS_PC, "Failed to create pixelMap of window mask");
-        return WMError::WM_ERROR_INVALID_WINDOW;
+        return WMError::WM_ERROR_INVALID_OPERATION;
     }
     return ApplyWindowMask(mask);
 }
@@ -8153,7 +8244,7 @@ WMError WindowSceneSessionImpl::SetWindowMaskWithAlpha(const uint8_t* windowMask
     std::shared_ptr<Media::PixelMap> mask = HandleWindowMaskWithAlpha(windowMask, maskWidth, maskHeight);
     if (mask == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "Failed to create pixelMap of window mask");
-        return WMError::WM_ERROR_INVALID_WINDOW;
+        return WMError::WM_ERROR_INVALID_OPERATION;
     }
     return ApplyWindowMask(mask);
 }
@@ -8332,6 +8423,9 @@ void WindowSceneSessionImpl::RecalcPxLimitsOnDensity(const sptr<DisplayInfo>& in
     // NOT the effective density (see CalculateAttachedWindowLimitsIntersection). Stays 0 when
     // the display info is unavailable so the intersection falls back to the effective density.
     const float displayVpr = displayInfo != nullptr ? displayInfo->GetVirtualPixelRatio() : 0.0f;
+    if (GetIsDpiForceScale()) {
+        vpr = windowStartDensity_;
+    }
     bool hasIntersectedLimits = HasIntersectedAttachLimits();
     WindowLimits limitsPx = hasIntersectedLimits ?
         property_->GetLimitsForAttachedWindows() : property_->GetWindowLimits();
@@ -8541,6 +8635,26 @@ void WindowSceneSessionImpl::NotifyDisplayInfoChange(const sptr<DisplayInfo>& in
         return;
     }
     SingletonContainer::Get<WindowManager>().NotifyDisplayInfoChange(token, displayId, density, orientation);
+}
+
+void WindowSceneSessionImpl::ResyncAdaptiveResolution()
+{
+    if (!adaptiveResolutionActive_.load()) {
+        return;
+    }
+    auto hostSession = GetHostSession();
+    if (hostSession == nullptr) {
+        return;
+    }
+    GameAdaptiveResolutionConfig config = GetAdaptiveResolutionConfig();
+    if (config.windowId_ != GetPersistentId()) {
+        TLOGW(WmsLogTag::WMS_RECOVER, "[ResyncAdaptiveResolution] mismatched windowId: "
+            "%{public}d, expected: %{public}d", config.windowId_, GetPersistentId());
+        return;
+    }
+    TLOGI(WmsLogTag::WMS_RECOVER, "[ResyncAdaptiveResolution] Id:%{public}u, config: [%{public}s]",
+        GetWindowId(), config.ToString().c_str());
+    hostSession->UpdateAdaptiveResolutionConfig(config);
 }
 
 /** @note @window.layout */
@@ -9547,7 +9661,7 @@ WMError WindowSceneSessionImpl::GetRotationLocked(bool& locked)
     }
  
     locked = property_->GetRotationLocked();
-    TLOGI(WmsLogTag::WMS_ROTATION, "get id %{public}u rotation lock %{public}d.", GetWindowId(), locked);
+    TLOGD(WmsLogTag::WMS_ROTATION, "get id %{public}u rotation lock %{public}d.", GetWindowId(), locked);
     return WMError::WM_OK;
 }
 

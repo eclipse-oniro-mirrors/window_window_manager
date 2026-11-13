@@ -20,6 +20,7 @@
 #include "js_scene_utils.h"
 #ifdef RESOURCE_SCHEDULE_SERVICE_ENABLE
 #include "res_sched_client.h"
+#include "nlohmann/json.hpp"
 #include "res_type.h"
 #endif
 #include "window_manager_hilog.h"

@@ -102,7 +102,7 @@ HWTEST_F(ScreenManagerTest, CreateAndDestroy01, TestSize.Level1)
     VirtualScreenOption wrongOption = {defaultName_, defaultWidth_, defaultHeight_,
                                        defaultDensity_, nullptr, defaultFlags_};
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_ERROR_INVALID_PARAM));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(wrongOption);
     DMError ret = ScreenManager::GetInstance().DestroyVirtualScreen(id);
@@ -123,7 +123,7 @@ HWTEST_F(ScreenManagerTest, CreateAndDestroy02, TestSize.Level1)
                                          defaultDensity_, utils.psurface_, defaultFlags_};
     ScreenId validId = 0;
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
     DMError ret = ScreenManager::GetInstance().DestroyVirtualScreen(id);
@@ -145,7 +145,7 @@ HWTEST_F(ScreenManagerTest, MakeExpand_001, TestSize.Level1)
     ScreenId validId = 0; // default srceenId(0)
     ScreenId virtualScreenId = 1; // VirtualScreen is the second screen(1)
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(virtualScreenId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(virtualScreenId));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     EXPECT_CALL(m->Mock(), MakeExpand(_, _, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId vScreenId = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
@@ -184,7 +184,7 @@ HWTEST_F(ScreenManagerTest, SetSurface01, TestSize.Level1)
                                          defaultDensity_, nullptr, defaultFlags_};
     ScreenId validId = 0;
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), SetVirtualScreenSurface(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
@@ -207,7 +207,7 @@ HWTEST_F(ScreenManagerTest, SetSurface02, TestSize.Level1)
     VirtualScreenOption defaultOption = {defaultName_, defaultWidth_, defaultHeight_,
                                          defaultDensity_, nullptr, defaultFlags_};
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
     EXPECT_CALL(m->Mock(), SetVirtualScreenSurface(_, _)).Times(1).WillOnce(Return(DMError::DM_ERROR_INVALID_PARAM));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_ERROR_INVALID_PARAM));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
@@ -758,7 +758,7 @@ HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithScreenId_DefaultValue_ReturnV
     defaultOption.screenId_ = -1;
     ScreenId validId = 0;
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
     DMError ret = ScreenManager::GetInstance().DestroyVirtualScreen(id);
@@ -780,7 +780,7 @@ HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithScreenId_MinBoundary_ReturnVa
     defaultOption.screenId_ = 500;
     ScreenId validId = 500;
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
     DMError ret = ScreenManager::GetInstance().DestroyVirtualScreen(id);
@@ -802,7 +802,7 @@ HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithScreenId_MaxBoundary_ReturnVa
     defaultOption.screenId_ = MAX_VIRTUAL_SCREEN_ID;
     ScreenId validId = MAX_VIRTUAL_SCREEN_ID;
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
     DMError ret = ScreenManager::GetInstance().DestroyVirtualScreen(id);
@@ -824,7 +824,7 @@ HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithScreenId_MiddleValue_ReturnVa
     defaultOption.screenId_ = 500;
     ScreenId validId = 500;
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
     DMError ret = ScreenManager::GetInstance().DestroyVirtualScreen(id);
@@ -897,6 +897,77 @@ HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithScreenId_LargeValue_ReturnsIn
 }
 
 /**
+ * @tc.name: CreateVirtualScreenWithErrorCode_OutOfRange_ReturnsInvalidParam
+ * @tc.desc: CreateVirtualScreen with screenId_ out of range sets errorCode to DM_ERROR_INVALID_PARAM
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithErrorCode_OutOfRange_ReturnsInvalidParam, TestSize.Level1)
+{
+    VirtualScreenOption defaultOption = {defaultName_, defaultWidth_, defaultHeight_,
+                                         defaultDensity_, nullptr, defaultFlags_};
+    defaultOption.screenId_ = 299;
+    DMError errCode = DMError::DM_OK;
+    ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption, &errCode);
+    ASSERT_EQ(SCREEN_ID_INVALID, id);
+    ASSERT_EQ(DMError::DM_ERROR_INVALID_PARAM, errCode);
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithErrorCode_Success_PassesErrorCode
+ * @tc.desc: CreateVirtualScreen passes the errorCode written by adapter to caller on success
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithErrorCode_Success_PassesErrorCode, TestSize.Level1)
+{
+    VirtualScreenOption defaultOption = {defaultName_, defaultWidth_, defaultHeight_,
+                                         defaultDensity_, nullptr, defaultFlags_};
+    ScreenId validId = 0;
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(DMError::DM_OK), Return(validId)));
+    DMError errCode = DMError::DM_ERROR_NULLPTR;
+    ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption, &errCode);
+    ASSERT_EQ(validId, id);
+    ASSERT_EQ(DMError::DM_OK, errCode);
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithErrorCode_NotSystemApp_PassesErrorCode
+ * @tc.desc: CreateVirtualScreen passes the errorCode written by adapter when not system app
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithErrorCode_NotSystemApp_PassesErrorCode, TestSize.Level1)
+{
+    VirtualScreenOption defaultOption = {defaultName_, defaultWidth_, defaultHeight_,
+                                         defaultDensity_, nullptr, defaultFlags_};
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(DMError::DM_ERROR_NOT_SYSTEM_APP),
+            Return(ERROR_ID_NOT_SYSTEM_APP)));
+    DMError errCode = DMError::DM_OK;
+    ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption, &errCode);
+    ASSERT_EQ(ERROR_ID_NOT_SYSTEM_APP, id);
+    ASSERT_EQ(DMError::DM_ERROR_NOT_SYSTEM_APP, errCode);
+}
+
+/**
+ * @tc.name: CreateVirtualScreenWithErrorCode_Failed_ReturnsDefaultErrorCode
+ * @tc.desc: CreateVirtualScreen sets default errorCode when adapter does not write it
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerTest, CreateVirtualScreenWithErrorCode_Failed_ReturnsDefaultErrorCode, TestSize.Level1)
+{
+    VirtualScreenOption defaultOption = {defaultName_, defaultWidth_, defaultHeight_,
+                                         defaultDensity_, nullptr, defaultFlags_};
+    std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
+    DMError errCode = DMError::DM_OK;
+    ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption, &errCode);
+    ASSERT_EQ(SCREEN_ID_INVALID, id);
+    ASSERT_EQ(DMError::DM_ERROR_NULLPTR, errCode);
+}
+
+/**
  * @tc.name: AddVirtualScreenSurface01
  * @tc.desc: AddVirtualScreenSurface with valid surface and return success
  * @tc.type: FUNC
@@ -910,7 +981,7 @@ HWTEST_F(ScreenManagerTest, AddVirtualScreenSurface01, TestSize.Level1)
     ScreenId validId = 0;
     DMRect surfaceRegion = {0, 0, 100, 100};
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), AddVirtualScreenSurface(_, _, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
@@ -934,7 +1005,7 @@ HWTEST_F(ScreenManagerTest, AddVirtualScreenSurface03, TestSize.Level1)
                                          defaultDensity_, nullptr, defaultFlags_};
     DMRect surfaceRegion = {0, 0, 100, 100};
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
     EXPECT_CALL(m->Mock(), AddVirtualScreenSurface(_, _, _)).Times(1)
         .WillOnce(Return(DMError::DM_ERROR_INVALID_PARAM));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1)
@@ -960,7 +1031,7 @@ HWTEST_F(ScreenManagerTest, RemoveVirtualScreenSurface01, TestSize.Level1)
                                          defaultDensity_, nullptr, defaultFlags_};
     ScreenId validId = 0;
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(validId));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(validId));
     EXPECT_CALL(m->Mock(), RemoveVirtualScreenSurface(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1).WillOnce(Return(DMError::DM_OK));
     ScreenId id = ScreenManager::GetInstance().CreateVirtualScreen(defaultOption);
@@ -983,7 +1054,7 @@ HWTEST_F(ScreenManagerTest, RemoveVirtualScreenSurface03, TestSize.Level1)
     VirtualScreenOption defaultOption = {defaultName_, defaultWidth_, defaultHeight_,
                                          defaultDensity_, nullptr, defaultFlags_};
     std::unique_ptr<Mocker> m = std::make_unique<Mocker>();
-    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
+    EXPECT_CALL(m->Mock(), CreateVirtualScreen(_, _, _)).Times(1).WillOnce(Return(SCREEN_ID_INVALID));
     EXPECT_CALL(m->Mock(), RemoveVirtualScreenSurface(_, _)).Times(1)
         .WillOnce(Return(DMError::DM_ERROR_INVALID_PARAM));
     EXPECT_CALL(m->Mock(), DestroyVirtualScreen(_, _)).Times(1)

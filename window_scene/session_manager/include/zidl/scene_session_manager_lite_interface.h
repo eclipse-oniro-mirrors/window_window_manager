@@ -138,6 +138,8 @@ public:
         TRANS_ID_GET_APP_WINDOW_SHOWING_INFOS_BY_BUNDLE_NAME,
         TRANS_ID_UPDATE_ROG_WINDOW_CONFIG,
         TRANS_ID_RESTORE_SESSION_TO_FOREGROUND,
+        TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
+        TRANS_ID_NOTIFY_STACK_RECOVER,
     };
 
     /*
@@ -380,6 +382,15 @@ public:
     {
         return WSErrorResult{WSError::WS_OK, ""};
     }
+
+    /**
+     * @brief Notify session to set stack recovery flag
+     *
+     * @param persistentId the id of session
+     * @param isStackRecover whether stack recovery is enabled
+     * @return Successful call returns WSError: WS_OK, otherwise it indicates failure
+     */
+    virtual WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) { return WSError::WS_OK; }
 
     /**
      * @brief Create a new instanceKey of a specific bundle

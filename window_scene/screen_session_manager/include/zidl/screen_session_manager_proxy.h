@@ -80,7 +80,7 @@ public:
     virtual DisplayState GetDisplayState(DisplayId displayId) override;
     virtual bool TryToCancelScreenOff() override;
     ScreenId CreateVirtualScreen(VirtualScreenOption option,
-        const sptr<IRemoteObject>& displayManagerAgent) override;
+        const sptr<IRemoteObject>& displayManagerAgent, DMError* errorCode = nullptr) override;
     virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) override;
 
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false) override;
@@ -173,6 +173,9 @@ public:
     virtual void UpdateDisplayHookInfo(int32_t uid, bool enable, const DMHookInfo& hookInfo) override;
     void GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo) override;
     void NotifyIsFullScreenInForceSplitMode(int32_t uid, bool isFullScreen) override;
+    void UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+        const DMAdaptiveResolutionConfig& config) override;
+    bool IsDisplayHookedByUid(int32_t uid) override;
 
     virtual void DumpAllScreensInfo(std::string& dumpInfo) override;
     virtual void DumpSpecialScreenInfo(ScreenId id, std::string& dumpInfo) override;

@@ -83,6 +83,7 @@ ohos_shared_library("cj_window_ffi") {
     sources = [ "window_mock.cpp" ]
     external_deps = [ "napi:cj_bind_ffi" ]
   }
+  version_script = "libcj_window_ffi.map"
   ldflags = [ "-Wl,-Bsymbolic-functions" ]
   innerapi_tags = [ "platformsdk" ]
   part_name = "window_manager"

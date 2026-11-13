@@ -71,6 +71,7 @@ public:
     WSError ClearAllSessions() override;
     WMError GetParentMainWindowId(int32_t windowId, int32_t& mainWindowId) override;
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
+    WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override;
     void GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId = DISPLAY_ID_INVALID) override;
     void GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
                          std::vector<sptr<FocusChangeInfo>>& allFocusInfoList) override;
@@ -149,6 +150,7 @@ public:
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);

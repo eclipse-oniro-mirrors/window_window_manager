@@ -229,6 +229,11 @@ WMError SceneSessionManagerLite::UpdateWindowModeByIdForUITest(int32_t windowId,
     return SceneSessionManager::GetInstance().UpdateWindowModeByIdForUITest(windowId, updateMode);
 }
 
+WMError SceneSessionManagerLite::SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+{
+    return SceneSessionManager::GetInstance().SetGameAdaptiveResolutionForWindow(config);
+}
+
 WMError SceneSessionManagerLite::CheckUIExtensionCreation(int32_t windowId, uint32_t tokenId,
     const AppExecFwk::ElementName& element, AppExecFwk::ExtensionAbilityType extensionAbilityType, int32_t& pid)
 {
@@ -570,5 +575,11 @@ WMError SceneSessionManagerLite::UpdateRogWindowConfig(const RogWindowConfig& wi
 {
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+}
+
+WSError SceneSessionManagerLite::NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
 }
 } // namespace OHOS::Rosen

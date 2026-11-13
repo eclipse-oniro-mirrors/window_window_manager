@@ -37,7 +37,6 @@ const std::string SCENE_INPUT_MANAGER_THREAD = "SceneInputManager";
 const std::string FLUSH_DISPLAY_INFO_THREAD = "OS_FlushDisplayInfoThread";
 
 constexpr int MAX_WINDOWINFO_NUM = 15;
-constexpr int DEFALUT_DISPLAYID = 0;
 constexpr int EMPTY_FOCUS_WINDOW_ID = -1;
 constexpr int INVALID_PERSISTENT_ID = 0;
 constexpr int DEFAULT_SCREEN_POS = 0;
@@ -417,7 +416,7 @@ void SceneInputManager::ConstructDisplayGroupInfos(std::map<ScreenId, ScreenProp
             // groupType is invalid.
             mmiGroupType = (displayGroupId == 0) ? MMI::GROUP_DEFAULT : MMI::GROUP_SPECIAL;
         }
-        TLOGI(WmsLogTag::WMS_EVENT,
+        TLOGD(WmsLogTag::WMS_EVENT,
               "displayGroupId=%{public}" PRIu64 ", groupType=%{public}" PRIu32 ", mmiGroupType=%{public}d",
               displayGroupId, groupType, mmiGroupType);
 
@@ -849,7 +848,11 @@ void SceneInputManager::UpdateDisplayAndWindowInfo(const std::vector<MMI::Screen
             iterNext = std::next(iterNewBegin, windowBatchSize);
         }
         std::map<uint64_t, std::vector<MMI::WindowInfo>> screenToWindowInfoList;
-        screenToWindowInfoList.emplace(DEFALUT_DISPLAYID, std::vector<MMI::WindowInfo>(iterNewBegin, iterNext));
+        for (auto iter = iterNewBegin; iter != iterNext; ++iter) {
+            // Group the tail batch by the windows' real display group id instead of the hard-coded 0,
+            // otherwise multi-display windows are counted into the default group when batching.
+            screenToWindowInfoList[iter->groupId].emplace_back(*iter);
+        }
         FlushChangeInfoToMMI(screenToWindowInfoList);
     }
 }

@@ -1167,7 +1167,7 @@ bool OHOS::Rosen::ScreenSessionManagerProxy::TryToCancelScreenOff()
 }
 
 ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virtualOption,
-                                                        const sptr<IRemoteObject>& displayManagerAgent)
+    const sptr<IRemoteObject>& displayManagerAgent, DMError* errorCode)
 {
     TLOGI(WmsLogTag::DMS, "SCB: ENTER");
     sptr<IRemoteObject> remote = Remote();
@@ -1226,6 +1226,9 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
     }
 
     ScreenId screenId = static_cast<ScreenId>(reply.ReadUint64());
+    if (errorCode != nullptr) {
+        *errorCode = static_cast<DMError>(reply.ReadInt32());
+    }
     return screenId;
 }
 
@@ -4757,10 +4760,12 @@ void OHOS::Rosen::ScreenSessionManagerProxy::UpdateDisplayHookInfo(int32_t uid, 
         return;
     }
 
-    if (!data.WriteUint32(hookInfo.width_) || !data.WriteUint32(hookInfo.height_) ||
+    if (!data.WriteUint64(hookInfo.displayId_) ||
+        !data.WriteUint32(hookInfo.width_) || !data.WriteUint32(hookInfo.height_) ||
         !data.WriteFloat(hookInfo.density_) || !data.WriteUint32(hookInfo.rotation_) ||
         !data.WriteBool(hookInfo.enableHookRotation_) || !data.WriteUint32(hookInfo.displayOrientation_) ||
         !data.WriteBool(hookInfo.enableHookDisplayOrientation_) ||
+        !data.WriteFloat(hookInfo.dpiForceScale_) ||
         !data.WriteBool(hookInfo.isFullScreenInForceSplit_) || !data.WriteInt32(hookInfo.actualRect_.posX_) ||
         !data.WriteInt32(hookInfo.actualRect_.posY_) || !data.WriteUint32(hookInfo.actualRect_.width_) ||
         !data.WriteUint32(hookInfo.actualRect_.height_)) {
@@ -4773,6 +4778,78 @@ void OHOS::Rosen::ScreenSessionManagerProxy::UpdateDisplayHookInfo(int32_t uid, 
         TLOGE(WmsLogTag::DMS, "SendRequest failed");
         return;
     }
+}
+
+void ScreenSessionManagerProxy::UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
+    const DMAdaptiveResolutionConfig& config)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] remote is nullptr");
+        return;
+    }
+
+    // Synchronous: the caller (SCB) must not apply the app-side hook before the DMS
+    // hook has landed, otherwise the app's next display query would race this update.
+    MessageOption option(MessageOption::TF_SYNC);
+    MessageParcel reply;
+    MessageParcel data;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] WriteInterfaceToken failed");
+        return;
+    }
+
+    if (!data.WriteInt32(uid) || !data.WriteBool(enable) ||
+        !data.WriteFloat(config.scaleRatio_) || !data.WriteBool(config.autoMetrics_) ||
+        !data.WriteBool(config.notifyDisplay_) || !data.WriteFloat(config.density_) ||
+        !data.WriteFloat(config.xDpi_) || !data.WriteFloat(config.yDpi_) ||
+        !data.WriteBool(config.systemModified_)) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] Write adaptive resolution config failed");
+        return;
+    }
+
+    if (remote->SendRequest(
+        static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_UPDATE_ADAPTIVE_RESOLUTION_HOOK),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "[UpdateAdaptiveResolutionHook] SendRequest failed");
+        return;
+    }
+}
+
+bool ScreenSessionManagerProxy::IsDisplayHookedByUid(int32_t uid)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] remote is nullptr");
+        return false;
+    }
+
+    MessageOption option;
+    MessageParcel reply;
+    MessageParcel data;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] WriteInterfaceToken failed");
+        return false;
+    }
+
+    if (!data.WriteInt32(uid)) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] Write uid failed");
+        return false;
+    }
+
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_IS_DISPLAY_HOOKED_BY_UID),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] SendRequest failed");
+        return false;
+    }
+    bool hooked = false;
+    if (!reply.ReadBool(hooked)) {
+        TLOGE(WmsLogTag::DMS, "[IsDisplayHookedByUid] read reply failed");
+        return false;
+    }
+    return hooked;
 }
 
 void ScreenSessionManagerProxy::GetDisplayHookInfo(int32_t uid, DMHookInfo& hookInfo)
@@ -4794,6 +4871,11 @@ void ScreenSessionManagerProxy::GetDisplayHookInfo(int32_t uid, DMHookInfo& hook
 
     if (!data.WriteInt32(uid)) {
         TLOGE(WmsLogTag::DMS, "Write uid failed");
+        return;
+    }
+
+    if (!data.WriteUint64(hookInfo.displayId_)) {
+        TLOGE(WmsLogTag::DMS, "Write displayId failed");
         return;
     }
 

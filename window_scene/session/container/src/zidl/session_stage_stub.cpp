@@ -107,6 +107,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateRect(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DENSITY_CHANGE):
             return HandleUpdateDensity(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_DPI_FORCE_SCALE_CHANGE):
+            return HandleUpdateDpiForceScaleChange(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ORIENTATION_CHANGE):
             return HandleUpdateOrientation(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_UPDATE_SESSION_VIEWPORT_CONFIG):
@@ -294,6 +296,8 @@ int SessionStageStub::OnRemoteRequest(uint32_t code, MessageParcel& data, Messag
             return HandleUpdateAppHookWindowInfo(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SET_FORCE_SPLIT_ENABLE):
             return HandleSetForceSplitEnable(data, reply);
+        case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_NOTIFY_ADAPTIVE_RESOLUTION_CHANGED):
+            return HandleNotifyAdaptiveResolutionChanged(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SEND_FV_ACTION_EVENT):
             return HandleSendFvActionEvent(data, reply);
         case static_cast<uint32_t>(SessionStageInterfaceCode::TRANS_ID_SYNC_FV_WINDOW_INFO):
@@ -433,6 +437,15 @@ int SessionStageStub::HandleUpdateDensity(MessageParcel& data, MessageParcel& re
     return ERR_NONE;
 }
 
+int SessionStageStub::HandleUpdateDpiForceScaleChange(MessageParcel& data, MessageParcel& reply)
+{
+    float dpiForceScale = data.ReadFloat();
+    bool isDpiForceScale = data.ReadBool();
+    float windowStartDensity = data.ReadFloat();
+    UpdateDpiForceScaleChange(dpiForceScale, isDpiForceScale, windowStartDensity);
+    return ERR_NONE;
+}
+
 int SessionStageStub::HandleUpdateOrientation(MessageParcel& data, MessageParcel& reply)
 {
     TLOGD(WmsLogTag::DMS, "HandleUpdateOrientation!");
@@ -546,15 +559,6 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Occupied info is nullptr");
         return ERR_INVALID_VALUE;
     }
-    int32_t posX = 0;
-    int32_t posY = 0;
-    uint32_t width = 0;
-    uint32_t height = 0;
-    if (!(data.ReadInt32(posX) && data.ReadInt32(posY) && data.ReadUint32(width) && data.ReadUint32(height))) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "Read callingSessionRect failed");
-        return ERR_INVALID_VALUE;
-    }
-    Rect callingSessionRect = { posX, posY, width, height };
     std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
     uint32_t size = 0;
     if (!data.ReadUint32(size)) {
@@ -591,9 +595,9 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
             TLOGE(WmsLogTag::WMS_KEYBOARD, "transaction unMarsh failed");
             return ERR_INVALID_VALUE;
         }
-        NotifyOccupiedAreaChangeInfo(info, transaction, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, transaction, avoidAreas);
     } else {
-        NotifyOccupiedAreaChangeInfo(info, nullptr, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, nullptr, avoidAreas);
     }
 
     return ERR_NONE;
@@ -1255,7 +1259,7 @@ int SessionStageStub::HandleConfigDockAutoHide(MessageParcel& data, MessageParce
 
 int SessionStageStub::HandleGetUIContentRemoteObj(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "Called");
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "Called");
     sptr<IRemoteObject> uiContentRemoteObj;
     WSError errCode = GetUIContentRemoteObj(uiContentRemoteObj);
     reply.WriteRemoteObject(uiContentRemoteObj);
@@ -1605,7 +1609,7 @@ int SessionStageStub::HandleNotifyOrientationExecutionResult(MessageParcel& data
 
 int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "in");
+    TLOGD(WmsLogTag::WMS_ROTATION, "in");
     uint32_t rotation = 0;
     if (!data.ReadUint32(rotation)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "read rotation failed");
@@ -1693,7 +1697,7 @@ int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageP
 
 int SessionStageStub::HandleNotifyPageRotationIsIgnored(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "in");
+    TLOGD(WmsLogTag::WMS_ROTATION, "in");
     NotifyPageRotationIsIgnored();
     return ERR_NONE;
 }
@@ -1726,7 +1730,7 @@ int SessionStageStub::HandleNotifyRotationChange(MessageParcel& data, MessagePar
     RotationChangeInfo rotationChangeInfo = { static_cast<RotationChangeType>(type), orientation, displayId, rect };
     RotationChangeResult rotationChangeResult = NotifyRotationChange(rotationChangeInfo);
     if (rotationChangeInfo.type_ == RotationChangeType::WINDOW_DID_ROTATE) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
+        TLOGD(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
         return ERR_NONE;
     }
     if (!reply.WriteUint32(static_cast<uint32_t>(rotationChangeResult.rectType_))) {
@@ -1784,6 +1788,23 @@ int SessionStageStub::HandleSetForceSplitEnable(MessageParcel& data, MessageParc
         return ERR_INVALID_DATA;
     }
     SetForceSplitEnable(isForceSplitEnabled, needUpdateViewport, static_cast<SelectMode>(selectModeValue));
+    return ERR_NONE;
+}
+
+int SessionStageStub::HandleNotifyAdaptiveResolutionChanged(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] in");
+    int32_t statusValue = -1;
+    if (!data.ReadInt32(statusValue)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] Read status failed");
+        return ERR_INVALID_DATA;
+    }
+    sptr<GameAdaptiveResolutionConfig> config = data.ReadParcelable<GameAdaptiveResolutionConfig>();
+    if (config == nullptr) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleNotifyAdaptiveResolutionChanged] config is nullptr!");
+        return ERR_INVALID_DATA;
+    }
+    NotifyAdaptiveResolutionChanged(static_cast<GameAdaptiveResolutionStatus>(statusValue), *config);
     return ERR_NONE;
 }
 

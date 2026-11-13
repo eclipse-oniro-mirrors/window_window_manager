@@ -92,8 +92,6 @@ enum class ApiWindowType : uint32_t {
     TYPE_FLOAT_NAVIGATION,
     TYPE_DYNAMIC,
     TYPE_MUTISCREEN_COLLABORATION,
-    TYPE_FB,
-    TYPE_FV,
     TYPE_MAIN = 32,
     TYPE_END
 };

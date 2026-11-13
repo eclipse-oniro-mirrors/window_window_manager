@@ -356,6 +356,14 @@ WMError WindowAdapter::ListWindowInfo(const WindowInfoOption& windowInfoOption, 
     return wmsProxy->ListWindowInfo(windowInfoOption, infos);
 }
 
+WMError WindowAdapter::SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetGameAdaptiveResolutionForWindow(config);
+}
+
 WMError WindowAdapter::GetAllWindowLayoutInfo(DisplayId displayId, std::vector<sptr<WindowLayoutInfo>>& infos,
     const WindowInfoOptions& option, bool useHookedSize)
 {
@@ -467,7 +475,7 @@ WMError WindowAdapter::CleanScreenWatermarkImage(const std::shared_ptr<Media::Pi
         screenWatermarkBundleName_ = "";
         screenWatermarkPriority_ = 0;
     }
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", static_cast<int32_t>(errCode));
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d", static_cast<int32_t>(errCode));
     return errCode;
 }
 
@@ -1149,11 +1157,9 @@ DisplayId WindowAdapter::ResolveDefaultDisplayId(DisplayId displayId)
     if (displayId != DISPLAY_ID_INVALID) {
         return displayId;
     }
-    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
-    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
-    static const bool g_defaultDisplayResolve =
-        system::GetBoolParameter("persist.window.default_display_resolve", false);
-    if (!g_defaultDisplayResolve) {
+    // Keep the legacy behavior (default display fixed to 0) until multi-instance is enabled.
+    // IsMultiInstanceEnabled() caches its own switch, so querying it per call is cheap.
+    if (!IsMultiInstanceEnabled()) {
         return DEFAULT_DISPLAY_ID;
     }
     auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId_);
@@ -1175,6 +1181,17 @@ void WindowAdapter::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId dis
     } else {
         wmsProxy->GetFocusWindowInfo(focusInfo);
     }
+}
+
+void WindowAdapter::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayGroupId>& displayId2GroupIdMap,
+    std::vector<sptr<FocusChangeInfo>>& allFocusInfoList)
+{
+    INIT_PROXY_CHECK_RETURN();
+
+    TLOGD(WmsLogTag::WMS_FOCUS, "request on adapter");
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_IF_NULL(wmsProxy);
+    wmsProxy->GetAllGroupInfo(displayId2GroupIdMap, allFocusInfoList);
 }
 
 void WindowAdapter::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focusInfo,
@@ -1622,6 +1639,14 @@ WMError WindowAdapter::IsPcWindow(bool& isPcWindow)
     auto wmsProxy = GetWindowManagerServiceProxy();
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->IsPcWindow(isPcWindow);
+}
+
+WMError WindowAdapter::IsHookExtensionWindow(const std::string& bundleName, bool& isHook)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->IsHookExtensionWindow(bundleName, isHook);
 }
 
 WMError WindowAdapter::IsFreeMultiWindowMode(bool& isFreeMultiWindow)

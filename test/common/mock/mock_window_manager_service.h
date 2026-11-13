@@ -93,6 +93,7 @@ public:
     MOCK_METHOD(WMError, UnregisterWindowPropertyChangeAgent, (WindowInfoKey, uint32_t,
         const sptr<IWindowManagerAgent>&, int32_t), (override));
     MOCK_METHOD(WSError, MoveMainWindowToTargetDisplay, (DisplayId displayId, int32_t windowId), (override));
+    MOCK_METHOD(WMError, IsHookExtensionWindow, (const std::string& bundleName, bool& isHook), (override));
 };
 
 /**

@@ -58,6 +58,7 @@ enum class ListenerFunctionType : uint32_t {
     NOTIFY_SUPPORT_ROTATION_REGISTERED_CB,
     SENSOR_ROTATION_CHANGE_CB,
     SMART_SENSOR_ROTATION_CHANGE_CB,
+    DISPLAY_POWER_EVENT_CHANGE_CB,
     MINIMIZE_ALL_CB,
     MOVE_MAIN_WINDOW_TO_TARGET_DISPLAY_CB,
     SET_WINDOW_POSITION_CB,
@@ -126,6 +127,7 @@ public:
     static napi_value UpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     static napi_value UpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     static napi_value NotifyHookOrientationChange(napi_env env, napi_callback_info info);
+    static napi_value SetHookExtensionWindowList(napi_env env, napi_callback_info info);
     static napi_value InitScheduleUtils(napi_env env, napi_callback_info info);
     static napi_value SetAppForceLandscapeConfig(napi_env env, napi_callback_info info);
     static napi_value SwitchFreeMultiWindow(napi_env env, napi_callback_info info);
@@ -238,6 +240,7 @@ private:
     napi_value OnKioskModeChange(napi_env env, napi_callback_info info);
     napi_value OnUpdateSceneSessionWant(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSessionActivation(napi_env env, napi_callback_info info);
+    napi_value OnSetTryUseSnapshot(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSessionBackground(napi_env env, napi_callback_info info);
     napi_value OnRequestSceneSessionDestruction(napi_env env, napi_callback_info info);
     napi_value OnNotifyForegroundInteractiveStatus(napi_env env, napi_callback_info info);
@@ -296,6 +299,7 @@ private:
     napi_value OnUpdateDisplayHookInfo(napi_env env, napi_callback_info info);
     napi_value OnUpdateAppHookDisplayInfo(napi_env env, napi_callback_info info);
     napi_value OnNotifyHookOrientationChange(napi_env env, napi_callback_info info);
+    napi_value OnSetHookExtensionWindowList(napi_env env, napi_callback_info info);
     napi_value OnInitScheduleUtils(napi_env env, napi_callback_info info);
     napi_value OnSetAppForceLandscapeConfig(napi_env env, napi_callback_info info);
     napi_value OnIsScbCoreEnabled(napi_env env, napi_callback_info info);
@@ -450,6 +454,7 @@ private:
     static napi_value KioskModeChange(napi_env env, napi_callback_info info);
     static napi_value UpdateSceneSessionWant(napi_env env, napi_callback_info info);
     static napi_value RequestSceneSessionActivation(napi_env env, napi_callback_info info);
+    static napi_value SetTryUseSnapshot(napi_env env, napi_callback_info info);
     static napi_value RequestSceneSessionBackground(napi_env env, napi_callback_info info);
     static napi_value RequestSceneSessionDestruction(napi_env env, napi_callback_info info);
     static napi_value NotifyForegroundInteractiveStatus(napi_env env, napi_callback_info info);
@@ -461,7 +466,7 @@ private:
     napi_value OnGetApplicationInfo(napi_env env, napi_callback_info info);
     napi_value OnSupportCreateFloatWindow(napi_env env, napi_callback_info info);
     void RegisterSceneSessionDestructCallback();
-    void OnSceneSessionDestruct(int32_t persistentId);
+    void OnSceneSessionDestruct(int32_t persistentId, bool isUserRequestedExit);
     void RegisterTransferSessionToTargetScreenCallback();
     void OnTransferSessionToTargetScreen(const TransferSessionInfo& info);
     static napi_value NotifySessionTransferToTargetScreenEvent(napi_env env, napi_callback_info info);
@@ -502,6 +507,8 @@ private:
     void OnSensorRotationChange(float sensorRotation);
     void ProcessSmartSensorRotationRegister();
     void OnSmartSensorRotationChange(float sensorRotation, bool isSwitchUser, int16_t reason);
+    void ProcessDisplayPowerEventRegister();
+    void OnDisplayPowerEventChange(ScreenId screenId, DisplayPowerEvent event, EventStatus status);
 
     /*
      * Window Pattern

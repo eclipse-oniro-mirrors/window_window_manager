@@ -14,6 +14,9 @@
  */
 
 #include <gtest/gtest.h>
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include <pointer_event.h>
 #include "proxy/include/window_info.h"
 
@@ -2573,6 +2576,89 @@ HWTEST_F(SceneSessionTest5, HandleMoveDragSurfaceNodeRemoveCloneNode, TestSize.L
     // test func
     sceneSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_END);
     EXPECT_EQ(surfaceNode->GetStagingProperties().GetPositionZ(), 200);
+}
+
+/**
+ * @tc.name: GetWindowDragMoveMountedNodeSync
+ * @tc.desc: GetWindowDragMoveMountedNode posted to running main event runner
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, GetWindowDragMoveMountedNodeSync, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetWindowDragMoveMountedNodeSync";
+    info.bundleName_ = "GetWindowDragMoveMountedNodeSync";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetFindScenePanelRsNodeByZOrderFunc([this](uint64_t screenId, uint32_t targetZOrder) {
+        return CreateRSSurfaceNode();
+    });
+    auto mainRunner = AppExecFwk::EventRunner::GetMainEventRunner();
+    ASSERT_NE(mainRunner, nullptr);
+    std::thread runnerThread([mainRunner] { mainRunner->Run(); });
+    auto isRunnerReady = std::make_shared<std::atomic<bool>>(false);
+    auto eventHandler = std::make_shared<AppExecFwk::EventHandler>(mainRunner);
+    ASSERT_NE(eventHandler, nullptr);
+    bool postResult = eventHandler->PostTask([isRunnerReady] { isRunnerReady->store(true); },
+        "WaitRunnerRunningSyncTest", 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+    ASSERT_TRUE(postResult);
+    int32_t waitCount = 0;
+    const int32_t maxWaitCount = 3000;
+    while (!isRunnerReady->load() && waitCount < maxWaitCount) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        waitCount++;
+    }
+    ASSERT_TRUE(isRunnerReady->load());
+    auto rsNode = sceneSession->GetWindowDragMoveMountedNode(0, 0);
+    EXPECT_NE(rsNode, nullptr);
+    mainRunner->Stop();
+    runnerThread.join();
+}
+
+/**
+ * @tc.name: GetWindowDragMoveMountedNodeTimeout
+ * @tc.desc: GetWindowDragMoveMountedNode returns null when main thread is busy until timeout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest5, GetWindowDragMoveMountedNodeTimeout, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "GetWindowDragMoveMountedNodeTimeout";
+    info.bundleName_ = "GetWindowDragMoveMountedNodeTimeout";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->SetFindScenePanelRsNodeByZOrderFunc([this](uint64_t screenId, uint32_t targetZOrder) {
+        return CreateRSSurfaceNode();
+    });
+    auto mainRunner = AppExecFwk::EventRunner::GetMainEventRunner();
+    ASSERT_NE(mainRunner, nullptr);
+    std::thread runnerThread([mainRunner] { mainRunner->Run(); });
+    auto isRunnerReady = std::make_shared<std::atomic<bool>>(false);
+    auto eventHandler = std::make_shared<AppExecFwk::EventHandler>(mainRunner);
+    ASSERT_NE(eventHandler, nullptr);
+    bool postResult = eventHandler->PostTask([isRunnerReady] { isRunnerReady->store(true); },
+        "WaitRunnerRunningTimeoutTest", 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+    ASSERT_TRUE(postResult);
+    int32_t waitCount = 0;
+    const int32_t maxWaitCount = 3000;
+    while (!isRunnerReady->load() && waitCount < maxWaitCount) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        waitCount++;
+    }
+    ASSERT_TRUE(isRunnerReady->load());
+    postResult = eventHandler->PostTask(
+        [] { std::this_thread::sleep_for(std::chrono::milliseconds(1500)); },
+        "OccupyMainThreadTimeoutTest", 0, AppExecFwk::EventQueue::Priority::IMMEDIATE);
+    ASSERT_TRUE(postResult);
+    auto startTime = std::chrono::steady_clock::now();
+    auto rsNode = sceneSession->GetWindowDragMoveMountedNode(0, 0);
+    auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - startTime).count();
+    EXPECT_EQ(rsNode, nullptr);
+    EXPECT_GE(elapsedMs, 900);
+    EXPECT_LE(elapsedMs, 5000);
+    mainRunner->Stop();
+    runnerThread.join();
 }
 
 /**

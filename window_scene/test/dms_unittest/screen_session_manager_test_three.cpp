@@ -1523,7 +1523,7 @@ HWTEST_F(ScreenSessionManagerTest, HookRadius_SecondarySuperFold_ValidRadius, Te
     ASSERT_NE(screenSession, nullptr);
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
 
     int radius = 100;
     ssm_->HookRadius(screenId, radius);
@@ -1552,7 +1552,7 @@ HWTEST_F(ScreenSessionManagerTest, HookRadius_SecondarySuperFold_ZeroDimensions,
     // Set hook enabled so the guard passes
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
 
     // The session in screenSessionMap_ (from CreateVirtualScreen) has default bounds;
     // GetDisplayInfoById returns a DisplayInfo whose Width/Height comes from those bounds.
@@ -1598,7 +1598,7 @@ HWTEST_F(ScreenSessionManagerTest, HookRadius_NonSuperFoldDevice_Noop, TestSize.
     ASSERT_NE(ssm_, nullptr);
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
     int radius = 100;
     ssm_->HookRadius(0, radius);
     // On non-super-fold device: !(IsSecondary || IsSingle) is true → early return
@@ -1621,7 +1621,7 @@ HWTEST_F(ScreenSessionManagerTest, HookRadius_SecondarySuperFold_NullDisplayInfo
     ASSERT_NE(ssm_, nullptr);
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
     int radius = 100;
     // Use a displayId that has no matching session → GetDisplayInfoById returns nullptr
     ssm_->HookRadius(99999, radius);
@@ -1646,7 +1646,7 @@ HWTEST_F(ScreenSessionManagerTest, HookRadius_SingleSuperFold_StillWorks, TestSi
     ASSERT_NE(screenSession, nullptr);
     uint32_t uid = getuid();
     DMHookInfo dmHookInfo = CreateDefaultHookInfo();
-    ssm_->displayHookMap_[uid] = dmHookInfo;
+    ssm_->displayHookMap_[uid][0] = dmHookInfo;
 
     int radius = 100;
     ssm_->HookRadius(screenId, radius);

@@ -55,6 +55,8 @@ public:
     void NotifyWindowPropertyChange(uint32_t propertyDirtyFlags, const WindowInfoList& windowInfoList);
     void NotifySupportRotationChange(const SupportRotationInfo& supportRotationInfo);
     void NotifySessionSaveSnapShotComplete(int32_t persistentId);
+    void NotifyGameAdaptiveResolutionCancelled(int32_t windowId);
+    void NotifyGameAdaptiveResolutionAvailable(int32_t windowId);
 
 private:
     SessionManagerAgentController()

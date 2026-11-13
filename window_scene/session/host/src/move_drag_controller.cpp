@@ -634,6 +634,8 @@ WSRect MoveDragController::GetFullScreenToFloatingRect(const WSRect& originalRec
         windowRect.height_,
     };
     TLOGI(WmsLogTag::WMS_LAYOUT, "target rect:%{public}s", targetRect.ToString().c_str());
+    targetRect = limits_.ClampRect(targetRect);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "after by limits target rect:%{public}s", targetRect.ToString().c_str());
     return targetRect;
 }
 
@@ -1158,7 +1160,7 @@ std::pair<int32_t, int32_t> MoveDragController::ComputeOffsetFromStart(
     int32_t deltaY = curUnifiedY - originUnifiedY;
 
     // NOTE: Intrusive modification, should be optimized.
-    if (isAdaptToProportionalScale_ || isAdaptToDragScale_) {
+    if (isAdaptToProportionalScale_ || isAdaptToDragScale_ || GetIsDpiForceScale()) {
         return std::make_pair(deltaX, deltaY);
     }
 
@@ -1575,12 +1577,28 @@ float MoveDragController::GetVirtualPixelRatio(const std::shared_ptr<MMI::Pointe
     return display ? display->GetVirtualPixelRatio() : defaultVpr;
 }
 
+bool MoveDragController::GetIsDpiForceScale() const
+{
+    return CallSceneSession(&SceneSession::GetIsDpiForceScale, false);
+}
+
+float MoveDragController::GetDpiForceScale() const
+{
+    auto dpiForceScale = CallSceneSession(&SceneSession::GetDpiForceScale, 1.0f);
+    TLOGD(WmsLogTag::WMS_LAYOUT, "dpiForceScale scale ratio is %{public}f", dpiForceScale);
+    return dpiForceScale;
+}
+
 WSRect MoveDragController::CalcFirstOriginalRectPos(const WSRect& windowRect) const
 {
     // Calculate the original position of a window rect (in parent coordinates).
     WSRect originalRect;
     if (MathHelper::NearZero(moveDragProperty_.scaleX_) || MathHelper::NearZero(moveDragProperty_.scaleY_)) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "scale ratio is 0");
+        return windowRect;
+    }
+    if (GetIsDpiForceScale()) {
+        TLOGD(WmsLogTag::WMS_LAYOUT, "dpiForceScale");
         return windowRect;
     }
     // For system windows the position is independent of the parent and must not be adjusted
@@ -1603,18 +1621,26 @@ WSRect MoveDragController::CalcFreeformTargetRect(AreaType type, int32_t tranX, 
     if (!isAdaptToDragScale_) {
         FixTranslateByLimits(tranX, tranY);
     }
+    // Special compatible scale: map resize delta from physical to logical coordinates
+    float scale = GetDpiForceScale();
+    auto tranXWithScale = tranX;
+    auto tranYWithScale = tranY;
+    if (GetIsDpiForceScale() && scale > 0) {
+        tranXWithScale  = static_cast<int32_t>(tranX / scale);
+        tranYWithScale = static_cast<int32_t>(tranY / scale);
+    }
     TLOGD(WmsLogTag::WMS_LAYOUT, "areaType:%{public}u", type);
     if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::LEFT)) {
         targetRect.posX_ += tranX;
-        targetRect.width_ -= tranX;
+        targetRect.width_ -= tranXWithScale;
     } else if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::RIGHT)) {
-        targetRect.width_ += tranX;
+        targetRect.width_ += tranXWithScale;
     }
     if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::TOP)) {
         targetRect.posY_ += tranY;
-        targetRect.height_ -= tranY;
+        targetRect.height_ -= tranYWithScale;
     } else if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::BOTTOM)) {
-        targetRect.height_ += tranY;
+        targetRect.height_ += tranYWithScale;
     }
     // check current ratio limits
     if (targetRect.height_ == 0) {

@@ -40,6 +40,8 @@ public:
     bool GetNeedBlockNotifyFocusStatusUntilForeground() const { return needBlockNotifyFocusStatusUntilForeground_; }
     bool GetNeedBlockNotifyUnfocusStatus() const { return needBlockNotifyUnfocusStatus_; }
     DisplayId GetDisplayGroupId() const { return displayGroupId_; }
+    DisplayGroupType GetDisplayGroupType() const { return displayGroupType_; }
+    void SetDisplayGroupType(DisplayGroupType displayGroupType) { displayGroupType_ = displayGroupType; }
     int64_t GetUpdateFocusTimeStamp() const { return updateFocusTimeStamp_; }
     void SetFocusedSessionId(int32_t persistentId) { focusedSessionId_ = persistentId; }
     void SetLastFocusedSessionId(int32_t persistentId) { lastFocusedSessionId_ = persistentId; }
@@ -61,6 +63,7 @@ private:
     bool needBlockNotifyFocusStatusUntilForeground_ { false };
     bool needBlockNotifyUnfocusStatus_ { false };
     DisplayId displayGroupId_ = DISPLAY_ID_INVALID;
+    DisplayGroupType displayGroupType_ = DisplayGroupType::INVALID;
     int64_t updateFocusTimeStamp_ = INVALID_TIME_STAMP;
 };
 
@@ -70,7 +73,7 @@ public:
     ~WindowFocusController() = default;
 
     DisplayId GetDisplayGroupId(DisplayId displayId);
-    WSError AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
+    WSError AddFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId, DisplayGroupType displayGroupType);
     WSError RemoveFocusGroup(DisplayGroupId displayGroupId, DisplayId displayId);
     int32_t GetFocusedSessionId(DisplayId displayId);
     sptr<FocusGroup> GetFocusGroup(DisplayId displayId = DEFAULT_DISPLAY_ID);

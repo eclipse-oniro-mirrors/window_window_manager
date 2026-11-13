@@ -300,7 +300,7 @@ void WindowScene::UpdateConfigurationForSpecified(const std::shared_ptr<AppExecF
     const std::shared_ptr<Global::Resource::ResourceManager>& resourceManager)
 {
     if (auto mainWindow = GetMainWindow()) {
-        TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u", mainWindow->GetWindowId());
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u", mainWindow->GetWindowId());
         mainWindow->UpdateConfigurationForSpecified(configuration, resourceManager);
     } else {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "main window is null");

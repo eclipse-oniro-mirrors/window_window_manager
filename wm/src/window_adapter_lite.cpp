@@ -331,6 +331,14 @@ WMError WindowAdapterLite::UpdateScreenLockStatusForApp(const std::string& bundl
     return wmsProxy->UpdateScreenLockStatusForApp(bundleName, isRelease);
 }
 
+WMError WindowAdapterLite::SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
+    return wmsProxy->SetGameAdaptiveResolutionForWindow(config);
+}
+
 bool WindowAdapterLite::InitSSMProxy()
 {
     std::lock_guard<std::mutex> lock(wmsProxyMutex_);

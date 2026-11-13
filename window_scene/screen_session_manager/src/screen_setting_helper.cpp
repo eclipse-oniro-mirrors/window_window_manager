@@ -1190,7 +1190,7 @@ bool ScreenSettingHelper::GetResolutionEffect(bool& enable, const std::string& s
         }
     }
     if (!serialNumberMatched) {
-        TLOGW(WmsLogTag::DMS, "serialNumber: %{public}s not matched in setting: %{public}s",
+        TLOGW(WmsLogTag::DMS, "serialNumber: %{private}s not matched in setting: %{public}s",
             serialNumber.c_str(), key.c_str());
     }
     return true;

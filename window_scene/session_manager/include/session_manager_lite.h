@@ -139,6 +139,7 @@ private:
 
     void InitializeActiveUserIds();
     void SetAllActiveUserIds(const std::vector<int32_t>& userIds);
+    bool IsSelfRouteRequest() const;
 
     /*
      * Window Recover

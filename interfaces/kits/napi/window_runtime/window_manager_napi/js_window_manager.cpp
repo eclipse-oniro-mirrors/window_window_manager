@@ -791,6 +791,8 @@ napi_value JsWindowManager::OnCreateWindow(napi_env env, napi_callback_info info
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnCreateWindow") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][createWindow]msg: send event failed"));
     }
     return result;
 }
@@ -805,7 +807,8 @@ napi_value JsWindowManager::OnGetSnapshot(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_SYSTEM, "Argc is invalid:%{public}zu", argc);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSnapshot",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][getSnapshot]msg: Parameter error: the windowId parameter is required"));
         return NapiGetUndefined(env);
     }
     int32_t windowId = 0;
@@ -813,7 +816,8 @@ napi_value JsWindowManager::OnGetSnapshot(napi_env env, napi_callback_info info)
         TLOGE(WmsLogTag::WMS_SYSTEM, "Failed to convert parameter to integer");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSnapshot",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][getSnapshot]msg: Failed to convert parameter to windowId"));
         return NapiGetUndefined(env);
     }
     std::shared_ptr<WindowSnapshotDataPack> dataPack = std::make_shared<WindowSnapshotDataPack>();
@@ -827,7 +831,8 @@ napi_value JsWindowManager::OnGetSnapshot(napi_env env, napi_callback_info info)
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSnapshot",
                     WM_JS_TO_ERROR_CODE_MAP.at(dataPack->result));
                 task.Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(dataPack->result),
-                    "[window][getSnapshot]msg: get snapshot failed"));
+                    "[window][getSnapshot]msg: Failed to get the snapshot of the window, windowId=" +
+                    std::to_string(windowId) + "."));
                 TLOGNW(WmsLogTag::WMS_SYSTEM, "Get snapshot not ok!");
                 return;
             }
@@ -844,7 +849,8 @@ napi_value JsWindowManager::OnGetSnapshot(napi_env env, napi_callback_info info)
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getSnapshot",
                     WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
                 task.Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                    "[window][getSnapshot]msg: create native pixel map failed"));
+                    "[window][getSnapshot]msg: Failed to convert the pixel map to a JS object, windowId=" +
+                    std::to_string(windowId) + "."));
                 TLOGNE(WmsLogTag::WMS_SYSTEM, "Create native pixelmap is nullptr!");
                 return;
             }
@@ -930,7 +936,7 @@ napi_value JsWindowManager::OnFindWindowSync(napi_env env, napi_callback_info in
     }
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][createWindow]msg: Parameter verification failed."));
+            "[window][findWindow]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -990,7 +996,8 @@ napi_value JsWindowManager::OnMinimizeAll(napi_env env, napi_callback_info info)
     WmErrorCode errCode = MinimizeAllParamParse(env, argc, argv, displayId, excludeWindowId);
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         TLOGE(WmsLogTag::WMS_LIFE, "JsWindowManager::OnMinimizeAll failed, Invalidate params.");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][minimizeAll]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -1010,7 +1017,7 @@ napi_value JsWindowManager::OnMinimizeAll(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::WMS_LIFE, "OnMinimizeAll success");
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "OnMinimizeAll failed"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][minimizeAll]msg: Minimize all failed."));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnMinimizeAll") != napi_status::napi_ok) {
@@ -1488,7 +1495,8 @@ napi_value JsWindowManager::OnSetWaterMarkImage(napi_env env, napi_callback_info
         WLOGFE("Argc is invalid: %{public}zu", argc);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWaterMarkImage]msg: Parameter error: the pixelMap and isShow parameters are required"));
         return NapiGetUndefined(env);
     } else {
         if (argc > 0 && GetType(env, argv[0]) == napi_object) {
@@ -1502,7 +1510,8 @@ napi_value JsWindowManager::OnSetWaterMarkImage(napi_env env, napi_callback_info
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "priority=%{public}d is less than 0", priority);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
             WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][setWaterMarkImage]msg: Invalid priority value, priority must be a non-negative integer");
     }
 
     std::shared_ptr<Media::PixelMap> pixelMap;
@@ -1511,7 +1520,8 @@ napi_value JsWindowManager::OnSetWaterMarkImage(napi_env env, napi_callback_info
         WLOGFE("Failed to convert parameter to PixelMap");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWaterMarkImage]msg: Failed to convert parameter to pixelMap"));
         return NapiGetUndefined(env);
     }
 
@@ -1519,7 +1529,8 @@ napi_value JsWindowManager::OnSetWaterMarkImage(napi_env env, napi_callback_info
         WLOGFE("Failed to convert parameter to bool");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setWaterMarkImage]msg: Failed to convert parameter to isShow"));
         return NapiGetUndefined(env);
     }
     bool isShow = false;
@@ -1528,7 +1539,8 @@ napi_value JsWindowManager::OnSetWaterMarkImage(napi_env env, napi_callback_info
         WLOGFE("set watermark image permission denied!");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
             WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+            "[window][setWaterMarkImage]msg: Only system applications can call this API"));
         return NapiGetUndefined(env);
     }
 
@@ -1555,14 +1567,16 @@ napi_value JsWindowManager::OnSetWaterMarkImage(napi_env env, napi_callback_info
             ret = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
         }
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage", ret);
-        task->Reject(env, JsErrUtils::CreateJsError(env, ret, "setWaterMarkImage failed"));
+        task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+            "[window][setWaterMarkImage]msg: Failed to set the watermark image"));
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnSetWaterMarkImage") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_IMMS, "napi_send_event failed");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setWaterMarkImage",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
         napiAsyncTask->Reject(env,
-            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "failed to send event"));
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+                "[window][setWaterMarkImage]msg: Internal system error, unable to process the request."));
     }
     return result;
 }
@@ -1828,13 +1842,16 @@ napi_value JsWindowManager::OnGetAllMainWindowInfo(napi_env env, napi_callback_i
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [env, task = napiAsyncTask, where = __func__] {
         std::vector<sptr<MainWindowInfo>> infos;
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        auto retIt = WM_JS_TO_ERROR_CODE_MAP.find(
             SingletonContainer::Get<WindowManager>().GetAllMainWindowInfo(infos));
+        WmErrorCode ret = (retIt != WM_JS_TO_ERROR_CODE_MAP.end()) ?
+            retIt->second : WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, CreateJsMainWindowInfoArrayObject(env, infos));
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s success", where);
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "failed"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                "[window][getAllMainWindowInfo]msg: Get all main window info failed."));
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s failed", where);
         }
     };
@@ -1995,16 +2012,16 @@ napi_value JsWindowManager::OnGetTopNavDestinationName(napi_env env, napi_callba
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != ARGC_ONE) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName",
-            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][getTopNavDestinationName]msg: Parameter error: the windowId parameter is required");
     }
     int32_t windowId = 0;
     if (!ConvertFromJsValue(env, argv[0], windowId) || windowId < 1) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "invalid windowId value: %{public}d", windowId);
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName",
-            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName", WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][getTopNavDestinationName]msg: Invalid windowId value, it must be a positive integer");
     }
     std::shared_ptr<std::string> topNavDestNamePtr = std::make_shared<std::string>();
     std::shared_ptr<WMError> errCodePtr = std::make_shared<WMError>(WMError::WM_OK);
@@ -2027,7 +2044,8 @@ napi_value JsWindowManager::OnGetTopNavDestinationName(napi_env env, napi_callba
                 }
                 HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getTopNavDestinationName", retErrCode);
                 task.Reject(env, JsErrUtils::CreateJsError(env, retErrCode,
-                    "[window][getTopNavDestinationName]msg: get top navigation name failed"));
+                    "[window][getTopNavDestinationName]msg: Failed to get the top navigation destination name, "
+                    "windowId=" + std::to_string(windowId) + "."));
                 return;
             }
             TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s ok, topNavDestName: %{public}s, windowId: %{public}d",
@@ -2035,8 +2053,7 @@ napi_value JsWindowManager::OnGetTopNavDestinationName(napi_env env, napi_callba
             task.Resolve(env, CreateJsValue(env, *topNavDestNamePtr));
         };
     napi_value result = nullptr;
-    auto asyncTask = CreateAsyncTask(env, nullptr,
-        std::make_unique<NapiAsyncTask::ExecuteCallback>(std::move(execute)),
+    auto asyncTask = CreateAsyncTask(env, nullptr, std::make_unique<NapiAsyncTask::ExecuteCallback>(std::move(execute)),
         std::make_unique<NapiAsyncTask::CompleteCallback>(std::move(complete)), &result);
     NapiAsyncTask::Schedule("JsWindowManager::OnGetTopNavDestinationName", env, std::move(asyncTask));
     return result;
@@ -2049,7 +2066,7 @@ napi_value JsWindowManager::OnGetVisibleWindowInfo(napi_env env, napi_callback_i
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getVisibleWindowInfo",
             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
-            "[window][getVisibleWindowInfo]");
+            "[window][getVisibleWindowInfo]msg: Capability not supported on this device");
     }
     uint32_t apiVersion = SysCapUtil::GetApiCompatibleVersion();
     if (apiVersion < API_VERSION_18 && !Permission::IsSystemCalling()) {
@@ -2057,7 +2074,7 @@ napi_value JsWindowManager::OnGetVisibleWindowInfo(napi_env env, napi_callback_i
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getVisibleWindowInfo",
             WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
-            "[window][getVisibleWindowInfo]");
+            "[window][getVisibleWindowInfo]msg: Only system applications can call this API");
     } else if (apiVersion >= API_VERSION_18 &&
                !CheckCallingPermission(PermissionConstants::PERMISSION_VISIBLE_WINDOW_INFO)) {
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "permission denied!, api%{public}u", apiVersion);
@@ -2083,7 +2100,7 @@ napi_value JsWindowManager::OnGetVisibleWindowInfo(napi_env env, napi_callback_i
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s failed: api=%{public}u", where, apiVersion);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getVisibleWindowInfo", ret);
             task->Reject(env, JsErrUtils::CreateJsError(env, ret,
-                "[window][getVisibleWindowInfo]"));
+                "[window][getVisibleWindowInfo]msg: Failed to get the visible window information"));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnGetVisibleWindowInfo") != napi_status::napi_ok) {
@@ -2091,7 +2108,7 @@ napi_value JsWindowManager::OnGetVisibleWindowInfo(napi_env env, napi_callback_i
             WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
         napiAsyncTask->Reject(env,
             JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
-                "[window][getVisibleWindowInfo]msg: Internal task error"));
+                "[window][getVisibleWindowInfo]msg: Internal system error, unable to process the request."));
     }
     return result;
 }
@@ -2105,7 +2122,7 @@ napi_value JsWindowManager::OnGetWindowsByCoordinate(napi_env env, napi_callback
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][getWindowsByCoordinate]msg: Mandatory parameters are left unspecified");
+            "[window][getWindowsByCoordinate]msg: Parameter error: the displayId parameter is required");
     }
     int64_t displayId = static_cast<int64_t>(DISPLAY_ID_INVALID);
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], displayId)) {
@@ -2113,7 +2130,7 @@ napi_value JsWindowManager::OnGetWindowsByCoordinate(napi_env env, napi_callback
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][getWindowsByCoordinate]msg: DisplayId has incorrect parameter types");
+            "[window][getWindowsByCoordinate]msg: Failed to convert parameter to displayId");
     }
     if (displayId < 0 ||
         SingletonContainer::Get<DisplayManager>().GetDisplayById(static_cast<uint64_t>(displayId)) == nullptr) {
@@ -2121,7 +2138,8 @@ napi_value JsWindowManager::OnGetWindowsByCoordinate(napi_env env, napi_callback
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][getWindowsByCoordinate]msg: Parameter displayId verification failed");
+            "[window][getWindowsByCoordinate]msg: Invalid displayId, the display does not exist, displayId=" +
+            std::to_string(displayId));
     }
     int32_t windowNumber = 0;
     if (argc > ARGC_ONE && !ConvertFromJsValue(env, argv[ARGC_ONE], windowNumber)) {
@@ -2149,15 +2167,16 @@ napi_value JsWindowManager::OnGetWindowsByCoordinate(napi_env env, napi_callback
             task->Resolve(env, CreateJsWindowArrayObject(env, windows));
         } else {
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate", ret);
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][getWindowsByCoordinate]"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                "[window][getWindowsByCoordinate]msg: Failed to get the windows by coordinate"));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnGetWindowsByCoordinate") != napi_status::napi_ok) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.getWindowsByCoordinate",
             WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
         napiAsyncTask->Reject(env,
-            CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY),
-                "[window][getWindowsByCoordinate]msg: Internal task error"));
+            JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
+                "[window][getWindowsByCoordinate]msg: Internal system error, unable to process the request."));
     }
     return result;
 }
@@ -2201,7 +2220,7 @@ napi_value JsWindowManager::OnShiftAppWindowPointerEvent(napi_env env, napi_call
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [sourceWindowId, targetWindowId, env, task = napiAsyncTask] {
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
+        WmErrorCode ret = ConvertErrorToCode(SingletonContainer::Get<WindowManager>().
             ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
@@ -2269,7 +2288,7 @@ napi_value JsWindowManager::OnShiftAppWindowTouchEvent(napi_env env, napi_callba
                         "[window][shiftAppWindowTouchEvent]msg: Invalid sourceWindowId or targetWindowId or fingerId"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(SingletonContainer::Get<WindowManager>().
+        WmErrorCode ret = ConvertErrorToCode(SingletonContainer::Get<WindowManager>().
             ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId, fingerId));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
@@ -2298,7 +2317,8 @@ napi_value JsWindowManager::OnNotifyScreenshotEvent(napi_env env, napi_callback_
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Argc is invalid: %{public}zu", argc);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.notifyScreenshotEvent",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][notifyScreenshotEvent]msg: Parameter error: the type parameter is required");
     }
     int32_t type = static_cast<int32_t>(ScreenshotEventType::END);
     if (!ConvertFromJsValue(env, argv[0], type) ||
@@ -2307,7 +2327,8 @@ napi_value JsWindowManager::OnNotifyScreenshotEvent(napi_env env, napi_callback_
         TLOGE(WmsLogTag::WMS_ATTRIBUTE, "Failed to convert parameter to type");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.notifyScreenshotEvent",
             WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+            "[window][notifyScreenshotEvent]msg: Invalid type value, it must be a valid ScreenshotEventType");
     }
     ScreenshotEventType screenshotEventType = static_cast<ScreenshotEventType>(type);
     std::shared_ptr<WmErrorCode> errCodePtr = std::make_shared<WmErrorCode>(WmErrorCode::WM_OK);
@@ -2324,7 +2345,8 @@ napi_value JsWindowManager::OnNotifyScreenshotEvent(napi_env env, napi_callback_
         } else {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s failed, result: %{public}d", where, *errCodePtr);
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.notifyScreenshotEvent", *errCodePtr);
-            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr));
+            task.Reject(env, JsErrUtils::CreateJsError(env, *errCodePtr,
+                "[window][notifyScreenshotEvent]msg: Failed to notify the screenshot event"));
         }
     };
     napi_value result = nullptr;
@@ -2544,7 +2566,10 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         if (subWindow == nullptr || wmError != WMError::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s create window failed", where);
             napi_delete_reference(env, callbackRef);
-            task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(wmError),
+            auto retIt = WM_JS_TO_ERROR_CODE_MAP.find(wmError);
+            WmErrorCode ret = (retIt != WM_JS_TO_ERROR_CODE_MAP.end()) ?
+                retIt->second : WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
                 "[window][CreateSubWindowAndBindParent]msg: Create window failed"));
             return;
         }
@@ -2557,7 +2582,10 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         if (registerResult != WmErrorCode::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s register listener failed", where);
             napi_delete_reference(env, callbackRef);
-            subWindow->Destroy();
+            auto destroyRet = subWindow->Destroy();
+            if (destroyRet != WMError::WM_OK) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s destroy window failed, ret=%{public}d", where, destroyRet);
+            }
             task->Reject(env, JsErrUtils::CreateJsError(env, registerResult,
                 "[window][CreateSubWindowAndBindParent]msg: " + (errMsg.empty()? "Create window failed" : errMsg)));
             return;

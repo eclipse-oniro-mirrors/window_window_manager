@@ -296,6 +296,24 @@ int WindowManagerAgentStub::OnRemoteRequest(uint32_t code, MessageParcel& data,
             NotifySessionSaveSnapShotComplete(persistentId);
             break;
         }
+        case WindowManagerAgentMsg::TRANS_ID_ON_GAME_ADAPTIVE_RESOLUTION_CANCELLED: {
+            int32_t windowId = 0;
+            if (!data.ReadInt32(windowId)) {
+                TLOGE(WmsLogTag::WMS_COMPAT, "read windowId failed");
+                return ERR_INVALID_DATA;
+            }
+            OnGameAdaptiveResolutionCancelled(windowId);
+            break;
+        }
+        case WindowManagerAgentMsg::TRANS_ID_ON_GAME_ADAPTIVE_RESOLUTION_AVAILABLE: {
+            int32_t windowId = 0;
+            if (!data.ReadInt32(windowId)) {
+                TLOGE(WmsLogTag::WMS_COMPAT, "read windowId failed");
+                return ERR_INVALID_DATA;
+            }
+            OnGameAdaptiveResolutionAvailable(windowId);
+            break;
+        }
         default:
             WLOGFW("unknown transaction code %{public}d", code);
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
