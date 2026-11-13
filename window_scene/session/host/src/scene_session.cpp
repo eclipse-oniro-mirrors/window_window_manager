@@ -2537,30 +2537,30 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
     auto newRequestRect = GetSessionRequestRect();
     bool isScbCoreEnabled = Session::IsScbCoreEnabled();
     if (reason == SizeChangeReason::MOVE) {
-        newWinRect.posX_ = convertedRect.posX_;
-        newWinRect.posY_ = convertedRect.posY_;
-        newRequestRect.posX_ = rect.posX_;
-        newRequestRect.posY_ = rect.posY_;
+        newWinRect.posX_ = rect.posX_;
+        newWinRect.posY_ = rect.posY_;
+        newRequestRect.posX_ = convertedRect.posX_;
+        newRequestRect.posY_ = convertedRect.posY_;
         if (!isScbCoreEnabled && !WindowHelper::IsMainWindow(GetWindowType())) {
             SetSessionRect(newWinRect);
         }
         SetSessionRequestRect(newRequestRect);
-        NotifySessionRectChange(newWinRect, reason, moveConfiguration.displayId);
+        NotifySessionRectChange(newRequestRect, reason, moveConfiguration.displayId);
     } else if (reason == SizeChangeReason::RESIZE || reason == SizeChangeReason::RESIZE_BY_LIMIT) {
         if (convertedRect.width_ > 0 && convertedRect.height_ > 0) {
-            newWinRect.width_ = convertedRect.width_;
-            newWinRect.height_ = convertedRect.height_;
-            newRequestRect.width_ = rect.width_;
-            newRequestRect.height_ = rect.height_;
+            newWinRect.width_ = rect.width_;
+            newWinRect.height_ = rect.height_;
+            newRequestRect.width_ = convertedRect.width_;
+            newRequestRect.height_ = convertedRect.height_;
         }
         if (!isScbCoreEnabled && GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
             SetSessionRect(newWinRect);
         }
-        auto notifyRect = newWinRect;
+        auto notifyRect = newRequestRect;
         if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId())) {
             notifyRect = rect;
         }
-        SetSessionRequestRect(newRequestRect);
+        SetSessionRequestRect(notifyRect);
         NotifySessionRectChange(notifyRect, reason);
     } else {
         if (!isScbCoreEnabled) {
