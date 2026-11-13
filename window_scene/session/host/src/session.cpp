@@ -3354,7 +3354,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Snapshot[%d][%s]", persistentId_, sessionInfo_.bundleName_.c_str());
     auto surfaceNode = GetSurfaceNode();
-    if (!CheckSurfaceNodeForSnapshot(surfaceNode)) {
+    if (!CheckSurfaceNodeForSnapshot(surfaceNode, options.ignorePersistence)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "SurfaceNode invalid %{public}d", persistentId_);
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_SURFACE_NODE, "surface node is invalid");
         return nullptr;
@@ -3532,12 +3532,17 @@ bool Session::GetNeedUseBlurSnapshot() const
     return needUseBlurSnapshot;
 }
 
-bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode) const
+bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode, bool ignorePersistence) const
 {
     if (scenePersistence_ == nullptr) {
-        return false;
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "scenePersistence is null: wid=%{public}d, ignorePersistence=%{public}d",
+            persistentId_, ignorePersistence);
+        if (!ignorePersistence) {
+            return false;
+        }
     }
     if (IsPersistentImageFit()) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "IsPersistentImageFit: wid=%{public}d", persistentId_);
         return false;
     }
     if (!surfaceNode) {
@@ -3545,8 +3550,11 @@ bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surface
         return false;
     }
     if (!surfaceNode->IsBufferAvailable()) {
-        DeleteHasSnapshot();
-        scenePersistence_->ClearSnapshot();
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "no buffer available: wid=%{public}d", persistentId_);
+        if (scenePersistence_ != nullptr) {
+            DeleteHasSnapshot();
+            scenePersistence_->ClearSnapshot();
+        }
         return false;
     }
     return true;

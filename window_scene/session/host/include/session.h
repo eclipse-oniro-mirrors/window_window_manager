@@ -376,6 +376,7 @@ public:
         // Skip blur processing for SceneBoard UI animation snapshots.
         // Only for SceneBoard UI animation, cannot use with privacy window.
         bool disableBlur = false;
+        bool ignorePersistence = false;
     };
 
     std::shared_ptr<Media::PixelMap> GetSnapshot() const;
@@ -398,7 +399,7 @@ public:
     void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowKey);
     bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
         float scaleValue) const;
-    bool CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode) const;
+    bool CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode, bool ignorePersistence = false) const;
     bool GetNeedUseBlurSnapshot() const;
     void UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo);
     virtual bool GetIsPrivacyMode() const { return false; };

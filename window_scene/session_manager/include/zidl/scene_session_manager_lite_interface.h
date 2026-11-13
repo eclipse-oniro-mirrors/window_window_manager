@@ -77,6 +77,7 @@ public:
         TRANS_ID_SET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_GET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_SET_APP_KEY_FRAME_POLICY,
+        TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID,
         TRANS_ID_LIST_WINDOW_INFO,
         TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
         TRANS_ID_UNREGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
@@ -199,6 +200,10 @@ public:
         DragResizeType& dragResizeType) { return WMError::WM_OK; }
     virtual WMError SetAppKeyFramePolicy(const std::string& bundleName,
         const KeyFramePolicy& keyFramePolicy) { return WMError::WM_OK; }
+    virtual WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) = 0;
 

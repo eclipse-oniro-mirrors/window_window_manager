@@ -3000,7 +3000,8 @@ HWTEST_F(SceneSessionManagerTest2, GetSessionSnapshotById, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     SessionSnapshot snapshot;
-    ssm_->GetSessionSnapshotById(100, snapshot);
+    std::string extraInfo;
+    ssm_->GetSessionSnapshotById(100, snapshot, extraInfo);
 }
 
 /**

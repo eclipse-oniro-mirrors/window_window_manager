@@ -13165,22 +13165,33 @@ WSError SceneSessionManager::GetSessionSnapshot(const std::string& deviceId, int
     }, __func__);
 }
 
-WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
 {
-    if (!SessionPermission::JudgeCallerIsAllowedToUseSystemAPI() && !SessionPermission::IsShellCall()) {
-        TLOGW(WmsLogTag::WMS_SYSTEM, "Get snapshot failed, Get snapshot by id must be system app!");
+    if (!SessionPermission::JudgeCallerIsAllowedToUseSystemAPI() && !SessionPermission::IsShellCall() &&
+        !SessionPermission::VerifyCallingPermission("ohos.permission.CUSTOM_SCREEN_CAPTURE")) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no permission, winId=%{public}d", persistentId);
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
-    return taskScheduler_->PostSyncTask([this, persistentId, &snapshot]() {
+    return taskScheduler_->PostSyncTask([this, persistentId, &snapshot, &extraInfo, where = __func__]() {
         auto sceneSession = GetSceneSession(persistentId);
         if (!sceneSession) {
-            TLOGNW(WmsLogTag::WMS_SYSTEM, "fail to find session by persistentId: %{public}d", persistentId);
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: no session for winId=%{public}d", where, persistentId);
             return WMError::WM_ERROR_INVALID_PARAM;
+        }
+        if (sceneSession->GetIsPrivacyMode()) {
+            extraInfo = std::to_string(persistentId) + " is a private window";
+        } else {
+            auto state = GetRealSessionState(sceneSession);
+            bool isForeground = state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE;
+            if (!isForeground) {
+                extraInfo = std::to_string(persistentId) + " is not a foreground window";
+            }
         }
         const auto& sessionInfo = sceneSession->GetSessionInfo();
         if (sessionInfo.abilityName_.empty() || sessionInfo.moduleName_.empty() || sessionInfo.bundleName_.empty()) {
-            TLOGNW(WmsLogTag::WMS_SYSTEM, "sessionInfo: %{public}d, abilityName or moduleName or bundleName is empty",
-                sceneSession->GetPersistentId());
+            TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winId=%{public}d, no abilityName/moduleName/bundleName",
+                where, persistentId);
         }
         snapshot.topAbility.SetBundleName(sessionInfo.bundleName_.c_str());
         snapshot.topAbility.SetModuleName(sessionInfo.moduleName_.c_str());
@@ -13188,15 +13199,17 @@ WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, Sessio
         float snapShotScale = sceneSession->GetFloatingScale() > 1.0f ? 1.0f : sceneSession->GetFloatingScale();
         Session::SnapshotOptions options;
         options.scaleParam = snapShotScale;
+        options.ignorePersistence = true;
         if (auto oriSnapshot = sceneSession->Snapshot(options)) {
             if (sceneSession->GetFloatingScale() > 1.0f) {
                 oriSnapshot->scale(sceneSession->GetFloatingScale(), sceneSession->GetFloatingScale());
             }
             snapshot.snapshot = oriSnapshot;
-            TLOGNI(WmsLogTag::WMS_SYSTEM, "snapshot WxH=%{public}dx%{public}d",
-                oriSnapshot->GetWidth(), oriSnapshot->GetHeight());
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winId=%{public}d, snapshot WxH=%{public}dx%{public}d",
+                where, persistentId, oriSnapshot->GetWidth(), oriSnapshot->GetHeight());
             return WMError::WM_OK;
         }
+        TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winId=%{public}d, snapshot failed", where, persistentId);
         return WMError::WM_ERROR_NULLPTR;
     }, __func__);
 }

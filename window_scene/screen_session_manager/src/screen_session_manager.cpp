@@ -11374,13 +11374,13 @@ bool ScreenSessionManager::CheckSavePermission(bool& isUserSave)
     if (SessionPermission::IsShellCall()) {
         return true;
     }
-    if (!Permission::IsSystemCalling()) {
-        return false;
-    }
     if (Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION)) {
         TLOGD(WmsLogTag::DMS, "user_grant permission");
         isUserSave = true;
         return true;
+    }
+    if (!Permission::IsSystemCalling()) {
+        return false;
     }
     if (Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION) ||
         Permission::CheckCallingPermission(CUSTOM_SCREEN_RECORDING_PERMISSION)) {
@@ -11393,7 +11393,8 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshot(Displa
     DmErrorCode* errorCode, bool isUseDma, bool isCaptureFullOfScreen)
 {
     TLOGD(WmsLogTag::DMS, "enter!");
-    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsShellCall() && errorCode) {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsShellCall() &&
+        !Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION) && errorCode) {
         *errorCode = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
         return nullptr;
     }
@@ -11435,10 +11436,11 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshot(Displa
 }
 
 std::vector<std::shared_ptr<Media::PixelMap>> ScreenSessionManager::GetDisplayHDRSnapshot(DisplayId displayId,
-    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen,DisplayIntentType displayIntent)
+    DmErrorCode& errorCode, bool isUseDma, bool isCaptureFullOfScreen, DisplayIntentType displayIntent)
 {
     TLOGNFI(WmsLogTag::DMS, "enter!");
-    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsShellCall()) {
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsShellCall() &&
+        !Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION)) {
         errorCode = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
         return {nullptr, nullptr};
     }
@@ -11483,7 +11485,8 @@ std::shared_ptr<Media::PixelMap> ScreenSessionManager::GetDisplaySnapshotWithOpt
 {
     TLOGD(WmsLogTag::DMS, "enter!");
     if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsShellCall() &&
-        !SessionPermission::IsSACalling()) {
+        !SessionPermission::IsSACalling() &&
+        !Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION)) {
         if (errorCode != nullptr) {
             *errorCode = DmErrorCode::DM_ERROR_NOT_SYSTEM_APP;
         }
@@ -16891,7 +16894,7 @@ bool ScreenSessionManager::checkCaptureParam(const CaptureOption& captureOption,
     return true;
 }
 
-void ScreenSessionManager::ConvertWindowIdsToSurfaceNodeList(std::vector<uint64_t> windowIdList, 
+void ScreenSessionManager::ConvertWindowIdsToSurfaceNodeList(std::vector<uint64_t> windowIdList,
     std::vector<uint64_t>& surfaceNodesList, DmErrorCode* errorCode)
 {
     if (windowIdList.empty()) {
@@ -16902,8 +16905,13 @@ void ScreenSessionManager::ConvertWindowIdsToSurfaceNodeList(std::vector<uint64_
         TLOGNFE(WmsLogTag::DMS, "clientProxy_ is nullptr");
         return;
     }
-    const std::vector<uint32_t>& needWindowTypeList = { static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB),
-                                                        static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV) };
+    // Only the floating control ball window type is exposed to apps for exclusion.
+    // For callers holding CUSTOM_SCREEN_CAPTURE permission, allow excluding windows of any
+    // type on top of the floating ball.
+    bool isAllowedExcludeAnyWindow = Permission::CheckCallingPermission(CUSTOM_SCREEN_CAPTURE_PERMISSION);
+    std::vector<uint32_t> needWindowTypeList = isAllowedExcludeAnyWindow ? std::vector<uint32_t>{} :
+        std::vector<uint32_t>{ static_cast<uint32_t>(WindowType::WINDOW_TYPE_FB),
+                               static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV) };
     clientProxy->OnGetSurfaceNodeIdsFromMissionIdsChanged(windowIdList, surfaceNodesList, needWindowTypeList, true);
     if (surfaceNodesList.empty()) {
         *errorCode = DmErrorCode::DM_ERROR_INVALID_PARAM;
