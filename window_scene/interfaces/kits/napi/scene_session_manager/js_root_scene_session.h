@@ -43,7 +43,8 @@ private:
     napi_value OnLoadContent(napi_env env, napi_callback_info info);
     bool IsCallbackRegistered(napi_env env, const std::string& type, napi_value jsListenerObject);
     void PendingSessionActivation(SessionInfo& info);
-    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo);
+    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo, bool isNewSession,
+        const sptr<SceneSession>& sceneSession);
     sptr<SceneSession> GenSceneSession(SessionInfo& info);
     std::shared_ptr<NativeReference> GetJSCallback(const std::string& functionName) const;
     void ProcessRegisterCallback(RootListenerFuncType rootlistenerFuncType);

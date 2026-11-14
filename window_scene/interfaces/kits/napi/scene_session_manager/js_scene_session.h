@@ -162,11 +162,11 @@ private:
     void ProcessSessionLockStateChangeRegister();
     void ProcessSessionUpdateFollowScreenChange();
     void OnSessionLockStateChange(bool isLockedState);
-    sptr<SceneSession> GenSceneSession(SessionInfo& info, bool needAddRequestInfo = false);
-    void ReuseSession(sptr<SceneSession>& sceneSession, SessionInfo& info);
+    sptr<SceneSession> GenSceneSession(SessionInfo& info, bool needAddRequestInfo, bool& isNewSession);
+    void ReuseSession(sptr<SceneSession>& sceneSession, SessionInfo& info, bool& isNewSession);
     void AddRequestTaskInfo(sptr<SceneSession> sceneSession, int32_t requestId, bool needAddRequestInfo);
     void PendingSessionActivation(SessionInfo& info);
-    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo);
+    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo, bool isNewSession);
     void BatchPendingSessionsActivation(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
         const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs);
     void BatchPendingSessionsActivationInner(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,

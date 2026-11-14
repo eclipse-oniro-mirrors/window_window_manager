@@ -15,6 +15,7 @@
 
 #include "ffrt_queue_helper.h"
 
+#include <chrono>
 #include <cstdint>
 #include <hisysevent.h>
 #include <string>
@@ -52,8 +53,15 @@ inline uint64_t ConvertCntvctToUs(uint64_t ticks)
 #endif
 }
 
+inline uint64_t GetWalltimeMs()
+{
+    return static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::millseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+}
+
 void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& aggregated,
-    uint64_t minStartTime, uint64_t maxEndTime)
+    uint64_t startTime, uint64_t endTime)
 {
     std::vector<std::string> taskNames;
     std::vector<int64_t> durations;
@@ -79,8 +87,8 @@ void ReportXpower(const std::unordered_map<std::string, TaskStatAggregation>& ag
     }
     int32_t ret = HiSysEventWrite(XPOWER_HISYSEVENT_DOMAIN, "FFRT_TASK_INFO",
         HiviewDFX::HiSysEvent::EventType::STATISTIC,
-        "START_TIME", static_cast<int64_t>(ConvertCntvctToUs(minStartTime)),
-        "END_TIME", static_cast<int64_t>(ConvertCntvctToUs(maxEndTime)),
+        "START_TIME", static_cast<int64_t>(startTime),
+        "END_TIME", static_cast<int64_t>(endTime),
         "TASKNAME", taskNames,
         "DURATION", durations,
         "COUNT", counts,
@@ -199,6 +207,7 @@ void FfrtQueueHelper::StartStatCollection()
         statBufferSize_ = 0;
         return;
     }
+    statStartTime_ = GetWalltimeMs();
     StartStatTimer();
 }
 
@@ -228,6 +237,7 @@ void FfrtQueueHelper::ParseAndReportStat()
     if (ffrt_dump(DUMP_STOP_STAT, statBuffer_.get(), statBufferSize_) != 0) {
         TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: ParseAndReportStat: ffrt_dump stop failed");
     }
+    uint64_t reportTimeMs = GetWalltimeMs();
     std::unordered_map<std::string, TaskStatAggregation> aggregated;
     uint64_t minStartTime = UINT64_MAX;
     uint64_t maxEndTime = 0;
@@ -251,22 +261,16 @@ void FfrtQueueHelper::ParseAndReportStat()
         auto& entry = aggregated[name];
         entry.totalTime += (s.endTime - s.startTime);
         entry.callCount += 1;
-        if (s.startTime < minStartTime) {
-            minStartTime = s.startTime;
-        }
-        if (s.endTime > maxEndTime) {
-            maxEndTime = s.endTime;
-        }
     }
     TLOGNI(WmsLogTag::WMS_LIFE, "ffrt statistics: %{public}u/%{public}u records parsed",
         validCount, statCount);
-    if (minStartTime != UINT64_MAX) {
-        ReportXpower(aggregated, minStartTime, maxEndTime);
+    if (!aggregated.empty()) {
+        ReportXpower(aggregated, statStartTime_, reportTimeMs);
         TLOGNI(WmsLogTag::WMS_LIFE,
             "ffrt statistics window: %{public}u unique tasks, start=%{public}llu end=%{public}llu",
             static_cast<uint32_t>(aggregated.size()),
-            static_cast<unsigned long long>(minStartTime),
-            static_cast<unsigned long long>(maxEndTime));
+            static_cast<unsigned long long>(statStartTime_),
+            static_cast<unsigned long long>(reportTimeMs));
         for (const auto& [name, stat] : aggregated) {
             TLOGND(WmsLogTag::WMS_LIFE, "ffrt statistics: task=%{public}s count=%{public}llu total=%{public}llu",
                 name.c_str(), static_cast<unsigned long long>(stat.callCount),
@@ -276,6 +280,8 @@ void FfrtQueueHelper::ParseAndReportStat()
     if (ffrt_dump(DUMP_START_STAT, statBuffer_.get(), statBufferSize_) != 0) {
         TLOGNE(WmsLogTag::WMS_LIFE, "ffrt statistics: ParseAndReportStat: ffrt_dump restart failed");
         statEnabled_ = false;
+    } else {
+        statStartTime_ = GetWalltimeMs();
     }
 }
 
