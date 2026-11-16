@@ -45,7 +45,7 @@ private:
     void PendingSessionActivation(SessionInfo& info);
     void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo, bool isNewSession,
         const sptr<SceneSession>& sceneSession);
-    sptr<SceneSession> GenSceneSession(SessionInfo& info);
+    sptr<SceneSession> GenSceneSession(SessionInfo& info, bool& isNewSession);
     std::shared_ptr<NativeReference> GetJSCallback(const std::string& functionName) const;
     void ProcessRegisterCallback(RootListenerFuncType rootlistenerFuncType);
 

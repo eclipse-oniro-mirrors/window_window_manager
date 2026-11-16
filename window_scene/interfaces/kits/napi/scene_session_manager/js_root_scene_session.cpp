@@ -305,7 +305,7 @@ void JsRootSceneSession::PendingSessionActivationInner(std::shared_ptr<SessionIn
         uint32_t resultCode = 0;
         resultCode = ProcessPendingSessionActivationResult(env_ref, callResult, sessionInfo);
         if (resultCode >= static_cast<uint32_t>(RequestResultCode::FAIL) && isNewSession
-            && sessionInfo->callState_ != static_cast(AAFwk::CallToState::UNKNOW)) {
+            && sessionInfo->callState_ != static_cast<uint32_t>(AAFwk::CallToState::UNKNOW)) {
             TLOGI(WmsLogTag::WMS_LIFE, "pending session activation fail, clear session want info, "
                 "persistentId:%{public}d, resultCode:%{public}u",
                 sessionInfo->persistentId_, resultCode);

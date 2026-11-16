@@ -166,7 +166,8 @@ private:
     void ReuseSession(sptr<SceneSession>& sceneSession, SessionInfo& info, bool& isNewSession);
     void AddRequestTaskInfo(sptr<SceneSession> sceneSession, int32_t requestId, bool needAddRequestInfo);
     void PendingSessionActivation(SessionInfo& info);
-    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo, bool isNewSession);
+    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo, bool isNewSession,
+        const sptr<SceneSession>& sceneSession);
     void BatchPendingSessionsActivation(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
         const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs);
     void BatchPendingSessionsActivationInner(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,

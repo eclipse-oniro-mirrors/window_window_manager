@@ -3974,7 +3974,7 @@ sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& s
 sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& sessionInfo,
     sptr<WindowSessionProperty> property, bool& isNewSession)
 {
-    auto task = [this, sessionInfo, property, where = __func__] {
+    auto task = [this, sessionInfo, property, &isNewSession, where = __func__] {
         isNewSession = false;
         if (auto session = GetSceneSessionBySessionInfo(sessionInfo)) {
             UpdateSessionDisplayIdBySessionInfo(session, sessionInfo);

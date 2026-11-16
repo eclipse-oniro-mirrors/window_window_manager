@@ -5538,7 +5538,7 @@ void JsSceneSession::PendingSessionActivationInner(std::shared_ptr<SessionInfo> 
         uint32_t resultCode = 0;
         resultCode = ProcessPendingSessionActivationResult(env, callResult, sessionInfo);
         if (resultCode >= static_cast<uint32_t>(RequestResultCode::FAIL) && isNewSession
-            && sessionInfo->callState_ != static_cast(AAFwk::CallToState::UNKNOW)) {
+            && sessionInfo->callState_ != static_cast<uint32_t>(AAFwk::CallToState::UNKNOW)) {
             TLOGI(WmsLogTag::WMS_LIFE, "pending session activation fail, clear session want info, "
                 "persistentId:%{public}d, resultCode:%{public}u",
                 sessionInfo->persistentId_, resultCode);
@@ -5628,7 +5628,7 @@ void JsSceneSession::BatchPendingSessionsActivation(const std::vector<std::share
             info->bundleName_.c_str(), info->moduleName_.c_str(),
             info->abilityName_.c_str(), info->appIndex_, info->reuse, info->requestId, info->specifiedFlag_.c_str());
         bool isNewSession = false;
-        auto sceneSession = GenSceneSession(*info, isNewSession);
+        auto sceneSession = GenSceneSession(*info, false, isNewSession);
         if (sceneSession == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "GenSceneSession failed");
             return;
