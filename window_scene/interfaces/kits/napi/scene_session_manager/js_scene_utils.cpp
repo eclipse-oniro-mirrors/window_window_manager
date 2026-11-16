@@ -104,6 +104,7 @@ const std::map<WindowType, JsSessionType> WINDOW_TO_JS_SESSION_TYPE_MAP {
     { WindowType::WINDOW_TYPE_SELECTION,                JsSessionType::TYPE_SELECTION               },
     { WindowType::WINDOW_TYPE_FB,                       JsSessionType::TYPE_FLOATING_BALL           },
     { WindowType::WINDOW_TYPE_FV,                       JsSessionType::TYPE_FLOAT_VIEW              },
+    { WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER, JsSessionType::TYPE_ACCESSIBILITY_CALL_HELPER},
 };
 
 const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP {
@@ -153,6 +154,7 @@ const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP {
     { JsSessionType::TYPE_SELECTION,                WindowType::WINDOW_TYPE_SELECTION               },
     { JsSessionType::TYPE_FLOATING_BALL,            WindowType::WINDOW_TYPE_FB                      },
     { JsSessionType::TYPE_FLOAT_VIEW,               WindowType::WINDOW_TYPE_FV                      },
+    { JsSessionType::TYPE_ACCESSIBILITY_CALL_HELPER, WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER},
 };
 
 const std::unordered_map<int32_t, int32_t> JS_TO_MMI_ACTION_MAP = {
@@ -3327,6 +3329,7 @@ napi_value SessionTypeInit(napi_env env)
     SetTypeProperty(objValue, env, "TYPE_SELECTION", JsSessionType::TYPE_SELECTION);
     SetTypeProperty(objValue, env, "TYPE_FLOATING_BALL", JsSessionType::TYPE_FLOATING_BALL);
     SetTypeProperty(objValue, env, "TYPE_FLOAT_VIEW", JsSessionType::TYPE_FLOAT_VIEW);
+    SetTypeProperty(objValue, env, "TYPE_ACCESSIBILITY_CALL_HELPER", JsSessionType::TYPE_ACCESSIBILITY_CALL_HELPER);
     return objValue;
 }
 

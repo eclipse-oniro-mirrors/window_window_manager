@@ -106,6 +106,7 @@ enum class JsSessionType : uint32_t {
     TYPE_SELECTION = 44,
     TYPE_FLOATING_BALL = 45,
     TYPE_FLOAT_VIEW = 46,
+    TYPE_ACCESSIBILITY_CALL_HELPER = 47,
 };
 
 extern const std::map<WindowType, JsSessionType> WINDOW_TO_JS_SESSION_TYPE_MAP;

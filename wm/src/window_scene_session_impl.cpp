@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2789,6 +2789,7 @@ void WindowSceneSessionImpl::SetDefaultProperty()
         case WindowType::WINDOW_TYPE_MAGNIFICATION:
         case WindowType::WINDOW_TYPE_MAGNIFICATION_MENU:
         case WindowType::WINDOW_TYPE_SELECTION:
+        case WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER:
         case WindowType::WINDOW_TYPE_DYNAMIC: {
             property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
             break;
