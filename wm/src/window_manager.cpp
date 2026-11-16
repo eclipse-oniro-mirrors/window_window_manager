@@ -2189,7 +2189,7 @@ WMError WindowManager::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos) const
 {
     HITRACE_METER_NAME(HITRACE_TAG_WINDOW_MANAGER, "CUSTOM_ANIMATOR_WindowManager::ListWindowInfo");
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE,
         "userId=%{public}d, filter=%{public}u, type=%{public}u, winId=%{public}d, displayId=%{public}" PRIu64,
         userId_, static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),
