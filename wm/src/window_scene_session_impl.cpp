@@ -635,6 +635,8 @@ WMError WindowSceneSessionImpl::RecoverAndConnectSpecificSession()
     auto context = GetContext();
     sptr<IRemoteObject> token = context ? context->GetToken() : nullptr;
     windowRecoverStateChangeFunc_(true, WindowRecoverState::WINDOW_DOING_RECONNECT);
+    property_->SetIsDpiForceScale(isDpiForceScale_);
+    property_->SetWindowStartDensity(windowStartDensity_);
     SingletonContainer::Get<WindowAdapter>().RecoverAndConnectSpecificSession(
         iSessionStage, eventChannel, surfaceNode_, property_, session, token);
 
@@ -685,6 +687,8 @@ WMError WindowSceneSessionImpl::RecoverAndReconnectSceneSession()
     sptr<IRemoteObject> token = context ? context->GetToken() : nullptr;
     sptr<Rosen::ISession> session = nullptr;
     windowRecoverStateChangeFunc_(false, WindowRecoverState::WINDOW_DOING_RECONNECT);
+    property_->SetIsDpiForceScale(isDpiForceScale_);
+    property_->SetWindowStartDensity(windowStartDensity_);
     auto ret = SingletonContainer::Get<WindowAdapter>().RecoverAndReconnectSceneSession(
         iSessionStage, iWindowEventChannel, surfaceNode_, session, property_, token);
     if (session == nullptr) {

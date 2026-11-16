@@ -2492,12 +2492,14 @@ float SceneSession::GetCoordinateScaleFactor() const
     return 1.0f;
 }
 
-void SceneSession::UpdateDpiForceScale()
+void SceneSession::UpdateDpiForceScale(float minDpiScale, float maxDpiScale, float dpiScaleStep)
 {
     // Recalculate dpiForceScale when density changes or session crosses screens.
     // C++ is authoritative for DPI change / cross-screen scenarios; TS only
     // computes the initial value during session creation and pushes it via
     // setDpiForceScale NAPI.
+    // The clamp range and step are owned by SceneSessionManager (parsed from
+    // window_manager_config.xml appDpiScaleConfig) and passed in by the caller.
     if (GetIsDpiForceScale()) {
         auto property = GetSessionProperty();
         if (property == nullptr) {
@@ -2505,8 +2507,10 @@ void SceneSession::UpdateDpiForceScale()
         }
         float currScreenDensity = GetScreenDensityById(property->GetDisplayId());
         float windowStartDensity = GetWindowStartDensity();
-        if (currScreenDensity > 0.0f && windowStartDensity > 0.0f) {
+        if (currScreenDensity > 0.0f && windowStartDensity > 0.0f && dpiScaleStep > 0.0f) {
             float newScale = currScreenDensity / windowStartDensity;
+            newScale = std::ceil(newScale / dpiScaleStep - 1e-6f) * dpiScaleStep;
+            newScale = MathHelper::Clamp(newScale, minDpiScale, maxDpiScale);
             SetDpiForceScale(newScale);
             TLOGNI(WmsLogTag::WMS_MAIN, "new dpiforcescale, id=%{public}d, dpiForceScale=%{public}f, "
                 "windowStartDensity=%{public}f, screenId:%{public}" PRIu64, GetPersistentId(),

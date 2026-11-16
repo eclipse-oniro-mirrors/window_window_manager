@@ -1184,7 +1184,7 @@ public:
     /*
      * dpi force scale for PC Window
      */
-    void UpdateDpiForceScale();
+    void UpdateDpiForceScale(float minDpiScale, float maxDpiScale, float dpiScaleStep);
     void SetDpiForceScaleChangeNotifyFunc(const NotifyDpiForceScaleChangeFunc& func);
     // Notify client (app process) of dpiForceScale change for coordinate conversion.
     void NotifyDpiForceScaleToClient();

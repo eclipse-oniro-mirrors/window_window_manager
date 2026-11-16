@@ -1216,6 +1216,11 @@ private:
     void ConfigDialogWindowSizeLimits(const WindowSceneConfig::ConfigItem& dialogWindowSizeConifg);
     void ConfigSnapshotScale();
     void ConfigFreeMultiWindow();
+    void ConfigAppDpiScale();
+    void SetMinDpiScale(float scale) { minDpiScale_ = scale; }
+    void SetMaxDpiScale(float scale) { maxDpiScale_ = scale; }
+    float GetMinDpiScale() const { return minDpiScale_; }
+    float GetMaxDpiScale() const { return maxDpiScale_; }
     void LoadFreeMultiWindowConfig(bool enable);
     void DoUpdateSceneSessionWant(const SessionInfo& sessionInfo);
     void AddOptionWindowMetaInfo(sptr<WindowInfo> &windowInfo, const sptr<SceneSession> &session);
@@ -1686,6 +1691,12 @@ private:
 
     SystemSessionConfig systemConfig_;
     float snapshotScale_ = 0.5;
+    /*
+     * app dpi scale clamp range, parsed from window_manager_config.xml appDpiScaleConfig
+     */
+    static constexpr float DPI_SCALE_STEP = 0.05f;
+    float minDpiScale_ {1.0f};
+    float maxDpiScale_ {1.0f};
     int32_t brightnessSessionId_ = INVALID_SESSION_ID;
     float displayBrightness_ = UNDEFINED_BRIGHTNESS;
     bool isScreenLocked_ { false };
