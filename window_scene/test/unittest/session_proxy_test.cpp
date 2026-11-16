@@ -1341,34 +1341,24 @@ HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1
     sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
     bool visible = true;
 
-    // Case 1: abilitySessionInfo is null
-    sptr<AAFwk::SessionInfo> abilitySessionInfo = nullptr;
-    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_INVALID_SESSION);
+    sptr<AAFwk::SessionInfo> info = nullptr;
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_INVALID_SESSION);
 
-    // Case 2: write interface token failed
-    abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    info = sptr<AAFwk::SessionInfo>::MakeSptr();
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
-    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
 
-    // Case 3: write abilitySessionInfo basic failed
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
-    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteParcelableErrorFlag(false);
 
-    // Case 4: remote is null
     sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
-    EXPECT_EQ(nullProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(nullProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
 
-    // Case 5: send request failed
     mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
     sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
-    EXPECT_EQ(failProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(failProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
 }
 
 /**
@@ -1382,51 +1372,36 @@ HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBarWriteOptionalMemb
     mockRemote->sendRequestResult_ = ERR_NONE;
     sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
     bool visible = true;
-    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    sptr<AAFwk::SessionInfo> info = sptr<AAFwk::SessionInfo>::MakeSptr();
 
-    // Case 6: send request success without optional members
-    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_OK);
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_OK);
 
-    // Case 7: send request success with showParams
-    abilitySessionInfo->showParams = std::make_shared<WindowShowParams>();
-    abilitySessionInfo->showParams->windowFocused = false;
-    abilitySessionInfo->showParams->raiseTop = false;
-    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_OK);
+    info->showParams = std::make_shared<WindowShowParams>();
+    info->showParams->windowFocused = false;
+    info->showParams->raiseTop = false;
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_OK);
 
-    // Case 8: write optional parcelable member failed
     MockMessageParcel::SetWriteParcelableErrorFlag(true);
     MockMessageParcel::SetWriteParcelableErrorCount(2); // skip want and processOptions in basic info
-    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteParcelableErrorFlag(false);
     MockMessageParcel::SetWriteParcelableErrorCount(0);
 
-    // Case 9: write presence flag of a null member failed
-    abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    info = sptr<AAFwk::SessionInfo>::MakeSptr();
     MockMessageParcel::SetWriteBoolErrorFlag(true);
     MockMessageParcel::SetWriteBoolErrorCount(2); // skip reuse and callerToken flag, fail the startSetting flag
-    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteBoolErrorFlag(false);
     MockMessageParcel::SetWriteBoolErrorCount(0);
 
-    // Case 10: write presence flag of a non-null member failed
-    abilitySessionInfo->showParams = std::make_shared<WindowShowParams>();
+    info->showParams = std::make_shared<WindowShowParams>();
     MockMessageParcel::SetWriteBoolErrorFlag(true);
     MockMessageParcel::SetWriteBoolErrorCount(4); // skip reuse, callerToken, startSetting flags and visible
-    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
-        WSError::WS_ERROR_IPC_FAILED);
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::SetWriteBoolErrorFlag(false);
     MockMessageParcel::SetWriteBoolErrorCount(0);
 }
 
-/**
- * @tc.name: WriteOptionalParcelable
- * @tc.desc: WriteOptionalParcelable test
- * @tc.type: FUNC
- */
 HWTEST_F(SessionProxyTest, WriteOptionalParcelable, TestSize.Level1)
 {
     MessageParcel data;
