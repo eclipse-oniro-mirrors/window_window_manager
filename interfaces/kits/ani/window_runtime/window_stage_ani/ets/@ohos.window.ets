@@ -2619,6 +2619,7 @@ export class ExtConfigSubWindowOptions implements SubWindowOptions {
   maximizeSupported?: boolean;
   zLevel?: int;
   outlineEnabled?: boolean;
+  zLevelAboveParentLoosened?: boolean;
 
   set title(value: string) {
     this.setTitle(this.nativeObj, value);
