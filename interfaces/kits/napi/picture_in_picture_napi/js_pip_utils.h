@@ -18,18 +18,17 @@
 
 #include "js_runtime_utils.h"
 #include "window.h"
-#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {
 napi_value NapiGetUndefined(napi_env env);
-napi_value NapiThrowInvalidParam(napi_env env, std::string msg = "", const char* enumerationName = "",
-    const char* boolName = "");
+napi_value NapiThrowError(napi_env env, WmErrorCode errCode, std::string_view reportField, const std::string& errMsg);
 bool NapiIsCallable(napi_env env, napi_value value);
 napi_status InitEnums(napi_env env, napi_value exports);
 napi_valuetype GetType(napi_env env, napi_value value);
 napi_value GetPiPWindowSizeAndConvertToJsValue(napi_env env, const Rect& rect, float scale);
 napi_value CreateJsPiPWindowInfoObject(napi_env env, const sptr<Window>& window);
+void ResultReport(std::string_view field, WmErrorCode errCode);
 }
 }
 #endif //OHOS_JS_PIP_UTILS_H
