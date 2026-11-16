@@ -511,6 +511,22 @@ HWTEST_F(ScreenManagerTest, ResizeVirtualScreen, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetVirtualScreenCursorMode
+ * @tc.desc: SetVirtualScreenCursorMode with non-virtual screen
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenManagerTest, SetVirtualScreenCursorMode, TestSize.Level1)
+{
+    DMError err = ScreenManager::GetInstance().SetVirtualScreenCursorMode(0,
+        RSVirtualScreenCursorMode::HIDE);
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    } else {
+        EXPECT_EQ(err, DMError::DM_ERROR_NULLPTR);
+    }
+}
+
+/**
  * @tc.name: UnregisterScreenListener
  * @tc.desc: UnregisterScreenListener fun
  * @tc.type: FUNC

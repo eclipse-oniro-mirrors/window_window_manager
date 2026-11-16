@@ -638,6 +638,7 @@ public:
     DMError SetSupportsInput(DisplayId displayId, bool supportsInput) override;
     DMError GetBundleName(DisplayId displayId, std::string& bundleName) override;
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) override;
+    DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode) override;
     bool SetScreenOffset(ScreenId screenId, float offsetX, float offsetY);
     bool SynchronizePowerStatus(ScreenPowerState state) override;
     void RegisterSettingDuringCallStateObserver();

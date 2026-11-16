@@ -458,6 +458,10 @@ public:
     virtual DMError GetSupportsInput(DisplayId displayId, bool& supportsInput) { return DMError::DM_OK; };
     virtual DMError SetSupportsInput(DisplayId displayId, bool supportsInput) { return DMError::DM_OK; };
     virtual DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) { return DMError::DM_OK; }
+    virtual DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+    {
+        return DMError::DM_OK;
+    }
     virtual bool SynchronizePowerStatus(ScreenPowerState state) { return false; }
     virtual DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) { return DMError::DM_OK; }

@@ -96,6 +96,13 @@ enum class ScreenScaleMode : uint32_t {
     INVALID_MODE,
 };
 
+enum class RSVirtualScreenCursorMode : uint8_t {
+    DEFAULT = 0,
+    HIDE,
+    FORCE_RENDER,
+    MODE_MAX,
+};
+
 enum class ScreenSamplingMode : uint32_t {
     DEVICE_DSS = 0,
     DEVICE_GPU,

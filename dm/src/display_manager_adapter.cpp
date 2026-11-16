@@ -1954,6 +1954,15 @@ DMError ScreenManagerAdapter::SetVirtualScreenAutoRotation(ScreenId screenId, bo
     return DMError::DM_OK;
 }
 
+DMError ScreenManagerAdapter::SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->SetVirtualScreenCursorMode(screenId, mode);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError ScreenManagerAdapter::SetScreenPrivacyWindowTagSwitch(ScreenId screenId,
     const std::vector<std::string>& privacyWindowTag, bool enable)
 {

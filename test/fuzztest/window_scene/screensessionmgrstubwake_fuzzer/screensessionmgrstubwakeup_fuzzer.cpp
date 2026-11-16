@@ -649,6 +649,10 @@ bool DoSomethingInterestingWithMyAPI11(const uint8_t* data, size_t size)
     screenStub->OnRemoteRequest(
         static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_AUTO_ROTATION),
         parcel, reply, option);
+    parcel.RewindRead(0);
+    screenStub->OnRemoteRequest(
+        static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_CURSOR_MODE),
+        parcel, reply, option);
     return true;
 }
 

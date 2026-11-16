@@ -5511,6 +5511,42 @@ DMError ScreenSessionManagerProxy::SetVirtualScreenAutoRotation(ScreenId screenI
     return static_cast<DMError>(ret);
 }
 
+DMError ScreenSessionManagerProxy::SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::DMS, "remote is null");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+
+    MessageParcel reply;
+    MessageParcel data;
+    MessageOption option;
+
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(screenId))) {
+        TLOGE(WmsLogTag::DMS, "Write screenId failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint8(static_cast<uint8_t>(mode))) {
+        TLOGE(WmsLogTag::DMS, "Write cursor mode failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_CURSOR_MODE),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = -1;
+    if (!reply.ReadInt32(ret)) {
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(ret);
+}
+
 DMError ScreenSessionManagerProxy::SetScreenPrivacyWindowTagSwitch(ScreenId screenId,
     const std::vector<std::string>& privacyWindowTag, bool enable)
 {

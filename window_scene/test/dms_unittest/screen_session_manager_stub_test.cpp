@@ -4216,6 +4216,27 @@ HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetScreenPowerForSpecified
     int res = stub_->OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(res, ERR_NONE);
 }
+
+/**
+ * @tc.name: OnRemoteRequestSetVirtualScreenCursorMode
+ * @tc.desc: normal function, TRANS_ID_SET_VIRTUAL_SCREEN_CURSOR_MODE test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerStubTest, OnRemoteRequestSetVirtualScreenCursorMode, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(ScreenSessionManagerStub::GetDescriptor());
+    ScreenId screenId = 1074;
+    RSVirtualScreenCursorMode mode = RSVirtualScreenCursorMode::HIDE;
+    data.WriteUint64(static_cast<uint64_t>(screenId));
+    data.WriteUint8(static_cast<uint8_t>(mode));
+    uint32_t code = static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_CURSOR_MODE);
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
