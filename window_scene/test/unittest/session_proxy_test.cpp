@@ -1332,7 +1332,7 @@ HWTEST_F(SessionProxyTest, GetIsMidScene, TestSize.Level1)
 
 /**
  * @tc.name: ChangeSessionVisibilityWithStatusBar
- * @tc.desc: ChangeSessionVisibilityWithStatusBar test
+ * @tc.desc: ChangeSessionVisibilityWithStatusBar error branches test
  * @tc.type: FUNC
  */
 HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1)
@@ -1369,11 +1369,22 @@ HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1
     sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
     EXPECT_EQ(failProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
         WSError::WS_ERROR_IPC_FAILED);
+}
 
-    // Case 6: send request success without optional members
-    abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+/**
+ * @tc.name: ChangeSessionVisibilityWithStatusBarWriteOptionalMembers
+ * @tc.desc: ChangeSessionVisibilityWithStatusBar optional members write test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBarWriteOptionalMembers, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
     mockRemote->sendRequestResult_ = ERR_NONE;
     sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    bool visible = true;
+    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+
+    // Case 6: send request success without optional members
     EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible),
         WSError::WS_OK);
 
