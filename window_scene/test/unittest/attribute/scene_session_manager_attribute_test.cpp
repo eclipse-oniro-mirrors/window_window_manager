@@ -277,17 +277,17 @@ HWTEST_F(SceneSessionManagerAttributeTest, IsNeedNotifyScreenshotEvent, TestSize
 }
 
 /**
- * @tc.name: ClearSessionCashedRecords
- * @tc.desc: test ClearSessionCashedRecords
+ * @tc.name: ClearSessionCachedRecords
+ * @tc.desc: test ClearSessionCachedRecords
  * @tc.type: FUNC
  */
-HWTEST_F(SceneSessionManagerAttributeTest, ClearSessionCashedRecords, TestSize.Level1)
+HWTEST_F(SceneSessionManagerAttributeTest, ClearSessionCachedRecords, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
-    ssm_->ClearSessionCashedRecords(nullptr);
+    ssm_->ClearSessionCachedRecords(nullptr);
     SessionInfo sessionInfo;
     sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
-    ssm_->ClearSessionCashedRecords(sceneSession);
+    ssm_->ClearSessionCachedRecords(sceneSession);
 }
 
 /**
