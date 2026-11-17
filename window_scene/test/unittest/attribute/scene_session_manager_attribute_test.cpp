@@ -277,6 +277,20 @@ HWTEST_F(SceneSessionManagerAttributeTest, IsNeedNotifyScreenshotEvent, TestSize
 }
 
 /**
+ * @tc.name: ClearSessionCashedRecords
+ * @tc.desc: test ClearSessionCashedRecords
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerAttributeTest, ClearSessionCashedRecords, TestSize.Level1)
+{
+    ASSERT_NE(nullptr, ssm_);
+    ssm_->ClearSessionCashedRecords(nullptr);
+    SessionInfo sessionInfo;
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    ssm_->ClearSessionCashedRecords(sceneSession);
+}
+
+/**
  * @tc.name: SetWindowSnapshotSkip
  * @tc.desc: test SetWindowSnapshotSkip
  * @tc.type: FUNC
