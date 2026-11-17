@@ -135,7 +135,7 @@ public:
     virtual std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution();
     virtual DMError GetDisplayCapability(std::string& capabilitInfo);
     virtual DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList);
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false);
     virtual std::shared_ptr<Media::PixelMap> GetScreenCapture(const CaptureOption& captureOption,
         DmErrorCode* errorCode = nullptr);
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshotWithOption(const CaptureOption& captureOption,

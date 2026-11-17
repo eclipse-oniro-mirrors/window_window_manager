@@ -41,7 +41,8 @@ int32_t RSInterfaces::SetVirtualScreenTypeBlackList(ScreenId id, std::vector<Nod
     return 0;
 }
 int32_t RSInterfaces::SetVirtualScreenSecurityExemptionList(ScreenId id,
-                                                            const std::vector<NodeId>& securityExemptionList)
+                                                            const std::vector<NodeId>& securityExemptionList,
+                                                            bool exemptAll)
 {
     return 0;
 }

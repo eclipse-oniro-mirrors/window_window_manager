@@ -141,7 +141,8 @@ public:
     sptr<Display> GetDisplayByScreenId(ScreenId screenId);
     DMError ProxyForFreeze(const std::set<int32_t>& pidList, bool isProxy);
     DMError ResetAllFreezeStatus();
-    DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid, std::vector<uint64_t>& windowIdList);
+    DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid, std::vector<uint64_t>& windowIdList,
+        bool exemptAll = false);
     sptr<Display> GetPrimaryDisplaySync();
     DisplayId GetPrimaryDisplayId();
     void OnRemoteDied();
@@ -2830,16 +2831,16 @@ void DisplayManager::DisablePowerOffRenderControl(ScreenId screenId)
 }
 
 DMError DisplayManager::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
-    return pImpl_->SetVirtualScreenSecurityExemption(screenId, pid, windowIdList);
+    return pImpl_->SetVirtualScreenSecurityExemption(screenId, pid, windowIdList, exemptAll);
 }
 
 DMError DisplayManager::Impl::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
     return SingletonContainer::Get<DisplayManagerAdapter>().SetVirtualScreenSecurityExemption(
-        screenId, pid, windowIdList);
+        screenId, pid, windowIdList, exemptAll);
 }
 
 sptr<Display> DisplayManager::Impl::GetPrimaryDisplaySync()

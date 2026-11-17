@@ -253,7 +253,7 @@ public:
     std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution() override;
     DMError GetDisplayCapability(std::string& capabilitInfo) override;
     DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList) override;
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false) override;
     bool SetVirtualScreenStatus(ScreenId screenId, VirtualScreenStatus screenStatus) override;
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;
