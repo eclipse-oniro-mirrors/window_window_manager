@@ -396,6 +396,10 @@ public:
         const AAFwk::Want& data);
     virtual WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data);
+    virtual WMError HandleUIExtRegisterScreenshotListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
+    virtual WMError HandleUIExtUnregisterScreenshotListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data);
 
     WMError SetBackgroundColor(const std::string& color) override;
     virtual Orientation GetRequestedOrientation() override;
@@ -1204,6 +1208,9 @@ protected:
     /*
      * Window Property
      */
+    static std::recursive_mutex screenshotListenerMutex_;
+    static std::map<int32_t, std::vector<sptr<IScreenshotListener>>> screenshotListeners_;
+    std::unordered_map<int32_t, sptr<IScreenshotListener>> screenshotUIExtListeners_;
     std::string colorMode_;
     bool hasDarkRes_;
     std::string specifiedColorMode_;
@@ -1453,7 +1460,6 @@ private:
     static std::recursive_mutex keyboardWillHideListenerMutex_;
     static std::recursive_mutex keyboardDidShowListenerMutex_;
     static std::recursive_mutex keyboardDidHideListenerMutex_;
-    static std::recursive_mutex screenshotListenerMutex_;
     static std::recursive_mutex touchOutsideListenerMutex_;
     static std::recursive_mutex windowVisibilityChangeListenerMutex_;
     static std::recursive_mutex windowNoInteractionListenerMutex_;
@@ -1494,7 +1500,6 @@ private:
     static std::map<int32_t, std::vector<sptr<IKBWillHideListener>>> keyboardWillHideListeners_;
     static std::map<int32_t, std::vector<sptr<IKeyboardDidShowListener>>> keyboardDidShowListeners_;
     static std::map<int32_t, std::vector<sptr<IKeyboardDidHideListener>>> keyboardDidHideListeners_;
-    static std::map<int32_t, std::vector<sptr<IScreenshotListener>>> screenshotListeners_;
     static std::recursive_mutex screenshotAppEventListenerMutex_;
     static std::unordered_map<int32_t, std::vector<IScreenshotAppEventListenerSptr>> screenshotAppEventListeners_;
     static std::map<int32_t, std::vector<IWindowVisibilityListenerSptr>> windowVisibilityChangeListeners_;

@@ -2040,6 +2040,105 @@ WMError WindowExtensionSessionImpl::GetWindowStateSnapshot(std::string& winState
     return WMError::WM_OK;
 }
 
+WMError WindowExtensionSessionImpl::RegisterScreenshotListener(const sptr<IScreenshotListener>& listener)
+{
+    bool isFirstRegister = false;
+    auto persistentId = GetPersistentId();
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        auto ret = RegisterListener(screenshotListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: uec winId=%{public}d", persistentId);
+            return ret;
+        }
+        isFirstRegister = screenshotListeners_[persistentId].size() == 1;
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, needNotifyHost=%{public}d", persistentId, isFirstRegister);
+    if (!isFirstRegister) {
+        return WMError::WM_OK;
+    }
+    AAFwk::Want want;
+    auto ret = SendExtensionMessageToHost(
+        static_cast<uint32_t>(Extension::Businesscode::REGISTER_SCREENSHOT_LISTENER), want);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed, uec winId=%{public}d, ret=%{public}d",
+            persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        UnregisterListener(screenshotListeners_[persistentId], listener);
+    }
+    return ret;
+}
+
+WMError WindowExtensionSessionImpl::UnregisterScreenshotListener(const sptr<IScreenshotListener>& listener)
+{
+    bool needNotifyHost = false;
+    auto persistentId = GetPersistentId();
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        auto ret = UnregisterListener(screenshotListeners_[persistentId], listener);
+        if (ret != WMError::WM_OK) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "failed: uec winId=%{public}d", persistentId);
+            return ret;
+        }
+        needNotifyHost = screenshotListeners_[persistentId].empty() && screenshotUIExtListeners_.empty();
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId=%{public}d, needNotifyHost=%{public}d", persistentId, needNotifyHost);
+    if (!needNotifyHost) {
+        return WMError::WM_OK;
+    }
+    AAFwk::Want want;
+    auto ret = SendExtensionMessageToHost(
+        static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_SCREENSHOT_LISTENER), want);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed, uec winId=%{public}d, ret=%{public}d",
+            persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        RegisterListener(screenshotListeners_[persistentId], listener);
+    }
+    return ret;
+}
+
+WMError WindowExtensionSessionImpl::HandleUIExtRegisterScreenshotListener(uint32_t code, int32_t persistentId,
+    const AAFwk::Want& data)
+{
+    auto ret = SendExtensionMessageToHost(code, data);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed, code=%{public}u, uec winId=%{public}d, ret=%{public}d",
+            code, persistentId, static_cast<int32_t>(ret));
+        return ret;
+    }
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        screenshotUIExtListeners_[persistentId] = sptr<IScreenshotListener>::MakeSptr();
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "code=%{public}u, uec winId=%{public}d", code, persistentId);
+    return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::HandleUIExtUnregisterScreenshotListener(uint32_t code, int32_t persistentId,
+    const AAFwk::Want& data)
+{
+    bool needNotifyHost = false;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        screenshotUIExtListeners_.erase(persistentId);
+        needNotifyHost = screenshotListeners_[GetPersistentId()].empty() && screenshotUIExtListeners_.empty();
+    }
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "code=%{public}u, winId=%{public}d, needNotifyHost=%{public}d",
+        code, persistentId, needNotifyHost);
+    if (!needNotifyHost) {
+        return WMError::WM_OK;
+    }
+    auto ret = SendExtensionMessageToHost(code, data);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "ipc failed, code=%{public}u, uec winId=%{public}d, ret=%{public}d",
+            code, persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        screenshotUIExtListeners_[persistentId] = sptr<IScreenshotListener>::MakeSptr();
+    }
+    return ret;
+}
+
 WMError WindowExtensionSessionImpl::SetStatusBarColorForExtension(uint32_t color)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "id=%{public}d", GetPersistentId());
@@ -2464,6 +2563,12 @@ WMError WindowExtensionSessionImpl::OnExtensionMessage(uint32_t code, int32_t pe
         }
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
             return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_SCREENSHOT_LISTENER): {
+            return HandleUIExtRegisterScreenshotListener(code, persistentId, data);
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_SCREENSHOT_LISTENER): {
+            return HandleUIExtUnregisterScreenshotListener(code, persistentId, data);
         }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
