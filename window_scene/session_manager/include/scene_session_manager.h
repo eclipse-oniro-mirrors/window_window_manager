@@ -1892,7 +1892,7 @@ private:
     sptr<SceneSession> GetKeyboardSession(DisplayId displayId, bool isSystemKeyboard);
     void HandleKeyboardAvoidChange(const sptr<SceneSession>& sceneSession, DisplayId displayId,
         SystemKeyboardAvoidChangeReason reason);
-    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive);
+    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive, DisplayId displayId);
 
     /*
      * Specific Window

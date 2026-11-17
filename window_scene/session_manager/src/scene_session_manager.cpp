@@ -3517,7 +3517,7 @@ void SceneSessionManager::HandleKeyboardAvoidChange(const sptr<SceneSession>& sc
          */
         case SystemKeyboardAvoidChangeReason::KEYBOARD_SHOW:
         case SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_BOTTOM: {
-            UpdateKeyboardAvoidAreaActive(true);
+            UpdateKeyboardAvoidAreaActive(true, displayId);
             break;
         }
         /*
@@ -3546,9 +3546,9 @@ void SceneSessionManager::HandleKeyboardAvoidChange(const sptr<SceneSession>& sc
     }
 }
 
-void SceneSessionManager::UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive)
+void SceneSessionManager::UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive, DisplayId displayId)
 {
-    const auto& keyboardSessionVec = GetSceneSessionVectorByType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    const auto& keyboardSessionVec = GetSceneSessionVectorByTypeAndDisplayId(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayId);
     if (keyboardSessionVec.empty()) {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "there is no keyboard window in the map");
         return;
