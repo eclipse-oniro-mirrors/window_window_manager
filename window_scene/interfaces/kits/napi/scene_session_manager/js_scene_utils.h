@@ -167,7 +167,7 @@ bool ConvertProcessOptionFromJs(napi_env env, napi_value jsObject,
 napi_value CreateJsSessionPendingConfigs(napi_env env, const PendingSessionActivationConfig& config);
 napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     const std::shared_ptr<PendingSessionActivationConfig>& config = nullptr);
-void ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
+uint32_t ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
     const std::shared_ptr<SessionInfo>& sessionInfo);
 bool ConvertSessionResultFromJsValue(
     napi_env env, napi_value jsResult, uint32_t& resultCode, std::string& resultMessage);

@@ -2309,13 +2309,13 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     return objValue;
 }
 
-void ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
+uint32_t ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
     const std::shared_ptr<SessionInfo>& sessionInfo)
 {
     uint32_t resultCode = 0;
     std::string resultMessage = "";
     if (!ConvertSessionResultFromJsValue(env, callResult, resultCode, resultMessage)) {
-        return;
+        return static_cast<uint32_t>(RequestResultCode::FAIL);
     }
     if (resultCode >= static_cast<uint32_t>(RequestResultCode::FAIL)) {
         SceneSessionManager::GetInstance().NotifyAmsPendingSessionWhenFail(resultCode,
@@ -2324,6 +2324,7 @@ void ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d,"
         "resultCode:%{public}d, resultMessage:%{public}s",
         sessionInfo->persistentId_, sessionInfo->requestId, resultCode, resultMessage.c_str());
+    return resultCode;
 }
 
 bool ConvertSessionResultFromJsValue(napi_env env, napi_value jsResult, uint32_t& resultCode,

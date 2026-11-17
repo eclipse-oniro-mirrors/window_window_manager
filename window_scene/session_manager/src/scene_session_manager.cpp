@@ -4022,7 +4022,15 @@ void SceneSessionManager::UpdateAbilityHookState(const sptr<SceneSession>& scene
 sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& sessionInfo,
     sptr<WindowSessionProperty> property)
 {
-    auto task = [this, sessionInfo, property, where = __func__] {
+    bool isNewSession = false;
+    return RequestSceneSession(sessionInfo, property, isNewSession);
+}
+
+sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& sessionInfo,
+    sptr<WindowSessionProperty> property, bool& isNewSession)
+{
+    auto task = [this, sessionInfo, property, &isNewSession, where = __func__] {
+        isNewSession = false;
         if (auto session = GetSceneSessionBySessionInfo(sessionInfo)) {
             UpdateSessionDisplayIdBySessionInfo(session, sessionInfo);
             NotifySessionUpdate(sessionInfo, ActionType::SINGLE_START);
@@ -4087,6 +4095,7 @@ sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& s
         }
         PerformRegisterInRequestSceneSession(sceneSession);
         NotifySessionUpdate(sessionInfo, ActionType::SINGLE_START);
+        isNewSession = true;
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id: %{public}d, type: %{public}d, instanceKey: %{public}s, "
                "displayId: %{public}" PRIu64, where, sceneSession->GetPersistentId(), sceneSession->GetWindowType(),
                sceneSession->GetAppInstanceKey().c_str(), sceneSession->GetSessionProperty()->GetDisplayId());
@@ -5339,21 +5348,23 @@ void SceneSessionManager::ResetSceneSessionInfoWant(const sptr<AAFwk::SessionInf
 
 void SceneSessionManager::ResetWantInfo(const sptr<SceneSession>& sceneSession)
 {
-    if (const auto sessionInfoWant = sceneSession->GetSessionInfo().want) {
-        const auto& bundleName = sessionInfoWant->GetElement().GetBundleName();
-        const auto& abilityName = sessionInfoWant->GetElement().GetAbilityName();
-        const auto& keySessionId = sessionInfoWant->GetStringParam(ATOMIC_SERVICE_SESSION_ID);
-        AppExecFwk::ElementName element;
-        element.SetBundleName(bundleName);
-        element.SetAbilityName(abilityName);
-        auto want = std::make_shared<AAFwk::Want>();
-        want->SetElement(element);
-        want->SetBundle(bundleName);
-        if (!keySessionId.empty()) {
-            want->SetParam(ATOMIC_SERVICE_SESSION_ID, keySessionId);
+    taskScheduler_->PostAsyncTask([sceneSession] {
+        if (const auto sessionInfoWant = sceneSession->GetSessionInfo().want) {
+            const auto& bundleName = sessionInfoWant->GetElement().GetBundleName();
+            const auto& abilityName = sessionInfoWant->GetElement().GetAbilityName();
+            const auto& keySessionId = sessionInfoWant->GetStringParam(ATOMIC_SERVICE_SESSION_ID);
+            AppExecFwk::ElementName element;
+            element.SetBundleName(bundleName);
+            element.SetAbilityName(abilityName);
+            auto want = std::make_shared<AAFwk::Want>();
+            want->SetElement(element);
+            want->SetBundle(bundleName);
+            if (!keySessionId.empty()) {
+                want->SetParam(ATOMIC_SERVICE_SESSION_ID, keySessionId);
+            }
+            sceneSession->SetSessionInfoWant(want);
         }
-        sceneSession->SetSessionInfoWant(want);
-    }
+    }, __func__);
 }
 
 void SceneSessionManager::MoveStartLifeCycleTask(const sptr<SceneSession>& sceneSession)

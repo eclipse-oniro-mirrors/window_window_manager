@@ -914,6 +914,8 @@ public:
         const GameAdaptiveResolutionConfig& config);
     sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
         sptr<WindowSessionProperty> property = nullptr);
+    sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
+        sptr<WindowSessionProperty> property, bool& isNewSession);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
     WSError RequestSceneSessionActivation(const sptr<SceneSession>& sceneSession, bool isNewActive,
         bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID);
@@ -1077,6 +1079,11 @@ public:
 
     void SetSelectMode(SelectMode selectMode);
     SelectMode GetSelectMode() const;
+
+    /**
+     * Reset Want info
+     */
+    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
 
 protected:
     SceneSessionManager();
@@ -1287,7 +1294,6 @@ private:
     void GetAllClearableSessions(std::vector<sptr<SceneSession>>& sessionVector);
     sptr<AAFwk::SessionInfo> SetAbilitySessionInfo(const sptr<SceneSession>& sceneSession,
         int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID, bool useRequestTaskInfo = false);
-    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
     void ResetSceneSessionInfoWant(const sptr<AAFwk::SessionInfo>& sceneSessionInfo);
     int32_t StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSession>& sceneSession,
         const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
