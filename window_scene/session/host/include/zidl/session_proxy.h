@@ -44,6 +44,8 @@ public:
     WSError StartWithSnapshot() override;
     WSError ChangeSessionVisibilityWithStatusBar(const sptr<AAFwk::SessionInfo> abilitySessionInfo,
         bool visible) override;
+    // External linkage for direct unit test calls.
+    static bool WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name);
     WSError PendingSessionActivation(const sptr<AAFwk::SessionInfo> abilitySessionInfo) override;
     WSError BatchPendingSessionsActivation(const std::vector<sptr<AAFwk::SessionInfo>>& abilitySessionInfos,
         const std::vector<PendingSessionActivationConfig>& configs = {}) override;

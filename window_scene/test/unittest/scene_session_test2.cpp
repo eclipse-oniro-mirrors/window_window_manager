@@ -556,6 +556,12 @@ HWTEST_F(SceneSessionTest2, ChangeSessionVisibilityWithStatusBar, TestSize.Level
     result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, false);
     ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
 
+    abilitySessionInfo->showParams = std::make_shared<WindowShowParams>();
+    abilitySessionInfo->showParams->windowFocused = false;
+    abilitySessionInfo->showParams->raiseTop = false;
+    result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, true);
+    ASSERT_EQ(result, WSError::WS_ERROR_INVALID_PERMISSION);
+
     sceneSession->isTerminating_ = true;
     sptr<AAFwk::SessionInfo> terminatingMock = sptr<AAFwk::SessionInfo>::MakeSptr();
     result = sceneSession->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, false);
@@ -1305,6 +1311,45 @@ HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTop, TestSize.Level1)
     sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
     result = sceneSession->RaiseAppMainWindowToTop();
     EXPECT_EQ(WSError::WS_OK, result);
+}
+
+/**
+ * @tc.name: RaiseAppMainWindowToTopWithRaiseTopOnShow
+ * @tc.desc: RaiseAppMainWindowToTop with showAbility raiseTop=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopWithRaiseTopOnShow, TestSize.Level1)
+{
+    SessionInfo info;
+    info.abilityName_ = "RaiseAppMainWindowToTopWithRaiseTopOnShow";
+    info.bundleName_ = "RaiseAppMainWindowToTopWithRaiseTopOnShow";
+
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    EXPECT_NE(sceneSession, nullptr);
+    sceneSession->isActive_ = true;
+
+    // raiseTopOnShow is true by default, set and get keep consistent
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+    sceneSession->SetRaiseTopOnShow(false);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), false);
+
+    // raiseTop=false suppresses the raise and the flag is restored once
+    WSError result = sceneSession->RaiseAppMainWindowToTop();
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+
+    // after restoration the raise is no longer suppressed
+    result = sceneSession->RaiseAppMainWindowToTop();
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+
+    // the flag is also restored when the window is not focused on show
+    sceneSession->SetRaiseTopOnShow(false);
+    sceneSession->focusedOnShow_ = false;
+    result = sceneSession->RaiseAppMainWindowToTop();
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+    EXPECT_EQ(sceneSession->focusedOnShow_, true);
 }
 
 /**

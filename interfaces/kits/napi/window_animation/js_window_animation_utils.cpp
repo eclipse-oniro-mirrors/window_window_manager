@@ -444,6 +444,26 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
     return true;
 }
 
+bool ConvertWindowShowParamsFromJsValue(napi_env env, napi_value jsObject, WindowShowParams& windowShowParams)
+{
+    if (env == nullptr || jsObject == nullptr) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "Invalid param");
+        return false;
+    }
+    napi_valuetype jsType = napi_undefined;
+    if (napi_typeof(env, jsObject, &jsType) != napi_ok || jsType != napi_object) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "windowShowParams is not an object");
+        return false;
+    }
+    windowShowParams.windowFocused =
+        GetOptionalBoolProp(env, jsObject, "windowFocused").value_or(true);
+    windowShowParams.raiseTop =
+        GetOptionalBoolProp(env, jsObject, "raiseTop").value_or(true);
+    TLOGD(WmsLogTag::WMS_ANIMATION, "windowFocused: %{public}d, raiseTop: %{public}d",
+        windowShowParams.windowFocused, windowShowParams.raiseTop);
+    return true;
+}
+
 bool ConvertSplitRatioPreferenceFromJsValue(
     napi_env env, napi_value jsObject, SplitRatioPreference& splitRatioPreference)
 {

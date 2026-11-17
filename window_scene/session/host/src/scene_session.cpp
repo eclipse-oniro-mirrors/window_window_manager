@@ -555,6 +555,8 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
             TLOGI(WmsLogTag::WMS_LIFE, "%{public}s Current state is not a pre-state of foreground, skip", where);
             return WSError::WS_OK;
         }
+        // Restore the one-shot raiseTop state from showAbility on the normal show path.
+        session->SetRaiseTopOnShow(true);
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
             sessionProperty->SetWindowMode(property->GetWindowMode());
@@ -3228,16 +3230,34 @@ WSError SceneSession::RaiseAppMainWindowToTop()
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
+        // Consume the one-shot suppression from showAbility with raiseTop=false.
+        bool raiseOnShow = session->IsRaiseTopOnShow();
+        session->SetRaiseTopOnShow(true);
         if (session->IsFocusedOnShow()) {
             FocusChangeReason reason = FocusChangeReason::MOVE_UP;
             session->NotifyRequestFocusStatusNotifyManager(true, true, reason);
-            session->NotifyClick(true, false);
+            if (raiseOnShow) {
+                session->NotifyClick(true, false);
+            }
         } else {
             session->SetFocusedOnShow(true);
         }
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
+}
+
+bool SceneSession::IsRaiseTopOnShow() const
+{
+    return raiseTopOnShow_;
+}
+
+void SceneSession::SetRaiseTopOnShow(bool raiseTopOnShow)
+{
+    if (raiseTopOnShow == raiseTopOnShow_) {
+        return;
+    }
+    raiseTopOnShow_ = raiseTopOnShow;
 }
 
 WSError SceneSession::OnNeedAvoid(bool status)
@@ -6824,6 +6844,33 @@ void SceneSession::SetSystemTouchable(bool touchable)
     NotifyAccessibilityVisibilityChange();
 }
 
+static SessionInfo MakeSessionInfoDuringVisibilityChange(const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
+    const sptr<SceneSession>& session)
+{
+    SessionInfo info;
+    info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
+    info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
+    info.moduleName_ = abilitySessionInfo->want.GetModuleName();
+    int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
+    info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
+    info.persistentId_ = abilitySessionInfo->persistentId;
+    info.callerPersistentId_ = session->GetPersistentId();
+    info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
+    info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
+    info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
+    info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
+    info.requestId = abilitySessionInfo->requestId;
+    info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
+    info.requestCode = abilitySessionInfo->requestCode;
+    info.callerToken_ = abilitySessionInfo->callerToken;
+    info.startSetting = abilitySessionInfo->startSetting;
+    info.callingTokenId_ = abilitySessionInfo->callingTokenId;
+    info.reuse = abilitySessionInfo->reuse;
+    info.processOptions = abilitySessionInfo->processOptions;
+    info.showParams = abilitySessionInfo->showParams;
+    return info;
+}
+
 WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
     const sptr<AAFwk::SessionInfo> abilitySessionInfo, bool visible)
 {
@@ -6846,26 +6893,18 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
 
-        SessionInfo info;
-        info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
-        info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
-        info.moduleName_ = abilitySessionInfo->want.GetModuleName();
-        int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
-        info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
-        info.persistentId_ = abilitySessionInfo->persistentId;
-        info.callerPersistentId_ = session->GetPersistentId();
-        info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
-        info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
-        info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
-        info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
-        info.requestId = abilitySessionInfo->requestId;
-        info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
-        info.requestCode = abilitySessionInfo->requestCode;
-        info.callerToken_ = abilitySessionInfo->callerToken;
-        info.startSetting = abilitySessionInfo->startSetting;
-        info.callingTokenId_ = abilitySessionInfo->callingTokenId;
-        info.reuse = abilitySessionInfo->reuse;
-        info.processOptions = abilitySessionInfo->processOptions;
+        SessionInfo info = MakeSessionInfoDuringVisibilityChange(abilitySessionInfo, session);
+
+        if (visible && info.showParams != nullptr) {
+            if (!info.showParams->windowFocused) {
+                // Same as start with PARAM_RESV_WINDOW_FOCUSED, restored when the window has been visible.
+                session->SetFocusedOnShow(false);
+            }
+        }
+        if (visible) {
+            // One-shot for the coming show, restored when the app window shows again.
+            session->SetRaiseTopOnShow(info.showParams == nullptr || info.showParams->raiseTop);
+        }
 
         if (session->changeSessionVisibilityWithStatusBarFunc_) {
             session->changeSessionVisibilityWithStatusBarFunc_(info, visible);
