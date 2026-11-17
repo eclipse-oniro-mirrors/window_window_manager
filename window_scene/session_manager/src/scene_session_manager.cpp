@@ -4624,7 +4624,8 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
     if (isShowAbility) {
         sceneSessionInfo->scenarios = SHOWABILITY_SCENARIOS;
     }
-    if (!systemConfig_.backgroundswitch || sceneSession->GetSessionProperty()->GetIsAppSupportPhoneInPc()) {
+    if (!systemConfig_.backgroundswitch || (sceneSession->GetSessionProperty()->GetIsAppSupportPhoneInPc() &&
+        (scneSession->GetSessionInfo().appIndex_ < 2000 || sceneSession->GetSessionInfo().appIndex_ > 3000))) {
         TLOGI(WmsLogTag::WMS_MAIN, "[requestId: %{public}d][scbRequestId: %{public}d][id: %{public}d] "
             "Begin StartUIAbility, system: %{public}u, reuseDelegatorWindow %{public}d isShowAbility %{public}d",
             requestId, scbRequestId, persistentId,
