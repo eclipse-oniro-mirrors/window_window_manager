@@ -14,6 +14,7 @@
  */
 #include <gtest/gtest.h>
 
+#include "extension/extension_business_info.h"
 #include "mock_session.h"
 #include "vsync_station.h"
 #include "window_session_impl.h"
