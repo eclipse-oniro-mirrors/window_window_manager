@@ -17907,7 +17907,8 @@ DMError ScreenSessionManager::GetScreenAreaOfDisplayArea(DisplayId displayId, co
     DMRect screenRegion = {
         bounds.rect_.GetLeft(), bounds.rect_.GetTop(), bounds.rect_.GetWidth(), bounds.rect_.GetHeight() };
     DMRect displayAreaFixed = displayArea;
-    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && GetFoldStatus() == FoldStatus::HALF_FOLD && screenSession->GetIsInternal()) {
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && GetFoldStatus() == FoldStatus::HALF_FOLD
+        && screenSession->GetIsInternal()) {
         if (displayId == DISPLAY_ID_FAKE) {
             displayAreaFixed.posY_ += static_cast<int32_t>(screenRegion.height_) -
                 static_cast<int32_t>(displayRegion.height_);
