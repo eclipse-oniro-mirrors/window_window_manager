@@ -10415,8 +10415,8 @@ napi_value JsWindow::OnClearWindowMask(napi_env env, napi_callback_info info)
             !WindowHelper::IsAppFloatingWindow(window->GetType())) {
             WmErrorCode wmErrorCode = WmErrorCode::WM_ERROR_INVALID_CALLING;
             HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.clearWindowMask", wmErrorCode);
-            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode,
-                "[window][clearWindowMask]msg: invalid type"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, wmErrorCode, "[window][clearWindowMask]msg: "
+                "Invalid window type. Only subwindows and float windows are supported"));
             return;
         }
         WmErrorCode ret = ConvertErrorToCode(window->ClearWindowMask());
