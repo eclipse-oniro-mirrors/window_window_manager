@@ -14994,7 +14994,7 @@ void ScreenSessionManager::NotifyHookAvailableAreaChanged(DMRect area, DisplayId
 void ScreenSessionManager::NotifyHookAvailableAreaChanged(int32_t uid)
 {
     DisplayId displayId = DISPLAY_ID_INVALID;
-    sptr defaultScreen = GetDefaultScreenSession();
+    auto defaultScreen = GetDefaultScreenSession();
     if (defaultScreen) {
         displayId = defaultScreen->GetDisplayId();
     } else {
