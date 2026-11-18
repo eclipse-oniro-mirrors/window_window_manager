@@ -799,14 +799,19 @@ DMError MultiScreenModeChangeManager::HandleInnerExtendExternalMainToInnerMainEx
     sptr<IScreenSessionManagerClient> ssmClient = ScreenSessionManager::GetInstance().GetClientProxy();
     if (ssmClient == nullptr) {
         TLOGE(WmsLogTag::DMS, "ssmClient null");
-        return DMError::DM_ERROR_NULLPTR;
+        if (ScreenSessionManager::GetInstance().HasInternalScreen()) {
+            TLOGE(WmsLogTag::DMS, "ssmClient null return");
+            return DMError::DM_ERROR_NULLPTR;
+        }
     }
 
     /* step3: notify scb change displayNode */
-    DMError displayNodeChangeRet = ScreenDisplayNodeChangeNotify(ssmClient, innerScreen, externalScreen);
-    if (displayNodeChangeRet != DMError::DM_OK) {
-        TLOGE(WmsLogTag::DMS, "change displayNode failed.");
-        return displayNodeChangeRet;
+    if (ssmClient != nullptr) {
+        DMError displayNodeChangeRet = ScreenDisplayNodeChangeNotify(ssmClient, innerScreen, externalScreen);
+        if (displayNodeChangeRet != DMError::DM_OK) {
+            TLOGE(WmsLogTag::DMS, "change displayNode failed.");
+            return displayNodeChangeRet;
+        }
     }
 
     /* step4: change physical screen info between inner and external screen */
