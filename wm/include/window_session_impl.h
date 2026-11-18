@@ -101,6 +101,7 @@ public:
     static sptr<Window> Find(const std::string& name);
     static std::vector<sptr<Window>> GetSubWindow(int parentId);
     static sptr<WindowSessionImpl> GetWindowWithId(uint32_t windowId);
+    static sptr<WindowSessionImpl> GetExtensionWindowWithId(uint32_t windowId);
     static int32_t GetMainWindowHeight();
 
     virtual WMError Create(const std::shared_ptr<AbilityRuntime::Context>& context,
@@ -396,6 +397,7 @@ public:
         const AAFwk::Want& data);
     virtual WMError HandleUIExtUnregisterTouchOutsideListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data);
+    virtual WMError HandleNotifyHostOnParentChanged(uint32_t code, int32_t persistentId, const AAFwk::Want& data);
 
     WMError SetBackgroundColor(const std::string& color) override;
     virtual Orientation GetRequestedOrientation() override;
@@ -983,6 +985,8 @@ protected:
     void DestroySubWindow();
     bool IsSubWindowMaximizeSupported() const override;
     void UpdateSubWindowInfo(uint32_t subWindowLevel, const std::shared_ptr<AbilityRuntime::Context>& context);
+    void UpdateSubWindowInfoForExtension(
+        const std::vector<sptr<WindowSessionImpl>>& subWindows, uint32_t newSubWindowLevel);
     void GetSubWindows(int32_t parentPersistentId, std::vector<sptr<WindowSessionImpl>>& subWindows);
     void RemoveSubWindow(int32_t parentPersistentId);
     bool IsZLevelAboveParentLoosened() const override;
@@ -1222,6 +1226,7 @@ protected:
     uint32_t GetTargetAPIVersionByApplicationInfo() const;
     void SetSurfaceNodeAlphaChangedCallback(const std::shared_ptr<RSSurfaceNode>& surfaceNode);
     void NotifySurfaceNodeAlphaUpdate(float alpha);
+    void InitPropertyFromOption(const sptr<WindowOption>& option);
 
     /*
      * Window Input Event
@@ -1266,7 +1271,6 @@ protected:
      */
     bool isGamePreLaunch_ = false;
 private:
-    void InitPropertyFromOption(const sptr<WindowOption>& option);
     void ReportPrivacyWindowSnapshotFail(int32_t errorCode, const std::string& errorMsg) const;
     //Trans between colorGamut and colorSpace
     static ColorSpace GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut);

@@ -3243,6 +3243,223 @@ HWTEST_F(SceneSessionManagerStubTest,
     int res = stub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
 }
+
+/**
+ * @tc.name: HandleUpdateExtensionParent001
+ * @tc.desc: test HandleUpdateExtensionParent when read token failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent001, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    int res = stub_->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent002
+ * @tc.desc: test HandleUpdateExtensionParent when read newHostWindowId failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent002, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    int res = stub_->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent003
+ * @tc.desc: test HandleUpdateExtensionParent when read startModalExtensionTimeStamp failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent003, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    data.WriteInt32(100); // newHostWindowId
+    int res = stub_->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent004
+ * @tc.desc: test HandleUpdateExtensionParent when read isConstrainedModal failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent004, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    data.WriteInt32(100); // newHostWindowId
+    data.WriteInt64(12345); // startModalExtensionTimeStamp
+    int res = stub_->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent005
+ * @tc.desc: test HandleUpdateExtensionParent when read extensionWindowFlags failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent005, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    data.WriteInt32(100); // newHostWindowId
+    data.WriteInt64(12345); // startModalExtensionTimeStamp
+    data.WriteBool(false); // isConstrainedModal
+    int res = stub_->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent006
+ * @tc.desc: test HandleUpdateExtensionParent when read subWindowIds failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent006, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    data.WriteInt32(100); // newHostWindowId
+    data.WriteInt64(12345); // startModalExtensionTimeStamp
+    data.WriteBool(false); // isConstrainedModal
+    data.WriteUint32(6); // extensionWindowFlags
+    data.WriteInt32(5); // subWindowIds size without elements
+    int res = stub_->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent007
+ * @tc.desc: test HandleUpdateExtensionParent with full params and unregistered token
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent007, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    data.WriteInt32(100); // newHostWindowId
+    data.WriteInt64(12345); // startModalExtensionTimeStamp
+    data.WriteBool(false); // isConstrainedModal
+    data.WriteUint32(6); // extensionWindowFlags
+    std::vector<int32_t> subWindowIds = { 1, 2, 3 };
+    data.WriteInt32Vector(subWindowIds);
+
+    int res = stub_->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    // Token is not registered in extSessionInfoMap_, manager returns invalid session
+    uint32_t replySubWindowLevel = 111;
+    ASSERT_TRUE(reply.ReadUint32(replySubWindowLevel));
+    int32_t replyRet = -1;
+    ASSERT_TRUE(reply.ReadInt32(replyRet));
+    EXPECT_EQ(0u, replySubWindowLevel);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, static_cast<WSError>(replyRet));
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent008
+ * @tc.desc: test HandleUpdateExtensionParent with registered token and same parent id
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent008, TestSize.Level1)
+{
+    sptr<SceneSessionManager> stub = sptr<SceneSessionManager>::MakeSptr();
+    ASSERT_NE(stub, nullptr);
+    MessageParcel data;
+    MessageParcel reply;
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    int32_t newHostWindowId = 100;
+    data.WriteInt32(newHostWindowId); // newHostWindowId
+    data.WriteInt64(12345); // startModalExtensionTimeStamp
+    data.WriteBool(false); // isConstrainedModal
+    data.WriteUint32(6); // extensionWindowFlags
+    std::vector<int32_t> subWindowIds = { 1, 2, 3 };
+    data.WriteInt32Vector(subWindowIds);
+
+    ExtensionWindowAbilityInfo abilityInfo;
+    abilityInfo.persistentId = 200;
+    abilityInfo.parentId = newHostWindowId; // same as new host window id
+    abilityInfo.usage = UIExtensionUsage::EMBEDDED;
+    stub->extSessionInfoMap_[sessionStage->AsObject()] = abilityInfo;
+
+    int res = stub->HandleUpdateExtensionParent(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    uint32_t replySubWindowLevel = 111;
+    ASSERT_TRUE(reply.ReadUint32(replySubWindowLevel));
+    int32_t replyRet = -1;
+    ASSERT_TRUE(reply.ReadInt32(replyRet));
+    EXPECT_EQ(0u, replySubWindowLevel);
+    EXPECT_EQ(WSError::WS_OK, static_cast<WSError>(replyRet));
+}
+
+/**
+ * @tc.name: HandleUpdateExtensionParent009
+ * @tc.desc: test OnRemoteRequest dispatch of TRANS_ID_UPDATE_EXTENSION_PARENT
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleUpdateExtensionParent009, TestSize.Level1)
+{
+    ASSERT_NE(stub_, nullptr);
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_UPDATE_EXTENSION_PARENT);
+
+    MessageOption option;
+    MessageParcel badTokenData;
+    MessageParcel reply;
+    badTokenData.WriteInterfaceToken(u"invalid.descriptor");
+    EXPECT_EQ(ERR_TRANSACTION_FAILED, stub_->OnRemoteRequest(code, badTokenData, reply, option));
+
+    MessageParcel data;
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    sptr<ISessionStage> sessionStage = sptr<SessionStageMocker>::MakeSptr();
+    ASSERT_NE(sessionStage, nullptr);
+    data.WriteRemoteObject(sessionStage->AsObject());
+    data.WriteInt32(100); // newHostWindowId
+    data.WriteInt64(12345); // startModalExtensionTimeStamp
+    data.WriteBool(false); // isConstrainedModal
+    data.WriteUint32(6); // extensionWindowFlags
+    std::vector<int32_t> subWindowIds = { 1, 2, 3 };
+    data.WriteInt32Vector(subWindowIds);
+
+    EXPECT_EQ(ERR_NONE, stub_->OnRemoteRequest(code, data, reply, option));
+    uint32_t replySubWindowLevel = 111;
+    ASSERT_TRUE(reply.ReadUint32(replySubWindowLevel));
+    int32_t replyRet = -1;
+    ASSERT_TRUE(reply.ReadInt32(replyRet));
+    EXPECT_EQ(0u, replySubWindowLevel);
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, static_cast<WSError>(replyRet));
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

@@ -57,6 +57,11 @@ constexpr const char* const HOST_STATUS_BAR_CONTENT_COLOR = "hostStatusBarConten
 constexpr const char* const GRAVITY = "gravity";
 constexpr const char* const ISSHOWING = "isShowing";
 constexpr const char* const HOST_WINDOW_STATUS_FIELD = "hostWindowStatus";
+constexpr const char* const OLD_PARENT_WINDOW_ID = "oldParentWindowId";
+constexpr const char* const HAS_HOST_WINDOW_RECT_CHANGE_LISTENER = "hasHostWindowRectChangeListener";
+constexpr const char* const HAS_KEYBOARD_DID_SHOW_LISTENER = "hasKeyboardDidShowListener";
+constexpr const char* const HAS_KEYBOARD_DID_HIDE_LISTENER = "hasKeyboardDidHideListener";
+constexpr const char* const HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER = "hasRectChangeInGlobalDisplayListener";
 
 enum class Businesscode : uint32_t {
     SYNC_HOST_WINDOW_MODE = 0,  // Synchronize the host's window mode
@@ -93,6 +98,7 @@ enum class Businesscode : uint32_t {
     UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER,
     REGISTER_TOUCH_OUTSIDE_LISTENER,
     UNREGISTER_TOUCH_OUTSIDE_LISTENER,
+    NOTIFY_HOST_ON_PARENT_CHANGED,
     TRANSPARENT_TRANSMISSION_TO_HOST_WINDOW_CODE_END = 20000,
 };
 }  // namespace OHOS::Rosen::Extension

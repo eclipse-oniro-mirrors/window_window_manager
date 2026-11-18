@@ -42,6 +42,7 @@ public:
     static void Finalizer(ani_env* env, ani_long nativeObj);
     static ani_object CreateAniExtensionWindow(ani_env* env, sptr<Rosen::Window> window, int32_t hostWindowId,
         bool isHost = true);
+    WMError UpdateExtensionParent(const sptr<WindowOption>& option);
     WMError GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea);
     WmErrorCode OnSetWaterMarkFlag(ani_env* env, ani_boolean enable);
     WmErrorCode OnHidePrivacyContentForHost(ani_env* env, ani_boolean shouldHide);

@@ -35,6 +35,7 @@ public:
     JsExtensionWindow(const std::shared_ptr<Rosen::ExtensionWindow> extensionWindow,
         sptr<AAFwk::SessionInfo> sessionInfo);
     ~JsExtensionWindow();
+    WMError UpdateExtensionParent(const sptr<WindowOption>& option);
     static napi_value CreateJsExtensionWindow(napi_env env, sptr<Rosen::Window> window, int32_t hostWindowId);
     static napi_value CreateJsExtensionWindowObject(napi_env env, sptr<Rosen::Window> window,
     sptr<AAFwk::SessionInfo> sessionInfo);

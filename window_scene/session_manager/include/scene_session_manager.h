@@ -639,6 +639,15 @@ public:
     WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override;
     WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
         bool useHookedSize = false) override;
+    WSError UpdateExtensionParent(const sptr<IRemoteObject>& token,
+        const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel) override;
+    void TransferExtensionFlags(int32_t persistentId, uint32_t extensionWindowFlags,
+        sptr<SceneSession> oldParentSession, sptr<SceneSession> newParentSession);
+    void TransferExtensionParentSession(int32_t persistentId, UIExtensionUsage usage,
+        const UpdateExtensionParentParams& params, sptr<SceneSession>& oldParentSession,
+        sptr<SceneSession>& newParentSession);
+    void TransferExtensionSubSession(const std::vector<int32_t>& subWindowIds, uint32_t& newSubWindowLevel,
+            sptr<SceneSession>& oldParentSession, sptr<SceneSession>& newParentSession);
     WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) override;
     WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) override;
     WMError GetWindowModeType(WindowModeType& windowModeType) override;

@@ -425,6 +425,18 @@ void SceneSession::RemoveExtensionTokenInfo(const sptr<IRemoteObject>& abilityTo
         }), extensionTokenInfos_.end());
 }
 
+std::optional<UIExtensionTokenInfo> SceneSession::GetExtensionTokenInfo(int32_t persistentId)
+{
+    std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
+    for (const auto& tokenInfo : extensionTokenInfos_) {
+        if (tokenInfo.pid == persistentId) {
+            return tokenInfo;
+        }
+    }
+    TLOGE(WmsLogTag::WMS_UIEXT, "Failed to find tokenInfo by persistentId=%{public}d", persistentId);
+    return std::nullopt;
+}
+
 bool SceneSession::HasExtensionTokenInfoWithTokenID(uint32_t callingTokenId)
 {
     std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
@@ -3913,6 +3925,18 @@ void SceneSession::RemoveUIExtSurfaceNodeId(int32_t persistentId)
         return;
     }
     TLOGE(WmsLogTag::WMS_UIEXT, "Failed to remove uiExtension by persistentId=%{public}d", persistentId);
+}
+
+uint64_t SceneSession::GetUIExtSurfaceNodeId(int32_t persistentId)
+{
+    std::shared_lock<std::shared_mutex> lock(uiExtNodeIdToPersistentIdMapMutex_);
+    auto iter = std::find_if(uiExtNodeIdToPersistentIdMap_.begin(), uiExtNodeIdToPersistentIdMap_.end(),
+        [persistentId](const auto& entry) { return entry.second == persistentId; });
+    if (iter != uiExtNodeIdToPersistentIdMap_.end()) {
+        return iter->first;
+    }
+    TLOGE(WmsLogTag::WMS_UIEXT, "Failed to find surfaceNodeId by persistentId=%{public}d", persistentId);
+    return 0;
 }
 
 int32_t SceneSession::GetUIExtPersistentIdBySurfaceNodeId(uint64_t surfaceNodeId) const

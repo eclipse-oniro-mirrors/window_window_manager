@@ -19094,6 +19094,144 @@ WSError SceneSessionManager::GetHostWindowRect(int32_t hostWindowId, Rect& rect,
     return WSError::WS_OK;
 }
 
+void SceneSessionManager::TransferExtensionFlags(int32_t persistentId, uint32_t extensionWindowFlags,
+    sptr<SceneSession> oldParentSession, sptr<SceneSession> newParentSession)
+{
+    // Remove extension flags from old parent and handle side effects
+    bool waterMarkFlagChanged = false;
+    if (oldParentSession) {
+        auto oldFlags = oldParentSession->GetCombinedExtWindowFlags();
+        oldParentSession->RemoveExtWindowFlags(persistentId);
+        auto newOldFlags = oldParentSession->GetCombinedExtWindowFlags();
+        waterMarkFlagChanged = oldFlags.waterMarkFlag != newOldFlags.waterMarkFlag;
+        if (oldFlags.hideNonSecureWindowsFlag != newOldFlags.hideNonSecureWindowsFlag) {
+            HandleSecureSessionShouldHide(oldParentSession);
+        }
+        if (oldFlags.privacyModeFlag != newOldFlags.privacyModeFlag) {
+            UpdatePrivateStateAndNotify(oldParentSession->GetPersistentId());
+        }
+    } else {
+        ExtensionWindowFlags actions;
+        actions.SetAllActive();
+        HandleSpecialExtWindowFlagsChange(persistentId, ExtensionWindowFlags(), actions);
+    }
+
+    // Add extension flags to new parent and handle side effects
+    ExtensionWindowFlags flags(extensionWindowFlags);
+    ExtensionWindowFlags actions(extensionWindowFlags);
+    if (newParentSession) {
+        auto oldFlags = newParentSession->GetCombinedExtWindowFlags();
+        newParentSession->UpdateExtWindowFlags(persistentId, flags, actions);
+        auto newFlags = newParentSession->GetCombinedExtWindowFlags();
+        waterMarkFlagChanged = waterMarkFlagChanged || oldFlags.waterMarkFlag != newFlags.waterMarkFlag;
+        if (oldFlags.hideNonSecureWindowsFlag != newFlags.hideNonSecureWindowsFlag) {
+            HandleSecureSessionShouldHide(newParentSession);
+        }
+        if (oldFlags.privacyModeFlag != newFlags.privacyModeFlag) {
+            UpdatePrivateStateAndNotify(newParentSession->GetPersistentId());
+        }
+    } else {
+        HandleSpecialExtWindowFlagsChange(persistentId, flags, actions);
+    }
+    if (waterMarkFlagChanged) {
+        CheckAndNotifyWaterMarkChangedResult();
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "TransferExtensionFlags done, persistentId:%{public}d, "
+        "extensionWindowFlags:%{public}u", persistentId, extensionWindowFlags);
+}
+
+void SceneSessionManager::TransferExtensionParentSession(int32_t persistentId, UIExtensionUsage usage,
+    const UpdateExtensionParentParams& params, sptr<SceneSession>& oldParentSession,
+    sptr<SceneSession>& newParentSession)
+{
+    uint64_t surfaceNodeId = 0;
+    std::optional<UIExtensionTokenInfo> tokenInfoOpt;
+    if (oldParentSession) {
+        surfaceNodeId = oldParentSession->GetUIExtSurfaceNodeId(persistentId);
+        tokenInfoOpt = oldParentSession->GetExtensionTokenInfo(persistentId);
+        if (tokenInfoOpt.has_value()) {
+            oldParentSession->RemoveExtensionTokenInfo(tokenInfoOpt.value().abilityToken);
+        }
+        oldParentSession->RemoveUIExtSurfaceNodeId(persistentId);
+        oldParentSession->RemoveNormalModalUIExtension(persistentId);
+    }
+    if (!newParentSession) {
+        TLOGW(WmsLogTag::WMS_UIEXT, "new parent session not found: %{public}d", params.newHostWindowId);
+        return;
+    }
+    if (tokenInfoOpt.has_value()) {
+        newParentSession->AddExtensionTokenInfo(tokenInfoOpt.value());
+    }
+    newParentSession->AddUIExtSurfaceNodeId(surfaceNodeId, persistentId);
+    if (usage == UIExtensionUsage::MODAL && newParentSession->GetCallingPid() != GetPid()) {
+        ExtensionWindowEventInfo extensionInfo {
+            .persistentId = persistentId,
+            .pid = tokenInfoOpt.has_value() ? tokenInfoOpt.value().pid : 0,
+            .startModalExtensionTimeStamp = params.startModalExtensionTimeStamp,
+        };
+        if (!params.isConstrainedModal) {
+            newParentSession->AddNormalModalUIExtension(extensionInfo);
+        }
+    }
+}
+
+void SceneSessionManager::TransferExtensionSubSession(const std::vector<int32_t>& subWindowIds,
+    uint32_t& newSubWindowLevel, sptr<SceneSession>& oldParentSession, sptr<SceneSession>& newParentSession)
+{
+    if (oldParentSession == nullptr || newParentSession == nullptr) {
+        TLOGE(WmsLogTag::WMS_SUB, "ParentSession is nullptr");
+        return;
+    }
+    newSubWindowLevel = newParentSession->GetSessionProperty()->GetSubWindowLevel() + 1;
+    for (int32_t subWindowId : subWindowIds) {
+        auto subSession = GetSceneSession(subWindowId);
+        if (!subSession) {
+            TLOGW(WmsLogTag::WMS_UIEXT, "subSession not found: %{public}d", subWindowId);
+            continue;
+        }
+        SetParentWindowInner(subSession, oldParentSession, newParentSession);
+    }
+}
+
+WSError SceneSessionManager::UpdateExtensionParent(const sptr<IRemoteObject>& token,
+    const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel)
+{
+    TLOGI(WmsLogTag::WMS_UIEXT, "newHostWindowId:%{public}d, extensionWindowFlags:%{public}u, "
+        "subWindowIds size:%{public}zu",
+        params.newHostWindowId, params.extensionWindowFlags, params.subWindowIds.size());
+    if (token == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "token is nullptr");
+        return WSError::WS_ERROR_NULLPTR;
+    }
+
+    auto task = [this, token, params, &newSubWindowLevel]() -> WSError {
+        auto iter = extSessionInfoMap_.find(token);
+        if (iter == extSessionInfoMap_.end()) {
+            TLOGE(WmsLogTag::WMS_UIEXT, "token not found in extSessionInfoMap_");
+            return WSError::WS_ERROR_INVALID_SESSION;
+        }
+        int32_t persistentId = iter->second.persistentId;
+        int32_t oldParentId = iter->second.parentId;
+        if (oldParentId == params.newHostWindowId) {
+            TLOGI(WmsLogTag::WMS_UIEXT, "parentId not changed, persistentId:%{public}d", persistentId);
+            return WSError::WS_OK;
+        }
+        iter->second.parentId = params.newHostWindowId;
+        auto oldParentSession = GetSceneSession(oldParentId);
+        auto newParentSession = GetSceneSession(params.newHostWindowId);
+        TransferExtensionFlags(persistentId, params.extensionWindowFlags, oldParentSession, newParentSession);
+        TransferExtensionParentSession(persistentId, iter->second.usage, params, oldParentSession, newParentSession);
+        TransferExtensionSubSession(params.subWindowIds, newSubWindowLevel, oldParentSession, newParentSession);
+        
+        FlushWindowInfoToMMI(true);
+        TLOGI(WmsLogTag::WMS_UIEXT, "UpdateExtensionParent done, persistentId:%{public}d, "
+            "oldParentId:%{public}d, newParentId:%{public}d, newSubWindowLevel:%{public}u",
+            persistentId, oldParentId, params.newHostWindowId, newSubWindowLevel);
+        return WSError::WS_OK;
+    };
+    return taskScheduler_->PostSyncTask(task, "UpdateExtensionParent");
+}
+
 WSError SceneSessionManager::GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
     bool useHookedSize)
 {

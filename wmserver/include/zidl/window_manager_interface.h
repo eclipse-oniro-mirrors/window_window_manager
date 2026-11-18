@@ -350,6 +350,11 @@ public:
     {
         return WSError::WS_OK;
     }
+    virtual WSError UpdateExtensionParent(const sptr<IRemoteObject>& token,
+        const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel)
+    {
+        return WSError::WS_OK;
+    }
     virtual WMError ConvertToRelativeCoordinateExtended(const Rect& rect, Rect& newRect, DisplayId& newDisplayId)
     {
         return WMError::WM_OK;

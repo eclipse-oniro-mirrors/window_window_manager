@@ -3519,6 +3519,60 @@ WSError SceneSessionManagerProxy::GetHostWindowRect(int32_t hostWindowId, Rect& 
     return static_cast<WSError>(reply.ReadInt32());
 }
 
+WSError SceneSessionManagerProxy::UpdateExtensionParent(const sptr<IRemoteObject>& token,
+    const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "run SceneSessionManagerProxy::UpdateExtensionParent");
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write interface token failed.");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteRemoteObject(token)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write token failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32(params.newHostWindowId)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write newHostWindowId failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt64(params.startModalExtensionTimeStamp)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write startModalExtensionTimeStamp failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(params.isConstrainedModal)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write isConstrainedModal failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUint32(params.extensionWindowFlags)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write extensionWindowFlags failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteInt32Vector(params.subWindowIds)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Write subWindowIds failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "remote is null");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_EXTENSION_PARENT),
+        data, reply, option) != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "SendRequest UpdateExtensionParent failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    if (!reply.ReadUint32(newSubWindowLevel)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "Read newSubWindowLevel failed");
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
+    WSError ret = static_cast<WSError>(reply.ReadInt32());
+    return ret;
+}
+
 WSError SceneSessionManagerProxy::GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
     bool useHookedSize)
 {

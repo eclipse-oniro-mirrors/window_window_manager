@@ -189,6 +189,7 @@ public:
         TRANS_ID_IS_HOOK_EXTENSION_WINDOW,
         TRANS_ID_GET_ALL_GROUP_INFO,
         TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
+        TRANS_ID_UPDATE_EXTENSION_PARENT,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -443,6 +444,11 @@ public:
     }
     WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
         bool useHookedSize = false) override
+    {
+        return WSError::WS_OK;
+    }
+    WSError UpdateExtensionParent(const sptr<IRemoteObject>& token,
+        const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel) override
     {
         return WSError::WS_OK;
     }

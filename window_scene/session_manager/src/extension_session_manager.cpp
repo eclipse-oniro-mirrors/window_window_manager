@@ -49,9 +49,21 @@ sptr<AAFwk::SessionInfo> ExtensionSessionManager::SetAbilitySessionInfo(const sp
     const auto& sessionInfo = extensionSession->GetSessionInfo();
     sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
     abilitySessionInfo->sessionToken = sptr<ISession>(extensionSession)->AsObject();
+    abilitySessionInfo->persistentId = extensionSession->GetPersistentId();
+    ExtensionSessionManager::UpdateAbilitySessionInfo(abilitySessionInfo, sessionInfo);
+
+    return abilitySessionInfo;
+}
+
+void ExtensionSessionManager::UpdateAbilitySessionInfo(sptr<AAFwk::SessionInfo> abilitySessionInfo,
+    const SessionInfo& sessionInfo)
+{
+    if (abilitySessionInfo == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "abilitySessionInfo is nullptr");
+        return;
+    }
     abilitySessionInfo->callerToken = sessionInfo.callerToken_;
     abilitySessionInfo->parentToken = sessionInfo.rootToken_;
-    abilitySessionInfo->persistentId = extensionSession->GetPersistentId();
     abilitySessionInfo->realHostWindowId = sessionInfo.realParentId_;
     abilitySessionInfo->isAsyncModalBinding = sessionInfo.isAsyncModalBinding_;
     abilitySessionInfo->uiExtensionUsage = static_cast<AAFwk::UIExtensionUsage>(sessionInfo.uiExtensionUsage_);
@@ -61,10 +73,23 @@ sptr<AAFwk::SessionInfo> ExtensionSessionManager::SetAbilitySessionInfo(const sp
     abilitySessionInfo->orientation = sessionInfo.config_.orientation_;
     abilitySessionInfo->dpiFollowStrategy = static_cast<uint32_t>(sessionInfo.config_.dpiFollowStrategy_);
     abilitySessionInfo->brandColorStr = sessionInfo.brandColorStr_;
+    abilitySessionInfo->callerPersistentId = sessionInfo.callerPersistentId_;
     if (sessionInfo.want != nullptr) {
         abilitySessionInfo->want = sessionInfo.GetWantSafely();
     }
-    return abilitySessionInfo;
+}
+
+void ExtensionSessionManager::UpdateSessionInfo(SessionInfo& editSessionInfo, const SessionInfo& newSessionInfo)
+{
+    editSessionInfo.callerToken_ = newSessionInfo.callerToken_;
+    editSessionInfo.rootToken_ = newSessionInfo.rootToken_;
+    editSessionInfo.realParentId_ = newSessionInfo.realParentId_;
+    editSessionInfo.parentWindowType_ = newSessionInfo.parentWindowType_;
+    editSessionInfo.brandColorStr_ = newSessionInfo.brandColorStr_;
+    editSessionInfo.callerPersistentId_ = newSessionInfo.callerPersistentId_;
+    editSessionInfo.config_.displayId_ = newSessionInfo.config_.displayId_;
+    editSessionInfo.config_.density_ = newSessionInfo.config_.density_;
+    editSessionInfo.config_.orientation_ = newSessionInfo.config_.orientation_;
 }
 
 float ExtensionSessionManager::GetSystemDensity(uint64_t displayId)
@@ -257,6 +282,46 @@ WSError ExtensionSessionManager::RequestExtensionSessionDestructionDone(const sp
         AAFwk::AbilityManagerClient::GetInstance()->TerminateUIExtensionAbility(extSessionInfo);
     };
     taskScheduler_->PostAsyncTask(task, __func__);
+    return WSError::WS_OK;
+}
+
+WSError ExtensionSessionManager::UpdateExtensionSessionParent(const sptr<ExtensionSession>& extensionSession,
+    uint32_t newHostWindowId, const SessionInfo& sessionInfo)
+{
+    auto abilitySessionInfo = SetAbilitySessionInfo(extensionSession);
+    ExtensionSessionManager::UpdateAbilitySessionInfo(abilitySessionInfo, sessionInfo);
+    wptr<ExtensionSession> weakExtSession(extensionSession);
+    auto task = [this, weakExtSession, newHostWindowId, extSessionInfo = std::move(abilitySessionInfo),
+        newSessionInfo = sessionInfo, where = __func__]() {
+        auto extSession = weakExtSession.promote();
+        if (extSession == nullptr) {
+            TLOGNE(WmsLogTag::WMS_UIEXT, "session is nullptr");
+            return WSError::WS_ERROR_NULLPTR;
+        }
+        auto persistentId = extSession->GetPersistentId();
+        TLOGNI(WmsLogTag::WMS_UIEXT, "Update session parent: %{public}d, newHostWindowId: %{public}d", persistentId,
+            newHostWindowId);
+        HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "esm:UpdateExtensionSessionParent");
+        if (IsExtensionSessionInvalid(persistentId)) {
+            TLOGNE(WmsLogTag::WMS_UIEXT, "%{public}s Session is invalid! id:%{public}d",
+                where, persistentId);
+            return WSError::WS_ERROR_INVALID_SESSION;
+        }
+        const auto& sessionInfo = extSession->GetSessionInfo();
+        extSessionInfo->originalCallerInfo.callerToken = sessionInfo.callerToken_;
+        extSessionInfo->originalCallerInfo.persistentId = persistentId;
+        extSessionInfo->hostWindowId = newHostWindowId;
+        auto errorCode = AAFwk::AbilityManagerClient::GetInstance()->StartUIExtensionAbility(extSessionInfo,
+            AAFwk::DEFAULT_INVAL_VALUE);
+        TLOGNI(WmsLogTag::WMS_UIEXT, "Update session parent ret: %{public}d", errorCode);
+        auto ret = errorCode == ERR_OK ? WSError::WS_OK : WSError::WS_ERROR_START_UI_EXTENSION_ABILITY_FAILED;
+        if (errorCode == ERR_OK) {
+            auto& editInfo = extSession->EditSessionInfo();
+            ExtensionSessionManager::UpdateSessionInfo(editInfo, newSessionInfo);
+        }
+        return ret;
+    };
+    taskScheduler_->PostAsyncTask(task, "UpdateExtensionSessionParent");
     return WSError::WS_OK;
 }
 } // namespace OHOS::Rosen

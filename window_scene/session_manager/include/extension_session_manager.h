@@ -72,12 +72,25 @@ public:
      */
     WSError RequestExtensionSessionDestructionDone(const sptr<ExtensionSession>& extensionSession);
 
+    /**
+     * @brief update extension session parent
+     *
+     * @param extensionSession the extension session need to update parent
+     * @param newHostWindowId the new host window id
+     * @param sessionInfo the session info
+     * @return WSError
+     */
+    WSError UpdateExtensionSessionParent(const sptr<ExtensionSession>& extensionSession,
+        uint32_t newHostWindowId, const SessionInfo& sessionInfo);
+
 private:
     ExtensionSessionManager();
     ~ExtensionSessionManager() = default;
 
     sptr<AAFwk::SessionInfo> SetAbilitySessionInfo(const sptr<ExtensionSession>& extensionSession);
     float GetSystemDensity(uint64_t displayId);
+    static void UpdateAbilitySessionInfo(sptr<AAFwk::SessionInfo> abilitySessionInfo, const SessionInfo& sessionInfo);
+    static void UpdateSessionInfo(SessionInfo& editSessionInfo, const SessionInfo& newSessionInfo);
 
     std::shared_ptr<TaskScheduler> taskScheduler_;
 };

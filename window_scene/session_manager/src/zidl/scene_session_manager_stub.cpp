@@ -214,6 +214,8 @@ int SceneSessionManagerStub::ProcessRemoteRequest(uint32_t code, MessageParcel& 
             return HandleUpdateExtWindowFlags(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_HOST_WINDOW_RECT):
             return HandleGetHostWindowRect(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_UPDATE_EXTENSION_PARENT):
+            return HandleUpdateExtensionParent(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_HOST_GLOBAL_SCALE_RECT):
             return HandleGetHostGlobalScaledRect(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_WINDOW_STATUS):
@@ -2173,6 +2175,42 @@ int SceneSessionManagerStub::HandleGetHostWindowRect(MessageParcel& data, Messag
     reply.WriteInt32(rect.posY_);
     reply.WriteUint32(rect.width_);
     reply.WriteUint32(rect.height_);
+    reply.WriteInt32(static_cast<int32_t>(ret));
+    return ERR_NONE;
+}
+
+int SceneSessionManagerStub::HandleUpdateExtensionParent(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_UIEXT, "In!");
+    sptr<IRemoteObject> token = data.ReadRemoteObject();
+    if (token == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "token is nullptr");
+        return ERR_INVALID_DATA;
+    }
+    UpdateExtensionParentParams params;
+    if (!data.ReadInt32(params.newHostWindowId)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read newHostWindowId failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadInt64(params.startModalExtensionTimeStamp)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read startModalExtensionTimeStamp failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadBool(params.isConstrainedModal)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read isConstrainedModal failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadUint32(params.extensionWindowFlags)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read extensionWindowFlags failed");
+        return ERR_INVALID_DATA;
+    }
+    if (!data.ReadInt32Vector(&params.subWindowIds)) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "read subWindowIds failed");
+        return ERR_INVALID_DATA;
+    }
+    uint32_t newSubWindowLevel = 0;
+    WSError ret = UpdateExtensionParent(token, params, newSubWindowLevel);
+    reply.WriteUint32(newSubWindowLevel);
     reply.WriteInt32(static_cast<int32_t>(ret));
     return ERR_NONE;
 }

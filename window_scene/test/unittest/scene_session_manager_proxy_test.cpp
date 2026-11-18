@@ -3103,6 +3103,117 @@ HWTEST_F(sceneSessionManagerProxyTest, GetAppWindowShowingInfosByBundleName01, T
     ret = proxy->GetAppWindowShowingInfosByBundleName(appInfo, windowInfos);
     EXPECT_EQ(ret, WMError::WM_OK);
 }
+
+/**
+ * @tc.name: UpdateExtensionParent01
+ * @tc.desc: test UpdateExtensionParent proxy write params failed and remote is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, UpdateExtensionParent01, TestSize.Level1)
+{
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(token, nullptr);
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 100;
+    params.startModalExtensionTimeStamp = 12345;
+    params.isConstrainedModal = false;
+    params.extensionWindowFlags = 6;
+    params.subWindowIds = { 1, 2, 3 };
+
+    // Remote is null
+    auto nullRemoteProxy = sptr<SceneSessionManagerProxy>::MakeSptr(nullptr);
+    ASSERT_NE(nullRemoteProxy, nullptr);
+    uint32_t newSubWindowLevel = 0;
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED,
+        nullRemoteProxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteRemoteObjectErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    MockMessageParcel::SetWriteRemoteObjectErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt64ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    MockMessageParcel::SetWriteInt64ErrorFlag(false);
+
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    MockMessageParcel::SetWriteUint32ErrorFlag(true);
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    MockMessageParcel::SetWriteUint32ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: UpdateExtensionParent02
+ * @tc.desc: test UpdateExtensionParent proxy SendRequest failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, UpdateExtensionParent02, TestSize.Level1)
+{
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(token, nullptr);
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 100;
+    params.startModalExtensionTimeStamp = 12345;
+    params.isConstrainedModal = false;
+    params.extensionWindowFlags = 6;
+    params.subWindowIds = { 1, 2, 3 };
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    uint32_t newSubWindowLevel = 0;
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    remoteMocker->SetRequestResult(ERR_NONE);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: UpdateExtensionParent03
+ * @tc.desc: test UpdateExtensionParent proxy read newSubWindowLevel from empty reply failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerProxyTest, UpdateExtensionParent03, TestSize.Level1)
+{
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(token, nullptr);
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 100;
+    params.startModalExtensionTimeStamp = 12345;
+    params.isConstrainedModal = false;
+    params.extensionWindowFlags = 6;
+    params.subWindowIds = { 1, 2, 3 };
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    remoteMocker->SetRequestResult(ERR_NONE);
+    auto proxy = sptr<SceneSessionManagerProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    uint32_t newSubWindowLevel = 666; // sentinel value
+    // SendRequest succeeds but reply is empty, reading newSubWindowLevel fails
+    EXPECT_EQ(WSError::WS_ERROR_IPC_FAILED, proxy->UpdateExtensionParent(token, params, newSubWindowLevel));
+    EXPECT_EQ(666u, newSubWindowLevel);
+    MockMessageParcel::ClearAllErrorFlag();
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

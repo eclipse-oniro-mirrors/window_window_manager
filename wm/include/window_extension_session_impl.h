@@ -162,6 +162,8 @@ public:
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize = false) override;
     WMError GetGlobalScaledRect(Rect& globalScaledRect, bool useHookedSize, std::string& errMsg) override;
     bool IsComponentFocused() const override;
+    WMError UpdateExtensionParent(const sptr<WindowOption>& option) override;
+    void NotifyHostOnParentChanged(int32_t oldParentId);
 
     /*
      * Gesture Back
@@ -219,7 +221,6 @@ public:
     WMError ExtensionSetBrightness(float brightness) override;
     void UpdateExtensionConfig(const std::shared_ptr<AAFwk::Want>& want) override;
     WMError SendExtensionMessageToHost(uint32_t code, const AAFwk::Want& data) const;
-    WMError OnExtensionMessage(uint32_t code, int32_t persistentId, const AAFwk::Want& data) override;
     WMError HandleHostWindowRaise(uint32_t code, int32_t persistentId, const AAFwk::Want& data) override;
     WMError HandleRegisterHostWindowRectChangeListener(uint32_t code, int32_t persistentId,
         const AAFwk::Want& data) override;
@@ -337,6 +338,7 @@ private:
     int64_t startModalExtensionTimeStamp_ = -1;
     std::atomic<bool> transparentUIExtensionFlag_ { false };
     bool isBlockSubwindow_ = false;
+    std::atomic<int32_t> callerPersistentId_ = 0;
 
     /*
      * PC Fold Screen

@@ -20,6 +20,7 @@
             OHOS::Rosen::ExtensionSessionManager::RequestExtensionSessionBackground*;
             OHOS::Rosen::ExtensionSessionManager::RequestExtensionSessionDestruction*;
             OHOS::Rosen::ExtensionSessionManager::RequestExtensionSessionDestructionDone*;
+            OHOS::Rosen::ExtensionSessionManager::UpdateExtensionSessionParent*;
             OHOS::Rosen::PipChangeListenerStub::OnRemoteRequest*;
             OHOS::Rosen::PipController::ClearPipChgListenerMap*;
             OHOS::Rosen::PipController::ClearPipEnabledMap*;

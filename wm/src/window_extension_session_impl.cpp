@@ -87,6 +87,7 @@ WindowExtensionSessionImpl::WindowExtensionSessionImpl(
     if (WindowHelper::IsDpiFollowHost(dpiFollowStrategy_.load())) {
         hostDensityValue_ = option->GetDensity();
     }
+    callerPersistentId_ = option->GetCallerPersistentId();
     TLOGNI(WmsLogTag::WMS_UIEXT, "Uiext usage=%{public}u, dpiFollowStrategy=%{public}u, timeStamp=%{public}" PRId64,
         property_->GetUIExtensionUsage(), dpiFollowStrategy_.load(), startModalExtensionTimeStamp_);
     dataHandler_ = std::make_shared<Extension::ProviderDataHandler>();
@@ -2429,50 +2430,6 @@ WMError WindowExtensionSessionImpl::SendExtensionMessageToHost(uint32_t code, co
     return WMError::WM_ERROR_IPC_FAILED;
 }
 
-WMError WindowExtensionSessionImpl::OnExtensionMessage(uint32_t code, int32_t persistentId, const AAFwk::Want& data)
-{
-    switch (code) {
-        case static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_WINDOW_TO_RAISE): {
-            return HandleHostWindowRaise(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
-            return HandleRegisterHostWindowRectChangeListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_WINDOW_RECT_CHANGE_LISTENER): {
-            return HandleUnregisterHostWindowRectChangeListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_SHOW_LISTENER): {
-            return HandleUIExtRegisterKeyboardDidShowListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_SHOW_LISTENER): {
-            return HandleUIExtUnregisterKeyboardDidShowListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_KEYBOARD_DID_HIDE_LISTENER): {
-            return HandleUIExtRegisterKeyboardDidHideListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_KEYBOARD_DID_HIDE_LISTENER): {
-            return HandleUIExtUnregisterKeyboardDidHideListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
-            return HandleRegisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER): {
-            return HandleUnregisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_TOUCH_OUTSIDE_LISTENER): {
-            return HandleUIExtRegisterTouchOutsideListener(code, persistentId, data);
-        }
-        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
-            return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
-        }
-        default: {
-            TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
-            break;
-        }
-    }
-    return WMError::WM_OK;
-}
-
 WMError WindowExtensionSessionImpl::HandleHostWindowRaise(uint32_t code, int32_t persistentId, const AAFwk::Want& data)
 {
     TLOGI(WmsLogTag::WMS_UIEXT, "businessCode: %{public}u", code);
@@ -2682,6 +2639,15 @@ WMError WindowExtensionSessionImpl::OnResyncExtensionConfig(AAFwk::Want&& data, 
         configParam.GetIntParam(Extension::HOST_WINDOW_STATUS_FIELD,
             static_cast<int32_t>(WindowStatus::WINDOW_STATUS_UNDEFINED)));
     OnHostWindowStatusChange(std::move(windowStatusWant), reply);
+    auto windowMode = configParam.GetIntParam(Extension::WINDOW_MODE_FIELD,
+        static_cast<int32_t>(WindowMode::WINDOW_MODE_UNDEFINED));
+    if (windowMode >= static_cast<int32_t>(WindowMode::WINDOW_MODE_UNDEFINED) &&
+        windowMode <= static_cast<int32_t>(WindowMode::END)) {
+        auto currentWindowMode = static_cast<WindowMode>(windowMode);
+        if (currentWindowMode != GetWindowMode()) {
+            SetWindowMode(currentWindowMode);
+        }
+    }
     return WMError::WM_OK;
 }
 
@@ -3089,6 +3055,96 @@ WMError WindowExtensionSessionImpl::OnTouchOutside(AAFwk::Want&& data, std::opti
     }
     NotifyUIExtTouchOutside();
     return WMError::WM_OK;
+}
+
+WMError WindowExtensionSessionImpl::UpdateExtensionParent(const sptr<WindowOption>& option)
+{
+    if (IsWindowSessionInvalid()) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "session is invalid");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (!abilityToken_) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "token is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    auto newHostWindowId = option->GetParentId();
+    if (newHostWindowId == property_->GetParentId()) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "parentId not changed");
+        return WMError::WM_OK;
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "Update parentId from %{public}d to %{public}d, caller %{public}d",
+        property_->GetParentId(), newHostWindowId, option->GetCallerPersistentId());
+
+    std::vector<int32_t> subWindowIds;
+    std::vector<sptr<WindowSessionImpl>> subWindows;
+    GetSubWindows(GetPersistentId(), subWindows);
+    for (const auto& subWindow : subWindows) {
+        if (subWindow != nullptr) {
+            subWindowIds.push_back(subWindow->GetPersistentId());
+        }
+    }
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = newHostWindowId;
+    params.startModalExtensionTimeStamp = startModalExtensionTimeStamp_;
+    params.isConstrainedModal = property_->IsConstrainedModal();
+    params.extensionWindowFlags = extensionWindowFlags_.bitData;
+    params.subWindowIds = subWindowIds;
+
+    uint32_t newSubWindowLevel = 0;
+    WMError ret = SingletonContainer::Get<WindowAdapter>().UpdateExtensionParent(abilityToken_, params,
+        newSubWindowLevel);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "UpdateExtensionParent IPC failed, ret:%{public}d", ret);
+        return ret;
+    }
+    int32_t oldCallerId = callerPersistentId_;
+    InitPropertyFromOption(option);
+    windowOption_ = option;
+    callerPersistentId_ = option->GetCallerPersistentId();
+    UpdateSubWindowInfoForExtension(subWindows, newSubWindowLevel);
+    NotifyHostOnParentChanged(oldCallerId);
+    if (auto uiContent = GetUIContentSharedPtr()) {
+        uiContent->UpdateHostWindowInfo(newHostWindowId);
+    }
+
+    return WMError::WM_OK;
+}
+
+void WindowExtensionSessionImpl::NotifyHostOnParentChanged(int32_t oldParentId)
+{
+    if (oldParentId == callerPersistentId_) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "caller not changed");
+        return;
+    }
+    AAFwk::Want want;
+    want.SetParam(Extension::OLD_PARENT_WINDOW_ID, oldParentId);
+    {
+        std::lock_guard<std::mutex> lockListener(hostWindowRectChangeListenerMutex_);
+        want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER,
+            !hostWindowRectChangeListener_.empty() || !rectChangeUIExtListenerIds_.empty());
+    }
+    {
+        std::lock_guard<std::mutex> lockListener(keyboardDidShowListenerMutex_);
+        want.SetParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER,
+            !keyboardDidShowListenerList_.empty() || !keyboardDidShowUIExtListeners_.empty());
+    }
+    {
+        std::lock_guard<std::mutex> lockListener(keyboardDidHideListenerMutex_);
+        want.SetParam(Extension::HAS_KEYBOARD_DID_HIDE_LISTENER,
+            !keyboardDidHideListenerList_.empty() || !keyboardDidHideUIExtListeners_.empty());
+    }
+    {
+        std::lock_guard<std::mutex> lockListener(hostRectChangeInGlobalDisplayListenerMutex_);
+        want.SetParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER,
+            !hostRectChangeInGlobalDisplayListenerList_.empty() || !rectChangeInGlobalDisplayUIExtListenerIds_.empty());
+    }
+    auto ret = SendExtensionMessageToHost(
+        static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED), want);
+    if (ret != WMError::WM_OK) {
+        TLOGW(WmsLogTag::WMS_UIEXT, "NotifyHostOnParentChanged failed, oldParentId:%{public}d, err:%{public}d",
+            oldParentId, ret);
+    }
 }
 } // namespace Rosen
 } // namespace OHOS

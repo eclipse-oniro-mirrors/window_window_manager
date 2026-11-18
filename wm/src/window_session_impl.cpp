@@ -985,6 +985,20 @@ sptr<WindowSessionImpl> WindowSessionImpl::GetWindowWithId(uint32_t windowId)
     return nullptr;
 }
 
+sptr<WindowSessionImpl> WindowSessionImpl::GetExtensionWindowWithId(uint32_t windowId)
+{
+    std::shared_lock<std::shared_mutex> lock(windowExtensionSessionMutex_);
+    for (const auto& window : GetWindowExtensionSessionSet()) {
+        if (window && windowId == window->GetPersistentId()) {
+            TLOGD(WmsLogTag::WMS_UIEXT, "find extension window %{public}s, id %{public}d",
+                window->GetWindowName().c_str(), windowId);
+            return window;
+        }
+    }
+    TLOGD(WmsLogTag::WMS_UIEXT, "Cannot find extension window!");
+    return nullptr;
+}
+
 sptr<WindowSessionImpl> WindowSessionImpl::GetScaleWindow(uint32_t windowId)
 {
     sptr<WindowSessionImpl> window = GetWindowWithId(windowId);
@@ -10789,6 +10803,10 @@ WMError WindowSessionImpl::OnExtensionMessage(uint32_t code, int32_t persistentI
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
             return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
         }
+        case static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED): {
+            return HandleNotifyHostOnParentChanged(code, persistentId, data);
+            break;
+        }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
             break;
@@ -10932,6 +10950,66 @@ WMError WindowSessionImpl::HandleUIExtUnregisterKeyboardDidHideListener(uint32_t
     return WMError::WM_OK;
 }
 
+WMError WindowSessionImpl::HandleNotifyHostOnParentChanged(uint32_t code, int32_t persistentId,
+    const AAFwk::Want& data)
+{
+    int32_t oldParentWindowId = data.GetIntParam(Extension::OLD_PARENT_WINDOW_ID, -1);
+    TLOGI(WmsLogTag::WMS_UIEXT, "persistentId: %{public}d  old: %{public}d  current: %{public}d",
+        persistentId, oldParentWindowId, GetPersistentId());
+    if (oldParentWindowId == GetPersistentId()) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "oldParentWindowId equals current window id, skip processing");
+        return WMError::WM_OK;
+    }
+    bool hasRectChangeListener = data.GetBoolParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, false);
+    bool hasKeyboardDidShow = data.GetBoolParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, false);
+    bool hasKeyboardDidHide = data.GetBoolParam(Extension::HAS_KEYBOARD_DID_HIDE_LISTENER, false);
+    bool hasRectChangeInGlobalDisplay =
+        data.GetBoolParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER, false);
+
+    // Register listeners on new host (self) based on provider's listener state
+    if (hasRectChangeListener) {
+        HandleRegisterHostWindowRectChangeListener(code, persistentId, data);
+    }
+    if (hasKeyboardDidShow) {
+        HandleUIExtRegisterKeyboardDidShowListener(code, persistentId, data);
+    }
+    if (hasKeyboardDidHide) {
+        HandleUIExtRegisterKeyboardDidHideListener(code, persistentId, data);
+    }
+    if (hasRectChangeInGlobalDisplay) {
+        HandleRegisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
+    }
+
+    // Clean up old host listener registrations
+    if (oldParentWindowId <= 0) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "Skip old host cleanup, oldParentWindowId: %{public}d", oldParentWindowId);
+        return WMError::WM_OK;
+    }
+    sptr<WindowSessionImpl> oldHostWindow = GetWindowWithId(static_cast<uint32_t>(oldParentWindowId));
+    if (oldHostWindow == nullptr) {
+        // Old host may be a UEC extension window, search in the extension session set
+        oldHostWindow = GetExtensionWindowWithId(static_cast<uint32_t>(oldParentWindowId));
+    }
+    if (oldHostWindow == nullptr) {
+        TLOGI(WmsLogTag::WMS_UIEXT, "Old host window not found, id: %{public}d", oldParentWindowId);
+        return WMError::WM_OK;
+    }
+    if (hasRectChangeListener) {
+        oldHostWindow->HandleUnregisterHostWindowRectChangeListener(code, persistentId, data);
+    }
+    if (hasKeyboardDidShow) {
+        oldHostWindow->HandleUIExtUnregisterKeyboardDidShowListener(code, persistentId, data);
+    }
+    if (hasKeyboardDidHide) {
+        oldHostWindow->HandleUIExtUnregisterKeyboardDidHideListener(code, persistentId, data);
+    }
+    if (hasRectChangeInGlobalDisplay) {
+        oldHostWindow->HandleUnregisterHostRectChangeInGlobalDisplayListener(code, persistentId, data);
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "Cleaned up old host listeners, oldParentId: %{public}d", oldParentWindowId);
+    return WMError::WM_OK;
+}
+
 bool WindowSessionImpl::IsValidCrossState(int32_t state) const
 {
     return state >= static_cast<int32_t>(CrossAxisState::STATE_INVALID) &&
@@ -10948,6 +11026,17 @@ void WindowSessionImpl::UpdateSubWindowInfo(uint32_t subWindowLevel,
     for (auto& subWindow : subWindows) {
         if (subWindow != nullptr) {
             subWindow->UpdateSubWindowInfo(subWindowLevel + 1, context);
+        }
+    }
+}
+
+void WindowSessionImpl::UpdateSubWindowInfoForExtension(
+    const std::vector<sptr<WindowSessionImpl>>& subWindows, uint32_t newSubWindowLevel)
+{
+    auto context = GetContext();
+    for (const auto& subWindow : subWindows) {
+        if (subWindow != nullptr) {
+            subWindow->UpdateSubWindowInfo(newSubWindowLevel, context);
         }
     }
 }

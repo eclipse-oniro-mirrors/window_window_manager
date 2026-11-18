@@ -1969,6 +1969,982 @@ HWTEST_F(SceneSessionManagerTest4, ProcessModalExtensionPointDown, TestSize.Leve
     EXPECT_EQ(WSError::WS_OK, ssm_->GetFreeMultiWindowEnableState(result));
     usleep(WAIT_SYNC_IN_NS);
 }
+
+/**
+ * @tc.name: TransferExtensionFlags01
+ * @tc.desc: Transfer flags from nullptr old parent to nullptr new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 0;
+    sptr<SceneSession> oldParentSession = nullptr;
+    sptr<SceneSession> newParentSession = nullptr;
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags, oldParentSession, newParentSession);
+    // Should not crash with both parents being nullptr
+}
+
+/**
+ * @tc.name: TransferExtensionFlags02
+ * @tc.desc: Transfer flags from nullptr old parent to valid new parent with zero flags
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo info;
+    info.abilityName_ = "TransferExtensionFlags02";
+    info.bundleName_ = "TransferExtensionFlags02";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 0;
+
+    EXPECT_TRUE(newParentSession->extWindowFlagsMap_.empty());
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags, nullptr, newParentSession);
+    // Zero flags should not add entry to extWindowFlagsMap_
+    EXPECT_TRUE(newParentSession->extWindowFlagsMap_.empty());
+}
+
+/**
+ * @tc.name: TransferExtensionFlags03
+ * @tc.desc: Transfer flags from nullptr old parent to valid new parent with non-zero flags
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo info;
+    info.abilityName_ = "TransferExtensionFlags03";
+    info.bundleName_ = "TransferExtensionFlags03";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 6; // waterMark + privacyMode (not hideNonSecure)
+
+    EXPECT_TRUE(newParentSession->extWindowFlagsMap_.empty());
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags, nullptr, newParentSession);
+    ASSERT_EQ(newParentSession->extWindowFlagsMap_.size(), 1);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->first, persistentId);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->second.bitData, 6);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags04
+ * @tc.desc: Transfer flags from valid old parent to nullptr new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo info;
+    info.abilityName_ = "TransferExtensionFlags04";
+    info.bundleName_ = "TransferExtensionFlags04";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 6; // waterMark + privacyMode
+
+    // Set up old parent with flags
+    ExtensionWindowFlags oldFlags(6);
+    ExtensionWindowFlags oldActions(6);
+    oldParentSession->UpdateExtWindowFlags(persistentId, oldFlags, oldActions);
+    ASSERT_EQ(oldParentSession->extWindowFlagsMap_.size(), 1);
+
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags, oldParentSession, nullptr);
+    // Flags should be removed from old parent
+    EXPECT_TRUE(oldParentSession->extWindowFlagsMap_.empty());
+}
+
+/**
+ * @tc.name: TransferExtensionFlags05
+ * @tc.desc: Transfer flags from valid old parent to valid new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent05";
+    oldInfo.bundleName_ = "OldParent05";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent05";
+    newInfo.bundleName_ = "NewParent05";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 6; // waterMark + privacyMode
+
+    // Set up old parent with flags
+    ExtensionWindowFlags oldFlags(6);
+    ExtensionWindowFlags oldActions(6);
+    oldParentSession->UpdateExtWindowFlags(persistentId, oldFlags, oldActions);
+    ASSERT_EQ(oldParentSession->extWindowFlagsMap_.size(), 1);
+
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags, oldParentSession, newParentSession);
+
+    // Flags should be removed from old parent
+    EXPECT_TRUE(oldParentSession->extWindowFlagsMap_.empty());
+    // Flags should be added to new parent
+    ASSERT_EQ(newParentSession->extWindowFlagsMap_.size(), 1);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->first, persistentId);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->second.bitData, 6);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags06
+ * @tc.desc: Transfer flags when old parent has multiple extensions, verify only target is removed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags06, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent06";
+    oldInfo.bundleName_ = "OldParent06";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent06";
+    newInfo.bundleName_ = "NewParent06";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t targetPersistentId = 100;
+    int32_t otherPersistentId = 200;
+    uint32_t extensionWindowFlags = 2; // waterMark only
+
+    // Set up old parent with two extensions
+    oldParentSession->UpdateExtWindowFlags(targetPersistentId, ExtensionWindowFlags(2), ExtensionWindowFlags(2));
+    oldParentSession->UpdateExtWindowFlags(otherPersistentId, ExtensionWindowFlags(4), ExtensionWindowFlags(4));
+    ASSERT_EQ(oldParentSession->extWindowFlagsMap_.size(), 2);
+
+    ssm_->TransferExtensionFlags(targetPersistentId, extensionWindowFlags,
+        oldParentSession, newParentSession);
+
+    // Only target should be removed from old parent
+    ASSERT_EQ(oldParentSession->extWindowFlagsMap_.size(), 1);
+    EXPECT_EQ(oldParentSession->extWindowFlagsMap_.begin()->first, otherPersistentId);
+    EXPECT_EQ(oldParentSession->extWindowFlagsMap_.begin()->second.bitData, 4);
+    // Target should be added to new parent
+    ASSERT_EQ(newParentSession->extWindowFlagsMap_.size(), 1);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->first, targetPersistentId);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->second.bitData, 2);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags07
+ * @tc.desc: Transfer flags with hideNonSecureWindowsFlag set, verify combined flags change
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags07, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent07";
+    oldInfo.bundleName_ = "OldParent07";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent07";
+    newInfo.bundleName_ = "NewParent07";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 1; // hideNonSecureWindowsFlag only
+
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(1), ExtensionWindowFlags(1));
+    // Set foreground state so GetCombinedExtWindowFlags reflects hideNonSecureWindowsFlag
+    oldParentSession->state_ = SessionState::STATE_FOREGROUND;
+    EXPECT_TRUE(oldParentSession->GetCombinedExtWindowFlags().hideNonSecureWindowsFlag);
+
+    newParentSession->state_ = SessionState::STATE_FOREGROUND;
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags,
+        oldParentSession, newParentSession);
+
+    // Old parent should no longer have the flag
+    EXPECT_FALSE(oldParentSession->GetCombinedExtWindowFlags().hideNonSecureWindowsFlag);
+    // New parent should now have the flag
+    EXPECT_TRUE(newParentSession->GetCombinedExtWindowFlags().hideNonSecureWindowsFlag);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags08
+ * @tc.desc: Transfer flags with privacyModeFlag set, verify combined flags change
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags08, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent08";
+    oldInfo.bundleName_ = "OldParent08";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent08";
+    newInfo.bundleName_ = "NewParent08";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 4; // privacyModeFlag only
+
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(4), ExtensionWindowFlags(4));
+    EXPECT_TRUE(oldParentSession->GetCombinedExtWindowFlags().privacyModeFlag);
+
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags,
+        oldParentSession, newParentSession);
+
+    // Old parent should no longer have the flag
+    EXPECT_FALSE(oldParentSession->GetCombinedExtWindowFlags().privacyModeFlag);
+    // New parent should now have the flag
+    EXPECT_TRUE(newParentSession->GetCombinedExtWindowFlags().privacyModeFlag);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags09
+ * @tc.desc: Transfer flags with waterMarkFlag set, verify combined flags change
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags09, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent09";
+    oldInfo.bundleName_ = "OldParent09";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent09";
+    newInfo.bundleName_ = "NewParent09";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 2; // waterMarkFlag only
+
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(2), ExtensionWindowFlags(2));
+    EXPECT_TRUE(oldParentSession->GetCombinedExtWindowFlags().waterMarkFlag);
+
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags,
+        oldParentSession, newParentSession);
+
+    // Old parent should no longer have the flag
+    EXPECT_FALSE(oldParentSession->GetCombinedExtWindowFlags().waterMarkFlag);
+    // New parent should now have the flag
+    EXPECT_TRUE(newParentSession->GetCombinedExtWindowFlags().waterMarkFlag);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags10
+ * @tc.desc: Transfer all flags (bitData=7), verify complete migration
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags10, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent10";
+    oldInfo.bundleName_ = "OldParent10";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent10";
+    newInfo.bundleName_ = "NewParent10";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 100;
+    uint32_t extensionWindowFlags = 7; // all flags
+
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(7), ExtensionWindowFlags(7));
+    // Set foreground state so hideNonSecureWindowsFlag is reflected in combined flags
+    oldParentSession->state_ = SessionState::STATE_FOREGROUND;
+    newParentSession->state_ = SessionState::STATE_FOREGROUND;
+
+    auto oldCombined = oldParentSession->GetCombinedExtWindowFlags();
+    EXPECT_TRUE(oldCombined.hideNonSecureWindowsFlag);
+    EXPECT_TRUE(oldCombined.waterMarkFlag);
+    EXPECT_TRUE(oldCombined.privacyModeFlag);
+
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags,
+        oldParentSession, newParentSession);
+
+    // Old parent should have no flags
+    EXPECT_TRUE(oldParentSession->extWindowFlagsMap_.empty());
+    auto oldCombinedAfter = oldParentSession->GetCombinedExtWindowFlags();
+    EXPECT_FALSE(oldCombinedAfter.hideNonSecureWindowsFlag);
+    EXPECT_FALSE(oldCombinedAfter.waterMarkFlag);
+    EXPECT_FALSE(oldCombinedAfter.privacyModeFlag);
+
+    // New parent should have all flags
+    ASSERT_EQ(newParentSession->extWindowFlagsMap_.size(), 1);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->second.bitData, 7);
+    auto newCombined = newParentSession->GetCombinedExtWindowFlags();
+    EXPECT_TRUE(newCombined.hideNonSecureWindowsFlag);
+    EXPECT_TRUE(newCombined.waterMarkFlag);
+    EXPECT_TRUE(newCombined.privacyModeFlag);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags11
+ * @tc.desc: Transfer flags when new parent already has other extensions with overlapping flags
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags11, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent11";
+    oldInfo.bundleName_ = "OldParent11";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent11";
+    newInfo.bundleName_ = "NewParent11";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 100;
+    int32_t existingPersistentId = 200;
+    uint32_t extensionWindowFlags = 1; // hideNonSecureWindowsFlag
+
+    // Set up old parent with the target extension
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(1), ExtensionWindowFlags(1));
+
+    // Set up new parent with an existing extension that has hideNonSecure flag
+    newParentSession->UpdateExtWindowFlags(existingPersistentId,
+        ExtensionWindowFlags(1), ExtensionWindowFlags(1));
+    // Set foreground state for combined flags to reflect hideNonSecureWindowsFlag
+    newParentSession->state_ = SessionState::STATE_FOREGROUND;
+    oldParentSession->state_ = SessionState::STATE_FOREGROUND;
+    EXPECT_TRUE(newParentSession->GetCombinedExtWindowFlags().hideNonSecureWindowsFlag);
+
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags,
+        oldParentSession, newParentSession);
+
+    // New parent should have both extensions
+    ASSERT_EQ(newParentSession->extWindowFlagsMap_.size(), 2);
+    EXPECT_TRUE(newParentSession->GetCombinedExtWindowFlags().hideNonSecureWindowsFlag);
+}
+
+/**
+ * @tc.name: TransferExtensionFlags12
+ * @tc.desc: Transfer flags when old parent extension has different flags than being transferred
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionFlags12, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "OldParent12";
+    oldInfo.bundleName_ = "OldParent12";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "NewParent12";
+    newInfo.bundleName_ = "NewParent12";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 100;
+    // Old parent has privacyMode flag, but we transfer waterMark flag
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(4), ExtensionWindowFlags(4));
+
+    uint32_t extensionWindowFlags = 2; // waterMarkFlag (different from old)
+    ssm_->TransferExtensionFlags(persistentId, extensionWindowFlags,
+        oldParentSession, newParentSession);
+
+    // Old parent should be cleaned
+    EXPECT_TRUE(oldParentSession->extWindowFlagsMap_.empty());
+    // New parent should have the waterMark flag
+    ASSERT_EQ(newParentSession->extWindowFlagsMap_.size(), 1);
+    EXPECT_EQ(newParentSession->extWindowFlagsMap_.begin()->second.bitData, 2);
+    EXPECT_TRUE(newParentSession->GetCombinedExtWindowFlags().waterMarkFlag);
+    EXPECT_FALSE(newParentSession->GetCombinedExtWindowFlags().hideNonSecureWindowsFlag);
+}
+
+/**
+ * @tc.name: TransferExtensionParentSession01
+ * @tc.desc: Transfer surface node, token info and modal info from old parent to new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionParentSession01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtParentSession01Old";
+    oldInfo.bundleName_ = "TransferExtParentSession01Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+    oldParentSession->persistentId_ = 8101;
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "TransferExtParentSession01New";
+    newInfo.bundleName_ = "TransferExtParentSession01New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    newParentSession->persistentId_ = 8102;
+
+    int32_t persistentId = 8103;
+    uint64_t surfaceNodeId = 8104;
+    sptr<IRemoteObject> abilityToken = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, abilityToken);
+    UIExtensionTokenInfo tokenInfo;
+    tokenInfo.abilityToken = abilityToken;
+    tokenInfo.pid = persistentId;
+    tokenInfo.persistentId = persistentId;
+    oldParentSession->AddExtensionTokenInfo(tokenInfo);
+    oldParentSession->AddUIExtSurfaceNodeId(surfaceNodeId, persistentId);
+    ExtensionWindowEventInfo modalInfo;
+    modalInfo.persistentId = persistentId;
+    modalInfo.pid = persistentId;
+    oldParentSession->AddNormalModalUIExtension(modalInfo);
+    ASSERT_EQ(surfaceNodeId, oldParentSession->GetUIExtSurfaceNodeId(persistentId));
+    ASSERT_TRUE(oldParentSession->GetExtensionTokenInfo(persistentId).has_value());
+    ASSERT_EQ(1u, oldParentSession->modalUIExtensionInfoList_.size());
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 8102;
+    params.isConstrainedModal = false;
+    ssm_->TransferExtensionParentSession(persistentId, UIExtensionUsage::EMBEDDED, params,
+        oldParentSession, newParentSession);
+
+    // Extension info should be removed from old parent
+    EXPECT_EQ(0u, oldParentSession->GetUIExtSurfaceNodeId(persistentId));
+    EXPECT_FALSE(oldParentSession->GetExtensionTokenInfo(persistentId).has_value());
+    EXPECT_TRUE(oldParentSession->modalUIExtensionInfoList_.empty());
+    // Extension info should be registered on new parent
+    EXPECT_EQ(surfaceNodeId, newParentSession->GetUIExtSurfaceNodeId(persistentId));
+    auto transferredTokenInfo = newParentSession->GetExtensionTokenInfo(persistentId);
+    ASSERT_TRUE(transferredTokenInfo.has_value());
+    EXPECT_EQ(abilityToken.GetRefPtr(), transferredTokenInfo.value().abilityToken.GetRefPtr());
+    // EMBEDDED usage should not add modal info on new parent
+    EXPECT_TRUE(newParentSession->modalUIExtensionInfoList_.empty());
+}
+
+/**
+ * @tc.name: TransferExtensionParentSession02
+ * @tc.desc: Transfer extension parent session when new parent is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionParentSession02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtParentSession02Old";
+    oldInfo.bundleName_ = "TransferExtParentSession02Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    sptr<SceneSession> newParentSession = nullptr;
+    int32_t persistentId = 8113;
+    uint64_t surfaceNodeId = 8114;
+    UIExtensionTokenInfo tokenInfo;
+    tokenInfo.abilityToken = sptr<IRemoteObjectMocker>::MakeSptr();
+    tokenInfo.pid = persistentId;
+    tokenInfo.persistentId = persistentId;
+    oldParentSession->AddExtensionTokenInfo(tokenInfo);
+    oldParentSession->AddUIExtSurfaceNodeId(surfaceNodeId, persistentId);
+    ExtensionWindowEventInfo modalInfo;
+    modalInfo.persistentId = persistentId;
+    oldParentSession->AddNormalModalUIExtension(modalInfo);
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 8112;
+    ssm_->TransferExtensionParentSession(persistentId, UIExtensionUsage::EMBEDDED, params,
+        oldParentSession, newParentSession);
+
+    // Old parent should be cleaned even if new parent is missing
+    EXPECT_EQ(0u, oldParentSession->GetUIExtSurfaceNodeId(persistentId));
+    EXPECT_FALSE(oldParentSession->GetExtensionTokenInfo(persistentId).has_value());
+    EXPECT_TRUE(oldParentSession->modalUIExtensionInfoList_.empty());
+}
+
+/**
+ * @tc.name: TransferExtensionParentSession03
+ * @tc.desc: Transfer modal extension info to new parent with non-self calling pid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionParentSession03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtParentSession03Old";
+    oldInfo.bundleName_ = "TransferExtParentSession03Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "TransferExtParentSession03New";
+    newInfo.bundleName_ = "TransferExtParentSession03New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 8123;
+    UIExtensionTokenInfo tokenInfo;
+    tokenInfo.abilityToken = sptr<IRemoteObjectMocker>::MakeSptr();
+    tokenInfo.pid = persistentId;
+    tokenInfo.persistentId = persistentId;
+    oldParentSession->AddExtensionTokenInfo(tokenInfo);
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 8122;
+    params.isConstrainedModal = false;
+    params.startModalExtensionTimeStamp = 8888;
+    // Default calling pid is -1, which differs from self pid
+    ASSERT_NE(newParentSession->GetCallingPid(), static_cast<int32_t>(getpid()));
+    ssm_->TransferExtensionParentSession(persistentId, UIExtensionUsage::MODAL, params,
+        oldParentSession, newParentSession);
+
+    ASSERT_EQ(1u, newParentSession->modalUIExtensionInfoList_.size());
+    const auto& modalEventInfo = newParentSession->modalUIExtensionInfoList_.front();
+    EXPECT_EQ(persistentId, modalEventInfo.persistentId);
+    EXPECT_EQ(persistentId, modalEventInfo.pid);
+    EXPECT_EQ(params.startModalExtensionTimeStamp, modalEventInfo.startModalExtensionTimeStamp);
+}
+
+/**
+ * @tc.name: TransferExtensionParentSession04
+ * @tc.desc: Constrained modal extension should not be added on new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionParentSession04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtParentSession04Old";
+    oldInfo.bundleName_ = "TransferExtParentSession04Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "TransferExtParentSession04New";
+    newInfo.bundleName_ = "TransferExtParentSession04New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    int32_t persistentId = 8133;
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 8132;
+    params.isConstrainedModal = true;
+    ssm_->TransferExtensionParentSession(persistentId, UIExtensionUsage::MODAL, params,
+        oldParentSession, newParentSession);
+
+    EXPECT_TRUE(newParentSession->modalUIExtensionInfoList_.empty());
+}
+
+/**
+ * @tc.name: TransferExtensionParentSession05
+ * @tc.desc: Modal extension should not be added when new parent calling pid equals self pid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionParentSession05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtParentSession05Old";
+    oldInfo.bundleName_ = "TransferExtParentSession05Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "TransferExtParentSession05New";
+    newInfo.bundleName_ = "TransferExtParentSession05New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    newParentSession->SetCallingPid(getpid());
+
+    int32_t persistentId = 8143;
+    uint64_t surfaceNodeId = 8144;
+    oldParentSession->AddUIExtSurfaceNodeId(surfaceNodeId, persistentId);
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 8142;
+    params.isConstrainedModal = false;
+    ssm_->TransferExtensionParentSession(persistentId, UIExtensionUsage::MODAL, params,
+        oldParentSession, newParentSession);
+
+    EXPECT_TRUE(newParentSession->modalUIExtensionInfoList_.empty());
+    // Surface node should still be transferred
+    EXPECT_EQ(surfaceNodeId, newParentSession->GetUIExtSurfaceNodeId(persistentId));
+}
+
+/**
+ * @tc.name: TransferExtensionSubSession01
+ * @tc.desc: TransferExtensionSubSession with nullptr parent sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionSubSession01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo info;
+    info.abilityName_ = "TransferExtSubSession01";
+    info.bundleName_ = "TransferExtSubSession01";
+    sptr<SceneSession> parentSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(parentSession, nullptr);
+
+    std::vector<int32_t> subWindowIds = { 8203 };
+    uint32_t newSubWindowLevel = 111;
+    sptr<SceneSession> nullSession = nullptr;
+    ssm_->TransferExtensionSubSession(subWindowIds, newSubWindowLevel, nullSession, nullSession);
+    ssm_->TransferExtensionSubSession(subWindowIds, newSubWindowLevel, nullSession, parentSession);
+    ssm_->TransferExtensionSubSession(subWindowIds, newSubWindowLevel, parentSession, nullSession);
+    // newSubWindowLevel should not be touched when either parent is nullptr
+    EXPECT_EQ(111u, newSubWindowLevel);
+}
+
+/**
+ * @tc.name: TransferExtensionSubSession02
+ * @tc.desc: Transfer sub session from old parent to new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionSubSession02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtSubSession02Old";
+    oldInfo.bundleName_ = "TransferExtSubSession02Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+    oldParentSession->persistentId_ = 8211;
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "TransferExtSubSession02New";
+    newInfo.bundleName_ = "TransferExtSubSession02New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    newParentSession->persistentId_ = 8212;
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "TransferExtSubSession02Sub";
+    subInfo.bundleName_ = "TransferExtSubSession02Sub";
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    subSession->persistentId_ = 8213;
+    ssm_->sceneSessionMap_.insert(std::make_pair(subSession->GetPersistentId(), subSession));
+    ASSERT_TRUE(oldParentSession->AddSubSession(subSession));
+    ASSERT_EQ(1u, oldParentSession->GetSubSession().size());
+
+    std::vector<int32_t> subWindowIds = { subSession->GetPersistentId() };
+    uint32_t newSubWindowLevel = 0;
+    ssm_->TransferExtensionSubSession(subWindowIds, newSubWindowLevel, oldParentSession, newParentSession);
+
+    // newSubWindowLevel is new parent sub window level + 1
+    EXPECT_EQ(newParentSession->GetSessionProperty()->GetSubWindowLevel() + 1, newSubWindowLevel);
+    // Sub session should be removed from old parent and added to new parent
+    EXPECT_TRUE(oldParentSession->GetSubSession().empty());
+    ASSERT_EQ(1u, newParentSession->GetSubSession().size());
+    EXPECT_EQ(subSession->GetPersistentId(), newParentSession->GetSubSession().front()->GetPersistentId());
+    EXPECT_EQ(newParentSession->GetPersistentId(), subSession->GetParentPersistentId());
+    // SetParentWindowInner sets sub window level to new parent level + 1
+    EXPECT_EQ(newSubWindowLevel, subSession->GetSessionProperty()->GetSubWindowLevel());
+}
+
+/**
+ * @tc.name: TransferExtensionSubSession03
+ * @tc.desc: TransferExtensionSubSession skips sub windows not found in scene session map
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionSubSession03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtSubSession03Old";
+    oldInfo.bundleName_ = "TransferExtSubSession03Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "TransferExtSubSession03New";
+    newInfo.bundleName_ = "TransferExtSubSession03New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+
+    std::vector<int32_t> subWindowIds = { 8299 }; // not registered in scene session map
+    uint32_t newSubWindowLevel = 0;
+    ssm_->TransferExtensionSubSession(subWindowIds, newSubWindowLevel, oldParentSession, newParentSession);
+    // newSubWindowLevel is set before the loop, no crash for missing sub session
+    EXPECT_EQ(newParentSession->GetSessionProperty()->GetSubWindowLevel() + 1, newSubWindowLevel);
+    EXPECT_TRUE(oldParentSession->GetSubSession().empty());
+    EXPECT_TRUE(newParentSession->GetSubSession().empty());
+}
+
+/**
+ * @tc.name: TransferExtensionSubSession04
+ * @tc.desc: Transfer multiple sub sessions from old parent to new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, TransferExtensionSubSession04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "TransferExtSubSession04Old";
+    oldInfo.bundleName_ = "TransferExtSubSession04Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+    oldParentSession->persistentId_ = 8231;
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "TransferExtSubSession04New";
+    newInfo.bundleName_ = "TransferExtSubSession04New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    newParentSession->persistentId_ = 8232;
+
+    sptr<SceneSession> subSessionA = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(subSessionA, nullptr);
+    subSessionA->persistentId_ = 8233;
+    sptr<SceneSession> subSessionB = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(subSessionB, nullptr);
+    subSessionB->persistentId_ = 8234;
+    ssm_->sceneSessionMap_.insert(std::make_pair(subSessionA->GetPersistentId(), subSessionA));
+    ssm_->sceneSessionMap_.insert(std::make_pair(subSessionB->GetPersistentId(), subSessionB));
+    ASSERT_TRUE(oldParentSession->AddSubSession(subSessionA));
+    ASSERT_TRUE(oldParentSession->AddSubSession(subSessionB));
+
+    std::vector<int32_t> subWindowIds = { subSessionA->GetPersistentId(), subSessionB->GetPersistentId() };
+    uint32_t newSubWindowLevel = 0;
+    ssm_->TransferExtensionSubSession(subWindowIds, newSubWindowLevel, oldParentSession, newParentSession);
+
+    EXPECT_TRUE(oldParentSession->GetSubSession().empty());
+    ASSERT_EQ(2u, newParentSession->GetSubSession().size());
+    EXPECT_EQ(newParentSession->GetPersistentId(), subSessionA->GetParentPersistentId());
+    EXPECT_EQ(newParentSession->GetPersistentId(), subSessionB->GetParentPersistentId());
+}
+
+/**
+ * @tc.name: UpdateExtensionParent01
+ * @tc.desc: UpdateExtensionParent with nullptr token
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateExtensionParent01, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    uint32_t newSubWindowLevel = 0;
+    EXPECT_EQ(WSError::WS_ERROR_NULLPTR,
+        ssm_->UpdateExtensionParent(nullptr, UpdateExtensionParentParams(), newSubWindowLevel));
+    EXPECT_EQ(0u, newSubWindowLevel);
+}
+
+/**
+ * @tc.name: UpdateExtensionParent02
+ * @tc.desc: UpdateExtensionParent with token not registered in extSessionInfoMap_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateExtensionParent02, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, token);
+    uint32_t newSubWindowLevel = 0;
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = 8302;
+    EXPECT_EQ(WSError::WS_ERROR_INVALID_SESSION, ssm_->UpdateExtensionParent(token, params, newSubWindowLevel));
+    EXPECT_EQ(0u, newSubWindowLevel);
+}
+
+/**
+ * @tc.name: UpdateExtensionParent03
+ * @tc.desc: UpdateExtensionParent returns early when parent id is not changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateExtensionParent03, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, token);
+    int32_t persistentId = 8303;
+    int32_t oldParentId = 8302;
+    ExtensionWindowAbilityInfo abilityInfo;
+    abilityInfo.persistentId = persistentId;
+    abilityInfo.parentId = oldParentId;
+    abilityInfo.usage = UIExtensionUsage::EMBEDDED;
+    ssm_->extSessionInfoMap_[token] = abilityInfo;
+
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "UpdateExtensionParent03Old";
+    oldInfo.bundleName_ = "UpdateExtensionParent03Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+    oldParentSession->persistentId_ = oldParentId;
+    ssm_->sceneSessionMap_.insert(std::make_pair(oldParentId, oldParentSession));
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(6), ExtensionWindowFlags(6));
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "UpdateExtensionParent03New";
+    newInfo.bundleName_ = "UpdateExtensionParent03New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    newParentSession->persistentId_ = 8301;
+    ssm_->sceneSessionMap_.insert(std::make_pair(newParentSession->GetPersistentId(), newParentSession));
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = oldParentId; // same as old parent id
+    params.extensionWindowFlags = 6;
+    uint32_t newSubWindowLevel = 0;
+    EXPECT_EQ(WSError::WS_OK, ssm_->UpdateExtensionParent(token, params, newSubWindowLevel));
+
+    // Short circuit, nothing should be transferred
+    auto extIter = ssm_->extSessionInfoMap_.find(token);
+    ASSERT_NE(ssm_->extSessionInfoMap_.end(), extIter);
+    EXPECT_EQ(oldParentId, extIter->second.parentId);
+    ASSERT_EQ(1u, oldParentSession->extWindowFlagsMap_.size());
+    EXPECT_TRUE(newParentSession->extWindowFlagsMap_.empty());
+    EXPECT_EQ(0u, newSubWindowLevel);
+    ssm_->extSessionInfoMap_.erase(token);
+}
+
+/**
+ * @tc.name: UpdateExtensionParent04
+ * @tc.desc: UpdateExtensionParent transfers flags, extension info and sub sessions to new parent
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateExtensionParent04, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, token);
+    int32_t persistentId = 8403;
+    int32_t oldParentId = 8401;
+    int32_t newParentId = 8402;
+    uint64_t surfaceNodeId = 8405;
+    ExtensionWindowAbilityInfo abilityInfo;
+    abilityInfo.persistentId = persistentId;
+    abilityInfo.parentId = oldParentId;
+    abilityInfo.usage = UIExtensionUsage::EMBEDDED;
+    ssm_->extSessionInfoMap_[token] = abilityInfo;
+
+    SessionInfo oldInfo;
+    oldInfo.abilityName_ = "UpdateExtensionParent04Old";
+    oldInfo.bundleName_ = "UpdateExtensionParent04Old";
+    sptr<SceneSession> oldParentSession = sptr<SceneSession>::MakeSptr(oldInfo, nullptr);
+    ASSERT_NE(oldParentSession, nullptr);
+    oldParentSession->persistentId_ = oldParentId;
+    ssm_->sceneSessionMap_.insert(std::make_pair(oldParentId, oldParentSession));
+    oldParentSession->UpdateExtWindowFlags(persistentId, ExtensionWindowFlags(6), ExtensionWindowFlags(6));
+    UIExtensionTokenInfo tokenInfo;
+    tokenInfo.abilityToken = sptr<IRemoteObjectMocker>::MakeSptr();
+    tokenInfo.pid = persistentId;
+    tokenInfo.persistentId = persistentId;
+    oldParentSession->AddExtensionTokenInfo(tokenInfo);
+    oldParentSession->AddUIExtSurfaceNodeId(surfaceNodeId, persistentId);
+    ExtensionWindowEventInfo modalInfo;
+    modalInfo.persistentId = persistentId;
+    oldParentSession->AddNormalModalUIExtension(modalInfo);
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "UpdateExtensionParent04New";
+    newInfo.bundleName_ = "UpdateExtensionParent04New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    newParentSession->persistentId_ = newParentId;
+    ssm_->sceneSessionMap_.insert(std::make_pair(newParentId, newParentSession));
+
+    SessionInfo subInfo;
+    subInfo.abilityName_ = "UpdateExtensionParent04Sub";
+    subInfo.bundleName_ = "UpdateExtensionParent04Sub";
+    sptr<SceneSession> subSession = sptr<SceneSession>::MakeSptr(subInfo, nullptr);
+    ASSERT_NE(subSession, nullptr);
+    subSession->persistentId_ = 8404;
+    ssm_->sceneSessionMap_.insert(std::make_pair(subSession->GetPersistentId(), subSession));
+    ASSERT_TRUE(oldParentSession->AddSubSession(subSession));
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = newParentId;
+    params.extensionWindowFlags = 6;
+    params.subWindowIds = { subSession->GetPersistentId() };
+    uint32_t newSubWindowLevel = 0;
+    EXPECT_EQ(WSError::WS_OK, ssm_->UpdateExtensionParent(token, params, newSubWindowLevel));
+
+    // Extension parent id should be updated
+    auto extIter = ssm_->extSessionInfoMap_.find(token);
+    ASSERT_NE(ssm_->extSessionInfoMap_.end(), extIter);
+    EXPECT_EQ(newParentId, extIter->second.parentId);
+    // Flags should be transferred
+    EXPECT_TRUE(oldParentSession->extWindowFlagsMap_.empty());
+    ASSERT_EQ(1u, newParentSession->extWindowFlagsMap_.size());
+    EXPECT_EQ(persistentId, newParentSession->extWindowFlagsMap_.begin()->first);
+    EXPECT_EQ(6u, newParentSession->extWindowFlagsMap_.begin()->second.bitData);
+    // Extension info should be transferred
+    EXPECT_EQ(0u, oldParentSession->GetUIExtSurfaceNodeId(persistentId));
+    EXPECT_EQ(surfaceNodeId, newParentSession->GetUIExtSurfaceNodeId(persistentId));
+    EXPECT_TRUE(newParentSession->GetExtensionTokenInfo(persistentId).has_value());
+    EXPECT_TRUE(oldParentSession->modalUIExtensionInfoList_.empty());
+    EXPECT_TRUE(newParentSession->modalUIExtensionInfoList_.empty());
+    // Sub session should be transferred
+    EXPECT_TRUE(oldParentSession->GetSubSession().empty());
+    ASSERT_EQ(1u, newParentSession->GetSubSession().size());
+    EXPECT_EQ(newParentId, subSession->GetParentPersistentId());
+    EXPECT_EQ(newParentSession->GetSessionProperty()->GetSubWindowLevel() + 1, newSubWindowLevel);
+    ssm_->extSessionInfoMap_.erase(token);
+    // Wait for the async FlushWindowInfoToMMI task posted by UpdateExtensionParent
+    usleep(WAIT_SYNC_IN_NS);
+}
+
+/**
+ * @tc.name: UpdateExtensionParent05
+ * @tc.desc: UpdateExtensionParent when old parent session is not found
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest4, UpdateExtensionParent05, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, token);
+    int32_t persistentId = 8503;
+    int32_t missingOldParentId = 8599; // not registered in scene session map
+    int32_t newParentId = 8502;
+    ExtensionWindowAbilityInfo abilityInfo;
+    abilityInfo.persistentId = persistentId;
+    abilityInfo.parentId = missingOldParentId;
+    abilityInfo.usage = UIExtensionUsage::EMBEDDED;
+    ssm_->extSessionInfoMap_[token] = abilityInfo;
+
+    SessionInfo newInfo;
+    newInfo.abilityName_ = "UpdateExtensionParent05New";
+    newInfo.bundleName_ = "UpdateExtensionParent05New";
+    sptr<SceneSession> newParentSession = sptr<SceneSession>::MakeSptr(newInfo, nullptr);
+    ASSERT_NE(newParentSession, nullptr);
+    newParentSession->persistentId_ = newParentId;
+    ssm_->sceneSessionMap_.insert(std::make_pair(newParentId, newParentSession));
+
+    UpdateExtensionParentParams params;
+    params.newHostWindowId = newParentId;
+    params.extensionWindowFlags = 6;
+    params.subWindowIds = { 8504 };
+    uint32_t newSubWindowLevel = 999; // sentinel
+    EXPECT_EQ(WSError::WS_OK, ssm_->UpdateExtensionParent(token, params, newSubWindowLevel));
+
+    // Extension parent id should be updated
+    auto extIter = ssm_->extSessionInfoMap_.find(token);
+    ASSERT_NE(ssm_->extSessionInfoMap_.end(), extIter);
+    EXPECT_EQ(newParentId, extIter->second.parentId);
+    // Flags should still be registered on new parent
+    ASSERT_EQ(1u, newParentSession->extWindowFlagsMap_.size());
+    EXPECT_EQ(persistentId, newParentSession->extWindowFlagsMap_.begin()->first);
+    EXPECT_EQ(6u, newParentSession->extWindowFlagsMap_.begin()->second.bitData);
+    // Sub session transfer is skipped since old parent session is missing
+    EXPECT_EQ(999u, newSubWindowLevel);
+    ssm_->extSessionInfoMap_.erase(token);
+    // Wait for the async FlushWindowInfoToMMI task posted by UpdateExtensionParent
+    usleep(WAIT_SYNC_IN_NS);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

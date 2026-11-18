@@ -894,6 +894,7 @@ public:
     bool IsShowOnLockScreen(uint32_t lockScreenZOrder);
     void AddExtensionTokenInfo(const UIExtensionTokenInfo& tokenInfo);
     void RemoveExtensionTokenInfo(const sptr<IRemoteObject>& abilityToken);
+    std::optional<UIExtensionTokenInfo> GetExtensionTokenInfo(int32_t persistentId);
     bool HasExtensionTokenInfoWithTokenID(uint32_t callingTokenId);
     void CheckExtensionOnLockScreenToClose();
     void CloseExtensionSync(const UIExtensionTokenInfo& tokenInfo);
@@ -905,6 +906,7 @@ public:
     Vector2f GetSessionGlobalPosition(bool useUIExtension);
     void AddUIExtSurfaceNodeId(uint64_t surfaceNodeId, int32_t persistentId);
     void RemoveUIExtSurfaceNodeId(int32_t persistentId);
+    uint64_t GetUIExtSurfaceNodeId(int32_t persistentId);
     int32_t GetUIExtPersistentIdBySurfaceNodeId(uint64_t surfaceNodeId) const;
     void GetAllUIExtensionTokenInfo(std::vector<MMI::UIExtensionInfo>& uiExtensionInfoList) const;
     bool IsFreeMultiWindowMode() const

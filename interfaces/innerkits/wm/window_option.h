@@ -336,6 +336,13 @@ public:
     void SetRealParentId(int32_t realParentId);
 
     /**
+     * @brief Set caller persistentId of UIExtension
+     *
+     * @param callerPersistentId caller persistentId of UIExtension
+     */
+     void SetCallerPersistentId(int32_t callerPersistentId);
+
+    /**
      * @brief Set parent window type of UIExtension
      *
      * @param parentWindowType Parent window type of UIExtension
@@ -552,6 +559,13 @@ public:
      */
     int32_t GetRealParentId() const;
 
+    /**
+     * @brief Get the caller pPersistentId of UIExtension
+     *
+     * @return Return the caller pPersistentId of UIExtension
+     */
+     int32_t GetCallerPersistentId() const;
+
     /*
      * @brief Get the parent window type of UIExtension
      *
@@ -767,6 +781,7 @@ private:
      * UIExtension
      */
     int32_t realParentId_ = INVALID_WINDOW_ID;
+    int32_t callerPersistentId_ = INVALID_WINDOW_ID;
     uint32_t uiExtensionUsage_ = static_cast<uint32_t>(UIExtensionUsage::EMBEDDED);
     bool isUIExtFirstSubWindow_ = false;
     bool isUIExtAnySubWindow_ = false;

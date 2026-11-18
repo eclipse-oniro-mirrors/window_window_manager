@@ -299,6 +299,16 @@ int32_t WindowOption::GetRealParentId() const
     return realParentId_;
 }
 
+void WindowOption::SetCallerPersistentId(int32_t callerPersistentId)
+{
+    callerPersistentId_ = callerPersistentId;
+}
+
+int32_t WindowOption::GetCallerPersistentId() const
+{
+    return callerPersistentId_;
+}
+
 void WindowOption::SetParentWindowType(WindowType parentWindowType)
 {
     parentWindowType_ = parentWindowType;

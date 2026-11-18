@@ -25,6 +25,8 @@ public:
     static void ClearAll();
     static void SetUIExtensionRootHostInfo(const UIExtensionHostInfo& hostInfo);
     static void SetUIExtensionSessionInfo(const UIExtensionSessionInfo& sessionInfo);
+    static void SetStartUIExtensionAbilityResult(ErrCode result);
+    static sptr<SessionInfo> GetLastStartUIExtensionAbilityInfo();
 };
 }
 }
