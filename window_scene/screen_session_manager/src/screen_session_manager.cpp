@@ -1200,11 +1200,13 @@ DMError ScreenSessionManager::RegisterDisplayManagerAgent(
         TLOGNFE(WmsLogTag::DMS, "displayManagerAgent invalid");
         return DMError::DM_ERROR_NULLPTR;
     }
-    auto uid = IPCSkeleton::GetCallingUid();
-    auto pid = IPCSkeleton::GetCallingPid();
-    {
-        std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
-        uidAndPidMap_[uid] = pid;
+    if (type == DisplayManagerAgentType::DISPLAY_EVENT_LISTENER) {
+        auto uid = IPCSkeleton::GetCallingUid();
+        auto pid = IPCSkeleton::GetCallingPid();
+        {
+            std::unique_lock<std::shared_mutex> lock(uidAndPidMapMutex_);
+            uidAndPidMap_[uid] = pid;
+        }
     }
     if (type == DisplayManagerAgentType::BRIGHTNESS_INFO_CHANGED_LISTENER &&
         ScreenSessionManagerAdapter::GetInstance().dmAgentContainer_.GetAgentsByType(
