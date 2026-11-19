@@ -171,13 +171,14 @@ WMError WindowExtensionSessionImpl::Create(const std::shared_ptr<AbilityRuntime:
     }
     // XTS log, please do not modify
     TLOGI(WmsLogTag::WMS_UIEXT, "IsConstrainedModal: %{public}d", property_->IsConstrainedModal());
+    AddExtensionWindowStageToSCB(property_->IsConstrainedModal());
     WMError ret = Connect();
     if (ret != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_LIFE, "name:%{public}s %{public}d connect fail. ret:%{public}d",
             property_->GetWindowName().c_str(), GetPersistentId(), ret);
+        RemoveExtensionWindowStageFromSCB(property_->IsConstrainedModal());
         return ret;
     }
-    AddExtensionWindowStageToSCB(property_->IsConstrainedModal());
     MakeSubOrDialogWindowDragableAndMoveble();
     {
         std::unique_lock<std::shared_mutex> lock(windowExtensionSessionMutex_);
