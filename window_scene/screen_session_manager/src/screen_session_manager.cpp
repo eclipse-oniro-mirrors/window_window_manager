@@ -16079,7 +16079,7 @@ void ScreenSessionManager::InitFakeScreenSession(sptr<ScreenSession> screenSessi
 }
 
 DMError ScreenSessionManager::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
     if (!(Permission::IsSystemCalling() && Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION)) &&
         !SessionPermission::IsShellCall()) {
@@ -16092,11 +16092,11 @@ DMError ScreenSessionManager::SetVirtualScreenSecurityExemption(ScreenId screenI
             pid, windowIdList, surfaceNodeIds);
     }
     auto rsId = screenIdManager_.ConvertToRsScreenId(screenId);
-    auto ret = rsInterface_.SetVirtualScreenSecurityExemptionList(rsId, surfaceNodeIds);
+    auto ret = rsInterface_.SetVirtualScreenSecurityExemptionList(rsId, surfaceNodeIds, exemptAll);
 
     std::ostringstream oss;
     oss << "screenId:" << screenId << ", rsID: " << rsId << ", pid: " << pid
-        << ", winListSize:[ ";
+        << ", exemptAll: " << exemptAll << ", winListSize:[ ";
     for (auto val : windowIdList) {
         oss << val << " ";
     }

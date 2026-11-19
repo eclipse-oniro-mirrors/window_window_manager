@@ -404,7 +404,7 @@ public:
         return DMError::DM_OK;
     }
     virtual DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList)
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false)
     {
         return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
     }

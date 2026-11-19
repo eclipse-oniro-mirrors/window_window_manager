@@ -1935,7 +1935,8 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenSecurityExemption(MessageParc
     uint32_t pid = data.ReadUint32();
     std::vector<uint64_t> windowIdList;
     data.ReadUInt64Vector(&windowIdList);
-    DMError ret = SetVirtualScreenSecurityExemption(screenId, pid, windowIdList);
+    bool exemptAll = data.ReadBool();
+    DMError ret = SetVirtualScreenSecurityExemption(screenId, pid, windowIdList, exemptAll);
     reply.WriteInt32(static_cast<int32_t>(ret));
 }
 

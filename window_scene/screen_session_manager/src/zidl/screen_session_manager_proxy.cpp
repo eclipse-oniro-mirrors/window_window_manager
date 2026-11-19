@@ -4921,7 +4921,7 @@ void ScreenSessionManagerProxy::NotifyIsFullScreenInForceSplitMode(int32_t uid, 
 }
 
 DMError ScreenSessionManagerProxy::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
@@ -4945,6 +4945,10 @@ DMError ScreenSessionManagerProxy::SetVirtualScreenSecurityExemption(ScreenId sc
     }
 
     if (!data.WriteUInt64Vector(windowIdList)) {
+        TLOGE(WmsLogTag::DMS, "write date: failed");
+        return DMError::DM_ERROR_WRITE_DATA_FAILED;
+    }
+    if (!data.WriteBool(exemptAll)) {
         TLOGE(WmsLogTag::DMS, "write date: failed");
         return DMError::DM_ERROR_WRITE_DATA_FAILED;
     }

@@ -918,7 +918,7 @@ private:
         bool isGetActualInfo = false);
     DisplayId GetFakeDisplayId(sptr<ScreenSession> screenSession);
     DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList) override;
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false) override;
     void GetInternalAndExternalSession(sptr<ScreenSession>& internalSession, sptr<ScreenSession>& externalSession);
     sptr<ScreenSession> GetExternalSession();
     void AddPermissionUsedRecord(const std::string& permission, int32_t successCount, int32_t failCount);
