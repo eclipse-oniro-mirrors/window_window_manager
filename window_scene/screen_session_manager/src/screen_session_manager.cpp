@@ -16520,6 +16520,10 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
                 continue;
             }
             if (HasInternalScreen()) {
+                if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                    screenSession->GetRSScreenId() == SCREEN_ID_MAIN) {
+                    continue;
+                }
                 if (screenSession->GetIsInternal()) {
                     firstSession = screenSession;
                 } else {
@@ -16546,6 +16550,10 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
             if (!screenSession->GetIsCurrentInUse() || screenSession->GetIsExtendVirtual()) {
                 TLOGNFE(WmsLogTag::DMS, "current screen: %{public}" PRIu64" is not in user or extend virtual",
                     sessionIt.first);
+                continue;
+            }
+            if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                screenSession->GetRSScreenId() == SCREEN_ID_MAIN) {
                 continue;
             }
             if (screenSession->isInUse() == false) {
