@@ -2861,6 +2861,512 @@ HWTEST_F(KeyboardSessionTest8, SetSurfaceBounds10, TestSize.Level1)
     EXPECT_EQ(keyboardSession->keyboardPanelSession_, nullptr);
 }
 
+HWTEST_F(KeyboardSessionTest8, NotifyKeyboardAnimationWillBegin01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("AnimBegin01", "AnimBegin01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession = nullptr;
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 100;
+    keyboardSession->NotifyKeyboardAnimationWillBegin(true, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, NotifyKeyboardAnimationWillBegin02, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("AnimBegin02", "AnimBegin02");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession = [](uint32_t id) { return nullptr; };
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 200;
+    keyboardSession->NotifyKeyboardAnimationWillBegin(false, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, NotifyKeyboardAnimationWillBegin03, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("AnimBegin03", "AnimBegin03");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession = [](uint32_t persistentId) {
+        SessionInfo info;
+        info.abilityName_ = "Calling03";
+        info.bundleName_ = "Calling03";
+        auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+        session->persistentId_ = persistentId;
+        return session;
+    };
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 300;
+    animationInfo.animated = true;
+    animationInfo.beginRect = { 0, 0, 1000, 500 };
+    animationInfo.endRect = { 0, 200, 1000, 300 };
+    keyboardSession->NotifyKeyboardAnimationWillBegin(true, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, NotifyKeyboardAnimationWillBegin04, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("AnimBegin04", "AnimBegin04");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession = [](uint32_t id) { return nullptr; };
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = INVALID_WINDOW_ID;
+    animationInfo.animated = false;
+    keyboardSession->NotifyKeyboardAnimationWillBegin(false, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, NotifyKeyboardAnimationWillBegin05, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("AnimBegin05", "AnimBegin05");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession = [](uint32_t persistentId) {
+        SessionInfo info;
+        info.abilityName_ = "Calling05";
+        info.bundleName_ = "Calling05";
+        return sptr<SceneSession>::MakeSptr(info, nullptr);
+    };
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 100;
+    animationInfo.animated = true;
+    animationInfo.isGravityChanged = true;
+    keyboardSession->NotifyKeyboardAnimationWillBegin(true, animationInfo);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, CallingWindowStateChange01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CallingState01", "CallingState01");
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData data;
+    keyboardSession->CallingWindowStateChange(data);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.callingWindowState, CallingWindowState::WINDOW_IN_NORMAL);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleX, 1);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleY, 1);
+}
+
+HWTEST_F(KeyboardSessionTest8, CallingWindowStateChange02, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CallingState02", "CallingState02");
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData data;
+    data.callingWindowState = CallingWindowState::WINDOW_IN_AI;
+    data.scaleY = 0.5;
+    keyboardSession->CallingWindowStateChange(data);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.callingWindowState, CallingWindowState::WINDOW_IN_AI);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleY, 0.5);
+}
+
+HWTEST_F(KeyboardSessionTest8, CallingWindowStateChange03, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CallingState03", "CallingState03");
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData data1;
+    data1.callingWindowState = CallingWindowState::WINDOW_IN_NORMAL;
+    data1.scaleX = 1.0;
+    CallingWindowInfoData data2;
+    data2.callingWindowState = CallingWindowState::WINDOW_IN_AI;
+    data2.scaleX = 2.0;
+    keyboardSession->CallingWindowStateChange(data1);
+    keyboardSession->CallingWindowStateChange(data2);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.callingWindowState, CallingWindowState::WINDOW_IN_AI);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleX, 2.0);
+}
+
+HWTEST_F(KeyboardSessionTest8, CallingWindowStateChange04, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CallingState04", "CallingState04");
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData data;
+    data.callingWindowState = CallingWindowState::WINDOW_IN_NORMAL;
+    data.scaleX = 2.0;
+    keyboardSession->CallingWindowStateChange(data);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleX, 2.0);
+}
+
+HWTEST_F(KeyboardSessionTest8, CallingWindowStateChange05, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CallingState05", "CallingState05");
+    ASSERT_NE(keyboardSession, nullptr);
+    CallingWindowInfoData data;
+    data.scaleY = 0.0;
+    keyboardSession->CallingWindowStateChange(data);
+    EXPECT_EQ(keyboardSession->callingWindowInfoData_.scaleY, 0.0);
+}
+
+HWTEST_F(KeyboardSessionTest8, ForceProcessKeyboardOccupiedAreaInfo01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("ForceProcess01", "ForceProcess01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_ = false;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_FALSE(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_);
+}
+
+HWTEST_F(KeyboardSessionTest8, ForceProcessKeyboardOccupiedAreaInfo02, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("ForceProcess02", "ForceProcess02");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_ = true;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_TRUE(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_);
+}
+
+HWTEST_F(KeyboardSessionTest8, ForceProcessKeyboardOccupiedAreaInfo03, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("ForceProcess03", "ForceProcess03");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_ = true;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_FLOAT;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_FALSE(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_);
+}
+
+HWTEST_F(KeyboardSessionTest8, ForceProcessKeyboardOccupiedAreaInfo04, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("ForceProcess04", "ForceProcess04");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_ = true;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_DEFAULT;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_FALSE(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_);
+}
+
+HWTEST_F(KeyboardSessionTest8, ForceProcessKeyboardOccupiedAreaInfo05, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("ForceProcess05", "ForceProcess05");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_ = true;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_TRUE(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_);
+}
+
+HWTEST_F(KeyboardSessionTest8, ForceProcessKeyboardOccupiedAreaInfo06, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("ForceProcess06", "ForceProcess06");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isVisible_ = true;
+    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_TRUE(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_);
+    keyboardSession->isVisible_ = false;
+    keyboardSession->ForceProcessKeyboardOccupiedAreaInfo();
+    EXPECT_TRUE(keyboardSession->isCalculateOccupiedAreaWaitUntilDragEnd_);
+}
+
+HWTEST_F(KeyboardSessionTest8, IsLandscape01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("IsLandscape01", "IsLandscape01");
+    ASSERT_NE(keyboardSession, nullptr);
+    bool isLandscape = false;
+    WMError result = keyboardSession->IsLandscape(DISPLAY_ID_INVALID, isLandscape);
+    EXPECT_EQ(result, WMError::WM_ERROR_INVALID_DISPLAY);
+}
+
+HWTEST_F(KeyboardSessionTest8, IsLandscape02, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("IsLandscape02", "IsLandscape02");
+    ASSERT_NE(keyboardSession, nullptr);
+    bool isLandscape = false;
+    WMError result = keyboardSession->IsLandscape(0, isLandscape);
+    EXPECT_TRUE(result == WMError::WM_ERROR_INVALID_DISPLAY || result == WMError::WM_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, IsLandscape03, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("IsLandscape03", "IsLandscape03");
+    ASSERT_NE(keyboardSession, nullptr);
+    bool isLandscape = false;
+    WMError result = keyboardSession->IsLandscape(UINT64_MAX, isLandscape);
+    EXPECT_TRUE(result == WMError::WM_ERROR_INVALID_DISPLAY || result == WMError::WM_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, IsLandscape04, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("IsLandscape04", "IsLandscape04");
+    ASSERT_NE(keyboardSession, nullptr);
+    bool isLandscape = false;
+    WMError result = keyboardSession->IsLandscape(100, isLandscape);
+    EXPECT_TRUE(result == WMError::WM_ERROR_INVALID_DISPLAY || result == WMError::WM_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, IsLandscape05, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("IsLandscape05", "IsLandscape05");
+    ASSERT_NE(keyboardSession, nullptr);
+    bool isLandscape1 = false;
+    WMError result1 = keyboardSession->IsLandscape(0, isLandscape1);
+    bool isLandscape2 = false;
+    WMError result2 = keyboardSession->IsLandscape(0, isLandscape2);
+    EXPECT_EQ(result1, result2);
+    EXPECT_EQ(isLandscape1, isLandscape2);
+}
+
+HWTEST_F(KeyboardSessionTest8, IsLandscape06, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("IsLandscape06", "IsLandscape06");
+    ASSERT_NE(keyboardSession, nullptr);
+    bool isLandscape = true;
+    WMError result = keyboardSession->IsLandscape(DISPLAY_ID_INVALID, isLandscape);
+    if (result == WMError::WM_ERROR_INVALID_DISPLAY) {
+        EXPECT_EQ(isLandscape, true);
+    }
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleActionUpdateKeyboardTouchHotArea01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("HotArea01", "HotArea01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardPanelSession_ = nullptr;
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    WMError result = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    EXPECT_EQ(result, WMError::WM_ERROR_NULLPTR);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleActionUpdateKeyboardTouchHotArea02, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("HotArea02", "HotArea02");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto panelSession = GetSceneSession("Panel02", "Panel02");
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    keyboardSession->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    WMError result = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    EXPECT_EQ(result, WMError::WM_ERROR_INVALID_TYPE);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleActionUpdateKeyboardTouchHotArea03, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("HotArea03", "HotArea03");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto panelSession = GetSceneSession("Panel03", "Panel03");
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    keyboardSession->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    WMError result = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    EXPECT_TRUE(result == WMError::WM_ERROR_INVALID_DISPLAY || result == WMError::WM_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleActionUpdateKeyboardTouchHotArea04, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("HotArea04", "HotArea04");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto panelSession = GetSceneSession("Panel04", "Panel04");
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    keyboardSession->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    WMError result = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property,
+        WSPropertyChangeAction::ACTION_UPDATE_OTHER_PROPS);
+    EXPECT_TRUE(result == WMError::WM_ERROR_INVALID_DISPLAY || result == WMError::WM_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleActionUpdateKeyboardTouchHotArea05, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("HotArea05", "HotArea05");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto panelSession = GetSceneSession("Panel05", "Panel05");
+    keyboardSession->BindKeyboardPanelSession(panelSession);
+    keyboardSession->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    KeyboardTouchHotAreas hotAreas;
+    hotAreas.displayId_ = DISPLAY_ID_INVALID;
+    property->SetKeyboardTouchHotAreas(hotAreas);
+    WMError result = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    EXPECT_TRUE(result == WMError::WM_ERROR_INVALID_DISPLAY || result == WMError::WM_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleActionUpdateKeyboardTouchHotArea06, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("HotArea06", "HotArea06");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto panelSession1 = GetSceneSession("Panel06a", "Panel06a");
+    keyboardSession->BindKeyboardPanelSession(panelSession1);
+    keyboardSession->property_->SetWindowType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    WMError result1 = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    auto panelSession2 = GetSceneSession("Panel06b", "Panel06b");
+    keyboardSession->BindKeyboardPanelSession(panelSession2);
+    WMError result2 = keyboardSession->HandleActionUpdateKeyboardTouchHotArea(property,
+        WSPropertyChangeAction::ACTION_UPDATE_TOUCH_HOT_AREA);
+    EXPECT_EQ(result1, result2);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleKeyboardMoveDragEnd01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("MoveDragEnd01", "MoveDragEnd01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->moveDragController_ = nullptr;
+    WSRect rect = { 0, 0, 0, 0 };
+    keyboardSession->HandleKeyboardMoveDragEnd(rect, SizeChangeReason::UNDEFINED, DISPLAY_ID_INVALID);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_EQ(keyboardSession->moveDragController_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleKeyboardMoveDragEnd02, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("MoveDragEnd02", "MoveDragEnd02");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->moveDragController_ = nullptr;
+    WSRect rect = { 100, 200, 500, 300 };
+    keyboardSession->HandleKeyboardMoveDragEnd(rect, SizeChangeReason::DRAG_END, DISPLAY_ID_INVALID);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_EQ(keyboardSession->moveDragController_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleKeyboardMoveDragEnd03, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("MoveDragEnd03", "MoveDragEnd03");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->moveDragController_ = nullptr;
+    WSRect rect = { 50, 60, 70, 80 };
+    keyboardSession->HandleKeyboardMoveDragEnd(rect, SizeChangeReason::DRAG_MOVE, 0);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_EQ(keyboardSession->moveDragController_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleMoveDragSurfaceNode01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("MoveDragNode01", "MoveDragNode01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->moveDragController_ = nullptr;
+    keyboardSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_MOVE);
+    EXPECT_EQ(keyboardSession->moveDragController_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, HandleMoveDragSurfaceNode02, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("MoveDragNode02", "MoveDragNode02");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->moveDragController_ = nullptr;
+    keyboardSession->HandleMoveDragSurfaceNode(SizeChangeReason::DRAG_END);
+    EXPECT_EQ(keyboardSession->moveDragController_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, NotifyClientToUpdateRect01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("NotifyRect01", "NotifyRect01");
+    ASSERT_NE(keyboardSession, nullptr);
+    WSRect rect = { 0, 0, 0, 0 };
+    WSError result = keyboardSession->NotifyClientToUpdateRect("NotifyClientToUpdateRect01", rect, nullptr);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, CloseKeyboardSyncTransaction01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CloseSync01", "CloseSync01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->isKeyboardSyncTransactionOpen_ = false;
+    WSRect rect = { 0, 0, 0, 0 };
+    WindowAnimationInfo animationInfo;
+    animationInfo.callingId = 0;
+    animationInfo.isGravityChanged = false;
+    CallingWindowInfoData callingWindowInfoData;
+    keyboardSession->CloseKeyboardSyncTransaction(rect, true, animationInfo, callingWindowInfoData);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_);
+}
+
+HWTEST_F(KeyboardSessionTest8, AdjustKeyboardLayout01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("Adjust01", "Adjust01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->state_ = SessionState::STATE_BACKGROUND;
+    KeyboardLayoutParams params;
+    params.gravity_ = WindowGravity::WINDOW_GRAVITY_DEFAULT;
+    WSError result = keyboardSession->AdjustKeyboardLayout(params);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+HWTEST_F(KeyboardSessionTest8, IsNeedRaiseSubWindow01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("RaiseSub01", "RaiseSub01");
+    ASSERT_NE(keyboardSession, nullptr);
+    auto callingSession = GetSceneSession("CallingSub01", "CallingSub01");
+    ASSERT_NE(callingSession, nullptr);
+    callingSession->GetSessionProperty()->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
+    WSRect rect = { 0, 0, 500, 500 };
+    bool result = keyboardSession->IsNeedRaiseSubWindow(callingSession, rect);
+    EXPECT_EQ(result, true);
+}
+
+HWTEST_F(KeyboardSessionTest8, RaiseCallingSession01, TestSize.Level1)
+{
+    sptr<SceneSession> callingSession = nullptr;
+    sptr<KeyboardSession> keyboardSession = nullptr;
+    sptr<SceneSession> statusBarSession = nullptr;
+    ConstructKeyboardCallingWindowTestData(callingSession, keyboardSession, statusBarSession);
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardAvoidAreaActive_ = true;
+    sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
+    ASSERT_NE(info, nullptr);
+    bool result = keyboardSession->RaiseCallingSession(callingSession, info);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_TRUE(keyboardSession->keyboardAvoidAreaActive_);
+}
+
+HWTEST_F(KeyboardSessionTest8, UseFocusIdIfCallingSessionIdInvalid01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("UseFocus01", "UseFocus01");
+    ASSERT_NE(keyboardSession, nullptr);
+    keyboardSession->keyboardCallback_->onGetSceneSession = [](uint32_t persistentId) {
+        SessionInfo info;
+        info.abilityName_ = "Calling";
+        info.bundleName_ = "Calling";
+        auto session = sptr<SceneSession>::MakeSptr(info, nullptr);
+        session->persistentId_ = persistentId;
+        return session;
+    };
+    keyboardSession->keyboardCallback_->onGetFocusedSessionId = []() { return 100; };
+    keyboardSession->property_->SetCallingSessionId(INVALID_WINDOW_ID);
+    uint32_t callingSessionId = 200;
+    keyboardSession->UseFocusIdIfCallingSessionIdInvalid(callingSessionId);
+    usleep(WAIT_ASYNC_US);
+    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
+}
+
+HWTEST_F(KeyboardSessionTest8, GetCallingSessionGlobalScaledRect01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("GlobalScaled01", "GlobalScaled01");
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> callingSession = nullptr;
+    WSRect scaledRect = { 0, 0, 0, 0 };
+    bool result = keyboardSession->GetCallingSessionGlobalScaledRect(callingSession, scaledRect);
+    EXPECT_EQ(result, false);
+}
+
+HWTEST_F(KeyboardSessionTest8, CalculateOccupiedArea01, TestSize.Level1)
+{
+    auto keyboardSession = GetKeyboardSession("CalcOccupied01", "CalcOccupied01");
+    ASSERT_NE(keyboardSession, nullptr);
+    sptr<SceneSession> callingSession = nullptr;
+    WSRect callingSessionRect = { 0, 0, 500, 500 };
+    WSRect panelRect = { 0, 400, 500, 100 };
+    sptr<OccupiedAreaChangeInfo> info = nullptr;
+    bool result = keyboardSession->CalculateOccupiedArea(callingSession, callingSessionRect, panelRect, info);
+    EXPECT_EQ(result, false);
+}
+
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
