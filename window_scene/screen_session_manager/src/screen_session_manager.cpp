@@ -15051,8 +15051,8 @@ DMError ScreenSessionManager::GetHookedAvailableArea(DisplayId displayId, int32_
         TLOGNFE(WmsLogTag::DMS, "can not get displayInfo.");
         return DMError::DM_ERROR_NULLPTR;
     }
-    sptr session = GetScreenSession(displayInfo->GetScreenId());
-    sptr hooked = HookDisplayInfoByUid(displayInfo, session, uid);
+    auto session = GetScreenSession(displayInfo->GetScreenId());
+    auto hooked = HookDisplayInfoByUid(displayInfo, session, uid);
     if (hooked == nullptr) {
         TLOGNFE(WmsLogTag::DMS, "hook display info failed, uid: %{public}d", uid);
         return DMError::DM_ERROR_NULLPTR;
