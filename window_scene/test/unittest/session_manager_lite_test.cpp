@@ -301,7 +301,18 @@ HWTEST_F(SessionManagerLiteTest, OnWMSConnectionChanged2, TestSize.Level1)
     // Just cover branch, no need to assert.
     auto listener = sptr<SessionManagerServiceLiteRecoverListener>::MakeSptr(userId_);
     ASSERT_NE(nullptr, listener);
+
+    // branch 1: sessionManagerService 为 nullptr，不构造 proxy
     listener->OnWMSConnectionChanged(100, 100, true, 12345, INVALID_USER_ID, INVALID_PID, nullptr);
+
+    // branch 2: 非 proxy 对象（IsProxyObject()=false），不构造 proxy
+    auto nonProxyRemote = sptr<RemoteObjectMocker>::MakeSptr();
+    EXPECT_CALL(*nonProxyRemote, IsProxyObject()).WillRepeatedly(Return(false));
+    listener->OnWMSConnectionChanged(100, 100, true, 12345, INVALID_USER_ID, INVALID_PID, nonProxyRemote);
+
+    // branch 3: proxy 对象（IsProxyObject()=true），构造 SessionManagerServiceProxy 传给下游
+    auto proxyRemote = sptr<IRemoteObjectMocker>::MakeSptr();
+    listener->OnWMSConnectionChanged(100, 100, true, 12345, INVALID_USER_ID, INVALID_PID, proxyRemote);
 }
 
 /**
