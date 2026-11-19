@@ -17,6 +17,7 @@
 #define OHOS_JS_SCREEN_LISTENER_H
 
 #include <mutex>
+#include <thread>
 #include "native_engine/native_engine.h"
 #include "native_engine/native_value.h"
 #include "screen_manager.h"
@@ -36,12 +37,22 @@ public:
     static void CleanEnv(void* obj);
 
 private:
+    struct HookContext {
+        std::mutex mutex;
+        JsScreenListener* listener = nullptr;
+        napi_env env = nullptr;
+        bool hookFired = false;
+        bool hookRemoved = false;
+    };
     void CallJsMethod(const std::string& methodName, napi_value const * argv = nullptr, size_t argc = 0);
     napi_env env_ = nullptr;
     std::mutex mtx_;
     wptr<JsScreenListener> weakRef_  = nullptr;
     std::map<std::string, std::vector<std::unique_ptr<NativeReference>>> jsCallBack_;
     napi_value CreateScreenIdArray(napi_env env, const std::vector<ScreenId>& data);
+
+    HookContext* hookCtx_ = nullptr;
+    std::thread::id jsThreadId_;
 };
 extern const std::string EVENT_CONNECT;
 extern const std::string EVENT_DISCONNECT;
