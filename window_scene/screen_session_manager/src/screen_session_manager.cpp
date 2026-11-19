@@ -4457,6 +4457,9 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
             break;
         }
     }
+    if (uid != 0 && hookInfo.displayId_ == DISPLAY_ID_INVALID) {
+        NotifyHookAvailableAreaChanged(uid);
+    }
 }
 
 void ScreenSessionManager::UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
@@ -14997,6 +15000,23 @@ void ScreenSessionManager::NotifyHookAvailableAreaChanged(DMRect area, DisplayId
     ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(hookArea, displayId, uid);
 }
 
+void ScreenSessionManager::NotifyHookAvailableAreaChanged(int32_t uid)
+{
+    DisplayId displayId = DISPLAY_ID_INVALID;
+    auto defaultScreen = GetDefaultScreenSession();
+    if (defaultScreen) {
+        displayId = defaultScreen->GetDisplayId();
+    } else {
+        TLOGNFI(WmsLogTag::DMS, " defaultScreen is null");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS, "displayId: %{public}" PRIu64" ", displayId);
+    DMRect area;
+    if (GetHookedAvailableArea(displayId, uid, area) == DMError::DM_OK) {
+        ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(area, displayId, uid);
+    }
+}
+
 void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId)
 {
     std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
@@ -15031,6 +15051,26 @@ void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, D
         return;
     }
     NotifyDisplayAttributeChanged(displayInfo, attributes);
+}
+
+DMError ScreenSessionManager::GetHookedAvailableArea(DisplayId displayId, int32_t uid, DMRect& area)
+{
+    auto displayInfo = GetDisplayInfoById(displayId, true);
+    if (displayInfo == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "can not get displayInfo.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    auto session = GetScreenSession(displayInfo->GetScreenId());
+    auto hooked = HookDisplayInfoByUid(displayInfo, session, uid);
+    if (hooked == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "hook display info failed, uid: %{public}d", uid);
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    area = { 0, 0, hooked->GetAvailableWidth(), hooked->GetAvailableHeight() };
+    TLOGNFI(WmsLogTag::DMS,
+        "displayId: %{public}" PRIu64 ", uid: %{public}d, AvailableArea: [%{public}d, %{public}d, %{public}u, %{public}u]",
+        static_cast<DisplayId>(displayId), uid, area.posX_, area.posY_, area.width_, area.height_);
+    return DMError::DM_OK;
 }
 
 DMError ScreenSessionManager::GetAvailableArea(DisplayId displayId, DMRect& area)
@@ -17881,7 +17921,8 @@ DMError ScreenSessionManager::GetScreenAreaOfDisplayArea(DisplayId displayId, co
     DMRect screenRegion = {
         bounds.rect_.GetLeft(), bounds.rect_.GetTop(), bounds.rect_.GetWidth(), bounds.rect_.GetHeight() };
     DMRect displayAreaFixed = displayArea;
-    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && GetFoldStatus() == FoldStatus::HALF_FOLD) {
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && GetFoldStatus() == FoldStatus::HALF_FOLD
+        && screenSession->GetIsInternal()) {
         if (displayId == DISPLAY_ID_FAKE) {
             displayAreaFixed.posY_ += static_cast<int32_t>(screenRegion.height_) -
                 static_cast<int32_t>(displayRegion.height_);
