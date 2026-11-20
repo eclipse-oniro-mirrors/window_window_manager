@@ -296,6 +296,18 @@ napi_value JsWindowManager::MoveMainWindowToTargetDisplay(napi_env env, napi_cal
     return (me != nullptr) ? me->OnMoveMainWindowToTargetDisplay(env, info) : nullptr;
 }
 
+napi_value JsWindowManager::MoveTargetWindow(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "[JsWindowManager][moveTargetWindow] is called");
+    return nullptr;
+}
+
+napi_value JsWindowManager::ResizeWindow(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "[JsWindowManager][resizeWindow] is called");
+    return nullptr;
+}
+
 static void GetNativeContext(napi_env env, napi_value nativeContext, void*& contextPtr, WMError& errCode)
 {
     AppExecFwk::Ability* ability = nullptr;
@@ -2714,7 +2726,7 @@ napi_value JsWindowManager::OnSetWindowPosition(napi_env env, napi_callback_info
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
             "[window][setWindowPosition]msg: send event failed"));
     }
-    return result; 
+    return result;
 }
 
 napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)

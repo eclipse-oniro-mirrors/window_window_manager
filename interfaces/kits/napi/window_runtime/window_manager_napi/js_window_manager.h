@@ -38,6 +38,8 @@ public:
     JsWindowManager();
     ~JsWindowManager();
     static void Finalizer(napi_env env, void* data, void* hint);
+    static napi_value MoveTargetWindow(napi_env env, napi_callback_info info);
+    static napi_value ResizeWindow(napi_env env, napi_callback_info info);
     static napi_value Create(napi_env env, napi_callback_info info);
     static napi_value CreateWindow(napi_env env, napi_callback_info info);
     static napi_value FindWindow(napi_env env, napi_callback_info info);
