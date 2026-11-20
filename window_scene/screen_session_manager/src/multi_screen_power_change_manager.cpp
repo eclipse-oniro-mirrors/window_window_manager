@@ -17,6 +17,7 @@
 
 #include <hitrace_meter.h>
 #include <transaction/rs_transaction.h>
+#include "fold_screen_state_internel.h"
 
 #include "rs_adapter.h"
 #include "window_manager_hilog.h"
@@ -275,6 +276,9 @@ DMError MultiScreenPowerChangeManager::HandleInnerMainExternalExtendChange(sptr<
     /* step6: dpi change */
     MultiScreenChangeUtils::ScreenDensityChangeNotify(innerScreen, externalScreen);
 
+    /* notify super outer only before external screen disconnect */
+    MultiScreenChangeUtils::NotifySuperOuterOnlyPropertyChange(innerScreen);
+
     /* step7: set inner screen unavailable */
     MultiScreenChangeUtils::SetScreenInUseStatus(externalScreen, false);
 
@@ -344,6 +348,9 @@ DMError MultiScreenPowerChangeManager::HandleInnerMainExternalMirrorChange(sptr<
     /* step6: dpi change */
     MultiScreenChangeUtils::ScreenDensityChangeNotify(innerScreen, nullptr);
 
+    /* notify super outer only before external screen disconnect */
+    MultiScreenChangeUtils::NotifySuperOuterOnlyPropertyChange(innerScreen);
+
     /* step7: set screen unavailable */
     MultiScreenChangeUtils::SetScreenInUseStatus(externalScreen, false);
 
@@ -367,6 +374,9 @@ DMError MultiScreenPowerChangeManager::HandleInnerExtendExternalMainChange(sptr<
     std::string trackInfo = "inner extend and external main to external main";
     TLOGW(WmsLogTag::DMS, "%{public}s start.", trackInfo.c_str());
     MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
+
+    /* notify super outer only before inner screen disconnect */
+    MultiScreenChangeUtils::NotifySuperOuterOnlyPropertyChange(externalScreen);
 
     /* step1: disconnect external screen */
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "powerChange[%s]", trackInfo.c_str());
@@ -398,6 +408,9 @@ DMError MultiScreenPowerChangeManager::HandleInnerMirrorExternalMainChange(sptr<
     std::string trackInfo = "inner mirror and external main to external main";
     TLOGW(WmsLogTag::DMS, "%{public}s start.", trackInfo.c_str());
     MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(trackInfo);
+
+    /* notify super outer only before inner screen disconnect */
+    MultiScreenChangeUtils::NotifySuperOuterOnlyPropertyChange(externalScreen);
 
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "powerChange[%s]", trackInfo.c_str());
 
@@ -503,6 +516,14 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerMainExternalExtendChan
     /* step4: change physical screen info between inner and external screen */
     MultiScreenChangeUtils::ScreenPhysicalInfoChange(innerScreen, externalScreen);
 
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        if (innerScreen->GetRSScreenId() == SCREEN_ID_FULL) {
+            MultiScreenChangeUtils::CorrectSuperFoldRotationWithBounds(innerScreen);
+        } else if (externalScreen->GetRSScreenId() == SCREEN_ID_FULL) {
+            MultiScreenChangeUtils::CorrectSuperFoldRotationWithBounds(externalScreen);
+        }
+    }
+
     /* step5: notify extend change */
     ScreenToExtendChange(ssmClient, innerScreen);
 
@@ -565,6 +586,14 @@ DMError MultiScreenPowerChangeManager::HandleRecoveryInnerMainExternalMirrorChan
 
     /* step4: change physical screen info between inner and external screen */
     MultiScreenChangeUtils::ScreenPhysicalInfoChange(innerScreen, externalScreen);
+
+    if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        if (innerScreen->GetRSScreenId() == SCREEN_ID_FULL) {
+            MultiScreenChangeUtils::CorrectSuperFoldRotationWithBounds(innerScreen);
+        } else if (externalScreen->GetRSScreenId() == SCREEN_ID_FULL) {
+            MultiScreenChangeUtils::CorrectSuperFoldRotationWithBounds(externalScreen);
+        }
+    }
 
     /* step5: change position */
     MultiScreenChangeUtils::ScreenMainPositionChange(externalScreen, innerScreen);

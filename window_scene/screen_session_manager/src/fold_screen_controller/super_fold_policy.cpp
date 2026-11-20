@@ -46,6 +46,10 @@ bool SuperFoldPolicy::IsFakeDisplayExist()
 
 bool SuperFoldPolicy::IsNeedSetSnapshotRect(DisplayId displayId)
 {
+    if (ScreenSessionManager::GetInstance().GetIsOuterOnlyMode()) {
+        TLOGI(WmsLogTag::DMS, "outer only mode, skip snapshot rect.");
+        return false;
+    }
     auto screenSession = ScreenSessionManager::GetInstance().GetScreenSession(SCREEN_ID_DEFAULT);
     if (screenSession == nullptr) {
         TLOGE(WmsLogTag::DMS, "session nullptr.");
