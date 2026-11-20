@@ -431,8 +431,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
                 .hdrMode_ = hdrMode,
                 .recordPolicies_ = recordPolicies
             };
-            ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent);
+            DMError errCode = DMError::DM_OK;
+            ScreenId screenId = CreateVirtualScreen(virScrOption, virtualScreenAgent, &errCode);
             reply.WriteUint64(static_cast<uint64_t>(screenId));
+            reply.WriteInt32(static_cast<int32_t>(errCode));
             break;
         }
         case DisplayManagerMessage::TRANS_ID_REGISTER_DEATH_LISTENER: {
@@ -1933,7 +1935,8 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenSecurityExemption(MessageParc
     uint32_t pid = data.ReadUint32();
     std::vector<uint64_t> windowIdList;
     data.ReadUInt64Vector(&windowIdList);
-    DMError ret = SetVirtualScreenSecurityExemption(screenId, pid, windowIdList);
+    bool exemptAll = data.ReadBool();
+    DMError ret = SetVirtualScreenSecurityExemption(screenId, pid, windowIdList, exemptAll);
     reply.WriteInt32(static_cast<int32_t>(ret));
 }
 

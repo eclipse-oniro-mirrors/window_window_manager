@@ -845,7 +845,7 @@ void AniWindowListener::AfterLifecyclePaused()
 void AniWindowListener::OnRotationChange(const RotationChangeInfo& rotationChangeInfo,
     RotationChangeResult& rotationChangeResult)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "[ANI]");
+    TLOGD(WmsLogTag::WMS_ROTATION, "[ANI]");
     auto task = [self = weakRef_, vm = vm_, rotationChangeInfo, &rotationChangeResult] {
         HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "AniWindowListener::OnRotationChange");
         auto thisListener = self.promote();

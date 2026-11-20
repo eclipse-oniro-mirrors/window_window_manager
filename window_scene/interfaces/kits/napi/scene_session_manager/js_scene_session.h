@@ -33,6 +33,7 @@ enum class ListenerFuncType : uint32_t {
     SESSION_STATE_CHANGE_CB,
     UPDATE_TRANSITION_ANIMATION_CB,
     BUFFER_AVAILABLE_CHANGE_CB,
+    STACK_RECOVERY_FLAG_CB,
     SESSION_EVENT_CB,
     SESSION_RECT_CHANGE_CB,
     SESSION_WINDOW_LIMITS_CHANGE_CB,
@@ -162,11 +163,12 @@ private:
     void ProcessSessionLockStateChangeRegister();
     void ProcessSessionUpdateFollowScreenChange();
     void OnSessionLockStateChange(bool isLockedState);
-    sptr<SceneSession> GenSceneSession(SessionInfo& info, bool needAddRequestInfo = false);
-    void ReuseSession(sptr<SceneSession>& sceneSession, SessionInfo& info);
+    sptr<SceneSession> GenSceneSession(SessionInfo& info, bool needAddRequestInfo, bool& isNewSession);
+    void ReuseSession(sptr<SceneSession>& sceneSession, SessionInfo& info, bool& isNewSession);
     void AddRequestTaskInfo(sptr<SceneSession> sceneSession, int32_t requestId, bool needAddRequestInfo);
     void PendingSessionActivation(SessionInfo& info);
-    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo);
+    void PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo, bool isNewSession,
+        const sptr<SceneSession>& sceneSession);
     void BatchPendingSessionsActivation(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
         const std::vector<std::shared_ptr<PendingSessionActivationConfig>>& configs);
     void BatchPendingSessionsActivationInner(const std::vector<std::shared_ptr<SessionInfo>>& sessionInfos,
@@ -517,6 +519,7 @@ private:
     void ProcessAnimateToTargetPropertyRegister();
     void ProcessSceneOutlineParamsChangeRegister();
     void ProcessRestartAppRegister();
+    void ProcessStackRecoveryFlagChangeRegister();
 
     /*
      * Float View
@@ -553,6 +556,7 @@ private:
     void ChangeSessionVisibilityWithStatusBar(const SessionInfo& info, bool visible);
     void ChangeSessionVisibilityWithStatusBarInner(std::shared_ptr<SessionInfo> sessionInfo, bool visible);
     void OnBufferAvailableChange(const bool isBufferAvailable, bool startWindowInvisible = false);
+    void OnStackRecoveryFlagChange(bool stackRecoveryFlag);
     void OnCreateSubSession(const sptr<SceneSession>& sceneSession, bool isBoundedSystemTray);
     void OnClearSubSession(int32_t subPersistentId);
     void OnBindDialogTarget(const sptr<SceneSession>& sceneSession);

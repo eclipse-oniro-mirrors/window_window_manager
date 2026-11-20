@@ -3354,7 +3354,7 @@ std::shared_ptr<Media::PixelMap> Session::Snapshot(const SnapshotOptions& option
 {
     HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "Snapshot[%d][%s]", persistentId_, sessionInfo_.bundleName_.c_str());
     auto surfaceNode = GetSurfaceNode();
-    if (!CheckSurfaceNodeForSnapshot(surfaceNode)) {
+    if (!CheckSurfaceNodeForSnapshot(surfaceNode, options.ignorePersistence)) {
         TLOGE(WmsLogTag::WMS_PATTERN, "SurfaceNode invalid %{public}d", persistentId_);
         ReportPrivacyWindowSnapshotFail(SNAPSHOT_ERROR_INVALID_SURFACE_NODE, "surface node is invalid");
         return nullptr;
@@ -3532,12 +3532,17 @@ bool Session::GetNeedUseBlurSnapshot() const
     return needUseBlurSnapshot;
 }
 
-bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode) const
+bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode, bool ignorePersistence) const
 {
     if (scenePersistence_ == nullptr) {
-        return false;
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "scenePersistence is null: wid=%{public}d, ignorePersistence=%{public}d",
+            persistentId_, ignorePersistence);
+        if (!ignorePersistence) {
+            return false;
+        }
     }
     if (IsPersistentImageFit()) {
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "IsPersistentImageFit: wid=%{public}d", persistentId_);
         return false;
     }
     if (!surfaceNode) {
@@ -3545,8 +3550,11 @@ bool Session::CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surface
         return false;
     }
     if (!surfaceNode->IsBufferAvailable()) {
-        DeleteHasSnapshot();
-        scenePersistence_->ClearSnapshot();
+        TLOGD(WmsLogTag::WMS_ATTRIBUTE, "no buffer available: wid=%{public}d", persistentId_);
+        if (scenePersistence_ != nullptr) {
+            DeleteHasSnapshot();
+            scenePersistence_->ClearSnapshot();
+        }
         return false;
     }
     return true;
@@ -5429,7 +5437,7 @@ void Session::SetCallingSessionIdSessionListenser(const ProcessCallingSessionIdC
 }
 
 void Session::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-    const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+    const std::shared_ptr<RSTransaction>& rsTransaction,
     const std::map<AvoidAreaType, AvoidArea>& avoidAreas)
 {
     if (!sessionStage_) {
@@ -5441,11 +5449,11 @@ void Session::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
         TLOGD(WmsLogTag::WMS_KEYBOARD, "Occupied area need to empty when in floating mode");
     }
     if (info != nullptr) {
-        TLOGI(WmsLogTag::WMS_KEYBOARD, "Calling id: %{public}d, callingSessionRect: %{public}s"
-            ", safeRect: %{public}s, textFieldPositionY_: %{public}f, textFieldHeight_: %{public}f"
+        TLOGI(WmsLogTag::WMS_KEYBOARD, "Calling id: %{public}d, safeRect: %{public}s"
+            ", textFieldPositionY_: %{public}f, textFieldHeight_: %{public}f"
             ", size of avoidAreas: %{public}d", GetPersistentId(),
-            callingSessionRect.ToString().c_str(), info->rect_.ToString().c_str(),
-            info->textFieldPositionY_, info->textFieldHeight_, static_cast<int32_t>(avoidAreas.size()));
+            info->rect_.ToString().c_str(), info->textFieldPositionY_, info->textFieldHeight_,
+            static_cast<int32_t>(avoidAreas.size()));
         for (const auto& [type, avoidArea] : avoidAreas) {
             TLOGI(WmsLogTag::WMS_KEYBOARD, "avoidAreaType: %{public}u, avoidArea: %{public}s",
                 type, avoidArea.ToString().c_str());
@@ -5453,7 +5461,7 @@ void Session::NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
     } else {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "occupied area info is nullptr, id: %{public}d", GetPersistentId());
     }
-    sessionStage_->NotifyOccupiedAreaChangeInfo(info, rsTransaction, callingSessionRect, avoidAreas);
+    sessionStage_->NotifyOccupiedAreaChangeInfo(info, rsTransaction, avoidAreas);
 }
 
 WindowMode Session::GetWindowMode() const
@@ -5729,6 +5737,16 @@ bool Session::GetBufferAvailable() const
 void Session::SetNeedSnapshot(bool needSnapshot)
 {
     needSnapshot_ = needSnapshot;
+}
+
+void Session::SetTryUseSnapshot(bool tryUseSnapshot)
+{
+    tryUseSnapshot_ = tryUseSnapshot;
+}
+
+bool Session::GetTryUseSnapshot() const
+{
+    return tryUseSnapshot_;
 }
 
 void Session::SetExitSplitOnBackground(bool isExitSplitOnBackground)

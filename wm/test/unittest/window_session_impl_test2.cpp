@@ -1176,29 +1176,29 @@ HWTEST_F(WindowSessionImplTest2, NotifyOccupiedAreaChangeInfo, TestSize.Level1)
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
     window->property_->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
 
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
 
     window->property_->SetWindowType(WindowType::APP_SUB_WINDOW_BASE);
     window->windowSessionMap_.insert(
         { "test1", std::pair<int32_t, sptr<WindowSessionImpl>>(window->GetPersistentId(), nullptr) });
-    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
     window->windowSessionMap_.clear();
 
     window->windowSessionMap_.insert(
         { "test1", std::pair<int32_t, sptr<WindowSessionImpl>>(window->GetPersistentId(), window) });
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
     window->SetWindowMode(WindowMode::WINDOW_MODE_FULLSCREEN);
-    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
 
     window->property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
     window->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
 
     window->handler_ = nullptr;
-    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {}, {});
+    window->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
     window->Destroy();
 }
 
@@ -2336,11 +2336,11 @@ HWTEST_F(WindowSessionImplTest2, GetListeners02, TestSize.Level1)
     ASSERT_NE(window_, nullptr);
     window_->occupiedAreaChangeListeners_.clear();
     sptr<OccupiedAreaChangeInfo> occupiedAreaChangeInfo = sptr<OccupiedAreaChangeInfo>::MakeSptr();
-    window_->NotifyOccupiedAreaChangeInfo(occupiedAreaChangeInfo, nullptr, {}, {});
+    window_->NotifyOccupiedAreaChangeInfo(occupiedAreaChangeInfo, nullptr, {});
     ASSERT_TRUE(window_->occupiedAreaChangeListeners_[window_->GetPersistentId()].empty());
     sptr<IOccupiedAreaChangeListener> listener = sptr<MockIOccupiedAreaChangeListener>::MakeSptr();
     window_->RegisterOccupiedAreaChangeListener(listener);
-    window_->NotifyOccupiedAreaChangeInfo(occupiedAreaChangeInfo, nullptr, {}, {});
+    window_->NotifyOccupiedAreaChangeInfo(occupiedAreaChangeInfo, nullptr, {});
     ASSERT_FALSE(window_->occupiedAreaChangeListeners_[window_->GetPersistentId()].empty());
     window_->Destroy();
     GTEST_LOG_(INFO) << "WindowSessionImplTest2: GetListeners02 end";

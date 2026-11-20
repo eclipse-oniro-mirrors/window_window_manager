@@ -1167,7 +1167,7 @@ bool OHOS::Rosen::ScreenSessionManagerProxy::TryToCancelScreenOff()
 }
 
 ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virtualOption,
-                                                        const sptr<IRemoteObject>& displayManagerAgent)
+    const sptr<IRemoteObject>& displayManagerAgent, DMError* errorCode)
 {
     TLOGI(WmsLogTag::DMS, "SCB: ENTER");
     sptr<IRemoteObject> remote = Remote();
@@ -1226,6 +1226,9 @@ ScreenId ScreenSessionManagerProxy::CreateVirtualScreen(VirtualScreenOption virt
     }
 
     ScreenId screenId = static_cast<ScreenId>(reply.ReadUint64());
+    if (errorCode != nullptr) {
+        *errorCode = static_cast<DMError>(reply.ReadInt32());
+    }
     return screenId;
 }
 
@@ -4918,7 +4921,7 @@ void ScreenSessionManagerProxy::NotifyIsFullScreenInForceSplitMode(int32_t uid, 
 }
 
 DMError ScreenSessionManagerProxy::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
@@ -4942,6 +4945,10 @@ DMError ScreenSessionManagerProxy::SetVirtualScreenSecurityExemption(ScreenId sc
     }
 
     if (!data.WriteUInt64Vector(windowIdList)) {
+        TLOGE(WmsLogTag::DMS, "write date: failed");
+        return DMError::DM_ERROR_WRITE_DATA_FAILED;
+    }
+    if (!data.WriteBool(exemptAll)) {
         TLOGE(WmsLogTag::DMS, "write date: failed");
         return DMError::DM_ERROR_WRITE_DATA_FAILED;
     }

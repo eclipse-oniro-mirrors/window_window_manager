@@ -80,7 +80,7 @@ public:
     virtual DisplayState GetDisplayState(DisplayId displayId) override;
     virtual bool TryToCancelScreenOff() override;
     ScreenId CreateVirtualScreen(VirtualScreenOption option,
-        const sptr<IRemoteObject>& displayManagerAgent) override;
+        const sptr<IRemoteObject>& displayManagerAgent, DMError* errorCode = nullptr) override;
     virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) override;
 
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false) override;
@@ -253,7 +253,7 @@ public:
     std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution() override;
     DMError GetDisplayCapability(std::string& capabilitInfo) override;
     DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList) override;
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false) override;
     bool SetVirtualScreenStatus(ScreenId screenId, VirtualScreenStatus screenStatus) override;
     DMError SetVirtualScreenMaxRefreshRate(ScreenId id, uint32_t refreshRate,
         uint32_t& actualRefreshRate) override;

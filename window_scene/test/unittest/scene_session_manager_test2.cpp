@@ -1797,6 +1797,251 @@ HWTEST_F(SceneSessionManagerTest2, ConfigSnapshotScale05, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ConfigAppDpiScale01
+ * @tc.desc: call ConfigAppDpiScale when appDpiScaleConfig is not configured, keep default range.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale01, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(0.8f);
+    ssm_->SetMaxDpiScale(1.2f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<snapshotScale>0.7</snapshotScale>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.8f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.2f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale02
+ * @tc.desc: call ConfigAppDpiScale when enable is false, keep default range.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale02, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(0.8f);
+    ssm_->SetMaxDpiScale(1.2f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"false\">"
+        "<maxDpiScale>1.5</maxDpiScale>"
+        "<minDpiScale>0.5</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.8f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.2f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale03
+ * @tc.desc: call ConfigAppDpiScale with valid range, update min and max.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale03, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"true\">"
+        "<maxDpiScale>1.5</maxDpiScale>"
+        "<minDpiScale>0.5</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.5f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.5f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale04
+ * @tc.desc: call ConfigAppDpiScale when enable is invalid, still parse the range.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale04, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"111\">"
+        "<maxDpiScale>1.25</maxDpiScale>"
+        "<minDpiScale>0.75</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.75f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.25f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale05
+ * @tc.desc: call ConfigAppDpiScale with invalid maxDpiScale and minDpiScale items, keep current range.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale05, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(0.8f);
+    ssm_->SetMaxDpiScale(1.2f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig>"
+        "<maxDpiScale>1.5 1.6</maxDpiScale>"
+        "<minDpiScale>aaa</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.8f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.2f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale06
+ * @tc.desc: call ConfigAppDpiScale with zero maxDpiScale and minDpiScale, keep current range.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale06, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(0.8f);
+    ssm_->SetMaxDpiScale(1.2f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"true\">"
+        "<maxDpiScale>0</maxDpiScale>"
+        "<minDpiScale>0</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.8f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.2f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale07
+ * @tc.desc: call ConfigAppDpiScale when minDpiScale is greater than maxDpiScale, keep current range.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale07, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(0.8f);
+    ssm_->SetMaxDpiScale(1.2f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"true\">"
+        "<maxDpiScale>1.0</maxDpiScale>"
+        "<minDpiScale>2.0</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.8f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.2f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale08
+ * @tc.desc: call ConfigAppDpiScale when only minDpiScale is configured, keep current max.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale08, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"true\">"
+        "<minDpiScale>0.5</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.5f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.0f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale09
+ * @tc.desc: call ConfigAppDpiScale when only maxDpiScale is configured, keep current min.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale09, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"true\">"
+        "<maxDpiScale>1.5</maxDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 1.0f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.5f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
+ * @tc.name: ConfigAppDpiScale10
+ * @tc.desc: call ConfigAppDpiScale with non-float maxDpiScale and multi-value minDpiScale, keep current range.
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerTest2, ConfigAppDpiScale10, TestSize.Level1)
+{
+    ssm_->SetMinDpiScale(0.8f);
+    ssm_->SetMaxDpiScale(1.2f);
+    std::string xmlStr =
+        "<?xml version='1.0' encoding=\"utf-8\"?>"
+        "<Configs>"
+        "<appDpiScaleConfig enable=\"true\">"
+        "<maxDpiScale>aaa</maxDpiScale>"
+        "<minDpiScale>0.5 0.6</minDpiScale>"
+        "</appDpiScaleConfig>"
+        "</Configs>";
+    WindowSceneConfig::config_ = ReadConfig(xmlStr);
+    ssm_->ConfigAppDpiScale();
+    EXPECT_FLOAT_EQ(ssm_->GetMinDpiScale(), 0.8f);
+    EXPECT_FLOAT_EQ(ssm_->GetMaxDpiScale(), 1.2f);
+    ssm_->SetMinDpiScale(1.0f);
+    ssm_->SetMaxDpiScale(1.0f);
+}
+
+/**
  * @tc.name: ConfigSystemUIStatusBar01
  * @tc.desc: call ConfigSystemUIStatusBar default.
  * @tc.type: FUNC
@@ -3000,7 +3245,8 @@ HWTEST_F(SceneSessionManagerTest2, GetSessionSnapshotById, TestSize.Level1)
 {
     ASSERT_NE(nullptr, ssm_);
     SessionSnapshot snapshot;
-    ssm_->GetSessionSnapshotById(100, snapshot);
+    std::string extraInfo;
+    ssm_->GetSessionSnapshotById(100, snapshot, extraInfo);
 }
 
 /**

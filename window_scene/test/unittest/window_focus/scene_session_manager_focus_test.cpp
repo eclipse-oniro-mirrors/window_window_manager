@@ -322,6 +322,44 @@ HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocus03, TestSize.Level1)
 }
 
 /**
+ * @tc.name: PostProcessFocusWithShowParams
+ * @tc.desc: test PostProcessFocus when shown by showAbility with windowFocused=false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerFocusTest, PostProcessFocusWithShowParams, TestSize.Level1)
+{
+    ssm_->sceneSessionMap_.clear();
+    auto focusGroup = ssm_->windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    ASSERT_NE(focusGroup, nullptr);
+    focusGroup->SetFocusedSessionId(0);
+
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "PostProcessFocusWithShowParams";
+    sessionInfo.abilityName_ = "PostProcessFocusWithShowParams";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(sessionInfo, nullptr);
+    sceneSession->persistentId_ = 1;
+
+    // showAbility with windowFocused=false keeps the window from being focused when shown
+    sceneSession->SetFocusedOnShow(false);
+    PostProcessFocusState state = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession->SetPostProcessFocusState(state);
+    ssm_->sceneSessionMap_.emplace(1, sceneSession);
+    ssm_->PostProcessFocus();
+    EXPECT_EQ(sceneSession->IsFocusedOnShow(), false);
+    EXPECT_EQ(0, focusGroup->GetFocusedSessionId());
+
+    // the window becomes visible: focusedOnShow is restored, but this round still does not focus
+    sceneSession->state_ = SessionState::STATE_FOREGROUND;
+    sceneSession->isVisible_ = true;
+    state = { true, true, true, FocusChangeReason::FOREGROUND };
+    sceneSession->SetPostProcessFocusState(state);
+    ssm_->sceneSessionMap_.emplace(1, sceneSession);
+    ssm_->PostProcessFocus();
+    EXPECT_EQ(sceneSession->IsFocusedOnShow(), true);
+    EXPECT_EQ(0, focusGroup->GetFocusedSessionId());
+}
+
+/**
  * @tc.name: PostProcessFocus04
  * @tc.desc: test PostProcessFocus with multiple sessions sorted by ZOrder
  * @tc.type: FUNC

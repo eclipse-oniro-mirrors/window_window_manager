@@ -135,7 +135,7 @@ public:
     virtual std::vector<DisplayPhysicalResolution> GetAllDisplayPhysicalResolution();
     virtual DMError GetDisplayCapability(std::string& capabilitInfo);
     virtual DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList);
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false);
     virtual std::shared_ptr<Media::PixelMap> GetScreenCapture(const CaptureOption& captureOption,
         DmErrorCode* errorCode = nullptr);
     virtual std::shared_ptr<Media::PixelMap> GetDisplaySnapshotWithOption(const CaptureOption& captureOption,
@@ -167,7 +167,7 @@ class ScreenManagerAdapter : public BaseAdapter {
 WM_DECLARE_SINGLE_INSTANCE(ScreenManagerAdapter);
 public:
     virtual ScreenId CreateVirtualScreen(VirtualScreenOption option,
-        const sptr<IDisplayManagerAgent>& displayManagerAgent);
+        const sptr<IDisplayManagerAgent>& displayManagerAgent, DMError* errorCode = nullptr);
     virtual DMError DestroyVirtualScreen(ScreenId screenId, bool isCallingByThirdParty = false);
     virtual DMError SetVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface);
     virtual DMError AddVirtualScreenSurface(ScreenId screenId, sptr<Surface> surface, const DMRect& surfaceRegion);

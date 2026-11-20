@@ -106,6 +106,7 @@ enum class JsSessionType : uint32_t {
     TYPE_SELECTION = 44,
     TYPE_FLOATING_BALL = 45,
     TYPE_FLOAT_VIEW = 46,
+    TYPE_ACCESSIBILITY_CALL_HELPER = 47,
 };
 
 extern const std::map<WindowType, JsSessionType> WINDOW_TO_JS_SESSION_TYPE_MAP;
@@ -166,7 +167,7 @@ bool ConvertProcessOptionFromJs(napi_env env, napi_value jsObject,
 napi_value CreateJsSessionPendingConfigs(napi_env env, const PendingSessionActivationConfig& config);
 napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     const std::shared_ptr<PendingSessionActivationConfig>& config = nullptr);
-void ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
+uint32_t ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
     const std::shared_ptr<SessionInfo>& sessionInfo);
 bool ConvertSessionResultFromJsValue(
     napi_env env, napi_value jsResult, uint32_t& resultCode, std::string& resultMessage);

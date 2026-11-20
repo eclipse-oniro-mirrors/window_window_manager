@@ -23,8 +23,6 @@
 #include <atomic>
 #include <chrono>
 #include <climits>
-#include <sstream>
-#include "configuration.h"
 #include <hitrace_meter.h>
 #include <type_traits>
 #ifdef IMF_ENABLE
@@ -36,6 +34,9 @@
 #include <key_event.h>
 #include <transaction/rs_sync_transaction_controller.h>
 #include <transaction/rs_transaction.h>
+#include <future>
+#include <sstream>
+#include "configuration.h"
 #include <ui/rs_surface_node.h>
 #include <ui_extension_utils.h>
 #include <feature/window_keyframe/rs_window_keyframe_node.h>
@@ -129,6 +130,7 @@ const int32_t SCREEN_LOCK_Z_ORDER = 2000;
 constexpr uint8_t MAX_DOWN_TIMES = 100;
 constexpr int32_t GET_SCENE_NODE_COUNT_TIMEOUT = 50;
 constexpr const long PRE_CALC_WINDOW_PROPERTY_TIMEOUT = 1000;
+constexpr int64_t GET_DRAG_MOVE_MOUNTED_NODE_TIMEOUT_MS = 1000;
 const std::string WANT_PARAM_GAME_PRELAUNCH = "ohos.params.gamePrelaunch";
 
 const std::unordered_set<std::string> TOUCH_OUTSIDE_EXCLUDE_BUNDLE_NAMES = {
@@ -553,6 +555,8 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
             TLOGI(WmsLogTag::WMS_LIFE, "%{public}s Current state is not a pre-state of foreground, skip", where);
             return WSError::WS_OK;
         }
+        // Restore the one-shot raiseTop state from showAbility on the normal show path.
+        session->SetRaiseTopOnShow(true);
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
             sessionProperty->SetWindowMode(property->GetWindowMode());
@@ -2344,6 +2348,26 @@ void SceneSession::SetAdjustKeyboardLayoutCallback(const NotifyKeyboardLayoutAdj
     }, __func__);
 }
 
+void SceneSession::SetStackRecoveryFlagChangeListener(const NotifyStackRecoveryFlagChangeFunc& func)
+{
+    PostTask([weakThis = wptr(this), func, where = __func__] {
+        auto session = weakThis.promote();
+        if (!session) {
+            TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
+            return WSError::WS_ERROR_DESTROYED_OBJECT;
+        }
+        session->stackRecoveryFlagChangeFunc_ = func;
+        return WSError::WS_OK;
+    }, __func__);
+}
+
+void SceneSession::NotifyStackRecoveryFlagChange(bool stackRecoveryFlag)
+{
+    if (stackRecoveryFlagChangeFunc_) {
+        stackRecoveryFlagChangeFunc_(stackRecoveryFlag);
+    }
+}
+
 void SceneSession::SetSessionPiPControlStatusChangeCallback(const NotifySessionPiPControlStatusChangeFunc& func)
 {
     PostTask([weakThis = wptr(this), func, where = __func__] {
@@ -2473,12 +2497,14 @@ float SceneSession::GetCoordinateScaleFactor() const
     return 1.0f;
 }
 
-void SceneSession::UpdateDpiForceScale()
+void SceneSession::UpdateDpiForceScale(float minDpiScale, float maxDpiScale, float dpiScaleStep)
 {
     // Recalculate dpiForceScale when density changes or session crosses screens.
     // C++ is authoritative for DPI change / cross-screen scenarios; TS only
     // computes the initial value during session creation and pushes it via
     // setDpiForceScale NAPI.
+    // The clamp range and step are owned by SceneSessionManager (parsed from
+    // window_manager_config.xml appDpiScaleConfig) and passed in by the caller.
     if (GetIsDpiForceScale()) {
         auto property = GetSessionProperty();
         if (property == nullptr) {
@@ -2486,8 +2512,10 @@ void SceneSession::UpdateDpiForceScale()
         }
         float currScreenDensity = GetScreenDensityById(property->GetDisplayId());
         float windowStartDensity = GetWindowStartDensity();
-        if (currScreenDensity > 0.0f && windowStartDensity > 0.0f) {
+        if (currScreenDensity > 0.0f && windowStartDensity > 0.0f && dpiScaleStep > 0.0f) {
             float newScale = currScreenDensity / windowStartDensity;
+            newScale = std::ceil(newScale / dpiScaleStep - 1e-6f) * dpiScaleStep;
+            newScale = MathHelper::Clamp(newScale, minDpiScale, maxDpiScale);
             SetDpiForceScale(newScale);
             TLOGNI(WmsLogTag::WMS_MAIN, "new dpiforcescale, id=%{public}d, dpiForceScale=%{public}f, "
                 "windowStartDensity=%{public}f, screenId:%{public}" PRIu64, GetPersistentId(),
@@ -2518,30 +2546,30 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
     auto newRequestRect = GetSessionRequestRect();
     bool isScbCoreEnabled = Session::IsScbCoreEnabled();
     if (reason == SizeChangeReason::MOVE) {
-        newWinRect.posX_ = convertedRect.posX_;
-        newWinRect.posY_ = convertedRect.posY_;
-        newRequestRect.posX_ = rect.posX_;
-        newRequestRect.posY_ = rect.posY_;
+        newWinRect.posX_ = rect.posX_;
+        newWinRect.posY_ = rect.posY_;
+        newRequestRect.posX_ = convertedRect.posX_;
+        newRequestRect.posY_ = convertedRect.posY_;
         if (!isScbCoreEnabled && !WindowHelper::IsMainWindow(GetWindowType())) {
             SetSessionRect(newWinRect);
         }
         SetSessionRequestRect(newRequestRect);
-        NotifySessionRectChange(newWinRect, reason, moveConfiguration.displayId);
+        NotifySessionRectChange(newRequestRect, reason, moveConfiguration.displayId);
     } else if (reason == SizeChangeReason::RESIZE || reason == SizeChangeReason::RESIZE_BY_LIMIT) {
         if (convertedRect.width_ > 0 && convertedRect.height_ > 0) {
-            newWinRect.width_ = convertedRect.width_;
-            newWinRect.height_ = convertedRect.height_;
-            newRequestRect.width_ = rect.width_;
-            newRequestRect.height_ = rect.height_;
+            newWinRect.width_ = rect.width_;
+            newWinRect.height_ = rect.height_;
+            newRequestRect.width_ = convertedRect.width_;
+            newRequestRect.height_ = convertedRect.height_;
         }
         if (!isScbCoreEnabled && GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
             SetSessionRect(newWinRect);
         }
-        auto notifyRect = newWinRect;
+        auto notifyRect = newRequestRect;
         if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId())) {
             notifyRect = rect;
         }
-        SetSessionRequestRect(newRequestRect);
+        SetSessionRequestRect(notifyRect);
         NotifySessionRectChange(notifyRect, reason);
     } else {
         if (!isScbCoreEnabled) {
@@ -3205,16 +3233,34 @@ WSError SceneSession::RaiseAppMainWindowToTop()
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
+        // Consume the one-shot suppression from showAbility with raiseTop=false.
+        bool raiseOnShow = session->IsRaiseTopOnShow();
+        session->SetRaiseTopOnShow(true);
         if (session->IsFocusedOnShow()) {
             FocusChangeReason reason = FocusChangeReason::MOVE_UP;
             session->NotifyRequestFocusStatusNotifyManager(true, true, reason);
-            session->NotifyClick(true, false);
+            if (raiseOnShow) {
+                session->NotifyClick(true, false);
+            }
         } else {
             session->SetFocusedOnShow(true);
         }
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
+}
+
+bool SceneSession::IsRaiseTopOnShow() const
+{
+    return raiseTopOnShow_;
+}
+
+void SceneSession::SetRaiseTopOnShow(bool raiseTopOnShow)
+{
+    if (raiseTopOnShow == raiseTopOnShow_) {
+        return;
+    }
+    raiseTopOnShow_ = raiseTopOnShow;
 }
 
 WSError SceneSession::OnNeedAvoid(bool status)
@@ -5628,7 +5674,37 @@ std::shared_ptr<Rosen::RSNode> SceneSession::GetWindowDragMoveMountedNode(Displa
         TLOGE(WmsLogTag::WMS_LAYOUT, "findScenePanelRsNodeByZOrderFunc_ is null");
         return nullptr;
     }
-    return findScenePanelRsNodeByZOrderFunc_(displayId, targetZOrder);
+    FindScenePanelRsNodeByZOrderFunc findFunc = findScenePanelRsNodeByZOrderFunc_;
+    auto mainRunner = mainHandler_ != nullptr ? mainHandler_->GetEventRunner() : nullptr;
+    if (mainRunner == nullptr || mainRunner->IsCurrentRunnerThread()) {
+        return findFunc(displayId, targetZOrder);
+    }
+    auto nodePromise = std::make_shared<std::promise<std::shared_ptr<Rosen::RSNode>>>();
+    auto nodeFuture = nodePromise->get_future();
+    auto findTask = [findFunc, nodePromise, displayId, targetZOrder] {
+        nodePromise->set_value(findFunc(displayId, targetZOrder));
+    };
+    auto startTime = std::chrono::steady_clock::now();
+    bool postResult = mainHandler_->PostTask(std::move(findTask), "wms:FindWindowDragMoveMountedNode", 0,
+        AppExecFwk::EventQueue::Priority::IMMEDIATE);
+    if (!postResult) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "post find mounted node task to main thread failed, "
+            "displayId: %{public}" PRIu64 ", persistentId: %{public}d", displayId, GetPersistentId());
+        return nullptr;
+    }
+    HITRACE_METER_FMT(HITRACE_TAG_WINDOW_MANAGER, "wms:FindWindowDragMoveMountedNode");
+    if (nodeFuture.wait_for(std::chrono::milliseconds(GET_DRAG_MOVE_MOUNTED_NODE_TIMEOUT_MS)) ==
+        std::future_status::timeout) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "find mounted node timeout, displayId: %{public}" PRIu64
+            ", persistentId: %{public}d, timeoutMs: %{public}" PRId64, displayId, GetPersistentId(),
+            GET_DRAG_MOVE_MOUNTED_NODE_TIMEOUT_MS);
+        return nullptr;
+    }
+    int64_t elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - startTime).count();
+    TLOGI(WmsLogTag::WMS_LAYOUT, "find mounted node cost: %{public}" PRId64 "us, displayId: %{public}" PRIu64
+        ", persistentId: %{public}d", elapsedUs, displayId, GetPersistentId());
+    return nodeFuture.get();
 }
 
 /** @note @window.drag */
@@ -6771,6 +6847,33 @@ void SceneSession::SetSystemTouchable(bool touchable)
     NotifyAccessibilityVisibilityChange();
 }
 
+static SessionInfo MakeSessionInfoDuringVisibilityChange(const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
+    const sptr<SceneSession>& session)
+{
+    SessionInfo info;
+    info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
+    info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
+    info.moduleName_ = abilitySessionInfo->want.GetModuleName();
+    int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
+    info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
+    info.persistentId_ = abilitySessionInfo->persistentId;
+    info.callerPersistentId_ = session->GetPersistentId();
+    info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
+    info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
+    info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
+    info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
+    info.requestId = abilitySessionInfo->requestId;
+    info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
+    info.requestCode = abilitySessionInfo->requestCode;
+    info.callerToken_ = abilitySessionInfo->callerToken;
+    info.startSetting = abilitySessionInfo->startSetting;
+    info.callingTokenId_ = abilitySessionInfo->callingTokenId;
+    info.reuse = abilitySessionInfo->reuse;
+    info.processOptions = abilitySessionInfo->processOptions;
+    info.showParams = abilitySessionInfo->showParams;
+    return info;
+}
+
 WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
     const sptr<AAFwk::SessionInfo> abilitySessionInfo, bool visible)
 {
@@ -6793,26 +6896,18 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
 
-        SessionInfo info;
-        info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
-        info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
-        info.moduleName_ = abilitySessionInfo->want.GetModuleName();
-        int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
-        info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
-        info.persistentId_ = abilitySessionInfo->persistentId;
-        info.callerPersistentId_ = session->GetPersistentId();
-        info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
-        info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
-        info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
-        info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
-        info.requestId = abilitySessionInfo->requestId;
-        info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
-        info.requestCode = abilitySessionInfo->requestCode;
-        info.callerToken_ = abilitySessionInfo->callerToken;
-        info.startSetting = abilitySessionInfo->startSetting;
-        info.callingTokenId_ = abilitySessionInfo->callingTokenId;
-        info.reuse = abilitySessionInfo->reuse;
-        info.processOptions = abilitySessionInfo->processOptions;
+        SessionInfo info = MakeSessionInfoDuringVisibilityChange(abilitySessionInfo, session);
+
+        if (visible && info.showParams != nullptr) {
+            if (!info.showParams->windowFocused) {
+                // Same as start with PARAM_RESV_WINDOW_FOCUSED, restored when the window has been visible.
+                session->SetFocusedOnShow(false);
+            }
+        }
+        if (visible) {
+            // One-shot for the coming show, restored when the app window shows again.
+            session->SetRaiseTopOnShow(info.showParams == nullptr || info.showParams->raiseTop);
+        }
 
         if (session->changeSessionVisibilityWithStatusBarFunc_) {
             session->changeSessionVisibilityWithStatusBarFunc_(info, visible);
@@ -11110,7 +11205,7 @@ WSError SceneSession::ConvertRotationToOrientation(uint32_t rotation,
     DisplayOrientation displayOrientation =
         screenSession->CalcDeviceOrientationWithBounds(targetRotation, foldDisplayMode, bounds);
     orientation = static_cast<uint32_t>(displayOrientation);
-    TLOGI(WmsLogTag::WMS_ROTATION,
+    TLOGD(WmsLogTag::WMS_ROTATION,
         "rotation: %{public}d, width: %{public}d, height: %{public}d, orientation: %{public}d",
         rotation, width, height, orientation);
     return WSError::WS_OK;
@@ -11131,7 +11226,7 @@ void SceneSession::SetPreCalcWindowPropertyCallback(const NotifyPreCalcWindowPro
 
 PreWindowProperty SceneSession::PreCalcWindowProperty()
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "start");
+    TLOGD(WmsLogTag::WMS_ROTATION, "start");
     if (!preCalcWindowPropertyFunc_) {
         TLOGE(WmsLogTag::WMS_ROTATION, "preCalcWindowPropertyFunc_ is null");
         return PreWindowProperty();
@@ -11321,13 +11416,13 @@ WSError SceneSession::GetSceneNodeCountWithTimeout(uint32_t& nodeCount, int32_t 
         nodeCount = 0;
         return WSError::WS_ERROR_NULLPTR;
     }
-    TLOGI(WmsLogTag::WMS_ROTATION, "start, winId:%{public}d, timeout:%{public}dms", GetPersistentId(), timeoutMs);
+    TLOGD(WmsLogTag::WMS_ROTATION, "start, winId:%{public}d, timeout:%{public}dms", GetPersistentId(), timeoutMs);
     auto callback = sptr<SceneNodeCountCallback>::MakeSptr();
     callback->ResetResult();
     sessionStage_->GetSceneNodeCount(callback->AsObject());
-    TLOGI(WmsLogTag::WMS_ROTATION, "wait start, winId:%{public}d", GetPersistentId());
+    TLOGD(WmsLogTag::WMS_ROTATION, "wait start, winId:%{public}d", GetPersistentId());
     nodeCount = callback->GetResult(timeoutMs);
-    TLOGI(WmsLogTag::WMS_ROTATION, "wait end, winId:%{public}d, nodeCount:%{public}u", GetPersistentId(), nodeCount);
+    TLOGD(WmsLogTag::WMS_ROTATION, "wait end, winId:%{public}d, nodeCount:%{public}u", GetPersistentId(), nodeCount);
     return WSError::WS_OK;
 }
 
@@ -11365,7 +11460,7 @@ WSError SceneSession::UpdateRotationChangeRegistered(int32_t persistentId, bool 
                 TLOGNE(WmsLogTag::WMS_ROTATION, "%{public}s session is null", where);
                 return;
             }
-            TLOGI(
+            TLOGD(
                 WmsLogTag::WMS_ROTATION, "persistentId: %{public}d, isRegister: %{public}d", persistentId, isRegister);
             if (isRegister) {
                 session->isRotationChangeCallbackRegistered = true;

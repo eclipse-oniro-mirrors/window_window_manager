@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -635,6 +635,8 @@ WMError WindowSceneSessionImpl::RecoverAndConnectSpecificSession()
     auto context = GetContext();
     sptr<IRemoteObject> token = context ? context->GetToken() : nullptr;
     windowRecoverStateChangeFunc_(true, WindowRecoverState::WINDOW_DOING_RECONNECT);
+    property_->SetIsDpiForceScale(isDpiForceScale_);
+    property_->SetWindowStartDensity(windowStartDensity_);
     SingletonContainer::Get<WindowAdapter>().RecoverAndConnectSpecificSession(
         iSessionStage, eventChannel, surfaceNode_, property_, session, token);
 
@@ -685,6 +687,8 @@ WMError WindowSceneSessionImpl::RecoverAndReconnectSceneSession()
     sptr<IRemoteObject> token = context ? context->GetToken() : nullptr;
     sptr<Rosen::ISession> session = nullptr;
     windowRecoverStateChangeFunc_(false, WindowRecoverState::WINDOW_DOING_RECONNECT);
+    property_->SetIsDpiForceScale(isDpiForceScale_);
+    property_->SetWindowStartDensity(windowStartDensity_);
     auto ret = SingletonContainer::Get<WindowAdapter>().RecoverAndReconnectSceneSession(
         iSessionStage, iWindowEventChannel, surfaceNode_, session, property_, token);
     if (session == nullptr) {
@@ -2789,6 +2793,7 @@ void WindowSceneSessionImpl::SetDefaultProperty()
         case WindowType::WINDOW_TYPE_MAGNIFICATION:
         case WindowType::WINDOW_TYPE_MAGNIFICATION_MENU:
         case WindowType::WINDOW_TYPE_SELECTION:
+        case WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER:
         case WindowType::WINDOW_TYPE_DYNAMIC: {
             property_->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
             break;
@@ -3633,7 +3638,7 @@ WMError WindowSceneSessionImpl::GetTargetOrientationConfigInfo(Orientation targe
     Ace::ViewportConfig currentConfig = FillTargetOrientationConfig(currentInfo, displayInfo, GetDisplayId());
     currentViewportConfigAndAvoidArea.config = std::make_shared<Ace::ViewportConfig>(currentConfig);
     currentViewportConfigAndAvoidArea.avoidAreas = currentInfo.avoidAreas;
-    TLOGI(WmsLogTag::WMS_ROTATION,
+    TLOGD(WmsLogTag::WMS_ROTATION,
         "win:%{public}u, rotate:%{public}d, rect:%{public}s, avoidAreas:%{public}s,%{public}s,%{public}s,%{public}s",
         GetWindowId(), info.rotation, info.rect.ToString().c_str(),
         info.avoidAreas[AvoidAreaType::TYPE_SYSTEM].ToString().c_str(),
@@ -8244,7 +8249,7 @@ WMError WindowSceneSessionImpl::SetWindowMaskWithAlpha(const uint8_t* windowMask
     std::shared_ptr<Media::PixelMap> mask = HandleWindowMaskWithAlpha(windowMask, maskWidth, maskHeight);
     if (mask == nullptr) {
         TLOGE(WmsLogTag::WMS_EVENT, "Failed to create pixelMap of window mask");
-        return WMError::WM_ERROR_INVALID_WINDOW;
+        return WMError::WM_ERROR_INVALID_OPERATION;
     }
     return ApplyWindowMask(mask);
 }
@@ -9661,7 +9666,7 @@ WMError WindowSceneSessionImpl::GetRotationLocked(bool& locked)
     }
  
     locked = property_->GetRotationLocked();
-    TLOGI(WmsLogTag::WMS_ROTATION, "get id %{public}u rotation lock %{public}d.", GetWindowId(), locked);
+    TLOGD(WmsLogTag::WMS_ROTATION, "get id %{public}u rotation lock %{public}d.", GetWindowId(), locked);
     return WMError::WM_OK;
 }
 

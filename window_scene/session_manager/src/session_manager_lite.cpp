@@ -522,6 +522,12 @@ void SessionManagerLite::OnUserSwitch(const sptr<ISessionManagerService>& sessio
     }
 }
 
+bool SessionManagerLite::IsSelfRouteRequest() const
+{
+    return userId_ != INVALID_USER_ID && userId_ != SYSTEM_USERID &&
+        userId_ == GetUserIdByUid(getuid());
+}
+
 WMError SessionManagerLite::InitSessionManagerServiceProxy()
 {
     {
@@ -543,7 +549,7 @@ WMError SessionManagerLite::InitSessionManagerServiceProxy()
     }
     sptr<IRemoteObject> remoteObject = nullptr;
     ret = static_cast<WMError>(
-        userId_ == INVALID_USER_ID
+        (userId_ == INVALID_USER_ID || IsSelfRouteRequest())
             ? mockSMSProxy->GetSessionManagerService(remoteObject)
             : mockSMSProxy->GetSessionManagerServiceByUserId(userId_, remoteObject));
     if (ret != WMError::WM_OK) {

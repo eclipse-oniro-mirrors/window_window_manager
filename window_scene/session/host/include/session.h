@@ -376,6 +376,7 @@ public:
         // Skip blur processing for SceneBoard UI animation snapshots.
         // Only for SceneBoard UI animation, cannot use with privacy window.
         bool disableBlur = false;
+        bool ignorePersistence = false;
     };
 
     std::shared_ptr<Media::PixelMap> GetSnapshot() const;
@@ -398,7 +399,7 @@ public:
     void SaveStartWindow(const std::shared_ptr<Media::PixelMap>& pixelMap, const std::string& saveStartWindowKey);
     bool CropSnapshotPixelMap(const std::shared_ptr<Media::PixelMap>& pixelMap, const WSRect& rect,
         float scaleValue) const;
-    bool CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode) const;
+    bool CheckSurfaceNodeForSnapshot(std::shared_ptr<RSSurfaceNode> surfaceNode, bool ignorePersistence = false) const;
     bool GetNeedUseBlurSnapshot() const;
     void UpdateAppLockSnapshot(ControlAppType type, ControlInfo controlInfo);
     virtual bool GetIsPrivacyMode() const { return false; };
@@ -557,6 +558,8 @@ public:
     void SetBufferAvailable(bool bufferAvailable, bool startWindowInvisible = false);
     bool GetBufferAvailable() const;
     void SetNeedSnapshot(bool needSnapshot);
+    void SetTryUseSnapshot(bool tryUseSnapshot);
+    bool GetTryUseSnapshot() const;
     virtual void SetExitSplitOnBackground(bool isExitSplitOnBackground);
     virtual bool IsExitSplitOnBackground() const;
     virtual bool NeedStartingWindowExitAnimation() const { return true; }
@@ -639,7 +642,7 @@ public:
     float GetBrightness() const;
     void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
         const std::shared_ptr<RSTransaction>& rsTransaction = nullptr,
-        const Rect& callingSessionRect = {}, const std::map<AvoidAreaType, AvoidArea>& = {});
+        const std::map<AvoidAreaType, AvoidArea>& = {});
     void SetSessionInfoLockedStateChangeListener(const NotifySessionInfoLockedStateChangeFunc& func);
     void NotifySessionInfoLockedStateChange(bool lockedState);
     void SetContextTransparentFunc(const NotifyContextTransparentFunc& func);
@@ -1192,6 +1195,7 @@ protected:
 
     SystemSessionConfig systemConfig_;
     bool needSnapshot_ = false;
+    bool tryUseSnapshot_ = false;
     float snapshotScale_ = 0.5;
     bool enablePersistentScaledSnapshot_ = false;
     sptr<ScenePersistence> scenePersistence_ = nullptr;

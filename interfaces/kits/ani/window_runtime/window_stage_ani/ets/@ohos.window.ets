@@ -1805,6 +1805,16 @@ export class WindowCreateParamsInternal implements WindowCreateParams {
     excludeFromRecent?: boolean;
 }
 
+export interface WindowShowParams {
+    windowFocused?: boolean;
+    raiseTop?: boolean;
+}
+
+export class WindowShowParamsInternal implements WindowShowParams {
+    windowFocused?: boolean;
+    raiseTop?: boolean;
+}
+
 /**
  * Limits of window.
  *
@@ -2619,6 +2629,7 @@ export class ExtConfigSubWindowOptions implements SubWindowOptions {
   maximizeSupported?: boolean;
   zLevel?: int;
   outlineEnabled?: boolean;
+  zLevelAboveParentLoosened?: boolean;
 
   set title(value: string) {
     this.setTitle(this.nativeObj, value);

@@ -73,6 +73,7 @@ private:
     int HandleSetAppDragResizeType(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppDragResizeType(MessageParcel& data, MessageParcel& reply);
     int HandleSetAppKeyFramePolicy(MessageParcel& data, MessageParcel& reply);
+    int HandleGetSessionSnapshotById(MessageParcel& data, MessageParcel& reply);
     int HandleListWindowInfo(MessageParcel& data, MessageParcel& reply);
     int HandleRegisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
     int HandleUnregisterWindowPropertyChangeAgent(MessageParcel& data, MessageParcel& reply);
@@ -125,6 +126,7 @@ private:
     int HandleUnregisterPipChgListener(MessageParcel& data, MessageParcel& reply);
     int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateRogWindowConfig(MessageParcel& data, MessageParcel& reply);
+    int HandleNotifyStackRecoverFromAMS(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateSessionsExcludeParam(MessageParcel& data, MessageParcel& reply);
     int ProcessRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option);
 };

@@ -172,7 +172,7 @@ using GetRSNodeByStringIDFunc = std::function<std::shared_ptr<Rosen::RSNode>(con
 using SetTopWindowBoundaryByIDFunc = std::function<void(const std::string& id)>;
 using SetForegroundWindowNumFunc = std::function<void(uint32_t windowNum)>;
 using MinimizeByWindowIdFunc = std::function<void(const std::vector<int32_t>& windowIds)>;
-using NotifySceneSessionDestructFunc = std::function<void(int32_t persistentId)>;
+using NotifySceneSessionDestructFunc = std::function<void(int32_t persistentId, bool isUserRequestedExit)>;
 using NotifyTransferSessionToTargetScreenFunc = std::function<void(const TransferSessionInfo& info)>;
 using HasRootSceneRequestedVsyncFunc = std::function<bool()>;
 using RequestVsyncByRootSceneWhenModeChangeFunc =
@@ -448,7 +448,7 @@ public:
     WSError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener) override;
     WSError GetSessionSnapshot(const std::string& deviceId, int32_t persistentId,
         SessionSnapshot& snapshot, bool isLowResolution) override;
-    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot) override;
+    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo) override;
     WSError SetVmaCacheStatus(bool flag);
     WSError GetUIContentRemoteObj(int32_t persistentId, sptr<IRemoteObject>& uiContentRemoteObj) override;
     WMError GetRootUIContentRemoteObj(DisplayId displayId, sptr<IRemoteObject>& uiContentRemoteObj) override;
@@ -659,7 +659,7 @@ public:
      * Free Multi Window
      */
     WSError SwitchFreeMultiWindow(bool enable);
-    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId);
+    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId, bool isForce = true);
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError SetForegroundWindowNum(uint32_t windowNum) override;
     void RegisterSetForegroundWindowNumCallback(SetForegroundWindowNumFunc&& func);
@@ -706,7 +706,7 @@ public:
     void SetHasRootSceneRequestedVsyncFunc(HasRootSceneRequestedVsyncFunc&& func);
     void SetRequestVsyncByRootSceneWhenModeChangeFunc(RequestVsyncByRootSceneWhenModeChangeFunc&& func);
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
-    void UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow);
+    void UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow, bool isForce = true);
     void UpdateRsCmdBlockingCount(bool enable);
     int32_t GetOrResetRsCmdBlockingCount();
     void RegisterGetRsCmdBlockingCountFunc(const sptr<SceneSession>& sceneSession);
@@ -877,8 +877,14 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig);
     void RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func);
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover);
     WMError HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession, int32_t callingUid,
         const GameAdaptiveResolutionConfig& config);
+    WMError CheckAdaptiveResolutionEnable(const sptr<SceneSession>& sceneSession, int32_t callingUid,
+        int32_t persistentId);
+    void ResetAdaptiveWindowGravity(const sptr<SceneSession>& sceneSession);
+    void CancelAdaptiveResolutionOnFmwSwitch();
+    void RestoreAdaptiveResolutionOnFmwSwitch();
     bool UpdateAdaptiveResolutionMaps(int32_t windowId, int32_t callingUid,
         const GameAdaptiveResolutionConfig& config);
     WMError SetGameAdaptiveResolutionForWindow(const GameAdaptiveResolutionConfig& config) override;
@@ -908,6 +914,8 @@ public:
         const GameAdaptiveResolutionConfig& config);
     sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
         sptr<WindowSessionProperty> property = nullptr);
+    sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
+        sptr<WindowSessionProperty> property, bool& isNewSession);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
     WSError RequestSceneSessionActivation(const sptr<SceneSession>& sceneSession, bool isNewActive,
         bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID);
@@ -1073,11 +1081,22 @@ public:
     void SetSelectMode(SelectMode selectMode);
     SelectMode GetSelectMode() const;
 
+    /**
+     * Reset Want info
+     */
+    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
+
 protected:
     SceneSessionManager();
     virtual ~SceneSessionManager();
 
 private:
+    friend class DisplayChangeListener;
+    friend class ScreenConnectionChangeListener;
+    // Invalidate the per-user default display id cache. Hooked to user switch,
+    // screen connect/disconnect, display change and fold change so the next default display
+    // lookup re-resolves the authoritative value instead of returning a stale id.
+    void InvalidateDefaultDisplayIdCache();
     std::atomic<bool> enterRecent_ { false };
     std::atomic<bool> scbIsRecent_ { false };
     bool isKeyboardPanelEnabled_ = false;
@@ -1205,6 +1224,11 @@ private:
     void ConfigDialogWindowSizeLimits(const WindowSceneConfig::ConfigItem& dialogWindowSizeConifg);
     void ConfigSnapshotScale();
     void ConfigFreeMultiWindow();
+    void ConfigAppDpiScale();
+    void SetMinDpiScale(float scale) { minDpiScale_ = scale; }
+    void SetMaxDpiScale(float scale) { maxDpiScale_ = scale; }
+    float GetMinDpiScale() const { return minDpiScale_; }
+    float GetMaxDpiScale() const { return maxDpiScale_; }
     void LoadFreeMultiWindowConfig(bool enable);
     void DoUpdateSceneSessionWant(const SessionInfo& sessionInfo);
     void AddOptionWindowMetaInfo(sptr<WindowInfo> &windowInfo, const sptr<SceneSession> &session);
@@ -1271,7 +1295,6 @@ private:
     void GetAllClearableSessions(std::vector<sptr<SceneSession>>& sessionVector);
     sptr<AAFwk::SessionInfo> SetAbilitySessionInfo(const sptr<SceneSession>& sceneSession,
         int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID, bool useRequestTaskInfo = false);
-    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
     void ResetSceneSessionInfoWant(const sptr<AAFwk::SessionInfo>& sceneSessionInfo);
     int32_t StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSession>& sceneSession,
         const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
@@ -1675,6 +1698,12 @@ private:
 
     SystemSessionConfig systemConfig_;
     float snapshotScale_ = 0.5;
+    /*
+     * app dpi scale clamp range, parsed from window_manager_config.xml appDpiScaleConfig
+     */
+    static constexpr float DPI_SCALE_STEP = 0.05f;
+    float minDpiScale_ {1.0f};
+    float maxDpiScale_ {1.0f};
     int32_t brightnessSessionId_ = INVALID_SESSION_ID;
     float displayBrightness_ = UNDEFINED_BRIGHTNESS;
     bool isScreenLocked_ { false };
@@ -1742,13 +1771,17 @@ private:
     /*
      * Multi User
      */
-    // Resolve DISPLAY_ID_INVALID sentinel to the default display of this SCB instance's user;
-    // explicit displayId (0 or non-zero) passes through unchanged. Must be called on the IPC
-    // thread (GetCallingUid() only reliable there), before PostSyncTask.
     DisplayId ResolveDefaultDisplayId(DisplayId displayId);
+    DisplayId GetInstanceUserDefaultDisplay();
+    DisplayId GetDefaultDisplayIdByUserId(int32_t userId);
     static constexpr int32_t DEFAULT_USERID = -1;
     std::atomic<int32_t> currentUserId_ { DEFAULT_USERID };
     std::atomic<bool> isUserBackground_ { false };
+    // Event-driven cache: userId -> default display id. Populated on cache miss by falling back to
+    // the authoritative DMS resolution (GetDefaultDisplaySync), cleared on user switch / screen
+    // connect-disconnect / display property change / fold change (lazy re-resolution). O(1) read on hit.
+    std::unordered_map<int32_t, DisplayId> userDefaultDisplayIdCache_;
+    std::mutex userDefaultDisplayIdCacheMutex_;
 
     std::atomic<int32_t> flushWindowInfoCount_ { 0 };
     std::atomic<bool> isDelayFlushWindowInfoMode_ { false };
@@ -1860,7 +1893,7 @@ private:
     sptr<SceneSession> GetKeyboardSession(DisplayId displayId, bool isSystemKeyboard);
     void HandleKeyboardAvoidChange(const sptr<SceneSession>& sceneSession, DisplayId displayId,
         SystemKeyboardAvoidChangeReason reason);
-    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive);
+    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive, DisplayId displayId);
 
     /*
      * Specific Window
@@ -2287,6 +2320,7 @@ private:
     RogWindowConfig rogWindowConfig_;
     std::mutex updateRogWindowConfigCallbackMutex_;
     UpdateRogWindowConfigCallbackFunc updateRogWindowConfigCallback_;
+    void AddFloatViewMissionIds(std::vector<uint64_t>& missionIds, const std::vector<uint32_t>& needWindowTypeList);
 
     std::mutex adaptiveResolutionMutex_;
     // windowId -> game uid

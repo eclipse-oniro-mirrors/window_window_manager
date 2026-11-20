@@ -1157,11 +1157,9 @@ DisplayId WindowAdapter::ResolveDefaultDisplayId(DisplayId displayId)
     if (displayId != DISPLAY_ID_INVALID) {
         return displayId;
     }
-    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
-    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
-    static const bool g_defaultDisplayResolve =
-        system::GetBoolParameter("persist.window.default_display_resolve", false);
-    if (!g_defaultDisplayResolve) {
+    // Keep the legacy behavior (default display fixed to 0) until multi-instance is enabled.
+    // IsMultiInstanceEnabled() caches its own switch, so querying it per call is cheap.
+    if (!IsMultiInstanceEnabled()) {
         return DEFAULT_DISPLAY_ID;
     }
     auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId_);

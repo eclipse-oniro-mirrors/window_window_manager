@@ -616,6 +616,26 @@ void ScreenSessionManagerAdapter::NotifyAbnormalScreenConnectChange(ScreenId scr
         agent->NotifyAbnormalScreenConnectChange(screenId);
     }
 }
+
+bool ScreenSessionManagerAdapter::CheckNotifyAgentForConcurrentUser(int32_t foregroundUserId,
+    AgentDisplayInfo agentDispInfo, DisplayId displayId)
+{
+    int32_t agentUserId = agentDispInfo.userId;
+    if (agentUserId == INVALID_USER_ID || agentUserId == USER_ID_DEFAULT) {
+        return true;
+    }
+    if (foregroundUserId != INVALID_USER_ID && agentUserId != foregroundUserId) {
+        TLOGD(WmsLogTag::DMS, "skip agent, agentUserId: %{public}d != foregroundUserId: %{public}d",
+            agentUserId, foregroundUserId);
+        return false;
+    }
+    if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
+        TLOGD(WmsLogTag::DMS, "skip agent, displayId: %{public}" PRIu64 " not in agent's displayIds set", displayId);
+        return false;
+    }
+    return true;
+}
+
 void ScreenSessionManagerAdapter::OnDisplayChangeForConcurrentUser(sptr<DisplayInfo> displayInfo,
     DisplayChangeEvent event)
 {
@@ -642,24 +662,15 @@ void ScreenSessionManagerAdapter::OnDisplayChangeForConcurrentUser(sptr<DisplayI
         if (agent == nullptr) {
             continue;
         }
-        int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID &&
-            foregroundUserId != USER_ID_DEFAULT && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS,
-                "skip agent, agentUserId: %{public}d != foregroundUserId: %{public}d, displayId: %{public}" PRIu64,
-                agentUserId, foregroundUserId, displayId);
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
-            TLOGD(
-                WmsLogTag::DMS, "skip agent, displayId: %{public}" PRIu64 " not in agent's displayIds set", displayId);
-            continue;
-        }
+        int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
         if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid, DisplayManagerAgentType::DISPLAY_EVENT_LISTENER)) {
             agent->OnDisplayChange(displayInfo, event);
-            notifiedPids << " [pid:" << agentPid << ", uid:" << agentUserId << "]";
+            notifiedPids << " [pid:" << agentPid << ", uid:" << agentDispInfo.userId << "]";
         }
     }
     TLOGNI(WmsLogTag::DMS,
@@ -717,17 +728,8 @@ std::set<sptr<IDisplayManagerAgent>> ScreenSessionManagerAdapter::GetFilteredAge
             continue;
         }
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS, "skip agent, agentUserId: %{public}d != foregroundUserId: %{public}d",
-                agentUserId, foregroundUserId);
-            continue;
-        }
-
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
-            TLOGD(
-                WmsLogTag::DMS, "skip agent, displayId: %{public}" PRIu64 " not in agent's displayIds set", displayId);
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
 
@@ -773,17 +775,8 @@ void ScreenSessionManagerAdapter::OnDisplayAttributeChangeForConcurrentUser(sptr
             continue;
         }
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID &&
-            foregroundUserId != USER_ID_DEFAULT && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS, "skip agent, agentUserId: %{public}d != foregroundUserId: %{public}d",
-                agentUserId, foregroundUserId);
-            continue;
-        }
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
-            TLOGD(
-                WmsLogTag::DMS, "skip agent, displayId: %{public}" PRIu64 " not in agent's displayIds set", displayId);
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
         int32_t agentPid = dmAttributeAgentContainer_.GetAgentPid(agent);
@@ -824,24 +817,14 @@ void ScreenSessionManagerAdapter::OnScreenChangeForConcurrentUser(sptr<ScreenInf
             continue;
         }
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID &&
-            foregroundUserId != USER_ID_DEFAULT && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS,
-                  "skip agent, agentUserId:%{public}d != foregroundUserId:%{public}d",
-                  agentUserId,
-                  foregroundUserId);
-            continue;
-        }
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
-            TLOGD(WmsLogTag::DMS, "skip agent, displayId:%{public}" PRIu64 " not in agent's displayIds set", displayId);
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
         if (!ScreenSessionManager::GetInstance().IsFreezed(agentPid, DisplayManagerAgentType::SCREEN_EVENT_LISTENER)) {
             agent->OnScreenChange(screenInfo, event);
-            notifiedPids << " [pid:" << agentPid << ", uid:" << agentUserId << "]";
+            notifiedPids << " [pid:" << agentPid << ", uid:" << agentDispInfo.userId << "]";
         }
     }
     TLOGNI(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", agent size:%{public}u, notified:[%{public}s]",
@@ -868,14 +851,8 @@ void ScreenSessionManagerAdapter::OnDisplayCreateForConcurrentUser(sptr<DisplayI
     }
     for (auto& agent : agents) {
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID &&
-            foregroundUserId != USER_ID_DEFAULT && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS, "skip agent, agentUserId:%{public}d != UserId:%{public}d",
-                agentUserId, foregroundUserId);
-            continue;
-        }
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
@@ -899,16 +876,8 @@ void ScreenSessionManagerAdapter::OnDisplayDestroyForConcurrentUser(DisplayId di
     }
     for (auto& agent : agents) {
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID &&
-            foregroundUserId != USER_ID_DEFAULT && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS, "skip agent, agentUserId:%{public}d != UserId:%{public}d",
-                agentUserId, foregroundUserId);
-            continue;
-        }
-
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
         int32_t agentPid = dmAgentContainer_.GetAgentPid(agent);
@@ -943,14 +912,8 @@ void ScreenSessionManagerAdapter::OnScreenConnectForConcurrentUser(const sptr<Sc
             continue;
         }
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID &&
-            foregroundUserId != USER_ID_DEFAULT && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS, "skip agent, agentUserId:%{public}d != foregroundUserId:%{public}d",
-                agentUserId, foregroundUserId);
-            continue;
-        }
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
         agent->OnScreenConnect(screenInfo);
@@ -977,14 +940,8 @@ void ScreenSessionManagerAdapter::OnScreenDisconnectForConcurrentUser(ScreenId s
             continue;
         }
         AgentDisplayInfo agentDispInfo = GetAgentDisplayInfo(agent);
-        int32_t agentUserId = agentDispInfo.userId;
-        if (foregroundUserId != INVALID_USER_ID && agentUserId != INVALID_USER_ID &&
-            foregroundUserId != USER_ID_DEFAULT && agentUserId != foregroundUserId) {
-            TLOGD(WmsLogTag::DMS, "skip agent, agentUserId:%{public}d != foregroundUserId:%{public}d",
-                agentUserId, foregroundUserId);
-            continue;
-        }
-        if (agentDispInfo.displayIds.find(displayId) == agentDispInfo.displayIds.end()) {
+        if (!CheckNotifyAgentForConcurrentUser(foregroundUserId, agentDispInfo, displayId)) {
+            TLOGD(WmsLogTag::DMS, "skip agent");
             continue;
         }
         agent->OnScreenDisconnect(screenId);

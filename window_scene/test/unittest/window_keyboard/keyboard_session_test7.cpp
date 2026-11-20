@@ -932,7 +932,9 @@ HWTEST_F(KeyboardSessionTest7, NotifyRootSceneOccupiedAreaChange01, TestSize.Lev
     keyboardSession->property_->SetDisplayId(100);
     sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
     ASSERT_NE(info, nullptr);
-    keyboardSession->NotifyRootSceneOccupiedAreaChange(info);
+    sptr<AvoidArea> avoidArea = sptr<AvoidArea>::MakeSptr();
+    ASSERT_NE(avoidArea, nullptr);
+    keyboardSession->NotifyRootSceneOccupiedAreaChange(info, avoidArea);
     EXPECT_NE(keyboardSession->property_, nullptr);
 }
 

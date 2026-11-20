@@ -137,7 +137,8 @@ public:
     void NotifyScreenshot(DisplayId displayId);
     virtual bool RegisterClientDeathListener(sptr<IRemoteObject> reverseDeathObject) override;
     void NotifyRecordingDisplayChanged(const std::vector<DisplayId>& displayIds);
-    ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent) override;
+    ScreenId CreateVirtualScreen(VirtualScreenOption option, const sptr<IRemoteObject>& displayManagerAgent,
+        DMError* errorCode = nullptr) override;
     std::vector<uint64_t> FilterMissionIdsBySurfaceNodeIds(const std::vector<uint64_t>& missionIds,
         const std::vector<uint64_t>& surfaceNodeIds);
     bool SetVirtualScreenUser(ScreenId screenId, int32_t userId);
@@ -192,6 +193,7 @@ public:
     virtual sptr<DisplayInfo> GetVisibleAreaDisplayInfoById(DisplayId displayId) override;
     sptr<DisplayInfo> GetDisplayInfoByScreen(ScreenId screenId) override;
     std::vector<DisplayId> GetAllDisplayIds(int32_t userId = CONCURRENT_USER_ID_DEFAULT) override;
+    std::vector<DisplayId> GetAllDisplayIdsInner(const std::vector<DisplayId>& filterScreenIds, const int32_t& userId);
     virtual sptr<ScreenInfo> GetScreenInfoById(ScreenId screenId, bool isNeedUnused = false) override;
     virtual DMError GetAllScreenInfos(std::vector<sptr<ScreenInfo>>& screenInfos, bool isNeedUnused = false) override;
     virtual DMError GetScreenSupportedColorGamuts(ScreenId screenId,
@@ -480,6 +482,7 @@ public:
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
     void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId);
     void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid);
+    void NotifyHookAvailableAreaChanged(int32_t uid);
     void NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId);
     void NotifyFoldToExpandCompletion(bool foldToExpand) override;
     void NotifyScreenConnectCompletion(ScreenId screenId) override;
@@ -778,6 +781,7 @@ protected:
     int32_t connectScreenNumber_ = 0;
 
 private:
+    DisplayId GetDefaultDisplayIdByUserId(int32_t userId = CONCURRENT_USER_ID_DEFAULT);
     void SaveScreenCapabilityToDB();
     void UpdateSessionByActiveModeChange(sptr<ScreenSession> screenSession, RSScreenModeInfo screenMode);
     int32_t GetActiveIdxInModes(const std::vector<sptr<SupportedScreenModes>>& modes,
@@ -906,6 +910,7 @@ private:
     int Dump(int fd, const std::vector<std::u16string>& args) override;
     sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession,
         int32_t uid = INVALID_UID);
+    DMError GetHookedAvailableArea(DisplayId displayId, int32_t uid, DMRect& area);
     void ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo, const sptr<ScreenSession>& screenSession,
         const DMHookInfo& info);
     bool IsAdaptiveResolutionActive(int32_t uid, DMAdaptiveResolutionConfig& config);
@@ -915,7 +920,7 @@ private:
         bool isGetActualInfo = false);
     DisplayId GetFakeDisplayId(sptr<ScreenSession> screenSession);
     DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList) override;
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false) override;
     void GetInternalAndExternalSession(sptr<ScreenSession>& internalSession, sptr<ScreenSession>& externalSession);
     sptr<ScreenSession> GetExternalSession();
     void AddPermissionUsedRecord(const std::string& permission, int32_t successCount, int32_t failCount);
@@ -1227,7 +1232,7 @@ private:
     std::map<sptr<IRemoteObject>, std::vector<ScreenId>> screenAgentMap_;
     std::map<ScreenId, sptr<ScreenSessionGroup>> smsScreenGroupMap_;
     std::map<uint32_t, std::map<DisplayId, DMHookInfo>> displayHookMap_;
-    std::map<int32_t, int32_t> uidAndPidMap_;
+    std::map<int32_t, std::vector<int32_t>> uidAndPidMap_;
     std::shared_mutex adaptiveResolutionMutex_;
     // uid -> active config
     std::map<int32_t, DMAdaptiveResolutionConfig> adaptiveResolutionMap_;
@@ -1500,6 +1505,14 @@ private:
     bool IsResolutionEffectOwnedByAnyOf(const std::vector<ScreenId>& screenIds) const;
     void MarkResolutionEffectApplied(ScreenId ownerId);
     void MarkResolutionEffectIdle();
+    // Aligns the multiinput cursor params (mirrorWidth/Height) of a screen — and of its physical
+    // backing session — with the mirror region that screen currently holds. Deliberately not
+    // owner-keyed: the params are supposed to describe the stored region, but several writers
+    // break that pairing — creation-time mode dims, the mode-switch property swap moving params
+    // alone, region-only plain mirror switches — so a mismatch is the stale state this cleans;
+    // writers that keep the pairing (this machinery, SuperFoldStateManager's fold-state refresh)
+    // make it idempotent.
+    void ReconcileMirrorCursorParams(const sptr<ScreenSession>& screenSession);
     std::atomic<bool> curResolutionEffectEnable_ = false;
     std::atomic<ScreenId> resolutionEffectOwnerId_ { SCREEN_ID_INVALID };
     void SetOptionConfig(ScreenId screenId, VirtualScreenOption option);

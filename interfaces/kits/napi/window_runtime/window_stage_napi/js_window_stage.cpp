@@ -109,14 +109,14 @@ void JsWindowStage::Finalizer(napi_env env, void* data, void* hint)
 
 napi_value JsWindowStage::SetUIContent(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[NAPI]");
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
     return (me != nullptr) ? me->OnSetUIContent(env, info) : nullptr;
 }
 
 napi_value JsWindowStage::ReleaseUIContent(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[NAPI]");
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
     return (me != nullptr) ? me->OnReleaseUIContent(env, info) : nullptr;
 }
@@ -151,14 +151,14 @@ napi_value JsWindowStage::Off(napi_env env, napi_callback_info info)
 
 napi_value JsWindowStage::LoadContent(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[NAPI]");
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
     return (me != nullptr) ? me->OnLoadContent(env, info, false) : nullptr;
 }
 
 napi_value JsWindowStage::LoadContentByName(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[NAPI]");
+    TLOGD(WmsLogTag::WMS_LIFE, "[NAPI]");
     JsWindowStage* me = CheckParamsAndGetThis<JsWindowStage>(env, info);
     return (me != nullptr) ? me->OnLoadContent(env, info, true) : nullptr;
 }
@@ -308,11 +308,15 @@ napi_value JsWindowStage::OnSetUIContent(napi_env env, napi_callback_info info)
     }
 
     auto weakScene = windowScene_.lock();
-    if (weakScene == nullptr || weakScene->GetMainWindow() == nullptr) {
+    sptr<Window> win = weakScene ? weakScene->GetMainWindow() : nullptr;
+    if (win == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "WindowScene is null or window is null");
         return NapiGetUndefined(env);
     }
-    weakScene->GetMainWindow()->NapiSetUIContent(contextUrl, env, argv[CONTENT_STORAGE_ARG]);
+    WMError ret = win->NapiSetUIContent(contextUrl, env, argv[CONTENT_STORAGE_ARG]);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE, "NapiSetUIContent failed, ret=%{public}d", ret);
+    }
     return NapiGetUndefined(env);
 }
 
@@ -325,7 +329,7 @@ napi_value JsWindowStage::OnReleaseUIContent(napi_env env, napi_callback_info in
         sptr<Window> win = weakScene ? weakScene->GetMainWindow() : nullptr;
         if (win == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][loadContent]msg: The window is not created or destroyed."));
+                "[window][releaseUIContent]msg: The window is not created or destroyed."));
             TLOGNE(WmsLogTag::WMS_LIFE, "Get window failed");
             return;
         }
@@ -353,22 +357,24 @@ napi_value JsWindowStage::OnGetMainWindow(napi_env env, napi_callback_info info)
         if (weakScene == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
                 "[window][getMainWindow]msg: The window stage is not created or destroyed."));
-            TLOGNE(WmsLogTag::WMS_LIFE, "WindowScene_ is nullptr!");
+            TLOGE(WmsLogTag::WMS_LIFE, "weakScene is nullptr!");
             return;
         }
         auto window = weakScene->GetMainWindow();
         if (window != nullptr) {
             task->Resolve(env, OHOS::Rosen::CreateJsWindowObject(env, window));
-            TLOGND(WmsLogTag::WMS_LIFE, "Get main window [%{public}u, %{public}s]",
+            TLOGD(WmsLogTag::WMS_LIFE, "Get main window [%{public}u, %{public}s]",
                 window->GetWindowId(), window->GetWindowName().c_str());
         } else {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
                 "[window][getMainWindow]msg: The window is not created or destroyed."));
-            TLOGNE(WmsLogTag::WMS_LIFE, "Get main window failed.");
+            TLOGE(WmsLogTag::WMS_LIFE, "Get main window failed.");
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnGetMainWindow") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getMainWindow]msg: send event failed"));
     }
     return result;
 }
@@ -520,7 +526,8 @@ static void LoadContentTask(std::shared_ptr<NativeReference> contentStorage, std
         task.Resolve(env, NapiGetUndefined(env));
     } else {
         task.Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(ret),
-            "[window][loadContent]msg: Window load content failed."));
+            isLoadedByName ? "[window][loadContentByName]msg: Window load content failed."
+                           : "[window][loadContent]msg: Window load content failed."));
     }
     TLOGI(WmsLogTag::WMS_LIFE, "Window [%{public}u, %{public}s] load content end, ret=%{public}d",
         weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str(), ret);
@@ -553,7 +560,8 @@ napi_value JsWindowStage::OnLoadContent(napi_env env, napi_callback_info info, b
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         TLOGE(WmsLogTag::WMS_LIFE, "Window scene is null or get invalid param");
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][loadContent]msg: Failed to convert parameter to contextUrl."));
+            isLoadedByName ? "[window][loadContentByName]msg: Failed to convert parameter to contextUrl."
+                           : "[window][loadContent]msg: Failed to convert parameter to contextUrl."));
         return NapiGetUndefined(env);
     }
 
@@ -571,7 +579,8 @@ napi_value JsWindowStage::OnLoadContent(napi_env env, napi_callback_info info, b
         sptr<Window> win = weakScene ? weakScene->GetMainWindow() : nullptr;
         if (win == nullptr) {
             task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
-                "[window][loadContent]msg: The window is not created or destroyed."));
+                isLoadedByName ? "[window][loadContentByName]msg: The window is not created or destroyed."
+                               : "[window][loadContent]msg: The window is not created or destroyed."));
             TLOGNE(WmsLogTag::WMS_LIFE, "Get window failed");
             return;
         }
@@ -579,6 +588,8 @@ napi_value JsWindowStage::OnLoadContent(napi_env env, napi_callback_info info, b
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnLoadContent") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][loadContent]msg: send event failed"));
     }
     return result;
 }
@@ -664,6 +675,8 @@ napi_value JsWindowStage::OnCreateSubWindow(napi_env env, napi_callback_info inf
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnCreateSubWindow") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][createSubWindow]msg: send event failed"));
     }
     return result;
 }
@@ -801,7 +814,8 @@ napi_value JsWindowStage::OnSetShowOnLockScreen(napi_env env, napi_callback_info
         TLOGE(WmsLogTag::WMS_LIFE, "set show on lock screen permission denied!");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
             WmErrorCode::WM_ERROR_NOT_SYSTEM_APP);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+            "[window][setShowOnLockScreen]msg: Permission verification failed."));
         return CreateJsValue(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_NOT_SYSTEM_APP));
     }
 
@@ -812,7 +826,8 @@ napi_value JsWindowStage::OnSetShowOnLockScreen(napi_env env, napi_callback_info
         TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setShowOnLockScreen]msg: Incorrect number of parameters."));
         return CreateJsValue(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM));
     }
     auto weakScene = windowScene_.lock();
@@ -820,7 +835,8 @@ napi_value JsWindowStage::OnSetShowOnLockScreen(napi_env env, napi_callback_info
         TLOGE(WmsLogTag::WMS_LIFE, "WindowScene is null or window is null");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
             WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setShowOnLockScreen]msg: The window is not created or destroyed."));
         return CreateJsValue(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY));
     }
 
@@ -830,7 +846,8 @@ napi_value JsWindowStage::OnSetShowOnLockScreen(napi_env env, napi_callback_info
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to boolean");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setShowOnLockScreen]msg: Failed to convert parameter to boolean."));
         return CreateJsValue(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM));
     }
     napi_status status = napi_get_value_bool(env, nativeVal, &showOnLockScreen);
@@ -838,7 +855,8 @@ napi_value JsWindowStage::OnSetShowOnLockScreen(napi_env env, napi_callback_info
         TLOGE(WmsLogTag::WMS_LIFE, "Failed to convert parameter to showOnLockScreen");
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.setShowOnLockScreen",
             WmErrorCode::WM_ERROR_INVALID_PARAM);
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][setShowOnLockScreen]msg: Failed to convert parameter to showOnLockScreen."));
         return CreateJsValue(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_INVALID_PARAM));
     }
 
@@ -1049,13 +1067,20 @@ napi_value JsWindowStage::OnCreateSubWindowWithOptions(napi_env env, napi_callba
     napi_value callback = (argv[2] != nullptr && GetType(env, argv[2]) == napi_function) ? argv[2] : nullptr;
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, callback, &result);
-    auto asyncTask = [where, windowScene, windowName = std::move(windowName), option, env,
+    auto asyncTask = [where, weak = windowScene_, windowName = std::move(windowName), option, env,
         task = napiAsyncTask]() mutable {
+        auto weakScene = weak.lock();
+        if (weakScene == nullptr) {
+            TLOGNE(WmsLogTag::WMS_SUB, "%{public}s Window scene is null", where);
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STAGE_ABNORMALLY,
+                "[window][createSubWindowWithOptions]msg: Window scene is not available."));
+            return;
+        }
         option->SetWindowType(WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
         option->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
         option->SetOnlySupportSceneBoard(true);
         std::string errMsg;
-        auto window = windowScene->CreateWindow(windowName, option, errMsg);
+        auto window = weakScene->CreateWindow(windowName, option, errMsg);
         if (window == nullptr) {
             TLOGNE(WmsLogTag::WMS_SUB, "%{public}s Create window failed", where);
             std::string jsErrMsg = "[window][createSubWindowWithOptions]msg:" +
@@ -1069,6 +1094,8 @@ napi_value JsWindowStage::OnCreateSubWindowWithOptions(napi_env env, napi_callba
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnCreateSubWindowWithOptions") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_SUB, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][createSubWindowWithOptions]msg: send event failed"));
     }
     return result;
 }

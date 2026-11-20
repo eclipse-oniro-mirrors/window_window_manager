@@ -377,6 +377,12 @@ WMError SceneSessionManagerLite::HasFloatingWindowForeground(const sptr<IRemoteO
         hasOrNot);
 }
 
+WMError SceneSessionManagerLite::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
+{
+    return SceneSessionManager::GetInstance().GetSessionSnapshotById(persistentId, snapshot, extraInfo);
+}
+
 WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos)
 {
@@ -575,6 +581,12 @@ WMError SceneSessionManagerLite::UpdateRogWindowConfig(const RogWindowConfig& wi
 {
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+}
+
+WSError SceneSessionManagerLite::NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
 }
 
 WMError SceneSessionManagerLite::UpdateSessionsExcludeParam(

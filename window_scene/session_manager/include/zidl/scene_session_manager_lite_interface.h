@@ -77,6 +77,7 @@ public:
         TRANS_ID_SET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_GET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_SET_APP_KEY_FRAME_POLICY,
+        TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID,
         TRANS_ID_LIST_WINDOW_INFO,
         TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
         TRANS_ID_UNREGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
@@ -139,6 +140,7 @@ public:
         TRANS_ID_UPDATE_ROG_WINDOW_CONFIG,
         TRANS_ID_RESTORE_SESSION_TO_FOREGROUND,
         TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
+        TRANS_ID_NOTIFY_STACK_RECOVER,
         TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM,
     };
 
@@ -199,6 +201,10 @@ public:
         DragResizeType& dragResizeType) { return WMError::WM_OK; }
     virtual WMError SetAppKeyFramePolicy(const std::string& bundleName,
         const KeyFramePolicy& keyFramePolicy) { return WMError::WM_OK; }
+    virtual WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) = 0;
 
@@ -382,6 +388,15 @@ public:
     {
         return WSErrorResult{WSError::WS_OK, ""};
     }
+
+    /**
+     * @brief Notify session to set stack recovery flag
+     *
+     * @param persistentId the id of session
+     * @param isStackRecover whether stack recovery is enabled
+     * @return Successful call returns WSError: WS_OK, otherwise it indicates failure
+     */
+    virtual WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) { return WSError::WS_OK; }
 
     /**
      * @brief Create a new instanceKey of a specific bundle

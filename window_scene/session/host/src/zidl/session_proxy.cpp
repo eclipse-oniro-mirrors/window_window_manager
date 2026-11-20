@@ -32,6 +32,7 @@
 #include "rate_limited_logger.h"
 #include "session/host/include/zidl/session_ipc_interface_code.h"
 #include "window_manager_hilog.h"
+#include "wm_animation_common.h"
 namespace OHOS::Rosen {
 namespace {
 constexpr HiviewDFX::HiLogLabel LABEL = { LOG_CORE, HILOG_DOMAIN_WINDOW, "SessionProxy" };
@@ -89,6 +90,23 @@ bool WriteRect(MessageParcel& data, const Rect& rect)
     return true;
 }
 } // namespace
+
+// External linkage for direct unit test calls.
+bool SessionProxy::WriteOptionalParcelable(MessageParcel& data, Parcelable* member, const char* name)
+{
+    if (member != nullptr) {
+        if (!data.WriteBool(true) || !data.WriteParcelable(member)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write %{public}s failed", name);
+            return false;
+        }
+    } else {
+        if (!data.WriteBool(false)) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Write has not %{public}s failed", name);
+            return false;
+        }
+    }
+    return true;
+}
 
 WSError SessionProxy::Foreground(
     sptr<WindowSessionProperty> property, bool isFromClient, const std::string& identityToken, bool isAlreadyShown)
@@ -561,18 +579,13 @@ WSError SessionProxy::ChangeSessionVisibilityWithStatusBar(sptr<AAFwk::SessionIn
             return WSError::WS_ERROR_IPC_FAILED;
         }
     }
-    if (abilitySessionInfo->startSetting) {
-        if (!data.WriteBool(true) || !data.WriteParcelable(abilitySessionInfo->startSetting.get())) {
-            WLOGFE("Write startSetting failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
-    } else {
-        if (!data.WriteBool(false)) {
-            WLOGFE("Write has not startSetting failed");
-            return WSError::WS_ERROR_IPC_FAILED;
-        }
+    if (!WriteOptionalParcelable(data, abilitySessionInfo->startSetting.get(), "startSetting")) {
+        return WSError::WS_ERROR_IPC_FAILED;
     }
     data.WriteBool(visible);
+    if (!WriteOptionalParcelable(data, abilitySessionInfo->showParams.get(), "showParams")) {
+        return WSError::WS_ERROR_IPC_FAILED;
+    }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
         WLOGFE("remote is null");

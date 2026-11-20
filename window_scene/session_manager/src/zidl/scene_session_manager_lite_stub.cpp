@@ -114,6 +114,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetAppDragResizeType(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_SET_APP_KEY_FRAME_POLICY):
             return HandleSetAppKeyFramePolicy(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID):
+            return HandleGetSessionSnapshotById(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_LIST_WINDOW_INFO):
             return HandleListWindowInfo(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT):
@@ -233,8 +235,13 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_ROG_WINDOW_CONFIG):
             return HandleUpdateRogWindowConfig(data, reply);
+<<<<<<< HEAD
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM):
             return HandleUpdateSessionsExcludeParam(data, reply);
+=======
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_STACK_RECOVER):
+            return HandleNotifyStackRecoverFromAMS(data, reply);
+>>>>>>> upgrade/master
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1036,6 +1043,22 @@ int SceneSessionManagerLiteStub::HandleSetAppKeyFramePolicy(MessageParcel& data,
         TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode fail.");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleGetSessionSnapshotById(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read persistentId fail");
+        return ERR_INVALID_DATA;
+    }
+    std::shared_ptr<SessionSnapshot> snapshot = std::make_shared<SessionSnapshot>();
+    std::string extraInfo;
+    const WMError ret = GetSessionSnapshotById(persistentId, *snapshot, extraInfo);
+    reply.WriteParcelable(snapshot.get());
+    reply.WriteString(extraInfo);
+    reply.WriteInt32(static_cast<int32_t>(ret));
     return ERR_NONE;
 }
 
@@ -2156,6 +2179,23 @@ int SceneSessionManagerLiteStub::HandleUpdateRogWindowConfig(MessageParcel& data
         TLOGE(WmsLogTag::WMS_COMPAT, "write ret failed");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleNotifyStackRecoverFromAMS(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read persistentId failed");
+        return ERR_INVALID_DATA;
+    }
+    bool isStackRecover = false;
+    if (!data.ReadBool(isStackRecover)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read isStackRecover failed");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
     return ERR_NONE;
 }
 

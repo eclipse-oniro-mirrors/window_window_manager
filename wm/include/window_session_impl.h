@@ -300,7 +300,7 @@ public:
         bool notifyInputMethod = true) override;
     void NotifyOccupiedAreaChangeInfoInner(sptr<OccupiedAreaChangeInfo> info);
     void NotifyOccupiedAreaChangeInfo(sptr<OccupiedAreaChangeInfo> info,
-        const std::shared_ptr<RSTransaction>& rsTransaction, const Rect& callingSessionRect,
+        const std::shared_ptr<RSTransaction>& rsTransaction,
         const std::map<AvoidAreaType, AvoidArea>& avoidAreas) override;
     void NotifyKeyboardWillShow(const KeyboardAnimationInfo& keyboardAnimationInfo);
     void NotifyKeyboardWillHide(const KeyboardAnimationInfo& keyboardAnimationInfo);
@@ -891,7 +891,7 @@ protected:
     virtual void UpdateSupportWindowModesWhenSwitchFreeMultiWindow() {}
 
     void ClearVsyncStation();
-    void ReleaseSurfaceNode();
+    void ReleaseRSContext();
     WMError WindowSessionCreateCheck(std::string& errMsg);
     void UpdateDecorEnableToAce(bool isDecorEnable);
     bool NeedShowDecorInOtherDisplay(bool decorVisible);
@@ -1257,6 +1257,7 @@ protected:
     /*
      * RS Client Multi Instance
      */
+    mutable std::mutex rsContextMutex_;
     std::shared_ptr<RSUIDirector> rsUIDirector_;
     std::shared_ptr<RSUIContext> rsUIContext_;
 

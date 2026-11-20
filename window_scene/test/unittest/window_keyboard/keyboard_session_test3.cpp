@@ -967,7 +967,7 @@ HWTEST_F(KeyboardSessionTest3, NotifyOccupiedAreaChanged, Function | SmallTest |
     sptr<SessionStageMocker> mockSessionStage = sptr<SessionStageMocker>::MakeSptr();
     ASSERT_NE(mockSessionStage, nullptr);
     callingSession->sessionStage_ = mockSessionStage;
-    EXPECT_CALL(*mockSessionStage, NotifyOccupiedAreaChangeInfo(_, _, _, _)).Times(2);
+    EXPECT_CALL(*mockSessionStage, NotifyOccupiedAreaChangeInfo(_, _, _)).Times(2);
     keyboardSession->NotifyOccupiedAreaChanged(callingSession, occupiedAreaInfo, false, nullptr);
     EXPECT_TRUE(g_logMsg.find("Calling id:") != std::string::npos);
 

@@ -748,6 +748,11 @@ static void LoadContentTask(std::shared_ptr<NativeReference> contentStorage, std
 
 napi_value JsExtensionWindow::OnSetWindowKeepScreenOn(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowKeepScreenOn]msg: The window is not created or destroyed");
+    }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     size_t argc = ARG_COUNT_TWO;
     napi_value argv[INDEX_TWO] = { nullptr };
@@ -781,7 +786,7 @@ napi_value JsExtensionWindow::OnSetWindowKeepScreenOn(napi_env env, napi_callbac
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->ExtensionSetKeepScreenOn(keepScreenOn));
+        *errCodePtr = ConvertErrorToCode(weakWindow->ExtensionSetKeepScreenOn(keepScreenOn));
         TLOGNI(WmsLogTag::WMS_UIEXT, "Window [%{public}u, %{public}s] set keep screen on end",
             weakWindow->GetWindowId(), weakWindow->GetWindowName().c_str());
     };
@@ -812,6 +817,11 @@ napi_value JsExtensionWindow::OnSetWindowKeepScreenOn(napi_env env, napi_callbac
 
 napi_value JsExtensionWindow::OnSetWindowBrightness(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowBrightness]msg: The window is not created or destroyed");
+    }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     size_t argc = ARG_COUNT_TWO;
     napi_value argv[INDEX_TWO] = {nullptr};
@@ -848,7 +858,7 @@ napi_value JsExtensionWindow::OnSetWindowBrightness(napi_env env, napi_callback_
                 "[window][setWindowBrightness]msg: The window is not created or destroyed"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->ExtensionSetBrightness(brightness));
+        WmErrorCode ret = ConvertErrorToCode(weakWindow->ExtensionSetBrightness(brightness));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -867,6 +877,11 @@ napi_value JsExtensionWindow::OnSetWindowBrightness(napi_env env, napi_callback_
 
 napi_value JsExtensionWindow::OnGetUIContext(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getUIContext]msg: The window is not created or destroyed.");
+    }
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -901,6 +916,11 @@ napi_value JsExtensionWindow::OnGetUIContext(napi_env env, napi_callback_info in
 
 napi_value JsExtensionWindow::OnSetSpecificSystemBarEnabled(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setSpecificSystemBarEnabled]msg: The window is not created or destroyed");
+    }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -932,7 +952,7 @@ napi_value JsExtensionWindow::OnSetSpecificSystemBarEnabled(napi_env env, napi_c
             return;
         }
         auto ret = window->UpdateHostSpecificSystemBarEnabled(name, systemBarEnable, systemBarEnableAnimation);
-        auto errCode = WM_JS_TO_ERROR_CODE_MAP.at(ret);
+        auto errCode = ConvertErrorToCode(ret);
         if (errCode == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -951,6 +971,11 @@ napi_value JsExtensionWindow::OnSetSpecificSystemBarEnabled(napi_env env, napi_c
 
 napi_value JsExtensionWindow::OnGetWindowPropertiesSync(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getWindowProperties]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGW(WmsLogTag::WMS_UIEXT, "window is nullptr");
@@ -970,6 +995,11 @@ napi_value JsExtensionWindow::OnGetWindowPropertiesSync(napi_env env, napi_callb
 
 napi_value JsExtensionWindow::OnIsWindowShowingSync(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isWindowShowing]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
@@ -1126,7 +1156,7 @@ napi_value JsExtensionWindow::OnGetWindowAvoidArea(napi_env env, napi_callback_i
     }
     // getAvoidRect by avoidAreaType
     AvoidArea avoidArea;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(extensionWindow_->GetAvoidAreaByType(avoidAreaType, avoidArea));
+    WmErrorCode ret = ConvertErrorToCode(extensionWindow_->GetAvoidAreaByType(avoidAreaType, avoidArea));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "OnGetAvoidAreaByType failed");
         avoidArea.topRect_ = g_emptyRect;
@@ -1174,7 +1204,7 @@ napi_value JsExtensionWindow::OnSetFloatNavigationAvoidAreaEnabled(napi_env env,
                 "[window][setFloatNavigationAvoidAreaEnabled]msg: The window is not created or destroyed"));
             return;
         }
-        auto errCode = WM_JS_TO_ERROR_CODE_MAP.at(window->SetFloatNavigationAvoidAreaEnabled(enabled));
+        auto errCode = ConvertErrorToCode(window->SetFloatNavigationAvoidAreaEnabled(enabled));
         if (errCode == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -1200,7 +1230,7 @@ napi_value JsExtensionWindow::OnIsFloatNavigationAvoidAreaEnabled(napi_env env, 
             "[window][isFloatNavigationAvoidAreaEnabled]msg: The window is not created or destroyed");
     }
     bool enable = false;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->GetFloatNavigationAvoidAreaEnabled(enable));
+    WmErrorCode ret = ConvertErrorToCode(windowToken_->GetFloatNavigationAvoidAreaEnabled(enable));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "get failed, ret %{public}d", ret);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
@@ -1256,6 +1286,11 @@ napi_value JsExtensionWindow::OnRegisterRectChangeCallback(napi_env env, size_t 
 napi_value JsExtensionWindow::OnRegisterExtensionWindowCallback(napi_env env, napi_callback_info info,
     bool atomicService)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][on]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "WindowImpl is nullptr");
@@ -1322,6 +1357,11 @@ napi_value JsExtensionWindow::OnRegisterExtensionWindowCallback(napi_env env, na
 napi_value JsExtensionWindow::OnUnRegisterExtensionWindowCallback(napi_env env, napi_callback_info info,
     bool atomicService)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][off]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "windowImpl is nullptr");
@@ -1427,7 +1467,7 @@ napi_value JsExtensionWindow::OnHideNonSecureWindows(napi_env env, napi_callback
             "[window][hideNonSecureWindows]msg: Failed to convert parameter to bool");
     }
 
-    auto ret = WM_JS_TO_ERROR_CODE_MAP.at(extensionWindow_->HideNonSecureWindows(shouldHide));
+    auto ret = ConvertErrorToCode(extensionWindow_->HideNonSecureWindows(shouldHide));
     const char* const where = __func__;
     auto asyncTask = [where, env, ret, task = napiAsyncTask]() mutable {
         if (ret == WmErrorCode::WM_OK) {
@@ -1491,7 +1531,7 @@ napi_value JsExtensionWindow::OnSetWaterMarkFlag(napi_env env, napi_callback_inf
             "[window][setWaterMarkFlag]msg: Failed to convert parameter to bool");
     }
 
-    auto ret = WM_JS_TO_ERROR_CODE_MAP.at(extensionWindow_->SetWaterMarkFlag(isEnable));
+    auto ret = ConvertErrorToCode(extensionWindow_->SetWaterMarkFlag(isEnable));
     const char* const where = __func__;
     auto asyncTask = [where, env, ret, task = napiAsyncTask]() mutable {
         if (ret == WmErrorCode::WM_OK) {
@@ -1555,7 +1595,7 @@ napi_value JsExtensionWindow::OnHidePrivacyContentForHost(napi_env env, napi_cal
             "[window][hidePrivacyContentForHost]msg: Failed to convert parameter to bool");
     }
 
-    auto ret = WM_JS_TO_ERROR_CODE_MAP.at(extensionWindow_->HidePrivacyContentForHost(needHide));
+    auto ret = ConvertErrorToCode(extensionWindow_->HidePrivacyContentForHost(needHide));
     const char* const where = __func__;
     auto asyncTask = [where, env, ret, task = napiAsyncTask]() mutable {
         if (ret == WmErrorCode::WM_OK) {
@@ -1750,7 +1790,7 @@ napi_value JsExtensionWindow::OnOccupyEvents(napi_env env, napi_callback_info in
                 "[window][occupyEvents]msg: The window is not created or destroyed"));
             return;
         }
-        auto ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->OccupyEvents(eventFlags));
+        auto ret = ConvertErrorToCode(weakWindow->OccupyEvents(eventFlags));
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
         } else {
@@ -1771,6 +1811,11 @@ napi_value JsExtensionWindow::OnOccupyEvents(napi_env env, napi_callback_info in
 
 napi_value JsExtensionWindow::OnSetWindowLayoutFullScreen(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowLayoutFullScreen]msg: The window is not created or destroyed");
+    }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -1810,7 +1855,7 @@ napi_value JsExtensionWindow::OnSetWindowLayoutFullScreen(napi_env env, napi_cal
                 task.Resolve(env, NapiGetUndefined(env));
                 return;
             }
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SetLayoutFullScreen(isLayoutFullScreen));
+            WmErrorCode ret = ConvertErrorToCode(window->SetLayoutFullScreen(isLayoutFullScreen));
             if (ret == WmErrorCode::WM_OK) {
                 task.Resolve(env, NapiGetUndefined(env));
             } else {
@@ -1831,6 +1876,11 @@ napi_value JsExtensionWindow::OnSetWindowLayoutFullScreen(napi_env env, napi_cal
 
 napi_value JsExtensionWindow::OnGetWindowColorSpace(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getWindowColorSpace]msg: The window is not created or destroyed");
+    }
     sptr<Window> window = extensionWindow_->GetWindow();
     if (window == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
@@ -1846,6 +1896,11 @@ napi_value JsExtensionWindow::OnGetWindowColorSpace(napi_env env, napi_callback_
 
 napi_value JsExtensionWindow::OnSetWindowColorSpace(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowColorSpace]msg: The window is not created or destroyed");
+    }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     ColorSpace colorSpace = ColorSpace::COLOR_SPACE_DEFAULT;
     size_t argc = 4;
@@ -1905,6 +1960,11 @@ napi_value JsExtensionWindow::OnSetWindowColorSpace(napi_env env, napi_callback_
 
 napi_value JsExtensionWindow::OnSetWindowPrivacyMode(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowPrivacyMode]msg: The window is not created or destroyed");
+    }
     WmErrorCode errCode = WmErrorCode::WM_OK;
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -1941,7 +2001,7 @@ napi_value JsExtensionWindow::OnSetWindowPrivacyMode(napi_env env, napi_callback
                     "[window][setWindowPrivacyMode]msg: The window is not created or destroyed"));
             return;
         }
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->SetPrivacyMode(isPrivacyMode));
+        WmErrorCode ret = ConvertErrorToCode(weakWindow->SetPrivacyMode(isPrivacyMode));
         if (ret == WmErrorCode::WM_ERROR_NO_PERMISSION) {
             task->Reject(env, JsErrUtils::CreateJsError(env, ret,
                 "[window][setWindowPrivacyMode]msg: Need PRIVACY_WINDOW permission"));
@@ -1963,6 +2023,11 @@ napi_value JsExtensionWindow::OnSetWindowPrivacyMode(napi_env env, napi_callback
 
 napi_value JsExtensionWindow::OnSetWindowSystemBarEnable(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setWindowSystemBarEnable]msg: The window is not created or destroyed");
+    }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -1995,7 +2060,7 @@ napi_value JsExtensionWindow::OnSetWindowSystemBarEnable(napi_env env, napi_call
                 "[window][setWindowSystemBarEnable]msg: The window is not created or destroyed"));
             return;
         }
-        auto errCode = WM_JS_TO_ERROR_CODE_MAP.at(
+        auto errCode = ConvertErrorToCode(
             window->UpdateSystemBarProperties(systemBarProperties, systemBarPropertyFlags));
         if (errCode == WmErrorCode::WM_OK) {
             task->Resolve(env, NapiGetUndefined(env));
@@ -2015,6 +2080,11 @@ napi_value JsExtensionWindow::OnSetWindowSystemBarEnable(napi_env env, napi_call
 
 napi_value JsExtensionWindow::OnGetGestureBackEnabled(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isGestureBackEnabled]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "extensionWindow is nullptr");
@@ -2022,7 +2092,7 @@ napi_value JsExtensionWindow::OnGetGestureBackEnabled(napi_env env, napi_callbac
             "[window][isGestureBackEnabled]msg: The window is not created or destroyed");
     }
     bool enable = true;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowImpl->GetGestureBackEnabled(enable));
+    WmErrorCode ret = ConvertErrorToCode(windowImpl->GetGestureBackEnabled(enable));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "get failed, ret %{public}d", ret);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
@@ -2035,6 +2105,11 @@ napi_value JsExtensionWindow::OnGetGestureBackEnabled(napi_env env, napi_callbac
 
 napi_value JsExtensionWindow::OnSetGestureBackEnabled(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setGestureBackEnabled]msg: The window is not created or destroyed");
+    }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -2058,7 +2133,7 @@ napi_value JsExtensionWindow::OnSetGestureBackEnabled(napi_env env, napi_callbac
             *errCodePtr = WmErrorCode::WM_ERROR_STATE_ABNORMALLY;
             return;
         }
-        *errCodePtr = WM_JS_TO_ERROR_CODE_MAP.at(window->SetGestureBackEnabled(enabled));
+        *errCodePtr = ConvertErrorToCode(window->SetGestureBackEnabled(enabled));
     };
     auto complete = [errCodePtr, where](napi_env env, NapiAsyncTask& task, int32_t status) {
         if (*errCodePtr == WmErrorCode::WM_OK) {
@@ -2077,6 +2152,11 @@ napi_value JsExtensionWindow::OnSetGestureBackEnabled(napi_env env, napi_callbac
 
 napi_value JsExtensionWindow::OnSetImmersiveModeEnabledState(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setImmersiveModeEnabledState]msg: The window is not created or destroyed");
+    }
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -2104,7 +2184,7 @@ napi_value JsExtensionWindow::OnSetImmersiveModeEnabledState(napi_env env, napi_
     bool enable = true;
     napi_get_value_bool(env, nativeVal, &enable);
     TLOGI(WmsLogTag::WMS_IMMS, "enable %{public}d", static_cast<int32_t>(enable));
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowImpl->SetImmersiveModeEnabledState(enable));
+    WmErrorCode ret = ConvertErrorToCode(windowImpl->SetImmersiveModeEnabledState(enable));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_IMMS, "set failed, ret %{public}d", ret);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY,
@@ -2116,6 +2196,11 @@ napi_value JsExtensionWindow::OnSetImmersiveModeEnabledState(napi_env env, napi_
 
 napi_value JsExtensionWindow::OnGetImmersiveModeEnabledState(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getImmersiveModeEnabledState]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "extensionWindow is nullptr");
@@ -2129,6 +2214,11 @@ napi_value JsExtensionWindow::OnGetImmersiveModeEnabledState(napi_env env, napi_
 
 napi_value JsExtensionWindow::OnIsFocused(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isFocused]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_FOCUS, "window is nullptr");
@@ -2144,6 +2234,11 @@ napi_value JsExtensionWindow::OnIsFocused(napi_env env, napi_callback_info info)
 
 napi_value JsExtensionWindow::OnIsWindowSupportWideGamut(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][isWindowSupportWideGamut]msg: The window is not created or destroyed");
+    }
     const char* const where = __func__;
     size_t argc = 4;
     napi_value argv[4] = {nullptr};
@@ -2175,6 +2270,11 @@ napi_value JsExtensionWindow::OnIsWindowSupportWideGamut(napi_env env, napi_call
 
 napi_value JsExtensionWindow::OnGetGlobalScaledRect(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getGlobalRect]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_LAYOUT, "extensionWindow is nullptr");
@@ -2182,7 +2282,7 @@ napi_value JsExtensionWindow::OnGetGlobalScaledRect(napi_env env, napi_callback_
             "[window][getGlobalRect]msg: The window is not created or destroyed");
     }
     Rect globalScaledRect;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowImpl->GetGlobalScaledRect(globalScaledRect));
+    WmErrorCode ret = ConvertErrorToCode(windowImpl->GetGlobalScaledRect(globalScaledRect));
     if (ret != WmErrorCode::WM_OK) {
         return NapiThrowError(env, ret, "[window][getGlobalRect]");
     }
@@ -2199,6 +2299,11 @@ napi_value JsExtensionWindow::OnGetGlobalScaledRect(napi_env env, napi_callback_
 
 napi_value JsExtensionWindow::OnGetStatusBarPropertySync(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getStatusBarProperty]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_IMMS, "window is null");
@@ -2216,6 +2321,11 @@ napi_value JsExtensionWindow::OnGetStatusBarPropertySync(napi_env env, napi_call
 
 napi_value JsExtensionWindow::OnGetWindowStateSnapshot(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getWindowStateSnapshot]msg: The window is not created or destroyed");
+    }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     const char* const where = __func__;
@@ -2232,10 +2342,7 @@ napi_value JsExtensionWindow::OnGetWindowStateSnapshot(napi_env env, napi_callba
         if (errCode != WMError::WM_OK) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: get ext window state snapshot failed, errCode=%{public}d",
                 where, static_cast<int32_t>(errCode));
-            auto retErrCode = WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
-            if (WM_JS_TO_ERROR_CODE_MAP.count(errCode) > 0) {
-                retErrCode = WM_JS_TO_ERROR_CODE_MAP.at(errCode);
-            }
+            auto retErrCode = ConvertErrorToCode(errCode, WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY);
             task->Reject(env, JsErrUtils::CreateJsError(env, retErrCode,
                 "[window][getWindowStateSnapshot]msg: get window state snapshot failed"));
             return;
@@ -2262,6 +2369,11 @@ napi_value JsExtensionWindow::OnGetWindowStateSnapshot(napi_env env, napi_callba
 
 napi_value JsExtensionWindow::OnSetStatusBarColor(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][setStatusBarColor]msg: invalid window");
+    }
     size_t argc = FOUR_PARAMS_SIZE;
     napi_value argv[FOUR_PARAMS_SIZE] = { nullptr };
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -2293,7 +2405,7 @@ napi_value JsExtensionWindow::OnSetStatusBarColor(napi_env env, napi_callback_in
             task->Resolve(env, NapiGetUndefined(env));
         } else {
             TLOGNE(WmsLogTag::WMS_IMMS, "SetStatusBarColor error: %{public}d", errCode);
-            task->Reject(env, CreateJsError(env, static_cast<int32_t>(WM_JS_TO_ERROR_CODE_MAP.at(errCode)),
+            task->Reject(env, CreateJsError(env, static_cast<int32_t>(ConvertErrorToCode(errCode)),
                 "[window][setStatusBarColor]msg: update status bar color failed"));
         }
     };
@@ -2364,6 +2476,11 @@ napi_value JsExtensionWindow::OnInvalidAsyncCall(napi_env env, napi_callback_inf
 
 napi_value JsExtensionWindow::OnGetWindowStatus(napi_env env, napi_callback_info info)
 {
+    if (extensionWindow_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "extensionWindow_ is nullptr");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][getWindowStatus]msg: The window is not created or destroyed");
+    }
     sptr<Window> windowImpl = extensionWindow_->GetWindow();
     if (windowImpl == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "window is nullptr");
@@ -2374,7 +2491,7 @@ napi_value JsExtensionWindow::OnGetWindowStatus(napi_env env, napi_callback_info
     WMError errCode = windowImpl->GetWindowStatus(windowStatus);
     if (errCode != WMError::WM_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "get window status failed, err: %{public}d", errCode);
-        return NapiThrowError(env, WM_JS_TO_ERROR_CODE_MAP.at(errCode),
+        return NapiThrowError(env, ConvertErrorToCode(errCode),
             "[window][getWindowStatus]msg: get window status failed");
     }
     TLOGI(WmsLogTag::WMS_UIEXT, "Window [%{public}u, %{public}s] get window status: %{public}u",
@@ -2437,7 +2554,7 @@ napi_value JsExtensionWindow::OnSnapshotSync(napi_env env, napi_callback_info in
             "[window][snapshotSync]msg: The window is not created or destroyed");
     }
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(windowToken_->Snapshot(pixelMap));
+    WmErrorCode ret = ConvertErrorToCode(windowToken_->Snapshot(pixelMap));
     TLOGI(WmsLogTag::WMS_ATTRIBUTE, "winId: %{public}u snapshot end, result: %{public}d",
         windowToken_->GetWindowId(), ret);
     if (ret != WmErrorCode::WM_OK) {
@@ -2472,7 +2589,7 @@ napi_value JsExtensionWindow::OnSnapshotIgnorePrivacy(napi_env env, napi_callbac
             }
 
             std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-            WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(weakWindow->SnapshotIgnorePrivacy(pixelMap));
+            WmErrorCode ret = ConvertErrorToCode(weakWindow->SnapshotIgnorePrivacy(pixelMap));
             if (ret == WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT) {
                 task->Reject(env, JsErrUtils::CreateJsError(env, ret,
                     "[window][snapshotIgnorePrivacy]"));

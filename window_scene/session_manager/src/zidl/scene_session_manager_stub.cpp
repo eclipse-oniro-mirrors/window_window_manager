@@ -1241,8 +1241,10 @@ int SceneSessionManagerStub::HandleGetSessionSnapshotById(MessageParcel& data, M
         return ERR_INVALID_DATA;
     }
     std::shared_ptr<SessionSnapshot> snapshot = std::make_shared<SessionSnapshot>();
-    const WMError ret = GetSessionSnapshotById(persistentId, *snapshot);
+    std::string extraInfo;
+    const WMError ret = GetSessionSnapshotById(persistentId, *snapshot, extraInfo);
     reply.WriteParcelable(snapshot.get());
+    reply.WriteString(extraInfo);
     reply.WriteInt32(static_cast<int32_t>(ret));
     return ERR_NONE;
 }

@@ -1623,22 +1623,24 @@ WSRect MoveDragController::CalcFreeformTargetRect(AreaType type, int32_t tranX, 
     }
     // Special compatible scale: map resize delta from physical to logical coordinates
     float scale = GetDpiForceScale();
+    auto tranXWithScale = tranX;
+    auto tranYWithScale = tranY;
     if (GetIsDpiForceScale() && scale > 0) {
-        tranX  = static_cast<int32_t>(tranX / scale);
-        tranY = static_cast<int32_t>(tranY / scale);
+        tranXWithScale  = static_cast<int32_t>(tranX / scale);
+        tranYWithScale = static_cast<int32_t>(tranY / scale);
     }
     TLOGD(WmsLogTag::WMS_LAYOUT, "areaType:%{public}u", type);
     if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::LEFT)) {
         targetRect.posX_ += tranX;
-        targetRect.width_ -= tranX;
+        targetRect.width_ -= tranXWithScale;
     } else if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::RIGHT)) {
-        targetRect.width_ += tranX;
+        targetRect.width_ += tranXWithScale;
     }
     if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::TOP)) {
         targetRect.posY_ += tranY;
-        targetRect.height_ -= tranY;
+        targetRect.height_ -= tranYWithScale;
     } else if (static_cast<uint32_t>(type) & static_cast<uint32_t>(AreaType::BOTTOM)) {
-        targetRect.height_ += tranY;
+        targetRect.height_ += tranYWithScale;
     }
     // check current ratio limits
     if (targetRect.height_ == 0) {

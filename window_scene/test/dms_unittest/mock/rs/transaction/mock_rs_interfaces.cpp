@@ -31,12 +31,18 @@ ScreenId RSInterfaces::CreateVirtualScreen(const std::string& name, uint32_t wid
     return 0;
 }
 
+ScreenId RSInterfaces::CreateVirtualScreen(const RSVirtualScreenOption& option, int32_t* errorCode)
+{
+    return 0;
+}
+
 int32_t RSInterfaces::SetVirtualScreenTypeBlackList(ScreenId id, std::vector<NodeType>& typeBlackListVector)
 {
     return 0;
 }
 int32_t RSInterfaces::SetVirtualScreenSecurityExemptionList(ScreenId id,
-                                                            const std::vector<NodeId>& securityExemptionList)
+                                                            const std::vector<NodeId>& securityExemptionList,
+                                                            bool exemptAll)
 {
     return 0;
 }

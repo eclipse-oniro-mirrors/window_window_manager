@@ -1081,7 +1081,8 @@ HWTEST_F(sceneSessionManagerProxyTest, GetSessionSnapshotById, TestSize.Level1)
     auto sceneSessionManagerProxy = sptr<SceneSessionManagerProxy>::MakeSptr(iRemoteObjectMocker);
     int32_t windowId = -1;
     SessionSnapshot snapshot;
-    WMError ret = sceneSessionManagerProxy->GetSessionSnapshotById(windowId, snapshot);
+    std::string extraInfo;
+    WMError ret = sceneSessionManagerProxy->GetSessionSnapshotById(windowId, snapshot, extraInfo);
     ASSERT_EQ(WMError::WM_ERROR_IPC_FAILED, ret);
 }
 

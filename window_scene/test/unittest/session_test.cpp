@@ -17,6 +17,7 @@
 #include <regex>
 #include <pointer_event.h>
 #include <ui/rs_surface_node.h>
+#include <transaction/rs_transaction.h>
 
 #include "mock/mock_session_stage.h"
 #include "mock/mock_window_event_channel.h"
@@ -1693,6 +1694,17 @@ HWTEST_F(WindowSessionTest, NotifyOccupiedAreaChangeInfo, TestSize.Level1)
     EXPECT_NE(mockSessionStage, nullptr);
     session_->sessionStage_ = mockSessionStage;
     session_->NotifyOccupiedAreaChangeInfo(nullptr, nullptr);
+    sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
+    info->safeHeight_ = 1020;
+    info->rect_ = { 0, 1700, 1260, 1020 };
+    EXPECT_CALL(*(mockSessionStage), NotifyOccupiedAreaChangeInfo(_, _, _)).Times(1);
+    session_->NotifyOccupiedAreaChangeInfo(info, nullptr, {});
+
+    const std::shared_ptr<RSTransaction>& rsTransaction = std::make_shared<RSTransaction>();
+    EXPECT_NE(nullptr, rsTransaction);
+    EXPECT_CALL(*(mockSessionStage), NotifyOccupiedAreaChangeInfo(_, _, _))
+        .Times(1);
+    session_->NotifyOccupiedAreaChangeInfo(nullptr, rsTransaction, {});
     EXPECT_NE(session_->sessionStage_, nullptr);
 }
 
@@ -2328,6 +2340,44 @@ HWTEST_F(WindowSessionTest, UpdateScreenSupportMultiWindowToClient01, TestSize.L
         .WillOnce(Return(WSError::WS_OK));
     auto result = session->UpdateScreenSupportMultiWindowToClient();
     EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: SetTryUseSnapshot01
+ * @tc.desc: test SetTryUseSnapshot and GetTryUseSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, SetTryUseSnapshot01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
+
+    session_->SetTryUseSnapshot(true);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), true);
+
+    session_->SetTryUseSnapshot(false);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
+}
+
+/**
+ * @tc.name: SetTryUseSnapshot02
+ * @tc.desc: test SetTryUseSnapshot with multiple toggle
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, SetTryUseSnapshot02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->SetTryUseSnapshot(true);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), true);
+
+    session_->SetTryUseSnapshot(true);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), true);
+
+    session_->SetTryUseSnapshot(false);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
+
+    session_->SetTryUseSnapshot(false);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
 }
 } // namespace
 } // namespace Rosen

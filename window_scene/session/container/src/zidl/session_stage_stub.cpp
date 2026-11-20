@@ -559,15 +559,6 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
         TLOGE(WmsLogTag::WMS_KEYBOARD, "Occupied info is nullptr");
         return ERR_INVALID_VALUE;
     }
-    int32_t posX = 0;
-    int32_t posY = 0;
-    uint32_t width = 0;
-    uint32_t height = 0;
-    if (!(data.ReadInt32(posX) && data.ReadInt32(posY) && data.ReadUint32(width) && data.ReadUint32(height))) {
-        TLOGE(WmsLogTag::WMS_KEYBOARD, "Read callingSessionRect failed");
-        return ERR_INVALID_VALUE;
-    }
-    Rect callingSessionRect = { posX, posY, width, height };
     std::map<AvoidAreaType, AvoidArea> avoidAreas = {};
     uint32_t size = 0;
     if (!data.ReadUint32(size)) {
@@ -604,9 +595,9 @@ int SessionStageStub::HandleNotifyOccupiedAreaChange(MessageParcel& data, Messag
             TLOGE(WmsLogTag::WMS_KEYBOARD, "transaction unMarsh failed");
             return ERR_INVALID_VALUE;
         }
-        NotifyOccupiedAreaChangeInfo(info, transaction, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, transaction, avoidAreas);
     } else {
-        NotifyOccupiedAreaChangeInfo(info, nullptr, callingSessionRect, avoidAreas);
+        NotifyOccupiedAreaChangeInfo(info, nullptr, avoidAreas);
     }
 
     return ERR_NONE;
@@ -1618,7 +1609,7 @@ int SessionStageStub::HandleNotifyOrientationExecutionResult(MessageParcel& data
 
 int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "in");
+    TLOGD(WmsLogTag::WMS_ROTATION, "in");
     uint32_t rotation = 0;
     if (!data.ReadUint32(rotation)) {
         TLOGE(WmsLogTag::WMS_ROTATION, "read rotation failed");
@@ -1706,7 +1697,7 @@ int SessionStageStub::HandleNotifyRotationProperty(MessageParcel& data, MessageP
 
 int SessionStageStub::HandleNotifyPageRotationIsIgnored(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_ROTATION, "in");
+    TLOGD(WmsLogTag::WMS_ROTATION, "in");
     NotifyPageRotationIsIgnored();
     return ERR_NONE;
 }
@@ -1739,7 +1730,7 @@ int SessionStageStub::HandleNotifyRotationChange(MessageParcel& data, MessagePar
     RotationChangeInfo rotationChangeInfo = { static_cast<RotationChangeType>(type), orientation, displayId, rect };
     RotationChangeResult rotationChangeResult = NotifyRotationChange(rotationChangeInfo);
     if (rotationChangeInfo.type_ == RotationChangeType::WINDOW_DID_ROTATE) {
-        TLOGI(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
+        TLOGD(WmsLogTag::WMS_ROTATION, "WINDOW_DID_ROTATE return");
         return ERR_NONE;
     }
     if (!reply.WriteUint32(static_cast<uint32_t>(rotationChangeResult.rectType_))) {

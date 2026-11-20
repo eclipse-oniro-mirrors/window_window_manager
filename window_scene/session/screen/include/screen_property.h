@@ -42,6 +42,7 @@ enum class ScreenPropertyChangeReason : uint32_t {
     ACTIVE_MODE_CHANGE,
     RESOLUTION_EFFECT_CHANGE,
     SYNC_ClIENT_SCREEN_PROPERTY_ONLY,
+    SUPER_OUTER_ONLY
 };
 class ScreenProperty {
 public:

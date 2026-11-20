@@ -378,7 +378,7 @@ DMError ScreenManagerAdapter::GetScreenCapability(ScreenId screenId, ScreenCapab
 }
 
 ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
-    const sptr<IDisplayManagerAgent>& displayManagerAgent)
+    const sptr<IDisplayManagerAgent>& displayManagerAgent, DMError* errorCode)
 {
     INIT_PROXY_CHECK_RETURN(SCREEN_ID_INVALID);
 
@@ -388,7 +388,8 @@ ScreenId ScreenManagerAdapter::CreateVirtualScreen(VirtualScreenOption option,
     }
     TLOGI(WmsLogTag::DMS, "enter");
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->CreateVirtualScreen(option, displayManagerAgent->AsObject());
+        return screenSessionManagerServiceProxy_->CreateVirtualScreen(option,
+            displayManagerAgent->AsObject(), errorCode);
     }
 
     ErrCode errCode;
@@ -1787,11 +1788,12 @@ bool ScreenManagerAdapter::SetVirtualScreenStatus(ScreenId screenId, VirtualScre
 }
 
 DMError DisplayManagerAdapter::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->SetVirtualScreenSecurityExemption(screenId, pid, windowIdList);
+        return screenSessionManagerServiceProxy_->SetVirtualScreenSecurityExemption(
+            screenId, pid, windowIdList, exemptAll);
     }
 
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;

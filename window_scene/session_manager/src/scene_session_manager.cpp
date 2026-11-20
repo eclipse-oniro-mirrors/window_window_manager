@@ -71,6 +71,7 @@
 #include "rdb/scope_guard.h"
 #include "rdb/starting_window_rdb_manager.h"
 #include "res_sched_client.h"
+#include "res_sched_json_client.h"
 #include "rs_adapter.h"
 #include "scene_input_manager.h"
 #include "scene_screen_change_listener.h"
@@ -735,6 +736,8 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
             if (sceneSession == nullptr) {
                 break;
             }
+            sceneSession->SetIsDpiForceScale(property->GetIsDpiForceScale());
+            sceneSession->SetWindowStartDensity(property->GetWindowStartDensity());
             sceneSession->NotifyIsFullScreenInForceSplitMode(property->IsFullScreenInForceSplitMode());
             sceneSession->NotifyModeSwitchInfo();
             RecoverSupportedWindowModes(sceneSession, property);
@@ -846,6 +849,9 @@ void SceneSessionManager::InitScheduleUtils()
 void SceneSessionManager::UpdateSessionWithFoldStateChange(DisplayId displayId, SuperFoldStatus status,
     SuperFoldStatus prevStatus)
 {
+    // Fold mode change may switch the current (default) screen, invalidate the cached
+    // per-user default display id so the next lookup re-resolves.
+    InvalidateDefaultDisplayIdCache();
     auto task = [this, displayId, status, where = __func__]() {
         TLOGND(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: status=%{public}u, display=%{public}" PRIu64,
             where, static_cast<uint32_t>(status), displayId);
@@ -1023,6 +1029,7 @@ void SceneSessionManager::ConfigWindowSceneXml()
     ConfigAppsWithDeduplicatedWindowStatus();
     ConfigSnapshotScale();
     ConfigPersistentScaledSnapshot();
+    ConfigAppDpiScale();
     ConfigWindowSceneXml(config);
     ConfigWindowLayout(config["windowLayout"]);
 }
@@ -1213,10 +1220,10 @@ const SystemSessionConfig& SceneSessionManager::GetSystemSessionConfig() const
 
 WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable)
 {
-    return SwitchFreeMultiWindow(enable, 0);
+    return SwitchFreeMultiWindow(enable, 0, true);
 }
 
-WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId)
+WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId, bool isForce)
 {
     if (!systemConfig_.freeMultiWindowSupport_) {
         TLOGE(WmsLogTag::WMS_LAYOUT_PC, "device not support");
@@ -1235,6 +1242,11 @@ WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId
         sceneSession->SwitchFreeMultiWindow(systemConfig);
         TLOGD(WmsLogTag::WMS_LAYOUT_PC, "Switch single window, windowId: %{public}d, enable: %{public}d",
             windowId, enable);
+        if (enable) {
+            CancelAdaptiveResolutionByWindow(windowId);
+        } else {
+            TryNotifyAdaptiveResolutionAvailable(sceneSession, IsWindowFullScreen(sceneSession));
+        }
         return WSError::WS_OK;
     }
     LoadFreeMultiWindowConfig(enable);
@@ -1244,14 +1256,65 @@ WSError SceneSessionManager::SwitchFreeMultiWindow(bool enable, int32_t windowId
             if (sceneSession == nullptr) {
                 continue;
             }
-            sceneSession->SwitchFreeMultiWindow(systemConfig_);
+            if (!isForce) {
+                auto sessionConfig = systemConfig_;
+                bool displayInFreeMulti = systemConfig_.IsDisplayInFreeMultiWindow(
+                    sceneSession->GetDisplayId());
+                sessionConfig.freeMultiWindowEnable_ = displayInFreeMulti;
+                sessionConfig.defaultWindowMode_ = displayInFreeMulti ?
+                    WindowMode::WINDOW_MODE_FLOATING : WindowMode::WINDOW_MODE_FULLSCREEN;
+                sceneSession->SwitchFreeMultiWindow(sessionConfig);
+            } else {
+                sceneSession->SwitchFreeMultiWindow(systemConfig_);
+            }
         }
     }
-    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(enable);
+    // FMW does not support adaptive resolution: cancel on entry, restore on exit.
+    if (enable) {
+        CancelAdaptiveResolutionOnFmwSwitch();
+    } else {
+        RestoreAdaptiveResolutionOnFmwSwitch();
+    }
+    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(enable, isForce);
     WindowStyleType type = enable ?
             WindowStyleType::WINDOW_STYLE_FREE_MULTI_WINDOW : WindowStyleType::WINDOW_STYLE_DEFAULT;
     SessionManagerAgentController::GetInstance().NotifyWindowStyleChange(type);
     return WSError::WS_OK;
+}
+
+void SceneSessionManager::CancelAdaptiveResolutionOnFmwSwitch()
+{
+    // Windows keeping fullscreen (no mode change) are covered here; the
+    // mode-change path cancels the rest (idempotent).
+    std::vector<int32_t> adaptiveIds;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        for (const auto& [id, _] : adaptiveResolutionWindows_) {
+            adaptiveIds.push_back(id);
+        }
+    }
+    for (const auto& id : adaptiveIds) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "[SwitchFreeMultiWindow] switchFmwOn, "
+            "cancelling adaptive hook, windowId: %{public}d", id);
+        CancelAdaptiveResolutionByWindow(id);
+    }
+}
+
+void SceneSessionManager::RestoreAdaptiveResolutionOnFmwSwitch()
+{
+    // Windows still animating back to fullscreen are restored later by the
+    // mode-change path (idempotent).
+    std::vector<int32_t> pendingUids;
+    {
+        std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
+        for (const auto& [uid, _] : cancelledGameWindowsByUid_) {
+            pendingUids.push_back(uid);
+        }
+    }
+    for (const auto& uid : pendingUids) {
+        NotifyAdaptiveResolutionAvailable(uid,
+            ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(uid));
+    }
 }
 
 WSError SceneSessionManager::GetFreeMultiWindowEnableState(bool& enable)
@@ -2203,6 +2266,46 @@ void SceneSessionManager::ConfigSnapshotScale()
     }
 }
 
+void SceneSessionManager::ConfigAppDpiScale()
+{
+    // Parse <appDpiScaleConfig enable="true"><maxDpiScale>1.5</maxDpiScale>
+    // <minDpiScale>0.5</minDpiScale></appDpiScaleConfig> from window_manager_config.xml and keep
+    // the clamp range here. native side must NOT self-define the range; it reads the same config
+    // the SCB side reads so the start path and runtime recalculation stay consistent.
+    const auto& config = WindowSceneConfig::GetConfig();
+    WindowSceneConfig::ConfigItem appDpiScaleConfig = config["appDpiScaleConfig"];
+    if (!appDpiScaleConfig.IsMap()) {
+        TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig not configured, keep default range");
+        return;
+    }
+    auto enableItem = appDpiScaleConfig.GetProp("enable");
+    if (enableItem.IsBool() && !enableItem.boolValue_) {
+        TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig enable=false, keep default range");
+        return;
+    }
+    float maxDpiScale = GetMaxDpiScale();
+    float minDpiScale = GetMinDpiScale();
+    auto maxItem = appDpiScaleConfig["maxDpiScale"];
+    if (maxItem.IsFloats() && maxItem.floatsValue_ && maxItem.floatsValue_->size() == 1 &&
+        (*maxItem.floatsValue_)[0] > 0.0f) {
+        maxDpiScale = (*maxItem.floatsValue_)[0];
+    }
+    auto minItem = appDpiScaleConfig["minDpiScale"];
+    if (minItem.IsFloats() && minItem.floatsValue_ && minItem.floatsValue_->size() == 1 &&
+        (*minItem.floatsValue_)[0] > 0.0f) {
+        minDpiScale = (*minItem.floatsValue_)[0];
+    }
+    if (minDpiScale > maxDpiScale) {
+        TLOGE(WmsLogTag::WMS_MAIN, "appDpiScaleConfig invalid range, min:%{public}f > max:%{public}f, "
+            "keep default range", minDpiScale, maxDpiScale);
+        return;
+    }
+    SetMinDpiScale(minDpiScale);
+    SetMaxDpiScale(maxDpiScale);
+    TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig parsed, minDpiScale:%{public}f, maxDpiScale:%{public}f",
+        minDpiScale, maxDpiScale);
+}
+
 void SceneSessionManager::ConfigPersistentScaledSnapshot()
 {
     const auto& config = WindowSceneConfig::GetConfig();
@@ -2984,8 +3087,9 @@ sptr<KeyboardSession::KeyboardSessionCallback> SceneSessionManager::CreateKeyboa
     keyboardCb->onSystemKeyboardAvoidChange = [this](DisplayId displayId, SystemKeyboardAvoidChangeReason reason) {
         this->HandleKeyboardAvoidChange(nullptr, displayId, reason);
     };
-    keyboardCb->onNotifyOccupiedAreaChange = [this](const sptr<OccupiedAreaChangeInfo>& info) {
-        this->onNotifyAvoidAreaChangeForRootFunc_(nullptr, AvoidAreaType::TYPE_KEYBOARD, info);
+    keyboardCb->onNotifyOccupiedAreaChange = [this](const sptr<OccupiedAreaChangeInfo>& info,
+        const sptr<AvoidArea>& avoidArea) {
+        this->onNotifyAvoidAreaChangeForRootFunc_(avoidArea, AvoidAreaType::TYPE_KEYBOARD, info);
     };
     keyboardCb->isLastFrameLayoutFinished = [this]() {
         if (isRootSceneLastFrameLayoutFinishedFunc_ == nullptr) {
@@ -3413,7 +3517,7 @@ void SceneSessionManager::HandleKeyboardAvoidChange(const sptr<SceneSession>& sc
          */
         case SystemKeyboardAvoidChangeReason::KEYBOARD_SHOW:
         case SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_BOTTOM: {
-            UpdateKeyboardAvoidAreaActive(true);
+            UpdateKeyboardAvoidAreaActive(true, displayId);
             break;
         }
         /*
@@ -3442,9 +3546,9 @@ void SceneSessionManager::HandleKeyboardAvoidChange(const sptr<SceneSession>& sc
     }
 }
 
-void SceneSessionManager::UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive)
+void SceneSessionManager::UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive, DisplayId displayId)
 {
-    const auto& keyboardSessionVec = GetSceneSessionVectorByType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    const auto& keyboardSessionVec = GetSceneSessionVectorByTypeAndDisplayId(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayId);
     if (keyboardSessionVec.empty()) {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "there is no keyboard window in the map");
         return;
@@ -3918,7 +4022,15 @@ void SceneSessionManager::UpdateAbilityHookState(const sptr<SceneSession>& scene
 sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& sessionInfo,
     sptr<WindowSessionProperty> property)
 {
-    auto task = [this, sessionInfo, property, where = __func__] {
+    bool isNewSession = false;
+    return RequestSceneSession(sessionInfo, property, isNewSession);
+}
+
+sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& sessionInfo,
+    sptr<WindowSessionProperty> property, bool& isNewSession)
+{
+    auto task = [this, sessionInfo, property, &isNewSession, where = __func__] {
+        isNewSession = false;
         if (auto session = GetSceneSessionBySessionInfo(sessionInfo)) {
             UpdateSessionDisplayIdBySessionInfo(session, sessionInfo);
             NotifySessionUpdate(sessionInfo, ActionType::SINGLE_START);
@@ -3983,6 +4095,7 @@ sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& s
         }
         PerformRegisterInRequestSceneSession(sceneSession);
         NotifySessionUpdate(sessionInfo, ActionType::SINGLE_START);
+        isNewSession = true;
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id: %{public}d, type: %{public}d, instanceKey: %{public}s, "
                "displayId: %{public}" PRIu64, where, sceneSession->GetPersistentId(), sceneSession->GetWindowType(),
                sceneSession->GetAppInstanceKey().c_str(), sceneSession->GetSessionProperty()->GetDisplayId());
@@ -3999,7 +4112,7 @@ void SceneSessionManager::InitSceneSession(sptr<SceneSession>& sceneSession, con
         return;
     }
     auto callerSession = GetSceneSession(sessionInfo.callerPersistentId_);
-    DisplayId currDisplayId = DEFAULT_DISPLAY_ID;
+    DisplayId currDisplayId = GetInstanceUserDefaultDisplay();
     if (sessionInfo.screenId_ != SCREEN_ID_INVALID) {
         currDisplayId = sessionInfo.screenId_;
     } else if (callerSession) {
@@ -4913,6 +5026,10 @@ WSError SceneSessionManager::RequestSceneSessionBackground(const sptr<SceneSessi
         sceneSession->SetActive(false);
         sceneSession->UpdatePrivacyModeControlInfo();
 
+        // Clear stack recovery flags when session goes to background
+        sceneSession->SetTryUseSnapshot(false);
+        sceneSession->NotifyStackRecoveryFlagChange(false);
+
         if (isToDesktop) {
             sceneSession->EditSessionInfo().callerToken_ = nullptr;
             sceneSession->EditSessionInfo().callingTokenId_ = 0;
@@ -5231,21 +5348,23 @@ void SceneSessionManager::ResetSceneSessionInfoWant(const sptr<AAFwk::SessionInf
 
 void SceneSessionManager::ResetWantInfo(const sptr<SceneSession>& sceneSession)
 {
-    if (const auto sessionInfoWant = sceneSession->GetSessionInfo().want) {
-        const auto& bundleName = sessionInfoWant->GetElement().GetBundleName();
-        const auto& abilityName = sessionInfoWant->GetElement().GetAbilityName();
-        const auto& keySessionId = sessionInfoWant->GetStringParam(ATOMIC_SERVICE_SESSION_ID);
-        AppExecFwk::ElementName element;
-        element.SetBundleName(bundleName);
-        element.SetAbilityName(abilityName);
-        auto want = std::make_shared<AAFwk::Want>();
-        want->SetElement(element);
-        want->SetBundle(bundleName);
-        if (!keySessionId.empty()) {
-            want->SetParam(ATOMIC_SERVICE_SESSION_ID, keySessionId);
+    taskScheduler_->PostAsyncTask([sceneSession] {
+        if (const auto sessionInfoWant = sceneSession->GetSessionInfo().want) {
+            const auto& bundleName = sessionInfoWant->GetElement().GetBundleName();
+            const auto& abilityName = sessionInfoWant->GetElement().GetAbilityName();
+            const auto& keySessionId = sessionInfoWant->GetStringParam(ATOMIC_SERVICE_SESSION_ID);
+            AppExecFwk::ElementName element;
+            element.SetBundleName(bundleName);
+            element.SetAbilityName(abilityName);
+            auto want = std::make_shared<AAFwk::Want>();
+            want->SetElement(element);
+            want->SetBundle(bundleName);
+            if (!keySessionId.empty()) {
+                want->SetParam(ATOMIC_SERVICE_SESSION_ID, keySessionId);
+            }
+            sceneSession->SetSessionInfoWant(want);
         }
-        sceneSession->SetSessionInfoWant(want);
-    }
+    }, __func__);
 }
 
 void SceneSessionManager::MoveStartLifeCycleTask(const sptr<SceneSession>& sceneSession)
@@ -7023,6 +7142,7 @@ WSError SceneSessionManager::InitUserInfo(int32_t userId, std::string& fileDir)
             TLOGND(WmsLogTag::WMS_MAIN, "Create start window directory failed");
         }
         currentUserId_ = userId;
+        InvalidateDefaultDisplayIdCache();
         SceneInputManager::GetInstance().SetCurrentUserId(currentUserId_);
         if (MultiInstanceManager::IsSupportMultiInstance(systemConfig_)) {
             MultiInstanceManager::GetInstance().SetCurrentUserId(currentUserId_);
@@ -7210,6 +7330,7 @@ void SceneSessionManager::HandleUserSwitch(const UserSwitchEventType type, const
         TLOGNI(WmsLogTag::WMS_MULTI_USER,
             "%{public}s: currentUserId: %{public}d, switchEventType: %{public}u, isUserActive: %{public}u",
             where, currentUserId_.load(), type, isUserActive);
+        InvalidateDefaultDisplayIdCache();
         switch (type) {
             case UserSwitchEventType::SWITCHING: {
                 HandleUserSwitching(isUserActive);
@@ -8612,27 +8733,83 @@ std::vector<std::pair<DisplayId, int32_t>> SceneSessionManager::GetAllFocusedSes
     return windowFocusController_->GetAllFocusedSessionList();
 }
 
+// Resolve DISPLAY_ID_INVALID sentinel to the default display of this SCB instance's user;
+// explicit displayId (0 or non-zero) passes through unchanged. Must be called on the IPC
+// thread (GetCallingUid() only reliable there), before PostSyncTask.
 DisplayId SceneSessionManager::ResolveDefaultDisplayId(DisplayId displayId)
 {
     if (displayId != DISPLAY_ID_INVALID) {
         return displayId;
     }
-    // Keep the legacy behavior (default display fixed to 0) until the feature switch is on.
-    // Cache the switch: the value is fixed on a given product, querying it per call is wasteful.
-    static const bool g_defaultDisplayResolve =
-        system::GetBoolParameter("persist.window.default_display_resolve", false);
-    if (!g_defaultDisplayResolve) {
+    // Keep the legacy behavior (default display fixed to 0) until multi-instance is enabled,
+    // and avoid the IPC-thread GetCallingUid() on the legacy path.
+    if (!IsMultiInstanceEnabled()) {
         return DEFAULT_DISPLAY_ID;
     }
     int32_t userId = currentUserId_;
     if (userId == DEFAULT_USERID) {
         userId = IPCSkeleton::GetCallingUid() / BASE_USER_RANGE;
     }
-    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
-    displayId = (defaultDisplay != nullptr) ? defaultDisplay->GetId() : DEFAULT_DISPLAY_ID;
+    DisplayId resolved = GetDefaultDisplayIdByUserId(userId);
     TLOGD(WmsLogTag::WMS_FOCUS,
-        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId, displayId);
+        "get default display of user(%{public}d) for focus query: %{public}" PRIu64, userId, resolved);
+    return resolved;
+}
+
+// Resolve the default display of this SCB instance's user only (no GetCallingUid fallback),
+// safe to call from any thread (mutex-guarded cache; reads atomic currentUserId_). Returns
+// DEFAULT_DISPLAY_ID on the legacy path (switch off) or before InitUserInfo (startup window).
+DisplayId SceneSessionManager::GetInstanceUserDefaultDisplay()
+{
+    int32_t userId = currentUserId_;
+    if (userId == DEFAULT_USERID) {
+        // Keep the legacy behavior before InitUserInfo (startup window): default display 0.
+        return DEFAULT_DISPLAY_ID;
+    }
+    return GetDefaultDisplayIdByUserId(userId);
+}
+
+// Event-driven per-user default display resolution with cache: resolves userId -> default
+// display id in O(1) on cache hit. On cache miss it falls back to the authoritative DMS
+// resolution and backfills the cache; InvalidateDefaultDisplayIdCache() is called on user
+// switch / screen connect-disconnect / display property change / fold change so stale
+// entries are cleared (lazy refresh).
+DisplayId SceneSessionManager::GetDefaultDisplayIdByUserId(int32_t userId)
+{
+    // Keep the legacy behavior (default display fixed to 0) until multi-instance is enabled.
+    // IsMultiInstanceEnabled() caches its own switch, so querying it per call is cheap.
+    if (!IsMultiInstanceEnabled()) {
+        return DEFAULT_DISPLAY_ID;
+    }
+    {
+        std::lock_guard<std::mutex> lock(userDefaultDisplayIdCacheMutex_);
+        auto iter = userDefaultDisplayIdCache_.find(userId);
+        if (iter != userDefaultDisplayIdCache_.end()) {
+            return iter->second;
+        }
+    }
+    // Cache miss: fall back to the authoritative DMS resolution (existing client channel),
+    // then backfill the cache so the hot path (focus query / window info) is O(1) read. This
+    // mirrors ScreenSessionManager::GetDefaultDisplayIdByUserId on the server side.
+    auto defaultDisplay = DisplayManager::GetInstance().GetDefaultDisplaySync(false, userId);
+    if (defaultDisplay == nullptr) {
+        // Resolution failed; keep legacy fallback and do NOT cache, so the next lookup retries.
+        return DEFAULT_DISPLAY_ID;
+    }
+    DisplayId displayId = defaultDisplay->GetId();
+    {
+        std::lock_guard<std::mutex> lock(userDefaultDisplayIdCacheMutex_);
+        userDefaultDisplayIdCache_[userId] = displayId;
+    }
+    TLOGD(WmsLogTag::WMS_MULTI_USER,
+        "cache default display of user(%{public}d): %{public}" PRIu64, userId, displayId);
     return displayId;
+}
+
+void SceneSessionManager::InvalidateDefaultDisplayIdCache()
+{
+    std::lock_guard<std::mutex> lock(userDefaultDisplayIdCacheMutex_);
+    userDefaultDisplayIdCache_.clear();
 }
 
 void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, DisplayId displayId)
@@ -8651,7 +8828,7 @@ void SceneSessionManager::GetFocusWindowInfo(FocusChangeInfo& focusInfo, Display
         if (auto sceneSession = GetSceneSession(focusGroup->GetFocusedSessionId())) {
             focusInfo.windowId_ = sceneSession->GetWindowId();
             focusInfo.displayId_ = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID
-                                        ? DEFAULT_DISPLAY_ID
+                                        ? GetInstanceUserDefaultDisplay()
                                         : sceneSession->GetDisplayId();
             focusInfo.pid_ = sceneSession->GetCallingPid();
             focusInfo.uid_ = sceneSession->GetCallingUid();
@@ -8706,7 +8883,7 @@ void SceneSessionManager::GetFocusWindowInfoByAbilityToken(FocusChangeInfo& focu
         }
         focusInfo.windowId_ = currSceneSession->GetWindowId();
         focusInfo.displayId_ = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID
-                                    ? DEFAULT_DISPLAY_ID
+                                    ? GetInstanceUserDefaultDisplay()
                                     : currSceneSession->GetDisplayId();
         focusInfo.pid_ = currSceneSession->GetCallingPid();
         focusInfo.uid_ = currSceneSession->GetCallingUid();
@@ -8750,7 +8927,7 @@ void SceneSessionManager::GetAllGroupInfo(std::unordered_map<DisplayId, DisplayG
             }
             auto focusInfo = sptr<FocusChangeInfo>::MakeSptr(
                 focusedSession->GetWindowId(), curFocusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID ?
-                DEFAULT_DISPLAY_ID : focusedSession->GetDisplayId(), focusedSession->GetDisplayId(),
+                GetInstanceUserDefaultDisplay() : focusedSession->GetDisplayId(), focusedSession->GetDisplayId(),
                 curFocusGroup->GetDisplayGroupId(), curFocusGroup->GetDisplayGroupType(), focusedSession->GetCallingPid(),
                 focusedSession->GetCallingUid(), focusedSession->GetWindowType(), focusedSession->GetAbilityToken());
             allFocusInfoList.emplace_back(focusInfo);
@@ -9223,7 +9400,7 @@ std::string SceneSessionManager::GetFloatWidth(const int width, float value)
 
 void SceneSessionManager::DumpFocusInfo(std::ostringstream& oss)
 {
-    auto defaultFocusedSessionId = windowFocusController_->GetFocusedSessionId(DEFAULT_DISPLAY_ID);
+    auto defaultFocusedSessionId = windowFocusController_->GetFocusedSessionId(GetInstanceUserDefaultDisplay());
     oss << "Focus window: " << defaultFocusedSessionId << std::endl;
     std::vector<std::pair<DisplayId, int32_t>> allFocusedSessionList =
         windowFocusController_->GetAllFocusedSessionList();
@@ -9879,9 +10056,10 @@ WSError SceneSessionManager::RequestSessionUnfocus(int32_t persistentId, FocusCh
 WSError SceneSessionManager::RequestAllAppSessionUnfocusInner()
 {
     TLOGI(WmsLogTag::WMS_FOCUS, "in");
-    auto focusGroup = windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    DisplayId defaultDisplayId = GetInstanceUserDefaultDisplay();
+    auto focusGroup = windowFocusController_->GetFocusGroup(defaultDisplayId);
     if (focusGroup == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, DEFAULT_DISPLAY_ID);
+        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, defaultDisplayId);
         return WSError::WS_ERROR_NULLPTR;
     }
     auto focusedSession = GetSceneSession(focusGroup->GetFocusedSessionId());
@@ -10678,7 +10856,9 @@ void SceneSessionManager::NotifyFocusStatus(const sptr<SceneSession>& sceneSessi
         UpdateBrightness(focusGroup->GetFocusedSessionId());
         FocusIDChange(sceneSession->GetPersistentId(), sceneSession);
     }
-    DisplayId focusGroupId = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID ? DEFAULT_DISPLAY_ID : sceneSession->GetDisplayId();
+    DisplayId focusGroupId = focusGroup->GetDisplayGroupId() == DEFAULT_DISPLAY_ID
+                                 ? GetInstanceUserDefaultDisplay()
+                                 : sceneSession->GetDisplayId();
     // notify window manager
     sptr<FocusChangeInfo> focusChangeInfo = sptr<FocusChangeInfo>::MakeSptr(
         sceneSession->GetWindowId(),
@@ -10854,7 +11034,7 @@ void SceneSessionManager::NotifyRssThawApp(const int32_t uid, const std::string&
         payload.emplace("bundleName", bundleName);
         payload.emplace("reason", reason);
         nlohmann::json reply;
-        ResourceSchedule::ResSchedClient::GetInstance().ReportSyncEvent(resType, 0, payload, reply);
+        ResourceSchedule::ResSchedJsonClient::GetInstance().ReportSyncEvent(resType, 0, payload, reply);
         TLOGNI(WmsLogTag::WMS_FOCUS, "NotifyRssThawApp, uid: %{public}d", uid);
     });
 }
@@ -13039,22 +13219,33 @@ WSError SceneSessionManager::GetSessionSnapshot(const std::string& deviceId, int
     }, __func__);
 }
 
-WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
 {
-    if (!SessionPermission::JudgeCallerIsAllowedToUseSystemAPI() && !SessionPermission::IsShellCall()) {
-        TLOGW(WmsLogTag::WMS_SYSTEM, "Get snapshot failed, Get snapshot by id must be system app!");
+    if (!SessionPermission::JudgeCallerIsAllowedToUseSystemAPI() && !SessionPermission::IsShellCall() &&
+        !SessionPermission::VerifyCallingPermission("ohos.permission.CUSTOM_SCREEN_CAPTURE")) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "no permission, winId=%{public}d", persistentId);
         return WMError::WM_ERROR_NOT_SYSTEM_APP;
     }
-    return taskScheduler_->PostSyncTask([this, persistentId, &snapshot]() {
+    return taskScheduler_->PostSyncTask([this, persistentId, &snapshot, &extraInfo, where = __func__]() {
         auto sceneSession = GetSceneSession(persistentId);
         if (!sceneSession) {
-            TLOGNW(WmsLogTag::WMS_SYSTEM, "fail to find session by persistentId: %{public}d", persistentId);
+            TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: no session for winId=%{public}d", where, persistentId);
             return WMError::WM_ERROR_INVALID_PARAM;
+        }
+        if (sceneSession->GetIsPrivacyMode()) {
+            extraInfo = std::to_string(persistentId) + " is a private window";
+        } else {
+            auto state = GetRealSessionState(sceneSession);
+            bool isForeground = state == SessionState::STATE_FOREGROUND || state == SessionState::STATE_ACTIVE;
+            if (!isForeground) {
+                extraInfo = std::to_string(persistentId) + " is not a foreground window";
+            }
         }
         const auto& sessionInfo = sceneSession->GetSessionInfo();
         if (sessionInfo.abilityName_.empty() || sessionInfo.moduleName_.empty() || sessionInfo.bundleName_.empty()) {
-            TLOGNW(WmsLogTag::WMS_SYSTEM, "sessionInfo: %{public}d, abilityName or moduleName or bundleName is empty",
-                sceneSession->GetPersistentId());
+            TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winId=%{public}d, no abilityName/moduleName/bundleName",
+                where, persistentId);
         }
         snapshot.topAbility.SetBundleName(sessionInfo.bundleName_.c_str());
         snapshot.topAbility.SetModuleName(sessionInfo.moduleName_.c_str());
@@ -13062,15 +13253,17 @@ WMError SceneSessionManager::GetSessionSnapshotById(int32_t persistentId, Sessio
         float snapShotScale = sceneSession->GetFloatingScale() > 1.0f ? 1.0f : sceneSession->GetFloatingScale();
         Session::SnapshotOptions options;
         options.scaleParam = snapShotScale;
+        options.ignorePersistence = true;
         if (auto oriSnapshot = sceneSession->Snapshot(options)) {
             if (sceneSession->GetFloatingScale() > 1.0f) {
                 oriSnapshot->scale(sceneSession->GetFloatingScale(), sceneSession->GetFloatingScale());
             }
             snapshot.snapshot = oriSnapshot;
-            TLOGNI(WmsLogTag::WMS_SYSTEM, "snapshot WxH=%{public}dx%{public}d",
-                oriSnapshot->GetWidth(), oriSnapshot->GetHeight());
+            TLOGNI(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winId=%{public}d, snapshot WxH=%{public}dx%{public}d",
+                where, persistentId, oriSnapshot->GetWidth(), oriSnapshot->GetHeight());
             return WMError::WM_OK;
         }
+        TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winId=%{public}d, snapshot failed", where, persistentId);
         return WMError::WM_ERROR_NULLPTR;
     }, __func__);
 }
@@ -13475,6 +13668,47 @@ void DisplayChangeListener::OnGetSurfaceNodeIdsFromMissionIds(std::vector<uint64
         needWindowTypeList, isNeedForceCheck);
 }
 
+void SceneSessionManager::AddFloatViewMissionIds(std::vector<uint64_t>& missionIds,
+                                                 const std::vector<uint32_t>& needWindowTypeList)
+{
+    if (needWindowTypeList.empty()) {
+        return;
+    }
+
+    if (std::find(needWindowTypeList.begin(), needWindowTypeList.end(),
+                  static_cast<uint32_t>(WindowType::WINDOW_TYPE_FV)) == needWindowTypeList.end()) {
+        return;
+    }
+
+    std::map<int32_t, sptr<SceneSession>>::iterator iter;
+    bool hasOriginFloatView = false;
+    std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
+    for (auto missionId : missionIds) {
+        iter = sceneSessionMap_.find(static_cast<int32_t>(missionId));
+        if (iter == sceneSessionMap_.end() || iter->second == nullptr) {
+            continue;
+        }
+        if (iter->second->GetWindowType() == WindowType::WINDOW_TYPE_FV) {
+            hasOriginFloatView = true;
+            break;
+        }
+    }
+
+    if (!hasOriginFloatView) {
+        return;
+    }
+
+    for (const auto& [id, sceneSession] : sceneSessionMap_) {
+        if (sceneSession == nullptr || sceneSession->GetWindowType() != WindowType::WINDOW_TYPE_FV) {
+            continue;
+        }
+
+        if (std::find(missionIds.begin(), missionIds.end(), id) == missionIds.end()) {
+            missionIds.push_back(id);
+        }
+    }
+}
+
 WMError SceneSessionManager::GetSurfaceNodeIdsFromMissionIds(std::vector<uint64_t>& missionIds,
     std::vector<uint64_t>& surfaceNodeIds, const std::vector<uint32_t>& needWindowTypeList, bool isNeedForceCheck)
 {
@@ -13484,6 +13718,8 @@ WMError SceneSessionManager::GetSurfaceNodeIdsFromMissionIds(std::vector<uint64_
         return WMError::WM_ERROR_INVALID_PERMISSION;
     }
     auto task = [this, &missionIds, &surfaceNodeIds, &needWindowTypeList, isNeedForceCheck]() {
+        AddFloatViewMissionIds(missionIds, needWindowTypeList);
+
         std::map<int32_t, sptr<SceneSession>>::iterator iter;
         std::shared_lock<std::shared_mutex> lock(sceneSessionMapMutex_);
         for (auto missionId : missionIds) {
@@ -15932,7 +16168,7 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
                     sceneSession->GetPersistentId(), sceneSession->GetWindowType(),
                     sceneSession->GetSessionState(), sceneSession->IsVisible());
             }
-            sceneSession->UpdateDpiForceScale();
+            sceneSession->UpdateDpiForceScale(minDpiScale_, maxDpiScale_, DPI_SCALE_STEP);
         }
         UpdateDisplayRegion(displayInfo);
         return WSError::WS_OK;
@@ -15999,6 +16235,9 @@ void DisplayChangeListener::OnDisplayStateChange(DisplayId defaultDisplayId, spt
     const std::map<DisplayId, sptr<DisplayInfo>>& displayInfoMap, DisplayStateChangeType type)
 {
     TLOGD(WmsLogTag::DEFAULT, "type: %{public}u", type);
+    // Display property changes (resolution / vrr / rotation / scale) may alter the default
+    // screen mapping, so drop the cached per-user default display id.
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
     switch (type) {
         case DisplayStateChangeType::RESOLUTION_CHANGE:
         case DisplayStateChangeType::VIRTUAL_PIXEL_RATIO_CHANGE: {
@@ -16049,6 +16288,7 @@ void ScreenConnectionChangeListener::OnScreenConnected(const sptr<ScreenSession>
           static_cast<uint32_t>(screenSession->GetGroupType()));
     SceneSessionManager::GetInstance().AddFocusGroup(screenSession->GetDisplayGroupId(), screenSession->GetScreenId(),
     screenSession->GetGroupType());
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
 
     // Window Layout Global Coordinate System: monitors screen position changes in the global coordinate system
     screenSession->RegisterScreenChangeListener(&SceneScreenChangeListener::GetInstance());
@@ -16069,6 +16309,7 @@ void ScreenConnectionChangeListener::OnScreenDisconnected(const sptr<ScreenSessi
           screenSession->GetScreenProperty().GetScreenType());
     SceneSessionManager::GetInstance().RemoveFocusGroup(screenSession->GetDisplayGroupId(),
         screenSession->GetScreenId());
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
 
     // Window Layout Global Coordinate System
     screenSession->UnregisterScreenChangeListener(&SceneScreenChangeListener::GetInstance());
@@ -16766,7 +17007,7 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
 #endif
     sceneSession->NotifyRemoveAppLockSnapshot();
     sceneSession->UpdateDensity();
-    sceneSession->UpdateDpiForceScale();
+    sceneSession->UpdateDpiForceScale(minDpiScale_, maxDpiScale_, DPI_SCALE_STEP);
     if (fromScreenId != screenId) {
         sceneSession->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));
         sceneSession->MarkAvoidAreaAsDirty();
@@ -17186,9 +17427,10 @@ void SceneSessionManager::FlushUIParams(ScreenId screenId, std::unordered_map<in
 
 void SceneSessionManager::ProcessUpdateLastFocusedAppId(const std::vector<std::pair<uint32_t, uint32_t>>& zOrderList)
 {
-    auto focusGroup = windowFocusController_->GetFocusGroup(DEFAULT_DISPLAY_ID);
+    DisplayId defaultDisplayId = GetInstanceUserDefaultDisplay();
+    auto focusGroup = windowFocusController_->GetFocusGroup(defaultDisplayId);
     if (focusGroup == nullptr) {
-        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, DEFAULT_DISPLAY_ID);
+        TLOGE(WmsLogTag::WMS_FOCUS, "focus group is nullptr: %{public}" PRIu64, defaultDisplayId);
         return;
     }
     auto lastFocusedAppSessionId = focusGroup->GetLastFocusedAppSessionId();
@@ -17221,7 +17463,7 @@ void SceneSessionManager::ProcessFocusZOrderChange(uint32_t dirty)
         return;
     }
     TLOGD(WmsLogTag::WMS_FOCUS, "has zOrder dirty");
-    auto focusedSessionId = GetFocusedSessionId(DEFAULT_DISPLAY_ID);
+    auto focusedSessionId = GetFocusedSessionId(GetInstanceUserDefaultDisplay());
     auto focusedSession = GetSceneSession(focusedSessionId);
     // only when it's from a high zOrder to a low zOrder
     if (focusedSession == nullptr || focusedSession->GetWindowType() == WindowType::WINDOW_TYPE_VOICE_INTERACTION ||
@@ -17930,7 +18172,7 @@ WMError SceneSessionManager::ListWindowInfo(const WindowInfoOption& windowInfoOp
         }
         return WMError::WM_OK;
     }, __func__);
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, size=%{public}u",
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, size=%{public}u",
         static_cast<int32_t>(ret), static_cast<uint32_t>(infos.size()));
     return ret;
 }
@@ -19926,13 +20168,20 @@ WMError SceneSessionManager::UpdateAppHookDisplayInfo(int32_t uid, const HookInf
     return WMError::WM_OK;
 }
 
-void SceneSessionManager::UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow)
+void SceneSessionManager::UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow,
+    bool isForce)
 {
     std::shared_lock lock(sceneSessionMapMutex_);
     for (const auto& [_, session] : sceneSessionMap_) {
         if (session && SessionHelper::IsMainWindow(session->GetWindowType())) {
             auto hookWindowInfo = session->GetSessionProperty()->GetHookWindowInfo();
-            hookWindowInfo.enableHookWindow = !isOpenFreeMultiWindow;
+            if (!isForce) {
+                bool displayInFreeMulti = systemConfig_.IsDisplayInFreeMultiWindow(
+                    session->GetDisplayId());
+                hookWindowInfo.enableHookWindow = !displayInFreeMulti;
+            } else {
+                hookWindowInfo.enableHookWindow = !isOpenFreeMultiWindow;
+            }
             session->UpdateHookWindowInfo(hookWindowInfo);
         }
     }
@@ -19996,6 +20245,7 @@ WMError SceneSessionManager::NotifyHookOrientationChange(int32_t persistentId)
 
 void DisplayChangeListener::OnScreenFoldStatusChanged(const std::vector<std::string>& screenFoldInfo)
 {
+    SceneSessionManager::GetInstance().InvalidateDefaultDisplayIdCache();
     SceneSessionManager::GetInstance().SetDelayRemoveSnapshot(true);
     SceneSessionManager::GetInstance().ReportScreenFoldStatusChange(screenFoldInfo);
 }
@@ -20041,8 +20291,9 @@ WMError SceneSessionManager::MakeScreenFoldData(const std::vector<std::string>& 
         return WMError::WM_DO_NOTHING;
     }
     AppExecFwk::ElementName element = {};
-    WSError ret = GetFocusSessionElement(element, DEFAULT_DISPLAY_ID);
-    auto sceneSession = GetSceneSession(windowFocusController_->GetFocusedSessionId(DEFAULT_DISPLAY_ID));
+    DisplayId defaultDisplayId = GetInstanceUserDefaultDisplay();
+    WSError ret = GetFocusSessionElement(element, defaultDisplayId);
+    auto sceneSession = GetSceneSession(windowFocusController_->GetFocusedSessionId(defaultDisplayId));
     if (sceneSession == nullptr || ret != WSError::WS_OK) {
         TLOGI(WmsLogTag::DMS, "Error: fail to get focused package name.");
         return WMError::WM_DO_NOTHING;
@@ -21702,6 +21953,23 @@ bool SceneSessionManager::UpdateAdaptiveResolutionMaps(int32_t windowId, int32_t
     return needUpdateDmsHook;
 }
 
+// A ratio-1.0 hook owns no viewport (the free-multi-window exit flips enableHookWindow
+// on with the default ratio); only a real hook conflicts with adaptive resolution.
+static bool IsWindowHookConflict(const sptr<SceneSession>& sceneSession)
+{
+    if (sceneSession == nullptr) {
+        return false;
+    }
+    auto property = sceneSession->GetSessionProperty();
+    if (property == nullptr) {
+        return false;
+    }
+    auto hookWindowInfo = property->GetHookWindowInfo();
+    return hookWindowInfo.enableHookWindow &&
+        !MathHelper::NearEqual(hookWindowInfo.widthHookRatio,
+            HookWindowInfo::DEFAULT_WINDOW_SIZE_HOOK_RATIO);
+}
+
 WMError SceneSessionManager::HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession,
     int32_t callingUid, const GameAdaptiveResolutionConfig& config)
 {
@@ -21716,28 +21984,10 @@ WMError SceneSessionManager::HandleAdaptiveResolutionConfig(const sptr<SceneSess
             "mismatched windowId: %{public}d, session: %{public}d", config.windowId_, persistentId);
         return WMError::WM_ERROR_INVALID_PARAM;
     }
-    // The fullscreen and display-hook-conflict checks only apply to enabling
     if (config.enable_) {
-        if (!IsWindowFullScreen(sceneSession)) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] not fullscreen, "
-                "windowId: %{public}d", persistentId);
-            RecordPendingAdaptiveWindow(callingUid, persistentId);
-            return WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
-        }
-        // Window hook conflict: both own the viewport; local check before any IPC.
-        auto property = sceneSession->GetSessionProperty();
-        if (property != nullptr && property->GetHookWindowInfo().enableHookWindow) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] window hooked already, "
-                "windowId: %{public}d", persistentId);
-            RecordPendingAdaptiveWindow(callingUid, persistentId);
-            return WMError::WM_ERROR_INVALID_OPERATION;
-        }
-        // Sync IPC to DMS: keep after all local checks.
-        if (ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(callingUid)) {
-            TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] display hooked already, "
-                "uid: %{public}d, windowId: %{public}d", callingUid, config.windowId_);
-            RecordPendingAdaptiveWindow(callingUid, persistentId);
-            return WMError::WM_ERROR_INVALID_OPERATION;
+        WMError ret = CheckAdaptiveResolutionEnable(sceneSession, callingUid, persistentId);
+        if (ret != WMError::WM_OK) {
+            return ret;
         }
     }
     TLOGI(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] windowId: %{public}d, "
@@ -21748,6 +21998,52 @@ WMError SceneSessionManager::HandleAdaptiveResolutionConfig(const sptr<SceneSess
             callingUid, config.enable_, ToDmAdaptiveResolutionConfig(config));
     }
     return WMError::WM_OK;
+}
+
+WMError SceneSessionManager::CheckAdaptiveResolutionEnable(const sptr<SceneSession>& sceneSession,
+    int32_t callingUid, int32_t persistentId)
+{
+    // The checks only apply to enabling; every rejection records a pending restore.
+    if (!IsWindowFullScreen(sceneSession)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] not fullscreen, "
+            "windowId: %{public}d", persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
+    }
+    if (IsWindowHookConflict(sceneSession)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] window hooked already, "
+            "windowId: %{public}d", persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    // Free multi window mode does not support adaptive resolution.
+    if (systemConfig_.freeMultiWindowEnable_) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] free multi window mode, "
+            "not supported, windowId: %{public}d", persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_WINDOW_MODE_OR_SIZE;
+    }
+    // Sync IPC to DMS: keep after all local checks.
+    if (ScreenSessionManagerClient::GetInstance().IsDisplayHookedByUid(callingUid)) {
+        TLOGE(WmsLogTag::WMS_COMPAT, "[HandleAdaptiveResolutionConfig] display hooked already, "
+            "uid: %{public}d, windowId: %{public}d", callingUid, persistentId);
+        RecordPendingAdaptiveWindow(callingUid, persistentId);
+        return WMError::WM_ERROR_INVALID_OPERATION;
+    }
+    // Adaptive owns the viewport now; a stale RESIZE gravity left by FMW would
+    // double-stretch once our surface scale resumes.
+    ResetAdaptiveWindowGravity(sceneSession);
+    return WMError::WM_OK;
+}
+
+void SceneSessionManager::ResetAdaptiveWindowGravity(const sptr<SceneSession>& sceneSession)
+{
+    auto surfaceNode = sceneSession != nullptr ? sceneSession->GetSurfaceNode() : nullptr;
+    if (surfaceNode != nullptr) {
+        TLOGI(WmsLogTag::WMS_COMPAT, "[GravityModeChange] Id:%{public}d, adaptive enable, "
+            "reset gravity default", sceneSession->GetPersistentId());
+        surfaceNode->SetFrameGravity(Gravity::DEFAULT);
+    }
 }
 
 bool SceneSessionManager::IsWindowFullScreen(const sptr<SceneSession>& sceneSession)
@@ -21791,7 +22087,7 @@ void SceneSessionManager::CheckAdaptiveResolutionOnHookWindowChange(
         return;
     }
     int32_t persistentId = sceneSession->GetPersistentId();
-    if (enableHookWindow) {
+    if (enableHookWindow && IsWindowHookConflict(sceneSession)) {
         bool hasGameConfig = false;
         {
             std::lock_guard<std::mutex> lock(adaptiveResolutionMutex_);
@@ -22058,8 +22354,11 @@ bool SceneSessionManager::IsAdaptiveResolutionRestorable(const sptr<SceneSession
     if (sceneSession == nullptr || displayHooked) {
         return false;
     }
-    auto property = sceneSession->GetSessionProperty();
-    if (property != nullptr && property->GetHookWindowInfo().enableHookWindow) {
+    if (IsWindowHookConflict(sceneSession)) {
+        return false;
+    }
+    // Free multi window mode does not support adaptive resolution.
+    if (systemConfig_.freeMultiWindowEnable_) {
         return false;
     }
     return fullscreenNow;
@@ -22795,9 +23094,9 @@ void SceneSessionManager::RegisterSceneSessionDestructNotifyManagerFunc(const sp
         TLOGE(WmsLogTag::WMS_LIFE, "session is nullptr");
         return;
     }
-    sceneSession->SetSceneSessionDestructNotificationFunc([this](int32_t persistentId) {
+    sceneSession->SetSceneSessionDestructNotificationFunc([this](int32_t persistentId, bool isUserRequestedExit) {
         if (onSceneSessionDestruct_) {
-            onSceneSessionDestruct_(persistentId);
+            onSceneSessionDestruct_(persistentId, isUserRequestedExit);
         }
     });
 }
@@ -23806,6 +24105,27 @@ void SceneSessionManager::SetSelectMode(SelectMode selectMode)
 SelectMode SceneSessionManager::GetSelectMode() const
 {
     return selectMode_.load();
+}
+
+WSError SceneSessionManager::NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover)
+{
+    if (!SessionPermission::IsSACalling()) {
+        TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not SA calling, id %{public}d", persistentId);
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    bool isFoundationCall = SessionPermission::IsFoundationCall();
+    if (!isFoundationCall) {
+        TLOGE(WmsLogTag::WMS_MAIN, "permission denied, not foundation calling, id %{public}d", persistentId);
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    TLOGI(WmsLogTag::WMS_MAIN, "id %{public}d, isStackRecover %{public}d", persistentId, isStackRecover);
+    auto sceneSession = GetSceneSession(persistentId);
+    if (sceneSession == nullptr) {
+        TLOGNE(WmsLogTag::WMS_MAIN, "session is nullptr");
+        return WSError::WS_ERROR_INVALID_SESSION;
+    }
+    sceneSession->NotifyStackRecoveryFlagChange(isStackRecover);
+    return WSError::WS_OK;
 }
 
 } // namespace OHOS::Rosen

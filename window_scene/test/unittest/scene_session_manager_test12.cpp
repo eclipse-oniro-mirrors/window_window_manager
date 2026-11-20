@@ -1234,10 +1234,10 @@ HWTEST_F(SceneSessionManagerTest12, UpdateKeyboardAvoidAreaActive, TestSize.Leve
     ASSERT_EQ(true, systemKeyboardSession->IsSystemKeyboard());
     ssm->sceneSessionMap_.insert({ systemKeyboardSession->GetPersistentId(), systemKeyboardSession });
 
-    ssm->UpdateKeyboardAvoidAreaActive(false);
+    ssm->UpdateKeyboardAvoidAreaActive(false, info.screenId_);
     ASSERT_EQ(true, keyboardSession->keyboardAvoidAreaActive_);
     ASSERT_EQ(false, systemKeyboardSession->keyboardAvoidAreaActive_);
-    ssm->UpdateKeyboardAvoidAreaActive(true);
+    ssm->UpdateKeyboardAvoidAreaActive(true, info.screenId_);
     ASSERT_EQ(false, keyboardSession->keyboardAvoidAreaActive_);
     ASSERT_EQ(true, systemKeyboardSession->keyboardAvoidAreaActive_);
 }
@@ -2151,7 +2151,7 @@ HWTEST_F(SceneSessionManagerTest12, RequestSceneSession, Function | SmallTest | 
  */
 HWTEST_F(SceneSessionManagerTest12, RegisterSceneSessionDestructCallback, Function | SmallTest | Level2)
 {
-    NotifySceneSessionDestructFunc func = [](int32_t persistentId) { return; };
+    NotifySceneSessionDestructFunc func = [](int32_t persistentId, bool isUserRequestedExit) { return; };
     ssm_->RegisterSceneSessionDestructCallback(std::move(func));
     ASSERT_NE(nullptr, ssm_->onSceneSessionDestruct_);
 }
@@ -2170,7 +2170,7 @@ HWTEST_F(SceneSessionManagerTest12, RegisterSceneSessionDestructNotifyManagerFun
     info.persistentId_ = 999;
     sptr<MainSession> sceneSession = sptr<MainSession>::MakeSptr(info, nullptr);
     ASSERT_NE(sceneSession, nullptr);
-    NotifySceneSessionDestructFunc func = [](int32_t persistentId) { return; };
+    NotifySceneSessionDestructFunc func = [](int32_t persistentId, bool isUserRequestedExit) { return; };
     ssm_->RegisterSceneSessionDestructCallback(std::move(func));
     ssm_->RegisterSceneSessionDestructNotifyManagerFunc(sceneSession);
     ASSERT_NE(sceneSession->notifySceneSessionDestructFunc_, nullptr);

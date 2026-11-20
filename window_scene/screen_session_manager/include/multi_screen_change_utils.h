@@ -63,6 +63,10 @@ public:
 
     static void SetMultiScreenModeChangeTracker(std::string changeProc);
 
+    static void NotifySuperOuterOnlyPropertyChange(sptr<ScreenSession>& screenSession);
+
+    static void CorrectSuperFoldRotationWithBounds(sptr<ScreenSession>& screenSession);
+
 private:
     static void ScreenNameChange(sptr<ScreenSession>& innerScreen, sptr<ScreenSession>& externalScreen);
     static void ScreenRSIdChange(sptr<ScreenSession>& innerScreen, sptr<ScreenSession>& externalScreen);
@@ -72,6 +76,7 @@ private:
     static void SetScreenNotifyFlag(sptr<ScreenSession>& innerScreen, sptr<ScreenSession>& externalScreen);
     static void ExchangeScreenSupportedRefreshRate(
         sptr<ScreenSession>& innerScreen, sptr<ScreenSession>& externalScreen);
+    static Rotation GetSuperFoldRotationWithBounds(Rotation rotation, const RRect& bounds);
 };
 } // Rosen
 } // OHOS

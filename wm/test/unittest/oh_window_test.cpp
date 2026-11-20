@@ -15,6 +15,7 @@
 
 #include <configuration.h>
 #include <gtest/gtest.h>
+#include <new>
 
 #include "ability_context_impl.h"
 #include "mock_static_call.h"
@@ -111,6 +112,12 @@ void DensityInfoChangeCallback(int32_t windowId, const OH_WindowManager_DensityI
 {
     (void)windowId;
     (void)info;
+}
+
+void MainWindowSnapshotCallback(const OH_PixelmapNative** snapshotPixelMapList, size_t snapshotListSize)
+{
+    (void)snapshotPixelMapList;
+    (void)snapshotListSize;
 }
 
 /**
@@ -277,19 +284,79 @@ HWTEST_F(OHWindowTest, OH_WindowManager_GetAllMainWindowInfo, TestSize.Level0)
  */
 HWTEST_F(OHWindowTest, OH_WindowManager_GetMainWindowSnapshot, TestSize.Level0)
 {
-    int32_t* windowIdListNull = nullptr;
+    int32_t* windowIdList = (int32_t*)malloc(sizeof(int32_t));
+    ASSERT_NE(nullptr, windowIdList);
+    windowIdList[0] = 0;
     size_t windowIdListSize = 1;
     WindowManager_WindowSnapshotConfig config;
     config.useCache = false;
-    OH_WindowManager_WindowSnapshotCallback callback = nullptr;
-    auto ret = OH_WindowManager_GetMainWindowSnapshot(windowIdListNull, windowIdListSize, config, callback);
+    OH_WindowManager_WindowSnapshotCallback callback = MainWindowSnapshotCallback;
+
+    auto ret = OH_WindowManager_GetMainWindowSnapshot(nullptr, windowIdListSize, config, callback);
     EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM), ret);
- 
-    auto windowIdList = (int32_t*)malloc(sizeof(int32_t*));
+
+    ret = OH_WindowManager_GetMainWindowSnapshot(windowIdList, 0, config, callback);
+    EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM), ret);
+
+    ret = OH_WindowManager_GetMainWindowSnapshot(windowIdList, static_cast<size_t>(-1), config, callback);
+    EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM), ret);
+
+    ret = OH_WindowManager_GetMainWindowSnapshot(windowIdList, windowIdListSize, config, nullptr);
+    EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::WINDOW_MANAGER_ERRORCODE_INVALID_PARAM), ret);
+
     ret = OH_WindowManager_GetMainWindowSnapshot(windowIdList, windowIdListSize, config, callback);
     EXPECT_EQ(static_cast<int32_t>(WindowManager_ErrorCode::OK), ret);
     free(windowIdList);
     windowIdList = nullptr;
+}
+
+/**
+ * @tc.name: OH_WindowManager_ReleaseMainWindowSnapshot_Null
+ * @tc.desc: release main window snapshot with nullptr, no crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(OHWindowTest, OH_WindowManager_ReleaseMainWindowSnapshot_Null, TestSize.Level0)
+{
+    OH_WindowManager_ReleaseMainWindowSnapshot(nullptr);
+    SUCCEED();
+}
+
+/**
+ * @tc.name: OH_WindowManager_ReleaseMainWindowSnapshot_EmptyList
+ * @tc.desc: release main window snapshot with empty list (count is 0)
+ * @tc.type: FUNC
+ */
+HWTEST_F(OHWindowTest, OH_WindowManager_ReleaseMainWindowSnapshot_EmptyList, TestSize.Level0)
+{
+    size_t count = 0;
+    size_t blockSize = sizeof(size_t) + count * sizeof(OH_PixelmapNative*);
+    char* block = new (std::nothrow) char[blockSize];
+    ASSERT_NE(nullptr, block);
+    *reinterpret_cast<size_t*>(block) = count;
+    auto snapshotList = reinterpret_cast<const OH_PixelmapNative*>(block + sizeof(size_t));
+    OH_WindowManager_ReleaseMainWindowSnapshot(snapshotList);
+    SUCCEED();
+}
+
+/**
+ * @tc.name: OH_WindowManager_ReleaseMainWindowSnapshot_NullEntries
+ * @tc.desc: release main window snapshot with null entries, no leak/crash
+ * @tc.type: FUNC
+ */
+HWTEST_F(OHWindowTest, OH_WindowManager_ReleaseMainWindowSnapshot_NullEntries, TestSize.Level0)
+{
+    size_t count = 3;
+    size_t blockSize = sizeof(size_t) + count * sizeof(OH_PixelmapNative*);
+    char* block = new (std::nothrow) char[blockSize];
+    ASSERT_NE(nullptr, block);
+    *reinterpret_cast<size_t*>(block) = count;
+    auto pixelmapArray = reinterpret_cast<const OH_PixelmapNative**>(block + sizeof(size_t));
+    for (size_t i = 0; i < count; i++) {
+        pixelmapArray[i] = nullptr;
+    }
+    auto snapshotList = reinterpret_cast<const OH_PixelmapNative*>(block + sizeof(size_t));
+    OH_WindowManager_ReleaseMainWindowSnapshot(snapshotList);
+    SUCCEED();
 }
 
 /**
