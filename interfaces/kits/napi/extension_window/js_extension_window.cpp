@@ -631,11 +631,11 @@ napi_value JsExtensionWindow::GetWindowStatus(napi_env env, napi_callback_info i
 
 WMError JsExtensionWindow::UpdateExtensionParent(const sptr<WindowOption>& option)
 {
-    TLOGI(WmsLogTag::WMS_UIEXT, "newHostWindowId:%{public}d", option->GetParentId());
     if (option == nullptr) {
         TLOGE(WmsLogTag::WMS_UIEXT, "option is nullptr");
         return WMError::WM_ERROR_NULLPTR;
     }
+    TLOGI(WmsLogTag::WMS_UIEXT, "newHostWindowId:%{public}d", option->GetParentId());
     hostWindowId_ = option->GetParentId();
     return WMError::WM_OK;
 }

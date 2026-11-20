@@ -3067,6 +3067,10 @@ WMError WindowExtensionSessionImpl::UpdateExtensionParent(const sptr<WindowOptio
         TLOGE(WmsLogTag::WMS_UIEXT, "token is nullptr");
         return WMError::WM_ERROR_NULLPTR;
     }
+    if (option == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "option is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
     auto newHostWindowId = option->GetParentId();
     if (newHostWindowId == property_->GetParentId()) {
         TLOGI(WmsLogTag::WMS_UIEXT, "parentId not changed");
