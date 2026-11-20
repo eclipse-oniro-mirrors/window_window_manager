@@ -2714,7 +2714,7 @@ napi_value JsWindowManager::OnSetWindowPosition(napi_env env, napi_callback_info
         napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
             "[window][setWindowPosition]msg: send event failed"));
     }
-    return result;
+    return result; 
 }
 
 napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
