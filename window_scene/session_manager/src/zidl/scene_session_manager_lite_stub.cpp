@@ -235,13 +235,10 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_ROG_WINDOW_CONFIG):
             return HandleUpdateRogWindowConfig(data, reply);
-<<<<<<< HEAD
-        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM):
-            return HandleUpdateSessionsExcludeParam(data, reply);
-=======
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_STACK_RECOVER):
             return HandleNotifyStackRecoverFromAMS(data, reply);
->>>>>>> upgrade/master
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM):
+            return HandleUpdateSessionsExcludeParam(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);

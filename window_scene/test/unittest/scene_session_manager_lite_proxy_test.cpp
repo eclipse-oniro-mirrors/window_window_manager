@@ -1413,7 +1413,6 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RestoreSessionToForeground, TestSize.
     EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::ClearAllErrorFlag();
 }
-
 /**
  * @tc.name: NotifyStackRecoverFromAMS_Proxy_NullRemote
  * @tc.desc: test NotifyStackRecoverFromAMS proxy with null remote
