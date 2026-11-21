@@ -5127,15 +5127,16 @@ bool SceneSession::MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeR
     bool isFullScreenOrHide = IsLayoutFullScreen() || isDockAutoHide || IsAncoInFullScreen();
     int32_t statusBarHeight = isFullScreenOrHide ? 0 : GetStatusBarHeight();
     int32_t dockHeight = isFullScreenOrHide ? 0 : GetDockHeight();
-    CompatibilityModeWindowScaleTransfer(rect, true);
-    bool ret = pcFoldScreenController_->ThrowSlip(GetScreenId(), rect, statusBarHeight, dockHeight);
+    WSRect throwSlipRect = rect;
+    CompatibilityModeWindowScaleTransfer(throwSlipRect, true);
+    bool ret = pcFoldScreenController_->ThrowSlip(GetScreenId(), throwSlipRect, statusBarHeight, dockHeight);
+    rect.posX_ = throwSlipRect.posX_;
+    rect.posY_ = throwSlipRect.posY_;
     if (!ret) {
         TLOGD(WmsLogTag::WMS_LAYOUT_PC, "no throw slip");
         pcFoldScreenController_->ResetRecords();
-        CompatibilityModeWindowScaleTransfer(rect, false);
         return false;
     }
-    CompatibilityModeWindowScaleTransfer(rect, false);
     WSRect endRect = rect;
     std::function<void()> finishCallback = nullptr;
     bool needSetFullScreen = pcFoldScreenController_->IsStartFullScreen();
