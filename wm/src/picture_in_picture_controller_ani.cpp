@@ -52,6 +52,10 @@ PictureInPictureControllerAni::PictureInPictureControllerAni(sptr<PipOptionAni> 
     if (env->GetVM(&vm_) != ANI_OK || !vm_) {
         TLOGE(WmsLogTag::WMS_PIP, "PictureInPictureControllerAni Get VM failed");
     }
+    auto mainRunner = AppExecFwk::EventRunner::GetMainEventRunner();
+    if (mainRunner != nullptr) {
+        eventHandler_ = std::make_shared<AppExecFwk::EventHandler>(mainRunner);
+    }
     weakRef_ = this;
     TLOGI(WmsLogTag::WMS_PIP, "PictureInPictureControllerAni created");
 }
@@ -548,8 +552,31 @@ ani_ref PictureInPictureControllerAni::GetANIPipContentCallbackRef(const std::st
 
 void PictureInPictureControllerAni::NotifyStateChangeInner(PiPState state)
 {
-    ani_env* env_ = GetEnv();
-    NotifyStateChangeInner(env_, state);
+    if (eventHandler_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "main event handler is nullptr");
+        return;
+    }
+    auto task = [weak = weakRef_, state, vm = vm_]() {
+        auto controller = weak.promote();
+        if (controller == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "controller is nullptr");
+            return;
+        }
+        if (vm == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "vm is nullptr");
+            return;
+        }
+        ani_env* env = nullptr;
+        ani_status ret = vm->GetEnv(ANI_VERSION_1, &env);
+        if (ret != ANI_OK || env == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "GetEnv failed, ret:%{public}u", ret);
+            return;
+        }
+        controller->NotifyStateChangeInner(env, state);
+    };
+    if (!eventHandler_->PostTask(task, "NotifyStateChangeInner", 0, AppExecFwk::EventQueue::Priority::IMMEDIATE)) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to PostTask");
+    }
 }
 
 void PictureInPictureControllerAni::NotifyStateChangeInner(ani_env* env, PiPState state)
