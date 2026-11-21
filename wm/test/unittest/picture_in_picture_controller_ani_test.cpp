@@ -136,7 +136,7 @@ public:
     void SetUp() override;
     void TearDown() override;
 private:
-    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
+    static constexpr uint32_t waitSyncInNs = 200000;
 
     sptr<MockPictureInPictureControllerAni> pipControl_ {nullptr};
     std::shared_ptr<MockNavigationController> naviControl_ {nullptr};
