@@ -136,7 +136,7 @@ public:
     void SetUp() override;
     void TearDown() override;
 private:
-    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
+    static constexpr uint32_t waitSyncInNs = 200000;
 
     sptr<MockPictureInPictureControllerAni> pipControl_ {nullptr};
     std::shared_ptr<MockNavigationController> naviControl_ {nullptr};
@@ -180,9 +180,11 @@ public:
 };
 
 namespace {
+static constexpr uint32_t waitForAniGetEnvTime = 5;
 class MockAbilityContextImpl : public AbilityRuntime::AbilityContextImpl {
 public:
-    std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override {
+    std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override
+    {
         GTEST_LOG_(INFO) << "GetApplicationInfo";
         return std::make_shared<AppExecFwk::ApplicationInfo>();
     }
@@ -260,7 +262,7 @@ bool WaitForAniGetEnv(int32_t expectedMin, int timeoutMs = 1000)
         if (g_aniGetEnvCount.load() >= expectedMin) {
             return true;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(waitForAniGetEnvTime));
     }
     return g_aniGetEnvCount.load() >= expectedMin;
 }
@@ -305,10 +307,12 @@ HWTEST_F(PictureInPictureControllerAniTest, CreatePictureInPictureWindow01, Test
     WillOnce(Return(WindowState::STATE_SHOWN)).WillOnce(Return(WindowState::STATE_SHOWN));
     auto option_ = sptr<FvOption>::MakeSptr();
     ASSERT_NE(nullptr, option_);
-    sptr<FloatViewController> fvController = sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
+    sptr<FloatViewController> fvController =
+        sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
     fvController->curState_ = FvWindowState::FV_STATE_STARTED;
     FloatViewManager::SetActiveController(fvController);
-    EXPECT_EQ(WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS, pipControl_->CreatePictureInPictureWindow(startType).errCode);
+    EXPECT_EQ(WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,
+        pipControl_->CreatePictureInPictureWindow(startType).errCode);
 }
 
 /**

@@ -142,12 +142,13 @@ public:
     {
         sptr<MockWindow> mw = sptr<MockWindow>::MakeSptr();
         sptr<PipOption> option = sptr<PipOption>::MakeSptr();
-        pipControl_ = sptr<MockPictureInPictureController>::MakeSptr(option, mw, 100, env);
+        pipControl_ = sptr<MockPictureInPictureController>::MakeSptr(option, mw, TEST_MAIN_WINDOW_ID, env);
         return pipControl_;
     }
 
 private:
     static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
+    static constexpr uint32_t TEST_MAIN_WINDOW_ID = 100;
 
     sptr<MockPictureInPictureController> pipControl_ {nullptr};
     std::shared_ptr<MockNavigationController> naviControl_ {nullptr};
@@ -283,7 +284,8 @@ HWTEST_F(PictureInPictureControllerTest, StopPictureInPicture01, TestSize.Level1
 
 class MockAbilityContextImpl : public AbilityRuntime::AbilityContextImpl {
 public:
-    std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override {
+    std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override
+    {
         GTEST_LOG_(INFO) << "GetApplicationInfo";
         return std::make_shared<AppExecFwk::ApplicationInfo>();
     }
@@ -330,10 +332,12 @@ HWTEST_F(PictureInPictureControllerTest, CreatePictureInPictureWindow01, TestSiz
     WillOnce(Return(WindowState::STATE_SHOWN)).WillOnce(Return(WindowState::STATE_SHOWN));
     auto option_ = sptr<FvOption>::MakeSptr();
     ASSERT_NE(nullptr, option_);
-    sptr<FloatViewController> fvController = sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
+    sptr<FloatViewController> fvController =
+        sptr<FloatViewController>::MakeSptr(*option_, static_cast<napi_env>(nullptr));
     fvController->curState_ = FvWindowState::FV_STATE_STARTED;
     FloatViewManager::SetActiveController(fvController);
-    EXPECT_EQ(WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS, pipControl->CreatePictureInPictureWindow(startType).errCode);
+    EXPECT_EQ(WMError::WM_ERROR_FLOAT_CONFLICT_WITH_OTHERS,
+        pipControl->CreatePictureInPictureWindow(startType).errCode);
 }
 
 /**
