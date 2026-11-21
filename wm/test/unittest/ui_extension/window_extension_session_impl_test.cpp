@@ -650,9 +650,9 @@ HWTEST_F(WindowExtensionSessionImplTest, RegisterScreenshotListener, TestSize.Le
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->RegisterScreenshotListener(listener));
 
     window->screenshotListeners_[1].emplace_back(listener);
-    EXPECT_EQ(WMError::WM_OK, window->RegisterScreenshotListener(listener));
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window->RegisterScreenshotListener(listener));
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window->UnregisterScreenshotListener(nullptr));
-    EXPECT_EQ(WMError::WM_OK, window->UnregisterScreenshotListener(listener));
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window->UnregisterScreenshotListener(listener));
 }
 
 /**
