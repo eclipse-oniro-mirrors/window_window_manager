@@ -340,7 +340,7 @@ public:
      *
      * @param callerPersistentId caller persistentId of UIExtension
      */
-     void SetCallerPersistentId(int32_t callerPersistentId);
+    void SetCallerPersistentId(int32_t callerPersistentId);
 
     /**
      * @brief Set parent window type of UIExtension
@@ -564,7 +564,7 @@ public:
      *
      * @return Return the caller pPersistentId of UIExtension
      */
-     int32_t GetCallerPersistentId() const;
+    int32_t GetCallerPersistentId() const;
 
     /*
      * @brief Get the parent window type of UIExtension

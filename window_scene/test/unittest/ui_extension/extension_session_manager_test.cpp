@@ -462,7 +462,7 @@ HWTEST_F(ExtensionSessionManagerTest, UpdateExtensionSessionParent01, TestSize.L
 
 /**
  * @tc.name: UpdateExtensionSessionParent02
- * @tc.desc: UpdateExtensionSessionParent updates AMS payload and local session info on success
+ * @tc.desc: UpdateExtensionSessionParent updates payload and local session info on success
  * @tc.type: FUNC
  */
 HWTEST_F(ExtensionSessionManagerTest, UpdateExtensionSessionParent02, TestSize.Level1)
@@ -504,7 +504,7 @@ HWTEST_F(ExtensionSessionManagerTest, UpdateExtensionSessionParent02, TestSize.L
         extSession, newHostWindowId, newSessionInfo));
     usleep(WAIT_SYNC_IN_NS);
 
-    // Verify the payload sent to AMS
+    // Verify the payload sent
     sptr<AAFwk::SessionInfo> payload = AAFwk::MockAbilityManagerClient::GetLastStartUIExtensionAbilityInfo();
     ASSERT_NE(nullptr, payload);
     EXPECT_EQ(newHostWindowId, payload->hostWindowId);
@@ -568,7 +568,6 @@ HWTEST_F(ExtensionSessionManagerTest, UpdateExtensionSessionParent03, TestSize.L
         extSession, newHostWindowId, newSessionInfo));
     usleep(WAIT_SYNC_IN_NS);
 
-    // AMS is still notified with the new parent
     sptr<AAFwk::SessionInfo> payload = AAFwk::MockAbilityManagerClient::GetLastStartUIExtensionAbilityInfo();
     ASSERT_NE(nullptr, payload);
     EXPECT_EQ(newHostWindowId, payload->hostWindowId);
@@ -586,7 +585,7 @@ HWTEST_F(ExtensionSessionManagerTest, UpdateExtensionSessionParent03, TestSize.L
 
 /**
  * @tc.name: UpdateExtensionSessionParent04
- * @tc.desc: UpdateExtensionSessionParent with invalid persistentId skips AMS call
+ * @tc.desc: UpdateExtensionSessionParent with invalid persistentId
  * @tc.type: FUNC
  */
 HWTEST_F(ExtensionSessionManagerTest, UpdateExtensionSessionParent04, TestSize.Level1)

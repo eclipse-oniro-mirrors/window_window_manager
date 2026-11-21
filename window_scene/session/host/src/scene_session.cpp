@@ -429,7 +429,7 @@ std::optional<UIExtensionTokenInfo> SceneSession::GetExtensionTokenInfo(int32_t 
 {
     std::lock_guard<std::mutex> lock(extensionTokenInfosMutex_);
     for (const auto& tokenInfo : extensionTokenInfos_) {
-        if (tokenInfo.pid == persistentId) {
+        if (tokenInfo.persistentId == persistentId) {
             return tokenInfo;
         }
     }
