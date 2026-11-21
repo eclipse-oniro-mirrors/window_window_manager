@@ -59,7 +59,7 @@ PictureInPictureControllerBase::~PictureInPictureControllerBase()
 }
 
 // LCOV_EXCL_START
-void PictureInPictureControllerBase::NotifyOpretationError(WMError errCode, StartPipType startType)
+void PictureInPictureControllerBase::NotifyOperationError(WMError errCode, StartPipType startType)
 {
     TLOGE(WmsLogTag::WMS_PIP, "window show failed, err: %{public}u", errCode);
     for (auto& listener : pipLifeCycleListeners_) {
@@ -135,7 +135,7 @@ WMErrorResult PictureInPictureControllerBase::ShowPictureInPictureWindow(StartPi
     SetUIContent();
     WMError errCode = window_->Show(0, false);
     if (errCode != WMError::WM_OK) {
-        NotifyOpretationError(errCode, startType);
+        NotifyOperationError(errCode, startType);
         return WMErrorResult{WMError::WM_ERROR_PIP_INTERNAL_ERROR, "Internal error, failed to show the PiP window."};
     }
     uint32_t requestWidth = 0;

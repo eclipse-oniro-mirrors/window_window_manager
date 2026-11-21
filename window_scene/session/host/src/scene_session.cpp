@@ -555,6 +555,8 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
             TLOGI(WmsLogTag::WMS_LIFE, "%{public}s Current state is not a pre-state of foreground, skip", where);
             return WSError::WS_OK;
         }
+        // Restore the one-shot raiseTop state from showAbility on the normal show path.
+        session->SetRaiseTopOnShow(true);
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
             sessionProperty->SetWindowMode(property->GetWindowMode());
@@ -2492,12 +2494,14 @@ float SceneSession::GetCoordinateScaleFactor() const
     return 1.0f;
 }
 
-void SceneSession::UpdateDpiForceScale()
+void SceneSession::UpdateDpiForceScale(float minDpiScale, float maxDpiScale, float dpiScaleStep)
 {
     // Recalculate dpiForceScale when density changes or session crosses screens.
     // C++ is authoritative for DPI change / cross-screen scenarios; TS only
     // computes the initial value during session creation and pushes it via
     // setDpiForceScale NAPI.
+    // The clamp range and step are owned by SceneSessionManager (parsed from
+    // window_manager_config.xml appDpiScaleConfig) and passed in by the caller.
     if (GetIsDpiForceScale()) {
         auto property = GetSessionProperty();
         if (property == nullptr) {
@@ -2505,8 +2509,10 @@ void SceneSession::UpdateDpiForceScale()
         }
         float currScreenDensity = GetScreenDensityById(property->GetDisplayId());
         float windowStartDensity = GetWindowStartDensity();
-        if (currScreenDensity > 0.0f && windowStartDensity > 0.0f) {
+        if (currScreenDensity > 0.0f && windowStartDensity > 0.0f && dpiScaleStep > 0.0f) {
             float newScale = currScreenDensity / windowStartDensity;
+            newScale = std::ceil(newScale / dpiScaleStep - 1e-6f) * dpiScaleStep;
+            newScale = MathHelper::Clamp(newScale, minDpiScale, maxDpiScale);
             SetDpiForceScale(newScale);
             TLOGNI(WmsLogTag::WMS_MAIN, "new dpiforcescale, id=%{public}d, dpiForceScale=%{public}f, "
                 "windowStartDensity=%{public}f, screenId:%{public}" PRIu64, GetPersistentId(),
@@ -2537,30 +2543,30 @@ void SceneSession::UpdateSessionRectInner(const WSRect& rect, SizeChangeReason r
     auto newRequestRect = GetSessionRequestRect();
     bool isScbCoreEnabled = Session::IsScbCoreEnabled();
     if (reason == SizeChangeReason::MOVE) {
-        newWinRect.posX_ = convertedRect.posX_;
-        newWinRect.posY_ = convertedRect.posY_;
-        newRequestRect.posX_ = rect.posX_;
-        newRequestRect.posY_ = rect.posY_;
+        newWinRect.posX_ = rect.posX_;
+        newWinRect.posY_ = rect.posY_;
+        newRequestRect.posX_ = convertedRect.posX_;
+        newRequestRect.posY_ = convertedRect.posY_;
         if (!isScbCoreEnabled && !WindowHelper::IsMainWindow(GetWindowType())) {
             SetSessionRect(newWinRect);
         }
         SetSessionRequestRect(newRequestRect);
-        NotifySessionRectChange(newWinRect, reason, moveConfiguration.displayId);
+        NotifySessionRectChange(newRequestRect, reason, moveConfiguration.displayId);
     } else if (reason == SizeChangeReason::RESIZE || reason == SizeChangeReason::RESIZE_BY_LIMIT) {
         if (convertedRect.width_ > 0 && convertedRect.height_ > 0) {
-            newWinRect.width_ = convertedRect.width_;
-            newWinRect.height_ = convertedRect.height_;
-            newRequestRect.width_ = rect.width_;
-            newRequestRect.height_ = rect.height_;
+            newWinRect.width_ = rect.width_;
+            newWinRect.height_ = rect.height_;
+            newRequestRect.width_ = convertedRect.width_;
+            newRequestRect.height_ = convertedRect.height_;
         }
         if (!isScbCoreEnabled && GetWindowType() != WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT) {
             SetSessionRect(newWinRect);
         }
-        auto notifyRect = newWinRect;
+        auto notifyRect = newRequestRect;
         if (PcFoldScreenManager::GetInstance().IsHalfFolded(GetScreenId())) {
             notifyRect = rect;
         }
-        SetSessionRequestRect(newRequestRect);
+        SetSessionRequestRect(notifyRect);
         NotifySessionRectChange(notifyRect, reason);
     } else {
         if (!isScbCoreEnabled) {
@@ -3224,16 +3230,34 @@ WSError SceneSession::RaiseAppMainWindowToTop()
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s session is null", where);
             return WSError::WS_ERROR_DESTROYED_OBJECT;
         }
+        // Consume the one-shot suppression from showAbility with raiseTop=false.
+        bool raiseOnShow = session->IsRaiseTopOnShow();
+        session->SetRaiseTopOnShow(true);
         if (session->IsFocusedOnShow()) {
             FocusChangeReason reason = FocusChangeReason::MOVE_UP;
             session->NotifyRequestFocusStatusNotifyManager(true, true, reason);
-            session->NotifyClick(true, false);
+            if (raiseOnShow) {
+                session->NotifyClick(true, false);
+            }
         } else {
             session->SetFocusedOnShow(true);
         }
         return WSError::WS_OK;
     }, __func__);
     return WSError::WS_OK;
+}
+
+bool SceneSession::IsRaiseTopOnShow() const
+{
+    return raiseTopOnShow_;
+}
+
+void SceneSession::SetRaiseTopOnShow(bool raiseTopOnShow)
+{
+    if (raiseTopOnShow == raiseTopOnShow_) {
+        return;
+    }
+    raiseTopOnShow_ = raiseTopOnShow;
 }
 
 WSError SceneSession::OnNeedAvoid(bool status)
@@ -5103,15 +5127,16 @@ bool SceneSession::MoveUnderInteriaAndNotifyRectChange(WSRect& rect, SizeChangeR
     bool isFullScreenOrHide = IsLayoutFullScreen() || isDockAutoHide || IsAncoInFullScreen();
     int32_t statusBarHeight = isFullScreenOrHide ? 0 : GetStatusBarHeight();
     int32_t dockHeight = isFullScreenOrHide ? 0 : GetDockHeight();
-    CompatibilityModeWindowScaleTransfer(rect, true);
-    bool ret = pcFoldScreenController_->ThrowSlip(GetScreenId(), rect, statusBarHeight, dockHeight);
+    WSRect throwSlipRect = rect;
+    CompatibilityModeWindowScaleTransfer(throwSlipRect, true);
+    bool ret = pcFoldScreenController_->ThrowSlip(GetScreenId(), throwSlipRect, statusBarHeight, dockHeight);
+    rect.posX_ = throwSlipRect.posX_;
+    rect.posY_ = throwSlipRect.posY_;
     if (!ret) {
         TLOGD(WmsLogTag::WMS_LAYOUT_PC, "no throw slip");
         pcFoldScreenController_->ResetRecords();
-        CompatibilityModeWindowScaleTransfer(rect, false);
         return false;
     }
-    CompatibilityModeWindowScaleTransfer(rect, false);
     WSRect endRect = rect;
     std::function<void()> finishCallback = nullptr;
     bool needSetFullScreen = pcFoldScreenController_->IsStartFullScreen();
@@ -6820,6 +6845,33 @@ void SceneSession::SetSystemTouchable(bool touchable)
     NotifyAccessibilityVisibilityChange();
 }
 
+static SessionInfo MakeSessionInfoDuringVisibilityChange(const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
+    const sptr<SceneSession>& session)
+{
+    SessionInfo info;
+    info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
+    info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
+    info.moduleName_ = abilitySessionInfo->want.GetModuleName();
+    int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
+    info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
+    info.persistentId_ = abilitySessionInfo->persistentId;
+    info.callerPersistentId_ = session->GetPersistentId();
+    info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
+    info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
+    info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
+    info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
+    info.requestId = abilitySessionInfo->requestId;
+    info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
+    info.requestCode = abilitySessionInfo->requestCode;
+    info.callerToken_ = abilitySessionInfo->callerToken;
+    info.startSetting = abilitySessionInfo->startSetting;
+    info.callingTokenId_ = abilitySessionInfo->callingTokenId;
+    info.reuse = abilitySessionInfo->reuse;
+    info.processOptions = abilitySessionInfo->processOptions;
+    info.showParams = abilitySessionInfo->showParams;
+    return info;
+}
+
 WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
     const sptr<AAFwk::SessionInfo> abilitySessionInfo, bool visible)
 {
@@ -6842,26 +6894,18 @@ WSError SceneSession::ChangeSessionVisibilityWithStatusBar(
             return WSError::WS_ERROR_INVALID_OPERATION;
         }
 
-        SessionInfo info;
-        info.abilityName_ = abilitySessionInfo->want.GetElement().GetAbilityName();
-        info.bundleName_ = abilitySessionInfo->want.GetElement().GetBundleName();
-        info.moduleName_ = abilitySessionInfo->want.GetModuleName();
-        int32_t appCloneIndex = abilitySessionInfo->want.GetIntParam(APP_CLONE_INDEX, 0);
-        info.appIndex_ = appCloneIndex == 0 ? abilitySessionInfo->want.GetIntParam(DLP_INDEX, 0) : appCloneIndex;
-        info.persistentId_ = abilitySessionInfo->persistentId;
-        info.callerPersistentId_ = session->GetPersistentId();
-        info.callerBundleName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_BUNDLE_NAME);
-        info.callerAbilityName_ = abilitySessionInfo->want.GetStringParam(AAFwk::Want::PARAM_RESV_CALLER_ABILITY_NAME);
-        info.callState_ = static_cast<uint32_t>(abilitySessionInfo->state);
-        info.uiAbilityId_ = abilitySessionInfo->uiAbilityId;
-        info.requestId = abilitySessionInfo->requestId;
-        info.want = std::make_shared<AAFwk::Want>(abilitySessionInfo->want);
-        info.requestCode = abilitySessionInfo->requestCode;
-        info.callerToken_ = abilitySessionInfo->callerToken;
-        info.startSetting = abilitySessionInfo->startSetting;
-        info.callingTokenId_ = abilitySessionInfo->callingTokenId;
-        info.reuse = abilitySessionInfo->reuse;
-        info.processOptions = abilitySessionInfo->processOptions;
+        SessionInfo info = MakeSessionInfoDuringVisibilityChange(abilitySessionInfo, session);
+
+        if (visible && info.showParams != nullptr) {
+            if (!info.showParams->windowFocused) {
+                // Same as start with PARAM_RESV_WINDOW_FOCUSED, restored when the window has been visible.
+                session->SetFocusedOnShow(false);
+            }
+        }
+        if (visible) {
+            // One-shot for the coming show, restored when the app window shows again.
+            session->SetRaiseTopOnShow(info.showParams == nullptr || info.showParams->raiseTop);
+        }
 
         if (session->changeSessionVisibilityWithStatusBarFunc_) {
             session->changeSessionVisibilityWithStatusBarFunc_(info, visible);

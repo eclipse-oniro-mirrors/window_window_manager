@@ -16,7 +16,6 @@
 #define OHOS_JS_FB_WINDOW_MANAGER_H
 
 #include "js_runtime_utils.h"
-#include "window_histogram_management.h"
 #include "floating_ball_controller.h"
 
 namespace OHOS {

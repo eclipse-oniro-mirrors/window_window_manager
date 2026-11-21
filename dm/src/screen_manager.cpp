@@ -58,6 +58,7 @@ public:
     DMError UnregisterDisplayManagerAgent();
     void OnRemoteDied();
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
+    DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode);
     DMError ResizeVirtualScreen(ScreenId screenId, uint32_t width, uint32_t height,
         uint32_t renderWidth = 0, uint32_t renderHeight = 0);
 
@@ -983,6 +984,16 @@ DMError ScreenManager::SetVirtualScreenAutoRotation(ScreenId screenId, bool enab
 DMError ScreenManager::Impl::SetVirtualScreenAutoRotation(ScreenId screenId, bool enable)
 {
     return SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualScreenAutoRotation(screenId, enable);
+}
+
+DMError ScreenManager::SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+{
+    return pImpl_->SetVirtualScreenCursorMode(screenId, mode);
+}
+
+DMError ScreenManager::Impl::SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+{
+    return SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualScreenCursorMode(screenId, mode);
 }
 
 DMError ScreenManager::SetScreenPrivacyWindowTagSwitch(ScreenId screenId,

@@ -22,7 +22,6 @@
 #include "picture_in_picture_controller.h"
 #include "wm_common.h"
 #include "js_pip_window_listener.h"
-#include "window_histogram_management.h"
 
 namespace OHOS {
 namespace Rosen {

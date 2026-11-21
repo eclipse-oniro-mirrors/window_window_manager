@@ -1234,10 +1234,10 @@ HWTEST_F(SceneSessionManagerTest12, UpdateKeyboardAvoidAreaActive, TestSize.Leve
     ASSERT_EQ(true, systemKeyboardSession->IsSystemKeyboard());
     ssm->sceneSessionMap_.insert({ systemKeyboardSession->GetPersistentId(), systemKeyboardSession });
 
-    ssm->UpdateKeyboardAvoidAreaActive(false);
+    ssm->UpdateKeyboardAvoidAreaActive(false, info.screenId_);
     ASSERT_EQ(true, keyboardSession->keyboardAvoidAreaActive_);
     ASSERT_EQ(false, systemKeyboardSession->keyboardAvoidAreaActive_);
-    ssm->UpdateKeyboardAvoidAreaActive(true);
+    ssm->UpdateKeyboardAvoidAreaActive(true, info.screenId_);
     ASSERT_EQ(false, keyboardSession->keyboardAvoidAreaActive_);
     ASSERT_EQ(true, systemKeyboardSession->keyboardAvoidAreaActive_);
 }

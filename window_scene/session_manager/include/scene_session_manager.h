@@ -914,6 +914,8 @@ public:
         const GameAdaptiveResolutionConfig& config);
     sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
         sptr<WindowSessionProperty> property = nullptr);
+    sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
+        sptr<WindowSessionProperty> property, bool& isNewSession);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
     WSError RequestSceneSessionActivation(const sptr<SceneSession>& sceneSession, bool isNewActive,
         bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID);
@@ -1078,6 +1080,11 @@ public:
     void SetSelectMode(SelectMode selectMode);
     SelectMode GetSelectMode() const;
 
+    /**
+     * Reset Want info
+     */
+    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
+
 protected:
     SceneSessionManager();
     virtual ~SceneSessionManager();
@@ -1216,6 +1223,11 @@ private:
     void ConfigDialogWindowSizeLimits(const WindowSceneConfig::ConfigItem& dialogWindowSizeConifg);
     void ConfigSnapshotScale();
     void ConfigFreeMultiWindow();
+    void ConfigAppDpiScale();
+    void SetMinDpiScale(float scale) { minDpiScale_ = scale; }
+    void SetMaxDpiScale(float scale) { maxDpiScale_ = scale; }
+    float GetMinDpiScale() const { return minDpiScale_; }
+    float GetMaxDpiScale() const { return maxDpiScale_; }
     void LoadFreeMultiWindowConfig(bool enable);
     void DoUpdateSceneSessionWant(const SessionInfo& sessionInfo);
     void AddOptionWindowMetaInfo(sptr<WindowInfo> &windowInfo, const sptr<SceneSession> &session);
@@ -1282,7 +1294,6 @@ private:
     void GetAllClearableSessions(std::vector<sptr<SceneSession>>& sessionVector);
     sptr<AAFwk::SessionInfo> SetAbilitySessionInfo(const sptr<SceneSession>& sceneSession,
         int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID, bool useRequestTaskInfo = false);
-    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
     void ResetSceneSessionInfoWant(const sptr<AAFwk::SessionInfo>& sceneSessionInfo);
     int32_t StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSession>& sceneSession,
         const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
@@ -1687,6 +1698,12 @@ private:
 
     SystemSessionConfig systemConfig_;
     float snapshotScale_ = 0.5;
+    /*
+     * app dpi scale clamp range, parsed from window_manager_config.xml appDpiScaleConfig
+     */
+    static constexpr float DPI_SCALE_STEP = 0.05f;
+    float minDpiScale_ {1.0f};
+    float maxDpiScale_ {1.0f};
     int32_t brightnessSessionId_ = INVALID_SESSION_ID;
     float displayBrightness_ = UNDEFINED_BRIGHTNESS;
     bool isScreenLocked_ { false };
@@ -1876,7 +1893,7 @@ private:
     sptr<SceneSession> GetKeyboardSession(DisplayId displayId, bool isSystemKeyboard);
     void HandleKeyboardAvoidChange(const sptr<SceneSession>& sceneSession, DisplayId displayId,
         SystemKeyboardAvoidChangeReason reason);
-    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive);
+    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive, DisplayId displayId);
 
     /*
      * Specific Window

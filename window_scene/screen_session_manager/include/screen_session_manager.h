@@ -482,6 +482,7 @@ public:
     void NotifyAvailableAreaChanged(DMRect area, DisplayId displayId);
     void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId);
     void NotifyHookAvailableAreaChanged(DMRect area, DisplayId displayId, int32_t uid);
+    void NotifyHookAvailableAreaChanged(int32_t uid);
     void NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId);
     void NotifyFoldToExpandCompletion(bool foldToExpand) override;
     void NotifyScreenConnectCompletion(ScreenId screenId) override;
@@ -638,6 +639,7 @@ public:
     DMError SetSupportsInput(DisplayId displayId, bool supportsInput) override;
     DMError GetBundleName(DisplayId displayId, std::string& bundleName) override;
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) override;
+    DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode) override;
     bool SetScreenOffset(ScreenId screenId, float offsetX, float offsetY);
     bool SynchronizePowerStatus(ScreenPowerState state) override;
     void RegisterSettingDuringCallStateObserver();
@@ -909,6 +911,7 @@ private:
     int Dump(int fd, const std::vector<std::u16string>& args) override;
     sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession,
         int32_t uid = INVALID_UID);
+    DMError GetHookedAvailableArea(DisplayId displayId, int32_t uid, DMRect& area);
     void ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo, const sptr<ScreenSession>& screenSession,
         const DMHookInfo& info);
     bool IsAdaptiveResolutionActive(int32_t uid, DMAdaptiveResolutionConfig& config);
@@ -918,7 +921,7 @@ private:
         bool isGetActualInfo = false);
     DisplayId GetFakeDisplayId(sptr<ScreenSession> screenSession);
     DMError SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-        std::vector<uint64_t>& windowIdList) override;
+        std::vector<uint64_t>& windowIdList, bool exemptAll = false) override;
     void GetInternalAndExternalSession(sptr<ScreenSession>& internalSession, sptr<ScreenSession>& externalSession);
     sptr<ScreenSession> GetExternalSession();
     void AddPermissionUsedRecord(const std::string& permission, int32_t successCount, int32_t failCount);

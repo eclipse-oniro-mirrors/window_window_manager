@@ -102,7 +102,8 @@ private:
     WSError AdjustKeyboardLayout(const KeyboardLayoutParams& params) override;
     std::shared_ptr<RSTransaction> GetRSTransaction();
     std::string GetSessionScreenName();
-    void NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason reason);
+    void NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason reason,
+        DisplayId displayId = DISPLAY_ID_INVALID);
     void NotifyRootSceneOccupiedAreaChange(const sptr<OccupiedAreaChangeInfo>& info, const sptr<AvoidArea>& avoidArea);
     bool IsNeedRaiseSubWindow(const sptr<SceneSession>& callingSession, const WSRect& callingSessionRect);
     void PostKeyboardAnimationSyncTimeoutTask();

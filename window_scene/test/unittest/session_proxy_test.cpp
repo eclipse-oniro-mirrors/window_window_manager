@@ -1332,26 +1332,92 @@ HWTEST_F(SessionProxyTest, GetIsMidScene, TestSize.Level1)
 
 /**
  * @tc.name: ChangeSessionVisibilityWithStatusBar
- * @tc.desc: ChangeSessionVisibilityWithStatusBar test
+ * @tc.desc: ChangeSessionVisibilityWithStatusBar error branches test
  * @tc.type: FUNC
  */
 HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBar, TestSize.Level1)
 {
-    GTEST_LOG_(INFO) << "SessionProxyTest: ChangeSessionVisibilityWithStatusBar start";
-    sptr<IRemoteObject> iRemoteObjectMocker = sptr<IRemoteObjectMocker>::MakeSptr();
-    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(iRemoteObjectMocker);
-
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SessionProxy> sProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
     bool visible = true;
-    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
-    WSError res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
-    ASSERT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
-    sProxy = sptr<SessionProxy>::MakeSptr(nullptr);
-    res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
-    ASSERT_EQ(res, WSError::WS_ERROR_IPC_FAILED);
-    abilitySessionInfo = nullptr;
-    res = sProxy->ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
-    ASSERT_EQ(res, WSError::WS_ERROR_INVALID_SESSION);
-    GTEST_LOG_(INFO) << "SessionProxyTest: ChangeSessionVisibilityWithStatusBar end";
+
+    sptr<AAFwk::SessionInfo> info = nullptr;
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_INVALID_SESSION);
+
+    info = sptr<AAFwk::SessionInfo>::MakeSptr();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    EXPECT_EQ(sProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+
+    sptr<SessionProxy> nullProxy = sptr<SessionProxy>::MakeSptr(nullptr);
+    EXPECT_EQ(nullProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
+
+    mockRemote->sendRequestResult_ = ERR_TRANSACTION_FAILED;
+    sptr<SessionProxy> failProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    EXPECT_EQ(failProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: ChangeSessionVisibilityWithStatusBarWriteOptionalMembers
+ * @tc.desc: ChangeSessionVisibilityWithStatusBar optional members write test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionProxyTest, ChangeSessionVisibilityWithStatusBarWriteOptionalMembers, TestSize.Level1)
+{
+    auto mockRemote = sptr<MockIRemoteObject>::MakeSptr();
+    mockRemote->sendRequestResult_ = ERR_NONE;
+    sptr<SessionProxy> okProxy = sptr<SessionProxy>::MakeSptr(mockRemote);
+    bool visible = true;
+    sptr<AAFwk::SessionInfo> info = sptr<AAFwk::SessionInfo>::MakeSptr();
+
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_OK);
+
+    info->showParams = std::make_shared<WindowShowParams>();
+    info->showParams->windowFocused = false;
+    info->showParams->raiseTop = false;
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_OK);
+
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    MockMessageParcel::SetWriteParcelableErrorCount(2); // skip want and processOptions in basic info
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
+    MockMessageParcel::SetWriteParcelableErrorCount(0);
+
+    info = sptr<AAFwk::SessionInfo>::MakeSptr();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteBoolErrorCount(2); // skip reuse and callerToken flag, fail the startSetting flag
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorCount(0);
+
+    info->showParams = std::make_shared<WindowShowParams>();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    MockMessageParcel::SetWriteBoolErrorCount(4); // skip reuse, callerToken, startSetting flags and visible
+    EXPECT_EQ(okProxy->ChangeSessionVisibilityWithStatusBar(info, visible), WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    MockMessageParcel::SetWriteBoolErrorCount(0);
+}
+
+HWTEST_F(SessionProxyTest, WriteOptionalParcelable, TestSize.Level1)
+{
+    MessageParcel data;
+    auto showParams = std::make_shared<WindowShowParams>();
+
+    EXPECT_TRUE(SessionProxy::WriteOptionalParcelable(data, nullptr, "nullMember"));
+    EXPECT_TRUE(SessionProxy::WriteOptionalParcelable(data, showParams.get(), "showParams"));
+
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    EXPECT_FALSE(SessionProxy::WriteOptionalParcelable(data, nullptr, "nullMember"));
+    EXPECT_FALSE(SessionProxy::WriteOptionalParcelable(data, showParams.get(), "showParams"));
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    MockMessageParcel::SetWriteParcelableErrorFlag(true);
+    EXPECT_FALSE(SessionProxy::WriteOptionalParcelable(data, showParams.get(), "showParams"));
+    MockMessageParcel::SetWriteParcelableErrorFlag(false);
 }
 
 /**

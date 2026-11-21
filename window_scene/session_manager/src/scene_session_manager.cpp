@@ -131,6 +131,10 @@ const std::string SUPER_LAUNCHER = "SuperLauncher";
 constexpr const char* PREPARE_TERMINATE_ENABLE_PARAMETER = "persist.sys.prepare_terminate";
 constexpr const char* ATOMIC_SERVICE_SESSION_ID = "com.ohos.param.sessionId";
 constexpr uint32_t MAX_BRIGHTNESS = 255;
+// appIndex in [RESERVED_APP_INDEX_MIN, RESERVED_APP_INDEX_MAX] is a reserved range, and
+// sessions in this range do not follow the "phone in PC" foreground path in PC-PAD mode.
+constexpr int32_t RESERVED_APP_INDEX_MIN = 2000;
+constexpr int32_t RESERVED_APP_INDEX_MAX = 3000;
 constexpr int32_t PREPARE_TERMINATE_ENABLE_SIZE = 6;
 constexpr int32_t SCALE_DIMENSION = 2;
 constexpr int32_t TRANSLATE_DIMENSION = 2;
@@ -736,6 +740,8 @@ void SceneSessionManager::OnSessionRecoverStateChange(const SessionRecoverState&
             if (sceneSession == nullptr) {
                 break;
             }
+            sceneSession->SetIsDpiForceScale(property->GetIsDpiForceScale());
+            sceneSession->SetWindowStartDensity(property->GetWindowStartDensity());
             sceneSession->NotifyIsFullScreenInForceSplitMode(property->IsFullScreenInForceSplitMode());
             sceneSession->NotifyModeSwitchInfo();
             RecoverSupportedWindowModes(sceneSession, property);
@@ -1027,6 +1033,7 @@ void SceneSessionManager::ConfigWindowSceneXml()
     ConfigAppsWithDeduplicatedWindowStatus();
     ConfigSnapshotScale();
     ConfigPersistentScaledSnapshot();
+    ConfigAppDpiScale();
     ConfigWindowSceneXml(config);
     ConfigWindowLayout(config["windowLayout"]);
 }
@@ -2263,6 +2270,46 @@ void SceneSessionManager::ConfigSnapshotScale()
     }
 }
 
+void SceneSessionManager::ConfigAppDpiScale()
+{
+    // Parse <appDpiScaleConfig enable="true"><maxDpiScale>1.5</maxDpiScale>
+    // <minDpiScale>0.5</minDpiScale></appDpiScaleConfig> from window_manager_config.xml and keep
+    // the clamp range here. native side must NOT self-define the range; it reads the same config
+    // the SCB side reads so the start path and runtime recalculation stay consistent.
+    const auto& config = WindowSceneConfig::GetConfig();
+    WindowSceneConfig::ConfigItem appDpiScaleConfig = config["appDpiScaleConfig"];
+    if (!appDpiScaleConfig.IsMap()) {
+        TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig not configured, keep default range");
+        return;
+    }
+    auto enableItem = appDpiScaleConfig.GetProp("enable");
+    if (enableItem.IsBool() && !enableItem.boolValue_) {
+        TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig enable=false, keep default range");
+        return;
+    }
+    float maxDpiScale = GetMaxDpiScale();
+    float minDpiScale = GetMinDpiScale();
+    auto maxItem = appDpiScaleConfig["maxDpiScale"];
+    if (maxItem.IsFloats() && maxItem.floatsValue_ && maxItem.floatsValue_->size() == 1 &&
+        (*maxItem.floatsValue_)[0] > 0.0f) {
+        maxDpiScale = (*maxItem.floatsValue_)[0];
+    }
+    auto minItem = appDpiScaleConfig["minDpiScale"];
+    if (minItem.IsFloats() && minItem.floatsValue_ && minItem.floatsValue_->size() == 1 &&
+        (*minItem.floatsValue_)[0] > 0.0f) {
+        minDpiScale = (*minItem.floatsValue_)[0];
+    }
+    if (minDpiScale > maxDpiScale) {
+        TLOGE(WmsLogTag::WMS_MAIN, "appDpiScaleConfig invalid range, min:%{public}f > max:%{public}f, "
+            "keep default range", minDpiScale, maxDpiScale);
+        return;
+    }
+    SetMinDpiScale(minDpiScale);
+    SetMaxDpiScale(maxDpiScale);
+    TLOGI(WmsLogTag::WMS_MAIN, "appDpiScaleConfig parsed, minDpiScale:%{public}f, maxDpiScale:%{public}f",
+        minDpiScale, maxDpiScale);
+}
+
 void SceneSessionManager::ConfigPersistentScaledSnapshot()
 {
     const auto& config = WindowSceneConfig::GetConfig();
@@ -3474,7 +3521,7 @@ void SceneSessionManager::HandleKeyboardAvoidChange(const sptr<SceneSession>& sc
          */
         case SystemKeyboardAvoidChangeReason::KEYBOARD_SHOW:
         case SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_BOTTOM: {
-            UpdateKeyboardAvoidAreaActive(true);
+            UpdateKeyboardAvoidAreaActive(true, displayId);
             break;
         }
         /*
@@ -3503,9 +3550,9 @@ void SceneSessionManager::HandleKeyboardAvoidChange(const sptr<SceneSession>& sc
     }
 }
 
-void SceneSessionManager::UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive)
+void SceneSessionManager::UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive, DisplayId displayId)
 {
-    const auto& keyboardSessionVec = GetSceneSessionVectorByType(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT);
+    const auto& keyboardSessionVec = GetSceneSessionVectorByTypeAndDisplayId(WindowType::WINDOW_TYPE_INPUT_METHOD_FLOAT, displayId);
     if (keyboardSessionVec.empty()) {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "there is no keyboard window in the map");
         return;
@@ -3979,7 +4026,15 @@ void SceneSessionManager::UpdateAbilityHookState(const sptr<SceneSession>& scene
 sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& sessionInfo,
     sptr<WindowSessionProperty> property)
 {
-    auto task = [this, sessionInfo, property, where = __func__] {
+    bool isNewSession = false;
+    return RequestSceneSession(sessionInfo, property, isNewSession);
+}
+
+sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& sessionInfo,
+    sptr<WindowSessionProperty> property, bool& isNewSession)
+{
+    auto task = [this, sessionInfo, property, &isNewSession, where = __func__] {
+        isNewSession = false;
         if (auto session = GetSceneSessionBySessionInfo(sessionInfo)) {
             UpdateSessionDisplayIdBySessionInfo(session, sessionInfo);
             NotifySessionUpdate(sessionInfo, ActionType::SINGLE_START);
@@ -4044,6 +4099,7 @@ sptr<SceneSession> SceneSessionManager::RequestSceneSession(const SessionInfo& s
         }
         PerformRegisterInRequestSceneSession(sceneSession);
         NotifySessionUpdate(sessionInfo, ActionType::SINGLE_START);
+        isNewSession = true;
         TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s: id: %{public}d, type: %{public}d, instanceKey: %{public}s, "
                "displayId: %{public}" PRIu64, where, sceneSession->GetPersistentId(), sceneSession->GetWindowType(),
                sceneSession->GetAppInstanceKey().c_str(), sceneSession->GetSessionProperty()->GetDisplayId());
@@ -4572,7 +4628,9 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
     if (isShowAbility) {
         sceneSessionInfo->scenarios = SHOWABILITY_SCENARIOS;
     }
-    if (!systemConfig_.backgroundswitch || sceneSession->GetSessionProperty()->GetIsAppSupportPhoneInPc()) {
+    if ((!systemConfig_.backgroundswitch || sceneSession->GetSessionProperty()->GetIsAppSupportPhoneInPc()) &&
+        (sceneSession->GetSessionInfo().appIndex_ < RESERVED_APP_INDEX_MIN ||
+            sceneSession->GetSessionInfo().appIndex_ > RESERVED_APP_INDEX_MAX)) {
         TLOGI(WmsLogTag::WMS_MAIN, "[requestId: %{public}d][scbRequestId: %{public}d][id: %{public}d] "
             "Begin StartUIAbility, system: %{public}u, reuseDelegatorWindow %{public}d isShowAbility %{public}d",
             requestId, scbRequestId, persistentId,
@@ -5296,21 +5354,23 @@ void SceneSessionManager::ResetSceneSessionInfoWant(const sptr<AAFwk::SessionInf
 
 void SceneSessionManager::ResetWantInfo(const sptr<SceneSession>& sceneSession)
 {
-    if (const auto sessionInfoWant = sceneSession->GetSessionInfo().want) {
-        const auto& bundleName = sessionInfoWant->GetElement().GetBundleName();
-        const auto& abilityName = sessionInfoWant->GetElement().GetAbilityName();
-        const auto& keySessionId = sessionInfoWant->GetStringParam(ATOMIC_SERVICE_SESSION_ID);
-        AppExecFwk::ElementName element;
-        element.SetBundleName(bundleName);
-        element.SetAbilityName(abilityName);
-        auto want = std::make_shared<AAFwk::Want>();
-        want->SetElement(element);
-        want->SetBundle(bundleName);
-        if (!keySessionId.empty()) {
-            want->SetParam(ATOMIC_SERVICE_SESSION_ID, keySessionId);
+    taskScheduler_->PostAsyncTask([sceneSession] {
+        if (const auto sessionInfoWant = sceneSession->GetSessionInfo().want) {
+            const auto& bundleName = sessionInfoWant->GetElement().GetBundleName();
+            const auto& abilityName = sessionInfoWant->GetElement().GetAbilityName();
+            const auto& keySessionId = sessionInfoWant->GetStringParam(ATOMIC_SERVICE_SESSION_ID);
+            AppExecFwk::ElementName element;
+            element.SetBundleName(bundleName);
+            element.SetAbilityName(abilityName);
+            auto want = std::make_shared<AAFwk::Want>();
+            want->SetElement(element);
+            want->SetBundle(bundleName);
+            if (!keySessionId.empty()) {
+                want->SetParam(ATOMIC_SERVICE_SESSION_ID, keySessionId);
+            }
+            sceneSession->SetSessionInfoWant(want);
         }
-        sceneSession->SetSessionInfoWant(want);
-    }
+    }, __func__);
 }
 
 void SceneSessionManager::MoveStartLifeCycleTask(const sptr<SceneSession>& sceneSession)
@@ -16130,7 +16190,7 @@ void SceneSessionManager::ProcessVirtualPixelRatioChange(DisplayId defaultDispla
                     sceneSession->GetPersistentId(), sceneSession->GetWindowType(),
                     sceneSession->GetSessionState(), sceneSession->IsVisible());
             }
-            sceneSession->UpdateDpiForceScale();
+            sceneSession->UpdateDpiForceScale(minDpiScale_, maxDpiScale_, DPI_SCALE_STEP);
         }
         UpdateDisplayRegion(displayInfo);
         return WSError::WS_OK;
@@ -16969,7 +17029,7 @@ WSError SceneSessionManager::UpdateSessionDisplayId(int32_t persistentId, uint64
 #endif
     sceneSession->NotifyRemoveAppLockSnapshot();
     sceneSession->UpdateDensity();
-    sceneSession->UpdateDpiForceScale();
+    sceneSession->UpdateDpiForceScale(minDpiScale_, maxDpiScale_, DPI_SCALE_STEP);
     if (fromScreenId != screenId) {
         sceneSession->AddPropertyDirtyFlags(static_cast<uint32_t>(SessionPropertyFlag::DISPLAY_ID));
         sceneSession->MarkAvoidAreaAsDirty();
@@ -18134,7 +18194,7 @@ WMError SceneSessionManager::ListWindowInfo(const WindowInfoOption& windowInfoOp
         }
         return WMError::WM_OK;
     }, __func__);
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, size=%{public}u",
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "ret=%{public}d, size=%{public}u",
         static_cast<int32_t>(ret), static_cast<uint32_t>(infos.size()));
     return ret;
 }

@@ -44,6 +44,16 @@ ohos_shared_library("pipwindow_kit") {
     "../../../../resources/config/build:coverage_flags",
   ]
 
+  cflags_cc = [
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-fno-asynchronous-unwind-tables",
+    "-fvisibility-inlines-hidden",
+    "-fno-unwind-tables",
+    "-fno-exceptions",
+    "-Os",
+  ]
+
   deps = [
     "inner:pip_napi",
     "../../../../utils:libwmutil",
