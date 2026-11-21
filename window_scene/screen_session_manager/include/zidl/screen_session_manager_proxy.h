@@ -280,6 +280,7 @@ public:
     DMError GetBundleName(DisplayId displayId, std::string& bundleName) override;
     DMError SetPrimaryDisplaySystemDpi(float dpi) override;
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) override;
+    DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode) override;
     DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable) override;
     void NotifySwitchUserAnimationFinish() override;

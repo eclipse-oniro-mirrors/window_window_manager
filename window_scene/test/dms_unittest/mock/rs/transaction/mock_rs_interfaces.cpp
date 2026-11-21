@@ -119,6 +119,10 @@ int32_t RSInterfaces::SetVirtualScreenAutoRotation(ScreenId id, bool isAutoRotat
 {
     return 0;
 }
+int32_t RSInterfaces::SetVirtualScreenCursorMode(ScreenId id, RSVirtualScreenCursorMode mode)
+{
+    return 0;
+}
 bool RSInterfaces::SetVirtualMirrorScreenScaleMode(ScreenId id, ScreenScaleMode scaleMode)
 {
     return true;

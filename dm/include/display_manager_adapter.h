@@ -246,6 +246,7 @@ public:
     virtual void SetFoldStatusExpandAndLocked(bool locked);
     virtual DMError SetScreenSkipProtectedWindow(const std::vector<ScreenId>& screenIds, bool isEnable);
     virtual DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable);
+    virtual DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode);
     virtual DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable);
     virtual DMError GetScreenCapability(ScreenId screenId, ScreenCapability& capability);
