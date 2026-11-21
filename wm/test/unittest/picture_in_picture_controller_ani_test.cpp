@@ -136,7 +136,7 @@ public:
     void SetUp() override;
     void TearDown() override;
 private:
-    static constexpr uint32_t waitSyncInNs = 200000;
+    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
 
     sptr<MockPictureInPictureControllerAni> pipControl_ {nullptr};
     std::shared_ptr<MockNavigationController> naviControl_ {nullptr};
@@ -180,7 +180,6 @@ public:
 };
 
 namespace {
-static constexpr uint32_t waitForAniGetEnvTime = 5;
 class MockAbilityContextImpl : public AbilityRuntime::AbilityContextImpl {
 public:
     std::shared_ptr<AppExecFwk::ApplicationInfo> GetApplicationInfo() const override
@@ -254,6 +253,8 @@ ani_vm* BuildFakeVmOkNonNull()
     return &vm;
 }
 
+static constexpr uint32_t WAIT_FOR_ANI_GET_ENV_TIME = 5;
+
 bool WaitForAniGetEnv(int32_t expectedMin, int timeoutMs = 1000)
 {
     auto start = std::chrono::steady_clock::now();
@@ -262,7 +263,7 @@ bool WaitForAniGetEnv(int32_t expectedMin, int timeoutMs = 1000)
         if (g_aniGetEnvCount.load() >= expectedMin) {
             return true;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(waitForAniGetEnvTime));
+        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_FOR_ANI_GET_ENV_TIME));
     }
     return g_aniGetEnvCount.load() >= expectedMin;
 }
