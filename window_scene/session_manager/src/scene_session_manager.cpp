@@ -19136,7 +19136,7 @@ void SceneSessionManager::TransferExtensionFlags(int32_t persistentId, uint32_t 
     if (waterMarkFlagChanged) {
         CheckAndNotifyWaterMarkChangedResult();
     }
-    TLOGI(WmsLogTag::WMS_UIEXT, "TransferExtensionFlags done, persistentId:%{public}d, "
+    TLOGI(WmsLogTag::WMS_UIEXT, "done, persistentId:%{public}d, "
         "extensionWindowFlags:%{public}u", persistentId, extensionWindowFlags);
 }
 
@@ -19227,7 +19227,7 @@ WSError SceneSessionManager::UpdateExtensionParent(const sptr<IRemoteObject>& to
         TransferExtensionSubSession(params.subWindowIds, newSubWindowLevel, oldParentSession, newParentSession);
         
         FlushWindowInfoToMMI(true);
-        TLOGI(WmsLogTag::WMS_UIEXT, "UpdateExtensionParent done, persistentId:%{public}d, "
+        TLOGI(WmsLogTag::WMS_UIEXT, "done, persistentId:%{public}d, "
             "oldParentId:%{public}d, newParentId:%{public}d, newSubWindowLevel:%{public}u",
             persistentId, oldParentId, params.newHostWindowId, newSubWindowLevel);
         return WSError::WS_OK;
