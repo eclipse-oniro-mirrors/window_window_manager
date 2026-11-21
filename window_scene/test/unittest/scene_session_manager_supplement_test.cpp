@@ -73,6 +73,14 @@ void SceneSessionManagerSupplementTest::TearDown()
 }
 
 namespace {
+std::string g_logMsg;
+
+void MyLogCallback(const LogType type, const LogLevel level, const unsigned int domain, const char* tag,
+    const char* msg)
+{
+    g_logMsg += msg;
+}
+
 /**
  * @tc.name: LoadFreeMultiWindowConfigWithTrue
  * @tc.desc: Test LoadFreeMultiWindowConfig for input true
@@ -327,6 +335,158 @@ HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerTe
     sceneSession->isVisible_ = false;
     ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
     ASSERT_EQ(ret, WSError::WS_ERROR_PRE_HANDLE_COLLABORATOR_FAILED);
+}
+
+/**
+ * @tc.name: RequestSceneSessionActivationInnerAppIndexBelowReserved
+ * @tc.desc: appIndex below reserved range should take phone-in-PC foreground path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerAppIndexBelowReserved, TestSize.Level1)
+{
+    ssm_->systemConfig_.backgroundswitch = false;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "accessibilityNotifyTesterBundleName";
+    sessionInfo.abilityName_ = "accessibilityNotifyTesterAbilityName";
+    sessionInfo.appIndex_ = 1999;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->SetCollaboratorType(0);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    LOG_SetCallback(nullptr);
+
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_TRUE(g_logMsg.find("Begin StartUIAbility") != std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("Background switch on") != std::string::npos);
+}
+
+/**
+ * @tc.name: RequestSceneSessionActivationInnerAppIndexReservedMin
+ * @tc.desc: appIndex equals reserved min should skip phone-in-PC foreground path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerAppIndexReservedMin, TestSize.Level1)
+{
+    ssm_->systemConfig_.backgroundswitch = false;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "accessibilityNotifyTesterBundleName";
+    sessionInfo.abilityName_ = "accessibilityNotifyTesterAbilityName";
+    sessionInfo.appIndex_ = 2000;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->SetCollaboratorType(0);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    LOG_SetCallback(nullptr);
+
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_TRUE(g_logMsg.find("Background switch on") != std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("Begin StartUIAbility") != std::string::npos);
+}
+
+/**
+ * @tc.name: RequestSceneSessionActivationInnerAppIndexReservedMax
+ * @tc.desc: appIndex equals reserved max should skip phone-in-PC foreground path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerAppIndexReservedMax, TestSize.Level1)
+{
+    ssm_->systemConfig_.backgroundswitch = false;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "accessibilityNotifyTesterBundleName";
+    sessionInfo.abilityName_ = "accessibilityNotifyTesterAbilityName";
+    sessionInfo.appIndex_ = 3000;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->SetCollaboratorType(0);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    LOG_SetCallback(nullptr);
+
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_TRUE(g_logMsg.find("Background switch on") != std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("Begin StartUIAbility") != std::string::npos);
+}
+
+/**
+ * @tc.name: RequestSceneSessionActivationInnerAppIndexAboveReserved
+ * @tc.desc: appIndex above reserved range should take phone-in-PC foreground path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerAppIndexAboveReserved, TestSize.Level1)
+{
+    ssm_->systemConfig_.backgroundswitch = false;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "accessibilityNotifyTesterBundleName";
+    sessionInfo.abilityName_ = "accessibilityNotifyTesterAbilityName";
+    sessionInfo.appIndex_ = 3001;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->SetCollaboratorType(0);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    LOG_SetCallback(nullptr);
+
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_TRUE(g_logMsg.find("Begin StartUIAbility") != std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("Background switch on") != std::string::npos);
+}
+
+/**
+ * @tc.name: RequestSceneSessionActivationInnerPhoneInPcReservedAppIndex
+ * @tc.desc: app supporting phone-in-PC with reserved appIndex should skip phone-in-PC foreground path
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerSupplementTest, RequestSceneSessionActivationInnerPhoneInPcReservedAppIndex,
+        TestSize.Level1)
+{
+    ssm_->systemConfig_.backgroundswitch = true;
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = "accessibilityNotifyTesterBundleName";
+    sessionInfo.abilityName_ = "accessibilityNotifyTesterAbilityName";
+    sessionInfo.appIndex_ = 2500;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
+    ASSERT_NE(property, nullptr);
+    property->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    property->SetIsAppSupportPhoneInPc(true);
+    sceneSession->SetSessionProperty(property);
+    sceneSession->SetCollaboratorType(0);
+
+    g_logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    auto ret = ssm_->RequestSceneSessionActivationInner(sceneSession, true);
+    LOG_SetCallback(nullptr);
+
+    ASSERT_EQ(ret, WSError::WS_OK);
+    EXPECT_TRUE(g_logMsg.find("Background switch on") != std::string::npos);
+    EXPECT_FALSE(g_logMsg.find("Begin StartUIAbility") != std::string::npos);
 }
 
 /**
