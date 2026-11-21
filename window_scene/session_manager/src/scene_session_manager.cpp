@@ -131,6 +131,10 @@ const std::string SUPER_LAUNCHER = "SuperLauncher";
 constexpr const char* PREPARE_TERMINATE_ENABLE_PARAMETER = "persist.sys.prepare_terminate";
 constexpr const char* ATOMIC_SERVICE_SESSION_ID = "com.ohos.param.sessionId";
 constexpr uint32_t MAX_BRIGHTNESS = 255;
+// appIndex in [RESERVED_APP_INDEX_MIN, RESERVED_APP_INDEX_MAX] is a reserved range, and
+// sessions in this range do not follow the "phone in PC" foreground path in PC-PAD mode.
+constexpr int32_t RESERVED_APP_INDEX_MIN = 2000;
+constexpr int32_t RESERVED_APP_INDEX_MAX = 3000;
 constexpr int32_t PREPARE_TERMINATE_ENABLE_SIZE = 6;
 constexpr int32_t SCALE_DIMENSION = 2;
 constexpr int32_t TRANSLATE_DIMENSION = 2;
@@ -4624,7 +4628,9 @@ WSError SceneSessionManager::RequestSceneSessionActivationInner(
     if (isShowAbility) {
         sceneSessionInfo->scenarios = SHOWABILITY_SCENARIOS;
     }
-    if (!systemConfig_.backgroundswitch || sceneSession->GetSessionProperty()->GetIsAppSupportPhoneInPc()) {
+    if ((!systemConfig_.backgroundswitch || sceneSession->GetSessionProperty()->GetIsAppSupportPhoneInPc()) &&
+        (sceneSession->GetSessionInfo().appIndex_ < RESERVED_APP_INDEX_MIN ||
+            sceneSession->GetSessionInfo().appIndex_ > RESERVED_APP_INDEX_MAX)) {
         TLOGI(WmsLogTag::WMS_MAIN, "[requestId: %{public}d][scbRequestId: %{public}d][id: %{public}d] "
             "Begin StartUIAbility, system: %{public}u, reuseDelegatorWindow %{public}d isShowAbility %{public}d",
             requestId, scbRequestId, persistentId,
