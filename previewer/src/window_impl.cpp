@@ -16,6 +16,7 @@
 #include "window_impl.h"
 
 #include <unordered_set>
+#include <cmath>
 
 #include "dm_common.h"
 #include "window_manager_hilog.h"
@@ -1262,7 +1263,7 @@ void WindowImpl::SetViewportConfig(const Ace::ViewportConfig& config)
         height_ = config.Height();
         isUpdate = true;
     }
-    if (abs(density_ - config.Density()) >= 1e-6) {
+    if (std::abs(density_ - config.Density()) >= 1e-6) {
         density_ = config.Density();
         isUpdate = true;
     }
@@ -1311,7 +1312,7 @@ void WindowImpl::SetSize(int32_t width, int32_t height)
 void WindowImpl::SetDensity(float density)
 {
     WLOGFD("SetDensity : density=%{public}f", density);
-    if (abs(density_ - density) <= 0.000001) { // 0.000001: near zero.
+    if (std::abs(density_ - density) <= 0.000001) { // 0.000001: near zero.
         return;
     }
     density_ = density;

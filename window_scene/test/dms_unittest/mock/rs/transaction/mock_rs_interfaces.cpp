@@ -41,7 +41,8 @@ int32_t RSInterfaces::SetVirtualScreenTypeBlackList(ScreenId id, std::vector<Nod
     return 0;
 }
 int32_t RSInterfaces::SetVirtualScreenSecurityExemptionList(ScreenId id,
-                                                            const std::vector<NodeId>& securityExemptionList)
+                                                            const std::vector<NodeId>& securityExemptionList,
+                                                            bool exemptAll)
 {
     return 0;
 }
@@ -115,6 +116,10 @@ bool RSInterfaces::SetVirtualMirrorScreenCanvasRotation(ScreenId id, bool canvas
     return true;
 }
 int32_t RSInterfaces::SetVirtualScreenAutoRotation(ScreenId id, bool isAutoRotation)
+{
+    return 0;
+}
+int32_t RSInterfaces::SetVirtualScreenCursorMode(ScreenId id, RSVirtualScreenCursorMode mode)
 {
     return 0;
 }

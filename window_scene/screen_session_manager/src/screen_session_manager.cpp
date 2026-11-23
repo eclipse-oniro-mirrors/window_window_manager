@@ -4457,6 +4457,9 @@ void ScreenSessionManager::UpdateDisplayHookInfo(int32_t uid, bool enable, const
             break;
         }
     }
+    if (uid != 0 && hookInfo.displayId_ == DISPLAY_ID_INVALID) {
+        NotifyHookAvailableAreaChanged(uid);
+    }
 }
 
 void ScreenSessionManager::UpdateAdaptiveResolutionHook(int32_t uid, bool enable,
@@ -14997,6 +15000,23 @@ void ScreenSessionManager::NotifyHookAvailableAreaChanged(DMRect area, DisplayId
     ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(hookArea, displayId, uid);
 }
 
+void ScreenSessionManager::NotifyHookAvailableAreaChanged(int32_t uid)
+{
+    DisplayId displayId = DISPLAY_ID_INVALID;
+    auto defaultScreen = GetDefaultScreenSession();
+    if (defaultScreen) {
+        displayId = defaultScreen->GetDisplayId();
+    } else {
+        TLOGNFI(WmsLogTag::DMS, " defaultScreen is null");
+        return;
+    }
+    TLOGNFI(WmsLogTag::DMS, "displayId: %{public}" PRIu64" ", displayId);
+    DMRect area;
+    if (GetHookedAvailableArea(displayId, uid, area) == DMError::DM_OK) {
+        ScreenSessionManagerAdapter::GetInstance().NotifyAvailableAreaChanged(area, displayId, uid);
+    }
+}
+
 void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, DisplayId displayId)
 {
     std::lock_guard<std::mutex> lock(lastDisplayInfoMapMutex_);
@@ -15031,6 +15051,26 @@ void ScreenSessionManager::NotifyAvailableAttributeChanged(const DMRect& area, D
         return;
     }
     NotifyDisplayAttributeChanged(displayInfo, attributes);
+}
+
+DMError ScreenSessionManager::GetHookedAvailableArea(DisplayId displayId, int32_t uid, DMRect& area)
+{
+    auto displayInfo = GetDisplayInfoById(displayId, true);
+    if (displayInfo == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "can not get displayInfo.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    auto session = GetScreenSession(displayInfo->GetScreenId());
+    auto hooked = HookDisplayInfoByUid(displayInfo, session, uid);
+    if (hooked == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "hook display info failed, uid: %{public}d", uid);
+        return DMError::DM_ERROR_NULLPTR;
+    }
+    area = { 0, 0, hooked->GetAvailableWidth(), hooked->GetAvailableHeight() };
+    TLOGNFI(WmsLogTag::DMS,
+        "displayId: %{public}" PRIu64 ", uid: %{public}d, AvailableArea: [%{public}d, %{public}d, %{public}u, %{public}u]",
+        static_cast<DisplayId>(displayId), uid, area.posX_, area.posY_, area.width_, area.height_);
+    return DMError::DM_OK;
 }
 
 DMError ScreenSessionManager::GetAvailableArea(DisplayId displayId, DMRect& area)
@@ -16079,7 +16119,7 @@ void ScreenSessionManager::InitFakeScreenSession(sptr<ScreenSession> screenSessi
 }
 
 DMError ScreenSessionManager::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
     if (!(Permission::IsSystemCalling() && Permission::CheckCallingPermission(SCREEN_CAPTURE_PERMISSION)) &&
         !SessionPermission::IsShellCall()) {
@@ -16092,11 +16132,11 @@ DMError ScreenSessionManager::SetVirtualScreenSecurityExemption(ScreenId screenI
             pid, windowIdList, surfaceNodeIds);
     }
     auto rsId = screenIdManager_.ConvertToRsScreenId(screenId);
-    auto ret = rsInterface_.SetVirtualScreenSecurityExemptionList(rsId, surfaceNodeIds);
+    auto ret = rsInterface_.SetVirtualScreenSecurityExemptionList(rsId, surfaceNodeIds, exemptAll);
 
     std::ostringstream oss;
     oss << "screenId:" << screenId << ", rsID: " << rsId << ", pid: " << pid
-        << ", winListSize:[ ";
+        << ", exemptAll: " << exemptAll << ", winListSize:[ ";
     for (auto val : windowIdList) {
         oss << val << " ";
     }
@@ -16523,6 +16563,10 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
                 continue;
             }
             if (HasInternalScreen()) {
+                if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                    screenSession->GetRSScreenId() == SCREEN_ID_MAIN) {
+                    continue;
+                }
                 if (screenSession->GetIsInternal()) {
                     firstSession = screenSession;
                 } else {
@@ -16549,6 +16593,10 @@ void ScreenSessionManager::MultiScreenModeChange(ScreenId mainScreenId, ScreenId
             if (!screenSession->GetIsCurrentInUse() || screenSession->GetIsExtendVirtual()) {
                 TLOGNFE(WmsLogTag::DMS, "current screen: %{public}" PRIu64" is not in user or extend virtual",
                     sessionIt.first);
+                continue;
+            }
+            if (FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice() &&
+                screenSession->GetRSScreenId() == SCREEN_ID_MAIN) {
                 continue;
             }
             if (screenSession->isInUse() == false) {
@@ -17881,7 +17929,8 @@ DMError ScreenSessionManager::GetScreenAreaOfDisplayArea(DisplayId displayId, co
     DMRect screenRegion = {
         bounds.rect_.GetLeft(), bounds.rect_.GetTop(), bounds.rect_.GetWidth(), bounds.rect_.GetHeight() };
     DMRect displayAreaFixed = displayArea;
-    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && GetFoldStatus() == FoldStatus::HALF_FOLD) {
+    if (FoldScreenStateInternel::IsSuperFoldDisplayDevice() && GetFoldStatus() == FoldStatus::HALF_FOLD
+        && screenSession->GetIsInternal()) {
         if (displayId == DISPLAY_ID_FAKE) {
             displayAreaFixed.posY_ += static_cast<int32_t>(screenRegion.height_) -
                 static_cast<int32_t>(displayRegion.height_);
@@ -18056,6 +18105,30 @@ DMError ScreenSessionManager::SetVirtualScreenAutoRotation(ScreenId screenId, bo
     TLOGNFI(WmsLogTag::DMS, "unique screenId: %{public}" PRIu64 " rsScreenId: %{public}" PRIu64, screenId, rsScreenId);
 
     auto ret = rsInterface_.SetVirtualScreenAutoRotation(rsScreenId, enable);
+    if (ret != StatusCode::SUCCESS) {
+        TLOGNFE(WmsLogTag::DMS, "rsInterface error: %{public}d", ret);
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    return DMError::DM_OK;
+}
+
+DMError ScreenSessionManager::SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+{
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr || screenSession->GetScreenProperty().GetScreenType() != ScreenType::VIRTUAL) {
+        TLOGNFE(WmsLogTag::DMS, "No such screen or not virtual screen.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+
+    ScreenId rsScreenId = SCREEN_ID_INVALID;
+    bool res = ConvertScreenIdToRsScreenId(screenId, rsScreenId);
+    if (!res) {
+        TLOGNFE(WmsLogTag::DMS, "convert screenId to rsScreenId failed");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    TLOGNFI(WmsLogTag::DMS, "rsScreenId: %{public}" PRIu64 " mode: %{public}d", rsScreenId, static_cast<int>(mode));
+
+    auto ret = rsInterface_.SetVirtualScreenCursorMode(rsScreenId, mode);
     if (ret != StatusCode::SUCCESS) {
         TLOGNFE(WmsLogTag::DMS, "rsInterface error: %{public}d", ret);
         return DMError::DM_ERROR_INVALID_PARAM;

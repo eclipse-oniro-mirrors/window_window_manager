@@ -36,7 +36,7 @@ constexpr size_t MAX_LENGTH_STRING = 64;
 constexpr int32_t MIN_POSITION = -10000;
 constexpr int32_t MAX_POSITION = 10000;
 constexpr uint32_t MAX_RESOLUTION = 8192;
-static constexpr std::array<uint32_t, 188> kValidTransIds = {{
+static constexpr std::array<uint32_t, 189> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DEFAULT_DISPLAY_INFO),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_DISPLAY_BY_ID),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_VISIBLE_AREA_DISPLAY_INFO_BY_ID),
@@ -225,6 +225,7 @@ static constexpr std::array<uint32_t, 188> kValidTransIds = {{
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SCREEN_SWITCH_STATE),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_GET_SCREEN_CAPABILITY),
     static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_NOTIFY_BOOT_ANIMATION_FINISHED),
+    static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_CURSOR_MODE),
 }};
 
 sptr<IRemoteObject> GetRemote()
@@ -312,6 +313,14 @@ void ScreenSessionManagerStubFuzzTestEnhanced(FuzzedDataProvider& fdp,
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_FREEZE_EVENT):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_AS_DEFAULT):
         case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SCENE_BOARD_SCREEN_BASE): {
+            screenStub.OnRemoteRequest(code, parcel, reply, option);
+            break;
+        }
+        case static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_CURSOR_MODE): {
+            uint64_t screenId = fdp.ConsumeIntegral<uint64_t>();
+            uint8_t cursorModeRaw = fdp.ConsumeIntegral<uint8_t>();
+            parcel.WriteUint64(screenId);
+            parcel.WriteUint8(cursorModeRaw);
             screenStub.OnRemoteRequest(code, parcel, reply, option);
             break;
         }

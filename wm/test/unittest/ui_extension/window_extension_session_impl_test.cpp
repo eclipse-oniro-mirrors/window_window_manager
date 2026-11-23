@@ -649,6 +649,69 @@ HWTEST_F(WindowExtensionSessionImplTest, UpdateConfigurationForAll03, TestSize.L
 }
 
 /**
+ * @tc.name: RegisterScreenshotListener
+ * @tc.desc: RegisterScreenshotListener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, RegisterScreenshotListener, TestSize.Level1)
+{
+    auto option = sptr<WindowOption>::MakeSptr();
+    auto window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+    window->property_->SetPersistentId(1);
+    EXPECT_NE(WMError::WM_OK, window->RegisterScreenshotListener(nullptr));
+    sptr<IScreenshotListener> listener = sptr<IScreenshotListener>::MakeSptr();
+    window->dataHandler_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->RegisterScreenshotListener(listener));
+
+    window->screenshotListeners_[1].emplace_back(listener);
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window->RegisterScreenshotListener(listener));
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window->UnregisterScreenshotListener(nullptr));
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window->UnregisterScreenshotListener(listener));
+}
+
+/**
+ * @tc.name: HandleUIExtRegisterScreenshotListener
+ * @tc.desc: HandleUIExtRegisterScreenshotListener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, HandleUIExtRegisterScreenshotListener, TestSize.Level1)
+{
+    int32_t persistentId = 2;
+    auto option = sptr<WindowOption>::MakeSptr();
+    auto window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+    window->property_->SetPersistentId(persistentId);
+    AAFwk::Want want;
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_SCREENSHOT_LISTENER);
+    window->dataHandler_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, window->OnExtensionMessage(code, persistentId, want));
+    window->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window->HandleUIExtRegisterScreenshotListener(code, persistentId, want));
+}
+
+/**
+ * @tc.name: HandleUIExtUnregisterScreenshotListener
+ * @tc.desc: HandleUIExtUnregisterScreenshotListener Test
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, HandleUIExtUnregisterScreenshotListener, TestSize.Level1)
+{
+    int32_t persistentId = 3;
+    auto option = sptr<WindowOption>::MakeSptr();
+    auto window = sptr<WindowExtensionSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+    window->property_->SetPersistentId(persistentId);
+    AAFwk::Want want;
+    uint32_t unregisterCode = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_SCREENSHOT_LISTENER);
+    window->dataHandler_ = nullptr;
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window->OnExtensionMessage(unregisterCode, persistentId, want));
+    window->dataHandler_ = std::make_shared<Extension::MockDataHandler>();
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM,
+        window->HandleUIExtUnregisterScreenshotListener(unregisterCode, persistentId, want));
+}
+
+/**
  * @tc.name: MoveTo01
  * @tc.desc: MoveTo
  * @tc.type: FUNC

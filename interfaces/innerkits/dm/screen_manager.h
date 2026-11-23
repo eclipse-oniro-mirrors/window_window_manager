@@ -582,6 +582,15 @@ public:
     DMError SetScreenPrivacyWindowTagSwitch(ScreenId screenId, const std::vector<std::string>& privacyWindowTag,
         bool enable);
 
+    /**
+     * @brief Set the cursor display mode of the virtual screen.
+     *
+     * @param screenId virtual screen id.
+     * @param mode Cursor mode of the virtual screen.
+     * @return DM_OK means set success, others means failed.
+     */
+    DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode);
+
 private:
     ScreenManager();
     ~ScreenManager();

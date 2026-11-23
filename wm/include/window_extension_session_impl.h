@@ -237,6 +237,12 @@ public:
     uint32_t GetHostStatusBarContentColor() const override;
     float GetExtensionCustomDensity() override;
     WMError GetWindowStateSnapshot(std::string& winStateSnapshotJsonStr) override;
+    WMError RegisterScreenshotListener(const sptr<IScreenshotListener>& listener) override;
+    WMError UnregisterScreenshotListener(const sptr<IScreenshotListener>& listener) override;
+    WMError HandleUIExtRegisterScreenshotListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
+    WMError HandleUIExtUnregisterScreenshotListener(uint32_t code, int32_t persistentId,
+        const AAFwk::Want& data) override;
     WMError SetStatusBarColorForExtension(uint32_t color) override;
     WMError SetStatusBarColorForExtensionInner(uint32_t color);
     bool IsBlockSubwindow() const override;

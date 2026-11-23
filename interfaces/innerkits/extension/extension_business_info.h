@@ -62,6 +62,8 @@ constexpr const char* const HAS_HOST_WINDOW_RECT_CHANGE_LISTENER = "hasHostWindo
 constexpr const char* const HAS_KEYBOARD_DID_SHOW_LISTENER = "hasKeyboardDidShowListener";
 constexpr const char* const HAS_KEYBOARD_DID_HIDE_LISTENER = "hasKeyboardDidHideListener";
 constexpr const char* const HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER = "hasRectChangeInGlobalDisplayListener";
+constexpr const char* const HAS_TOUCH_OUTSIDE_LISTENER = "hasTouchOutsideListener";
+constexpr const char* const HAS_SCREENSHOT_LISTENER = "hasScreenshotListener";
 
 enum class Businesscode : uint32_t {
     SYNC_HOST_WINDOW_MODE = 0,  // Synchronize the host's window mode
@@ -98,6 +100,8 @@ enum class Businesscode : uint32_t {
     UNREGISTER_HOST_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER,
     REGISTER_TOUCH_OUTSIDE_LISTENER,
     UNREGISTER_TOUCH_OUTSIDE_LISTENER,
+    REGISTER_SCREENSHOT_LISTENER,
+    UNREGISTER_SCREENSHOT_LISTENER,
     NOTIFY_HOST_ON_PARENT_CHANGED,
     TRANSPARENT_TRANSMISSION_TO_HOST_WINDOW_CODE_END = 20000,
 };

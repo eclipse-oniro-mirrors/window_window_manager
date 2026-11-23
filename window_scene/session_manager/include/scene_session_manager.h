@@ -1502,6 +1502,7 @@ private:
     void UpdateWindowDrawingData(uint64_t surfaceId, int32_t pid, int32_t uid);
     bool GetSpecifiedDrawingData(uint64_t surfaceId, int32_t& pid, int32_t& uid);
     void RemoveSpecifiedDrawingData(uint64_t surfaceId);
+    void ClearSessionCachedRecords(const sptr<SceneSession>& session);
     WMError ReleaseScreenLockForApp(const std::string& bundleName);
     WMError RelockScreenLockForApp(const std::string& bundleName);
     void GetAllSessionsToReleaseScreenLock(

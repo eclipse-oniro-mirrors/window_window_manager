@@ -14,6 +14,7 @@
  */
 #include <gtest/gtest.h>
 
+#include "extension/extension_business_info.h"
 #include "mock_session.h"
 #include "vsync_station.h"
 #include "window_session_impl.h"
@@ -148,6 +149,57 @@ HWTEST_F(WindowSessionImplAttributeTest, DisableUiDvsyncSwitchApiIfNeeded, TestS
     ASSERT_FALSE(window_->isUiDvsyncSwitchApiEnabled_.load());
     window_->DisableUiDvsyncSwitchApiIfNeeded(DvsyncDisableReason::BACKGROUND_DISABLE);
     ASSERT_FALSE(window_->isUiDvsyncSwitchApiEnabled_.load());
+}
+
+/**
+ * @tc.name: HandleUIExtRegisterScreenshotListener
+ * @tc.desc: HandleUIExtRegisterScreenshotListener test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplAttributeTest, HandleUIExtRegisterScreenshotListener, TestSize.Level1)
+{
+    window_ = GetTestWindowImpl("HandleUIExtRegisterScreenshotListener");
+    ASSERT_NE(window_, nullptr);
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::REGISTER_SCREENSHOT_LISTENER);
+    int32_t persistentId = 1;
+    AAFwk::Want want;
+
+    window_->screenshotUIExtListeners_[persistentId] = sptr<IScreenshotListener>::MakeSptr();
+    EXPECT_EQ(WMError::WM_OK, window_->OnExtensionMessage(code, persistentId, want));
+    window_->screenshotUIExtListeners_.clear();
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window_->HandleUIExtRegisterScreenshotListener(code, persistentId, want));
+}
+
+/**
+ * @tc.name: HandleUIExtUnregisterScreenshotListener
+ * @tc.desc: HandleUIExtUnregisterScreenshotListener test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplAttributeTest, HandleUIExtUnregisterScreenshotListener, TestSize.Level1)
+{
+    window_ = GetTestWindowImpl("HandleUIExtUnregisterScreenshotListener");
+    ASSERT_NE(window_, nullptr);
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_SCREENSHOT_LISTENER);
+    int32_t persistentId = 1;
+    AAFwk::Want want;
+    EXPECT_EQ(WMError::WM_OK, window_->OnExtensionMessage(code, persistentId, want));
+    window_->screenshotUIExtListeners_[persistentId] = sptr<IScreenshotListener>::MakeSptr();
+    EXPECT_NE(WMError::WM_ERROR_NO_MEM, window_->HandleUIExtUnregisterScreenshotListener(code, persistentId, want));
+}
+
+/**
+ * @tc.name: NotifyScreenshot
+ * @tc.desc: NotifyScreenshot test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplAttributeTest, NotifyScreenshot, TestSize.Level1)
+{
+    window_ = GetTestWindowImpl("NotifyScreenshot");
+    ASSERT_NE(window_, nullptr);
+    window_->NotifyScreenshot();
+    window_->screenshotUIExtListeners_[1] = sptr<IScreenshotListener>::MakeSptr();
+    window_->NotifyScreenshot();
+    window_->screenshotUIExtListeners_.clear();
 }
 } // namespace Rosen
 } // namespace OHOS
