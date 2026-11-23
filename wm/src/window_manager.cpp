@@ -3424,5 +3424,31 @@ WMError WindowManager::UpdateOutline(const sptr<IRemoteObject>& remoteObject, co
     isOutlineRecoverRegistered_ = true;
     return ret;
 }
+
+WMError WindowManager::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, posX: %{public}d, posY: %{public}d",
+        windowId, posX, posY);
+    WMError ret = WindowAdapter::GetInstance(userId_).MoveTargetWindow(windowId, posX, posY);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE,
+            "failed, windowId: %{public}d, posX: %{public}d, posY: %{public}d, ret: %{public}d",
+            windowId, posX, posY, ret);
+    }
+    return ret;
+}
+
+WMError WindowManager::ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, width: %{public}d, height: %{public}d",
+        windowId, width, height);
+    WMError ret = WindowAdapter::GetInstance(userId_).ResizeWindow(windowId, width, height);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_LIFE,
+            "failed, windowId: %{public}d, width: %{public}d, height: %{public}d, ret: %{public}d",
+            windowId, width, height, ret);
+    }
+    return ret;
+}
 } // namespace Rosen
 } // namespace OHOS

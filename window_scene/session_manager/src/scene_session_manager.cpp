@@ -24103,4 +24103,80 @@ WSError SceneSessionManager::NotifyStackRecoverFromAMS(int32_t persistentId, boo
     return WSError::WS_OK;
 }
 
+WSError SceneSessionManager::CheckCrossWindowControlCalling()
+{
+    if (!SessionPermission::IsSACalling() &&
+        !SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_CONTROL_DEVICE)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Permission denied!");
+        return WSError::WS_ERROR_INVALID_PERMISSION;
+    }
+    if (!systemConfig_.IsSupportPCMode()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Device not support");
+        return WSError::WS_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    return WSError::WS_OK;
+}
+
+// Resolves the target session by windowId and ensures it is an alive floating main window.
+WSError SceneSessionManager::CheckWindowControlTarget(int32_t windowId,
+    sptr<SceneSession>& sceneSession)
+{
+    sceneSession = GetSceneSession(windowId);
+    if (sceneSession == nullptr || sceneSession->IsTerminated()) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Session is null or destroying, windowId: %{public}d", windowId);
+        return WSError::WS_ERROR_INVALID_PARAM;
+    }
+    if (!WindowHelper::IsMainWindow(sceneSession->GetWindowType())) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Window is not main window, windowId: %{public}d", windowId);
+        return WSError::WS_ERROR_INVALID_CALLING;
+    }
+    if (sceneSession->GetWindowMode() != WindowMode::WINDOW_MODE_FLOATING) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Window is not floating, windowId: %{public}d", windowId);
+        return WSError::WS_ERROR_OPER_FULLSCREEN_FAILED;
+    }
+    return WSError::WS_OK;
+}
+
+WSErrorResult SceneSessionManager::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, posX: %{public}d, posY: %{public}d",
+        windowId, posX, posY);
+    WSError ret = CheckCrossWindowControlCalling();
+    if (ret != WSError::WS_OK) {
+        return WSErrorResult{ret, "Check cross window move failed."};
+    }
+    sptr<SceneSession> sceneSession = nullptr;
+    ret = CheckWindowControlTarget(windowId, sceneSession);
+    if (ret != WSError::WS_OK) {
+        return WSErrorResult{ret, "Check move target failed."};
+    }
+    WSRect curRect = sceneSession->GetSessionRect();
+    WSRect newRect = { posX, posY, curRect.width_, curRect.height_ };
+    sceneSession->UpdateSessionRect(newRect, SizeChangeReason::MOVE);
+    return WSErrorResult{WSError::WS_OK, ""};
+}
+
+WSErrorResult SceneSessionManager::ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+{
+    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, width: %{public}d, height: %{public}d",
+        windowId, width, height);
+    WSError ret = CheckCrossWindowControlCalling();
+    if (ret != WSError::WS_OK) {
+        return WSErrorResult{ret, "Check cross window resize failed."};
+    }
+    if (width <= 0 || height <= 0) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Invalid size, windowId: %{public}d", windowId);
+        return WSErrorResult{WSError::WS_ERROR_INVALID_PARAM, "Invalid window size"};
+    }
+    sptr<SceneSession> sceneSession = nullptr;
+    ret = CheckWindowControlTarget(windowId, sceneSession);
+    if (ret != WSError::WS_OK) {
+        return WSErrorResult{ret, "Check resize target failed."};
+    }
+    WSRect curRect = sceneSession->GetSessionRect();
+    WSRect newRect = { curRect.posX_, curRect.posY_, width, height };
+    sceneSession->UpdateSessionRect(newRect, SizeChangeReason::RESIZE);
+    return WSErrorResult{WSError::WS_OK, ""};
+}
+
 } // namespace OHOS::Rosen

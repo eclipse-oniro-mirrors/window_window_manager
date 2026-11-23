@@ -3243,6 +3243,234 @@ HWTEST_F(SceneSessionManagerStubTest,
     int res = stub_->HandleGetAppWindowShowingInfosByBundleName(data, reply);
     EXPECT_EQ(res, ERR_INVALID_DATA);
 }
+
+/**
+ * @tc.name: TransIdMoveTargetWindow
+ * @tc.desc: test TRANS_ID_MOVE_TARGET_WINDOW with valid parcel params, verify errCode/errMsg round-trip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, TransIdMoveTargetWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    int32_t windowId = 1;
+    int32_t posX = 100;
+    int32_t posY = 200;
+    data.WriteInt32(windowId);
+    data.WriteInt32(posX);
+    data.WriteInt32(posY);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_MOVE_TARGET_WINDOW);
+
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+}
+
+/**
+ * @tc.name: HandleMoveTargetWindow_ReadWindowIdFailed
+ * @tc.desc: Test HandleMoveTargetWindow when ReadInt32 windowId failed, verify IPC error pass-through
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleMoveTargetWindow_ReadWindowIdFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    int res = stub_->HandleMoveTargetWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+}
+
+/**
+ * @tc.name: HandleMoveTargetWindow_ReadPosXFailed
+ * @tc.desc: Test HandleMoveTargetWindow when ReadInt32 posX failed, verify IPC error pass-through
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleMoveTargetWindow_ReadPosXFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInt32(1);
+    int res = stub_->HandleMoveTargetWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+}
+
+/**
+ * @tc.name: HandleMoveTargetWindow_ReadPosYFailed
+ * @tc.desc: Test HandleMoveTargetWindow when ReadInt32 posY failed, verify IPC error pass-through
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleMoveTargetWindow_ReadPosYFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInt32(1);
+    data.WriteInt32(100);
+    int res = stub_->HandleMoveTargetWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+}
+
+/**
+ * @tc.name: HandleMoveTargetWindow_ServerErrorPassThrough
+ * @tc.desc: Test HandleMoveTargetWindow passes through server error code for invalid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleMoveTargetWindow_ServerErrorPassThrough, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteInt32(INVALID_SESSION_ID);
+    data.WriteInt32(100);
+    data.WriteInt32(200);
+    int res = stub_->HandleMoveTargetWindow(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_NE(errCode, ERR_NONE);
+    EXPECT_FALSE(errMsg.empty());
+}
+
+/**
+ * @tc.name: TransIdResizeWindow
+ * @tc.desc: test TRANS_ID_RESIZE_WINDOW with valid parcel params, verify errCode/errMsg round-trip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, TransIdResizeWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    int32_t windowId = 1;
+    int32_t width = 300;
+    int32_t height = 400;
+    data.WriteInt32(windowId);
+    data.WriteInt32(width);
+    data.WriteInt32(height);
+
+    uint32_t code = static_cast<uint32_t>(
+        ISceneSessionManager::SceneSessionManagerMessage::TRANS_ID_RESIZE_WINDOW);
+
+    int res = stub_->OnRemoteRequest(code, data, reply, option);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+}
+
+/**
+ * @tc.name: HandleResizeWindow_ReadWindowIdFailed
+ * @tc.desc: Test HandleResizeWindow when ReadInt32 windowId failed, verify IPC error pass-through
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleResizeWindow_ReadWindowIdFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    int res = stub_->HandleResizeWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+}
+
+/**
+ * @tc.name: HandleResizeWindow_ReadWidthFailed
+ * @tc.desc: Test HandleResizeWindow when ReadInt32 width failed, verify IPC error pass-through
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleResizeWindow_ReadWidthFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInt32(1);
+    int res = stub_->HandleResizeWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+}
+
+/**
+ * @tc.name: HandleResizeWindow_ReadHeightFailed
+ * @tc.desc: Test HandleResizeWindow when ReadInt32 height failed, verify IPC error pass-through
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleResizeWindow_ReadHeightFailed, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInt32(1);
+    data.WriteInt32(300);
+    int res = stub_->HandleResizeWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_EQ(errCode, static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+}
+
+/**
+ * @tc.name: HandleResizeWindow_ServerErrorPassThrough
+ * @tc.desc: Test HandleResizeWindow passes through server error code for invalid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerStubTest, HandleResizeWindow_ServerErrorPassThrough, Function | SmallTest | Level2)
+{
+    MessageParcel data;
+    MessageParcel reply;
+
+    data.WriteInterfaceToken(SceneSessionManagerStub::GetDescriptor());
+    data.WriteInt32(INVALID_SESSION_ID);
+    data.WriteInt32(300);
+    data.WriteInt32(400);
+    int res = stub_->HandleResizeWindow(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+    EXPECT_NE(errCode, ERR_NONE);
+    EXPECT_FALSE(errMsg.empty());
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS
