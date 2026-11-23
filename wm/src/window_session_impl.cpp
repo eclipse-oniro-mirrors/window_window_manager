@@ -7509,12 +7509,22 @@ void WindowSessionImpl::NotifyTouchDialogTarget(int32_t posX, int32_t posY)
 
 void WindowSessionImpl::NotifyScreenshot()
 {
-    std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
-    auto screenshotListeners = GetListeners<IScreenshotListener>();
+    bool needNotifyUec = false;
+    std::vector<sptr<IScreenshotListener>> screenshotListeners;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        screenshotListeners = GetListeners<IScreenshotListener>();
+        needNotifyUec = !screenshotUIExtListeners_.empty();
+    }
     for (auto& listener : screenshotListeners) {
         if (listener != nullptr) {
             listener->OnScreenshot();
         }
+    }
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE, "needNotifyUec=%{public}u, winId=%{public}d, #listeners=%{public}u",
+        needNotifyUec, GetPersistentId(), static_cast<uint32_t>(screenshotListeners.size()));
+    if (!needNotifyUec) {
+        return;
     }
     if (auto uiContent = GetUIContentSharedPtr()) {
         AAFwk::Want want;
@@ -10789,6 +10799,12 @@ WMError WindowSessionImpl::OnExtensionMessage(uint32_t code, int32_t persistentI
         case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_TOUCH_OUTSIDE_LISTENER): {
             return HandleUIExtUnregisterTouchOutsideListener(code, persistentId, data);
         }
+        case static_cast<uint32_t>(Extension::Businesscode::REGISTER_SCREENSHOT_LISTENER): {
+            return HandleUIExtRegisterScreenshotListener(code, persistentId, data);
+        }
+        case static_cast<uint32_t>(Extension::Businesscode::UNREGISTER_SCREENSHOT_LISTENER): {
+            return HandleUIExtUnregisterScreenshotListener(code, persistentId, data);
+        }
         default: {
             TLOGI(WmsLogTag::WMS_UIEXT, "Message was not processed, businessCode: %{public}u", code);
             break;
@@ -10904,6 +10920,60 @@ WMError WindowSessionImpl::HandleUIExtUnregisterTouchOutsideListener(uint32_t co
         UnregisterTouchOutsideListener(listener);
     }
     return WMError::WM_OK;
+}
+
+WMError WindowSessionImpl::HandleUIExtRegisterScreenshotListener(uint32_t code, int32_t persistentId,
+    const AAFwk::Want& data)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "code=%{public}u, persistentId=%{public}d", code, persistentId);
+    sptr<IScreenshotListener> listener = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        if (screenshotUIExtListeners_.find(persistentId) != screenshotUIExtListeners_.end()) {
+            return WMError::WM_OK;
+        }
+        listener = sptr<IScreenshotListener>::MakeSptr();
+        if (!listener) {
+            TLOGE(WmsLogTag::WMS_ATTRIBUTE, "listener is nullptr, code=%{public}u, persistentId=%{public}d",
+                code, persistentId);
+            return WMError::WM_ERROR_NULLPTR;
+        }
+        screenshotUIExtListeners_[persistentId] = listener;
+    }
+    auto ret = RegisterScreenshotListener(listener);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "register failed, code=%{public}u, persistentId=%{public}d, ret=%{public}d",
+            code, persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        screenshotUIExtListeners_.erase(persistentId);
+    }
+    return ret;
+}
+
+WMError WindowSessionImpl::HandleUIExtUnregisterScreenshotListener(uint32_t code, int32_t persistentId,
+    const AAFwk::Want& data)
+{
+    TLOGI(WmsLogTag::WMS_ATTRIBUTE, "code=%{public}u, persistentId=%{public}d", code, persistentId);
+    sptr<IScreenshotListener> listener = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        auto it = screenshotUIExtListeners_.find(persistentId);
+        if (it != screenshotUIExtListeners_.end()) {
+            listener = it->second;
+            screenshotUIExtListeners_.erase(it);
+        }
+    }
+    if (listener == nullptr) {
+        return WMError::WM_OK;
+    }
+    auto ret = UnregisterScreenshotListener(listener);
+    if (ret != WMError::WM_OK) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "unregister failed, code=%{public}u, persistentId=%{public}d, ret=%{public}d",
+            code, persistentId, static_cast<int32_t>(ret));
+        std::lock_guard<std::recursive_mutex> lockListener(screenshotListenerMutex_);
+        screenshotUIExtListeners_[persistentId] = listener;
+    }
+    return ret;
 }
 
 WMError WindowSessionImpl::HandleUIExtRegisterKeyboardDidHideListener(uint32_t code, int32_t persistentId,

@@ -11816,6 +11816,7 @@ __attribute__((no_sanitize("cfi"))) void SceneSessionManager::OnSessionStateChan
             break;
         case SessionState::STATE_DISCONNECT:
             ClearWatermarkForSession(sceneSession);
+            ClearSessionCachedRecords(sceneSession);
             break;
         default:
             break;
@@ -15513,6 +15514,21 @@ WSError SceneSessionManager::UpdateSessionAvoidAreaListener(int32_t persistentId
         return WSError::WS_OK;
     };
     return taskScheduler_->PostSyncTask(task, "UpdateSessionAvoidAreaListener:PID:" + std::to_string(persistentId));
+}
+
+void SceneSessionManager::ClearSessionCachedRecords(const sptr<SceneSession>& session)
+{
+    taskScheduler_->PostAsyncTask([this, weakSession = wptr(session), where = __func__]() {
+        sptr<SceneSession> sceneSession = weakSession.promote();
+        if (sceneSession == nullptr) {
+            TLOGNW(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: session is null", where);
+            return;
+        }
+        auto persistentId = sceneSession->GetPersistentId();
+        screenshotListenerSessionSet_.erase(persistentId);
+        screenshotAppEventListenerSessionSet_.erase(persistentId);
+        TLOGND(WmsLogTag::WMS_ATTRIBUTE, "%{public}s: winId=%{public}d", where, persistentId);
+    }, __func__);
 }
 
 WMError SceneSessionManager::UpdateSessionScreenshotListener(int32_t persistentId, bool haveListener)
