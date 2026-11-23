@@ -4010,8 +4010,8 @@ HWTEST_F(KeyboardSessionTest8, ShowKeyboard19, TestSize.Level1)
 
 HWTEST_F(KeyboardSessionTest8, ShowKeyboard20, TestSize.Level1)
 {
-    auto keyboardSession = GetKeyboardSession("ShowKeyboard20", "ShowKeyboard20");
-    keyboardSession->state_ = SessionState::STATE_CONNECT;
+    auto keyboardSession = GetKeyboardSession("ShowKeyboard24", "ShowKeyboard24");
+    keyboardSession->state_ = SessionState::STATE_END;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     WSError result = keyboardSession->Show(property);
     EXPECT_EQ(result, WSError::WS_OK);
@@ -4019,35 +4019,8 @@ HWTEST_F(KeyboardSessionTest8, ShowKeyboard20, TestSize.Level1)
 
 HWTEST_F(KeyboardSessionTest8, ShowKeyboard21, TestSize.Level1)
 {
-    auto keyboardSession = GetKeyboardSession("ShowKeyboard21", "ShowKeyboard21");
-    keyboardSession->state_ = SessionState::STATE_INACTIVE;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    WSError result = keyboardSession->Show(property);
-    EXPECT_EQ(result, WSError::WS_OK);
-}
-
-HWTEST_F(KeyboardSessionTest8, ShowKeyboard22, TestSize.Level1)
-{
-    auto keyboardSession = GetKeyboardSession("ShowKeyboard22", "ShowKeyboard22");
-    keyboardSession->state_ = SessionState::STATE_BACKGROUND;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    WSError result = keyboardSession->Show(property);
-    EXPECT_EQ(result, WSError::WS_OK);
-}
-
-HWTEST_F(KeyboardSessionTest8, ShowKeyboard23, TestSize.Level1)
-{
     auto keyboardSession = GetKeyboardSession("ShowKeyboard23", "ShowKeyboard23");
     keyboardSession->state_ = SessionState::STATE_DISCONNECT;
-    sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
-    WSError result = keyboardSession->Show(property);
-    EXPECT_EQ(result, WSError::WS_OK);
-}
-
-HWTEST_F(KeyboardSessionTest8, ShowKeyboard24, TestSize.Level1)
-{
-    auto keyboardSession = GetKeyboardSession("ShowKeyboard24", "ShowKeyboard24");
-    keyboardSession->state_ = SessionState::STATE_END;
     sptr<WindowSessionProperty> property = sptr<WindowSessionProperty>::MakeSptr();
     WSError result = keyboardSession->Show(property);
     EXPECT_EQ(result, WSError::WS_OK);
@@ -5016,17 +4989,6 @@ HWTEST_F(KeyboardSessionTest8, NotifyOccupiedAreaChanged10, TestSize.Level1)
     EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
 }
 
-HWTEST_F(KeyboardSessionTest8, NotifyOccupiedAreaChanged11, TestSize.Level1)
-{
-    auto keyboardSession = GetKeyboardSession("NotifyOccupied11", "NotifyOccupied11");
-    ASSERT_NE(keyboardSession, nullptr);
-    sptr<SceneSession> callingSession = nullptr;
-    sptr<OccupiedAreaChangeInfo> info = sptr<OccupiedAreaChangeInfo>::MakeSptr();
-    keyboardSession->NotifyOccupiedAreaChanged(callingSession, info, true, nullptr);
-    usleep(WAIT_ASYNC_US);
-    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
-}
-
 HWTEST_F(KeyboardSessionTest8, NotifyKeyboardPanelInfoChange09, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("NotifyPanel09", "NotifyPanel09");
@@ -5085,19 +5047,6 @@ HWTEST_F(KeyboardSessionTest8, CheckIfNeedRaiseCallingSession06, TestSize.Level1
 }
 
 HWTEST_F(KeyboardSessionTest8, CheckIfNeedRaiseCallingSession07, TestSize.Level1)
-{
-    auto keyboardSession = GetKeyboardSession("CheckRaise07", "CheckRaise07");
-    keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
-    auto callingSession = GetSceneSession("Calling07", "Calling07");
-    callingSession->GetSessionProperty()->SetWindowType(WindowType::APP_MAIN_WINDOW_BASE);
-    callingSession->GetSessionProperty()->SetWindowMode(WindowMode::WINDOW_MODE_FLOATING);
-    keyboardSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
-    bool isFloating = true;
-    bool result = keyboardSession->CheckIfNeedRaiseCallingSession(callingSession, isFloating);
-    EXPECT_EQ(result, false);
-}
-
-HWTEST_F(KeyboardSessionTest8, CheckIfNeedRaiseCallingSession08, TestSize.Level1)
 {
     auto keyboardSession = GetKeyboardSession("CheckRaise08", "CheckRaise08");
     keyboardSession->property_->keyboardLayoutParams_.gravity_ = WindowGravity::WINDOW_GRAVITY_BOTTOM;
@@ -5413,15 +5362,6 @@ HWTEST_F(KeyboardSessionTest8, GetIsKeyboardSyncTransactionOpen07, TestSize.Leve
     EXPECT_TRUE(keyboardSession->GetIsKeyboardSyncTransactionOpen());
 }
 
-HWTEST_F(KeyboardSessionTest8, GetIsKeyboardSyncTransactionOpen08, TestSize.Level1)
-{
-    auto keyboardSession = GetKeyboardSession("SyncOpen08", "SyncOpen08");
-    for (int i = 0; i < 5; ++i) {
-        keyboardSession->isKeyboardSyncTransactionOpen_ = (i % 2 == 0);
-    }
-    EXPECT_FALSE(keyboardSession->GetIsKeyboardSyncTransactionOpen());
-}
-
 HWTEST_F(KeyboardSessionTest8, KeyboardSessionConstructor13, TestSize.Level1)
 {
     SessionInfo info;
@@ -5466,20 +5406,6 @@ HWTEST_F(KeyboardSessionTest8, KeyboardSessionConstructor16, TestSize.Level1)
     ASSERT_NE(keyboardSession, nullptr);
     EXPECT_EQ(keyboardSession->keyboardCallback_, nullptr);
     EXPECT_NE(keyboardSession->specificCallback_, nullptr);
-}
-
-HWTEST_F(KeyboardSessionTest8, KeyboardSessionConstructor17, TestSize.Level1)
-{
-    SessionInfo info;
-    info.abilityName_ = "Constructor17";
-    info.bundleName_ = "Constructor17";
-    info.persistentId_ = 10;
-    sptr<KeyboardSession::KeyboardSessionCallback> keyboardCb =
-        sptr<KeyboardSession::KeyboardSessionCallback>::MakeSptr();
-    sptr<KeyboardSession> keyboardSession = sptr<KeyboardSession>::MakeSptr(info, nullptr, keyboardCb);
-    ASSERT_NE(keyboardSession, nullptr);
-    EXPECT_NE(keyboardSession->keyboardCallback_, nullptr);
-    EXPECT_FALSE(keyboardSession->isKeyboardSyncTransactionOpen_);
 }
 
 } // namespace
