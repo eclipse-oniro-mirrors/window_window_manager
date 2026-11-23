@@ -530,7 +530,21 @@ std::shared_ptr<NativeReference> PictureInPictureController::GetPipContentCallba
 
 void PictureInPictureController::NotifyStateChangeInner(PiPState state)
 {
-    NotifyStateChangeInner(env_, state);
+    if (env_ == nullptr) {
+        TLOGE(WmsLogTag::WMS_PIP, "env is nullptr");
+        return;
+    }
+    auto task = [weak = weakRef_, state, env = env_]() {
+        auto controller = weak.promote();
+        if (controller == nullptr) {
+            TLOGE(WmsLogTag::WMS_PIP, "controller is nullptr");
+            return;
+        }
+        controller->NotifyStateChangeInner(env, state);
+    };
+    if (napi_send_event(env_, task, napi_eprio_immediate, "NotifyStateChangeInner") != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::WMS_PIP, "Failed to SendEvent");
+    }
 }
 
 void PictureInPictureController::NotifyStateChangeInner(napi_env env, PiPState state)

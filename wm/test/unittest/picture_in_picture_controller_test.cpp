@@ -28,9 +28,47 @@
 #include "window_session_impl.h"
 #include "wm_common.h"
 #include "xcomponent_controller.h"
+#include "napi/native_node_api.h"
 
 using namespace testing;
 using namespace testing::ext;
+
+namespace {
+// Controls the behaviour of the napi_send_event test double below.
+napi_status g_napiSendEventRet = napi_status::napi_ok;
+int32_t g_napiSendEventCallCount = 0;
+
+// Optional mock hook so tests can assert "napi_send_event is NOT called" with a
+// real EXPECT_CALL instead of comparing a counter against a value just assigned.
+class MockNapiSendEvent {
+public:
+    MOCK_METHOD0(OnSendEvent, void());
+};
+MockNapiSendEvent* g_napiSendEventMock = nullptr;
+} // namespace
+
+// Test double for napi_send_event (provided by libace_napi). It allows both the
+// success and the failure branch of
+// PictureInPictureController::NotifyStateChangeInner(PiPState) to be exercised
+// deterministically in the unit test environment, where no real NativeEngine is
+// available. The symbol is resolved by the test executable and takes precedence
+// over the shared library definition.
+napi_status napi_send_event(napi_env env, const std::function<void()>& cb,
+    napi_event_priority priority, const char* name, napi_event_barrier_option option)
+{
+    (void)env;
+    (void)priority;
+    (void)name;
+    (void)option;
+    ++g_napiSendEventCallCount;
+    if (g_napiSendEventMock != nullptr) {
+        g_napiSendEventMock->OnSendEvent();
+    }
+    if (g_napiSendEventRet == napi_status::napi_ok && cb != nullptr) {
+        cb();
+    }
+    return g_napiSendEventRet;
+}
 
 namespace OHOS {
 namespace Rosen {
@@ -64,6 +102,11 @@ public:
         napi_env env) : PictureInPictureController(pipOption, mainWindow, mainWindowId, env) {}
     ~MockPictureInPictureController() {};
     MOCK_METHOD1(GetNavigationController, NavigationController*(const std::string& navId));
+
+    // Expose the protected members/methods required by the NotifyStateChangeInner tests
+    // so that they can be exercised from a non-derived test fixture.
+    using PictureInPictureController::NotifyStateChangeInner;
+    wptr<PictureInPictureController>& GetWeakRef() { return weakRef_; }
 };
 
 class MockNavigationController : public NavigationController {
@@ -90,8 +133,22 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+
+    // Rebuilds pipControl_ with the given napi_env so that the env-dependent
+    // branches of NotifyStateChangeInner(PiPState) can be exercised without
+    // duplicating the MockWindow/PipOption/controller construction in every case.
+    // SetUp() already provides a controller with env == nullptr for the default case.
+    sptr<MockPictureInPictureController> CreatePipControllerWithEnv(napi_env env)
+    {
+        sptr<MockWindow> mw = sptr<MockWindow>::MakeSptr();
+        sptr<PipOption> option = sptr<PipOption>::MakeSptr();
+        pipControl_ = sptr<MockPictureInPictureController>::MakeSptr(option, mw, TEST_MAIN_WINDOW_ID, env);
+        return pipControl_;
+    }
+
 private:
     static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
+    static constexpr uint32_t TEST_MAIN_WINDOW_ID = 100;
 
     sptr<MockPictureInPictureController> pipControl_ {nullptr};
     std::shared_ptr<MockNavigationController> naviControl_ {nullptr};
@@ -118,6 +175,9 @@ void PictureInPictureControllerTest::SetUp()
 
 void PictureInPictureControllerTest::TearDown()
 {
+    g_napiSendEventRet = napi_status::napi_ok;
+    g_napiSendEventCallCount = 0;
+    g_napiSendEventMock = nullptr;
     pipControl_ = nullptr;
     naviControl_ = nullptr;
 }
@@ -483,8 +543,6 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture05, TestSize.Level
     auto mw = sptr<MockWindow>::MakeSptr();
     ASSERT_NE(nullptr, mw);
     auto option = sptr<PipOption>::MakeSptr();
-
-
     ASSERT_NE(nullptr, option);
     auto contextPtr = std::make_shared<AbilityRuntime::AbilityContextImpl>();
     option->SetContext(&contextPtr);
@@ -493,17 +551,17 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture05, TestSize.Level
     existingControl->mainWindowId_ = 100;
     // keep existingControl->curState_ as STATE_UNDEFINED so that preState != STATE_STARTED
     PictureInPictureManager::PutPipControllerInfo(700, existingControl);
- 
+
     auto pipControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
     pipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
     pipControl->mainWindowId_ = 100; // same mainWindowId, GetSameGroupWindow returns non-null window
     // reachLimit=true, window!=nullptr but preState==STATE_UNDEFINED, reuse branch skipped
     // falls through to StartPictureInPictureInner, create fails
     EXPECT_EQ(WMError::WM_ERROR_PIP_CREATE_FAILED, pipControl->StartPictureInPicture(startType).errCode);
- 
+
     PictureInPictureManager::RemovePipControllerInfo(700);
 }
- 
+
 /**
  * @tc.name: StartPictureInPicture06
  * @tc.desc: StartPictureInPicture with reachLimit=true, reuse same group window but
@@ -524,7 +582,7 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture06, TestSize.Level
     existingControl->mainWindowId_ = 100;
     existingControl->curState_ = PiPWindowState::STATE_STARTED;
     PictureInPictureManager::PutPipControllerInfo(800, existingControl);
- 
+
     auto pipControl = sptr<PictureInPictureController>::MakeSptr(option, mw, 100, nullptr);
     pipControl->curState_ = PiPWindowState::STATE_UNDEFINED;
     pipControl->mainWindowId_ = 100; // same mainWindowId, GetSameGroupWindow returns non-null window
@@ -533,7 +591,7 @@ HWTEST_F(PictureInPictureControllerTest, StartPictureInPicture06, TestSize.Level
     EXPECT_CALL(*(mw), Show(_, _, _, _, _)).Times(1).WillOnce(Return(WMError::WM_ERROR_PIP_INTERNAL_ERROR));
     EXPECT_EQ(WMError::WM_ERROR_PIP_INTERNAL_ERROR, pipControl->StartPictureInPicture(startType).errCode);
     EXPECT_EQ(PiPWindowState::STATE_UNDEFINED, pipControl->curState_);
- 
+
     PictureInPictureManager::RemovePipControllerInfo(800);
     // reuse path calls PutPipControllerInfo(window_->GetWindowId(), this), and MockWindow::GetWindowId()
     // returns INVALID_WINDOW_ID(0), so clean up the leaked entry holding pipControl (and mainWindow_ mock)
@@ -1729,6 +1787,88 @@ HWTEST_F(PictureInPictureControllerTest, GetStateChangeReason, TestSize.Level1)
  
     pipControl->SetStateChangeReason(PiPStateChangeReason::REQUEST_DELETE);
     ASSERT_EQ(PiPStateChangeReason::REQUEST_DELETE, pipControl->GetStateChangeReason());
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner01
+ * @tc.desc: env_ is nullptr, the function returns before sending any event
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, NotifyStateChangeInner01, TestSize.Level1)
+{
+    // SetUp() already builds pipControl_ with env == nullptr, which is exactly the
+    // configuration required by this case, so it is reused directly.
+    ASSERT_NE(nullptr, pipControl_);
+
+    // Use a mock expectation instead of "set counter to 0, then expect 0", which
+    // would be a tautological assertion.
+    MockNapiSendEvent sendEventMock;
+    g_napiSendEventMock = &sendEventMock;
+    EXPECT_CALL(sendEventMock, OnSendEvent()).Times(0);
+    pipControl_->NotifyStateChangeInner(PiPState::ABOUT_TO_START);
+    g_napiSendEventMock = nullptr;
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner02
+ * @tc.desc: env_ is valid but napi_send_event fails, only the error log branch is taken
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, NotifyStateChangeInner02, TestSize.Level1)
+{
+    int num = 0;
+    napi_env env = reinterpret_cast<napi_env>(&num);
+    auto pipControl = CreatePipControllerWithEnv(env);
+    ASSERT_NE(nullptr, pipControl);
+
+    g_napiSendEventRet = napi_status::napi_closing;
+    g_napiSendEventCallCount = 0;
+    pipControl->NotifyStateChangeInner(PiPState::STARTED);
+    EXPECT_EQ(1, g_napiSendEventCallCount) << "event should be dispatched even if sending fails";
+    g_napiSendEventRet = napi_status::napi_ok;
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner03
+ * @tc.desc: napi_send_event succeeds but weakRef_ is null, the posted task exits at controller null
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, NotifyStateChangeInner03, TestSize.Level1)
+{
+    int num = 0;
+    napi_env env = reinterpret_cast<napi_env>(&num);
+    auto pipControl = CreatePipControllerWithEnv(env);
+    ASSERT_NE(nullptr, pipControl);
+
+    pipControl->GetWeakRef() = nullptr;
+    g_napiSendEventRet = napi_status::napi_ok;
+    g_napiSendEventCallCount = 0;
+    pipControl->NotifyStateChangeInner(PiPState::STOPPED);
+    EXPECT_EQ(1, g_napiSendEventCallCount) << "event should be dispatched and the task should exit at null controller";
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner04
+ * @tc.desc: napi_send_event succeeds and weakRef_ is valid, the task invokes the inner
+ *           overload which returns early because no stateChange callback is registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerTest, NotifyStateChangeInner04, TestSize.Level1)
+{
+    int num = 0;
+    napi_env env = reinterpret_cast<napi_env>(&num);
+    auto pipControl = CreatePipControllerWithEnv(env);
+    ASSERT_NE(nullptr, pipControl);
+
+    // weakRef_ is initialised to the controller by the constructor.
+    ASSERT_NE(nullptr, pipControl->GetWeakRef().promote());
+    EXPECT_EQ(nullptr, pipControl->GetPipContentCallbackRef("stateChange"));
+    g_napiSendEventRet = napi_status::napi_ok;
+    g_napiSendEventCallCount = 0;
+    pipControl->NotifyStateChangeInner(PiPState::STARTED);
+    EXPECT_EQ(1, g_napiSendEventCallCount) << "event should be dispatched and the task should run";
+    EXPECT_EQ(nullptr, pipControl->GetPipContentCallbackRef("stateChange"))
+        << "no stateChange callback should be registered so the inner overload returns early";
 }
 } // namespace
 } // namespace Rosen
