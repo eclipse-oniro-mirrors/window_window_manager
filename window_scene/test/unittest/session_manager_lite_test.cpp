@@ -307,6 +307,40 @@ HWTEST_F(SessionManagerLiteTest, OnWMSConnectionChanged2, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SessionManagerServiceLiteRecoverListener
+ * @tc.desc: OnWMSConnectionChanged remote object branch handling
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, SMSLiteRecoverListenerOnWMSConnectionChangedBranches, TestSize.Level1)
+{
+    auto listener = sptr<SessionManagerServiceLiteRecoverListener>::MakeSptr(INVALID_USER_ID);
+    ASSERT_NE(nullptr, listener);
+    sptr<SessionManagerLite> smGlobal = &SessionManagerLite::GetInstance(INVALID_USER_ID);
+    ASSERT_NE(nullptr, smGlobal);
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
+    smGlobal->currentServer_ = { 100, 0, 12345 };
+    smGlobal->isWMSConnected_ = true;
+
+    // branch 1: sessionManagerService 为 nullptr，不构造 proxy，用户切换后 proxy 为空
+    listener->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, nullptr);
+    EXPECT_EQ(nullptr, smGlobal->sessionManagerServiceProxy_);
+
+    // branch 2: 非 proxy 对象（IsProxyObject()=false），不构造 proxy
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
+    auto nonProxyRemote = sptr<RemoteObjectMocker>::MakeSptr();
+    EXPECT_CALL(*nonProxyRemote, IsProxyObject()).WillRepeatedly(Return(false));
+    listener->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, nonProxyRemote);
+    EXPECT_EQ(nullptr, smGlobal->sessionManagerServiceProxy_);
+
+    // branch 3: proxy 对象（IsProxyObject()=true），构造 SessionManagerServiceProxy 传给下游
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
+    auto proxyRemote = sptr<IRemoteObjectMocker>::MakeSptr();
+    listener->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, proxyRemote);
+    EXPECT_NE(nullptr, smGlobal->sessionManagerServiceProxy_);
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
+}
+
+/**
  * @tc.name: OnUserSwitch
  * @tc.desc: normal function
  * @tc.type: FUNC
