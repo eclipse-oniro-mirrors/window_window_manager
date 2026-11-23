@@ -3243,8 +3243,6 @@ void WindowExtensionSessionImpl::NotifyHostOnParentChanged(int32_t oldParentId)
         want.SetParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER,
             !hostRectChangeInGlobalDisplayListenerList_.empty() || !rectChangeInGlobalDisplayUIExtListenerIds_.empty());
     }
-
-    
     {
         std::lock_guard<std::mutex> lockListener(touchOutsideListenerMutex_);
         want.SetParam(Extension::HAS_TOUCH_OUTSIDE_LISTENER,

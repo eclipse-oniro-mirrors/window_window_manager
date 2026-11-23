@@ -19185,9 +19185,8 @@ void SceneSessionManager::TransferExtensionParentSession(int32_t persistentId, U
         newParentSession->AddExtensionTokenInfo(tokenInfoOpt.value());
     }
     if (surfaceNodeId != 0) {
-        newParentSession->AddExtensionTokenInfo(tokenInfoOpt.value());
+        newParentSession->AddUIExtSurfaceNodeId(surfaceNodeId, persistentId);
     }
-    newParentSession->AddUIExtSurfaceNodeId(surfaceNodeId, persistentId);
     if (usage == UIExtensionUsage::MODAL && newParentSession->GetCallingPid() != GetPid()) {
         ExtensionWindowEventInfo extensionInfo {
             .persistentId = persistentId,
