@@ -402,7 +402,7 @@ public:
     void TriggerDisplayModeUpdate(FoldDisplayMode targetDisplayMode);
     void CallRsSetScreenPowerStatusSync(ScreenId screenId, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
-    void CallRsSetScreenPowerStatusSyncWithFallback(ScreenId screenId, ScreenPowerStatus status,
+    void CallRsSetScreenPowerStatusSyncWithFallback(std::vector<ScreenId>& screenIds, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
     void CallRsSetScreenPowerStatusForConcurrent(ScreenId screenId, ScreenPowerStatus status);
     void CallRsSetScreenPowerStatusSyncForFold(ScreenPowerStatus status, bool isApAod = false);
