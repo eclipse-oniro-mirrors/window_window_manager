@@ -7305,10 +7305,10 @@ bool ScreenSessionManager::isNeedSkipPowerOn(ScreenId screenId)
     return false;
 }
 
-void ScreenSessionManager::CallRsSetScreenPowerStatusSyncWithFallback(std::vector& screenIds,
+void ScreenSessionManager::CallRsSetScreenPowerStatusSyncWithFallback(std::vector<ScreenId>& screenIds,
 ScreenPowerStatus status, PowerStateChangeReason reason, bool isApAod)
 {
-    std::vector rsScreenIds;
+    std::vector<ScreenId> rsScreenIds;
     rsScreenIds.reserve(screenIds.size());
     for (auto screenId : screenIds) {
         TLOGNFI(WmsLogTag::DMS, "[UL_POWER] %{public}s, screen id is %{public}d",
@@ -7478,7 +7478,7 @@ void ScreenSessionManager::CallRsSetScreenPowerStatusSync(ScreenId screenId, Scr
     PostProcessScreenPowerStatus(screenId, status);
 }
 
-void ScreenSessionManager::PostScreenPowerEventSync(std::vector& screenIds,
+void ScreenSessionManager::PostScreenPowerEventSync(std::vector<ScreenId>& screenIds,
     ScreenPowerStatus status, PowerStateChangeReason reason, bool isApAod)
 {
     screenPowerTaskScheduler_->PostVoidSyncTask(
