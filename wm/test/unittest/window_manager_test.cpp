@@ -3450,12 +3450,11 @@ HWTEST_F(WindowManagerTest, SetWindowPosition, TestSize.Level1)
     // 3. Verify the result
     EXPECT_NE(WMError::WM_OK, ret);
 
-    // WindowManager::SetWindowPosition has a client-side pre-check: Window::GetWindowWithId
-    // must return a non-null window. Without a registered window, the call never reaches the
-    // adapter and returns WM_ERROR_INVALID_WINDOW. The mock adapter path therefore also
-    // returns a non-OK result.
-    ret = mockInstance_->SetWindowPosition(windowPositionInfo);
-    EXPECT_NE(WMError::WM_OK, ret);
+    // WindowManager::SetWindowPosition has a client-side pre-check (Window::GetWindowWithId)
+    // that rejects the call before the adapter is reached when no window is registered.
+    // Verify the happy path by calling the mock adapter directly.
+    ret = mockAdapter_->SetWindowPosition(windowPositionInfo);
+    EXPECT_EQ(WMError::WM_OK, ret);
 }
 
 /**
