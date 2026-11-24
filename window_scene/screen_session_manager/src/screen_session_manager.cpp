@@ -7527,22 +7527,8 @@ PowerStateChangeReason reason, bool isApAod)
 void ScreenSessionManager::PostProcessScreenPowerStatus(ScreenId screenId, ScreenPowerStatus status)
 {
     #ifdef WM_MULTI_SCREEN_ENABLE
-    if (!HasInternalScreen()) {
-        if (status == ScreenPowerStatus::POWER_STATUS_ON && !IsOnBootAnimation()) {
-            RecoverScreenVpr(screenId);
-            Orientation orientation = PreRecoverScreenOrientation(screenId);
-            RecoverDesktopScreenResolutionByCombination(screenId);
-            RecoverScreenOrientation(screenId, orientation);
-            RecoverMirrorScreenPropertyForDesktop(screenId);
-            RecoverMultiScreenRelativePositionForDesktop(screenId);
-        }
-        return;
-    }
     if (g_isPcDevice && status == ScreenPowerStatus::POWER_STATUS_ON && IsDefaultMirrorMode(screenId)) {
-        if (SUPPORT_ROTATION_SETTING) {
-            Orientation orientation = PreRecoverScreenOrientation(screenId);
-            RecoverScreenOrientation(screenId, orientation);
-        }
+        TLOGNFI(WmsLogTag::DMS, "set screen active mode,rsScreenId:%{public}" PRIu64, screenId);
         if (RecoverScreenActiveMode(screenId)) {
             RecoverMultiScreenRelativePosition(screenId);
         }
