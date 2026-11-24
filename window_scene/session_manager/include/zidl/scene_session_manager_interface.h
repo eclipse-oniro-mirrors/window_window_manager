@@ -189,6 +189,8 @@ public:
         TRANS_ID_IS_HOOK_EXTENSION_WINDOW,
         TRANS_ID_GET_ALL_GROUP_INFO,
         TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
+        TRANS_ID_MOVE_TARGET_WINDOW,
+        TRANS_ID_RESIZE_WINDOW,
     };
 
     virtual WSError SetSessionLabel(const sptr<IRemoteObject>& token, const std::string& label) = 0;
@@ -544,6 +546,15 @@ public:
 
     virtual WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) = 0;
+
+    virtual WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+    {
+        return WSErrorResult{WSError::WS_ERROR_INVALID_CALLING, "Not implemented"};
+    }
+    virtual WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+    {
+        return WSErrorResult{WSError::WS_ERROR_INVALID_CALLING, "Not implemented"};
+    }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_INTERFACE_H
