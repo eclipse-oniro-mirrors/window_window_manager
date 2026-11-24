@@ -23,6 +23,7 @@
 #include "mock_session_manager_interface_stub.h"
 #include "scene_session_manager_interface.h"
 #include "scene_session_manager_lite_interface.h"
+#include "wm_animation_common.h"
 #include "wm_single_instance.h"
 #include "zidl/session_manager_service_recover_interface.h"
 
