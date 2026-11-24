@@ -247,6 +247,7 @@ struct WindowCreateParams : public Parcelable {
      */
     bool isWindowLimitsForcible = false;
     bool minimizeOnStart = false;
+    std::shared_ptr<int32_t> positionZ = nullptr;
 
     bool Marshalling(Parcel& parcel) const override
     {
@@ -287,6 +288,14 @@ struct WindowCreateParams : public Parcelable {
             return false;
         }
         if (hasExcludeFromRecent && !parcel.WriteBool(*excludeFromRecent)) {
+            return false;
+        }
+
+        bool hasPositionZ = (positionZ != nullptr);
+        if (!parcel.WriteBool(hasPositionZ)) {
+            return false;
+        }
+        if (hasPositionZ && !parcel.WriteInt32(*positionZ)) {
             return false;
         }
         return true;
@@ -330,6 +339,17 @@ struct WindowCreateParams : public Parcelable {
         }
         if (!readOptionalBool(windowCreateParams->excludeFromRecent)) {
             return nullptr;
+        }
+        bool hasPositionZ = false;
+        if (!parcel.ReadBool(hasPositionZ)) {
+            return nullptr;
+        }
+        if (hasPositionZ) {
+            int32_t positionZValue = 0;
+            if (!parcel.ReadInt32(positionZValue)) {
+                return nullptr;
+            }
+            windowCreateParams->positionZ = std::make_shared<int32_t>(positionZValue);
         }
         return windowCreateParams.release();
     }

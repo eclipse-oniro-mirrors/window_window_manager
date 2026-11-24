@@ -557,6 +557,9 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
         }
         // Restore the one-shot raiseTop state from showAbility on the normal show path.
         session->SetRaiseTopOnShow(true);
+        if (!isAlreadyShown) {
+            session->sessionInfo_.positionZ = nullptr;
+        }        
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
             sessionProperty->SetWindowMode(property->GetWindowMode());
@@ -3232,11 +3235,20 @@ WSError SceneSession::RaiseAppMainWindowToTop()
         }
         // Consume the one-shot suppression from showAbility with raiseTop=false.
         bool raiseOnShow = session->IsRaiseTopOnShow();
+        // positionZ BOTTOM is a one-shot reorder: keep the scene at bottom on the first
+        // raise request after start, then clear it so later raises behave normally.
+        bool isStartToBottom = session->sessionInfo_.positionZ != nullptr &&
+            *session->sessionInfo_.positionZ == static_cast<int32_t>(WindowPosition::BOTTOM);
+        if (isStartToBottom) {
+            session->sessionInfo_.positionZ = nullptr;
+            TLOGI(WmsLogTag::WMS_LIFE, "%{public}s start to bottom, skip raise, id: %{public}d",
+                where, session->GetPersistentId());
+        }
         session->SetRaiseTopOnShow(true);
         if (session->IsFocusedOnShow()) {
             FocusChangeReason reason = FocusChangeReason::MOVE_UP;
             session->NotifyRequestFocusStatusNotifyManager(true, true, reason);
-            if (raiseOnShow) {
+            if (raiseOnShow && !isStartToBottom) {
                 session->NotifyClick(true, false);
             }
         } else {
@@ -6939,6 +6951,29 @@ static void SetAtomicServiceInfo(SessionInfo& sessionInfo)
 #endif
 }
 
+static void AdjustWindowCreateParamsForDeviceType(SessionInfo& info, const sptr<SceneSession>& session)
+{
+    if (!session->IsPcWindow()) {
+        if (info.windowCreateParams) {
+            info.windowCreateParams->minimizeOnStart = false;
+            info.windowCreateParams->excludeFromDock = nullptr;
+            info.windowCreateParams->excludeFromRecent = nullptr;
+            info.windowCreateParams->positionZ = nullptr;
+        }
+        return;
+    }
+    if (info.windowCreateParams != nullptr && info.windowCreateParams->positionZ != nullptr) {
+        if (info.positionZ == nullptr) {
+            info.positionZ = std::make_shared<int32_t>(*(info.windowCreateParams->positionZ));
+        } else {
+            *(info.positionZ) = *(info.windowCreateParams->positionZ);
+        }
+        TLOGI(WmsLogTag::WMS_LIFE, "start with positionZ: %{public}d", *(info.positionZ));
+    } else {
+        TLOGD(WmsLogTag::WMS_LIFE, "positionZ not specified, sceneInfo.positionZ stays nullptr");
+    }
+}
+
 static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
     const sptr<SceneSession>& session, bool isFoundationCall)
 {
@@ -7020,13 +7055,7 @@ static SessionInfo MakeSessionInfoDuringPendingActivation(const sptr<AAFwk::Sess
         info.windowCreateParams->needAnimation = std::make_shared<bool>(withAnimation);
     }
 
-    if (!session->IsPcWindow()) {
-        if (info.windowCreateParams) {
-            info.windowCreateParams->minimizeOnStart = false;
-            info.windowCreateParams->excludeFromDock = nullptr;
-            info.windowCreateParams->excludeFromRecent = nullptr;
-        }
-    }
+    AdjustWindowCreateParamsForDeviceType(info, session);
 
     if (abilitySessionInfo->want.HasParameter(WANT_PARAM_GAME_PRELAUNCH)) {
         bool isGamePreLaunch = abilitySessionInfo->want.GetBoolParam(WANT_PARAM_GAME_PRELAUNCH, false);

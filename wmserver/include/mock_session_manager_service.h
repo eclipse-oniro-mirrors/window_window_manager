@@ -54,6 +54,7 @@ public:
     void NotifyWMSConnected(int32_t userId, DisplayId screenId, bool isColdStart);
     ErrCode GetSceneSessionManagerLiteByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManagerLite) override;
     ErrCode GetSceneSessionManagerByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManager) override;
+    ErrCode VerifyParamsForStartAbilityToBottom(const sptr<WindowCreateParams>& windowCreateParams);
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteBySA(int32_t userId);
     sptr<ISceneSessionManager> GetSceneSessionManagerBySA(int32_t userId);
     ErrCode GetActiveUserIds(std::vector<int32_t>& activeUserIds) override;

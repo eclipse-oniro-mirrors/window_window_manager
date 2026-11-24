@@ -2153,6 +2153,11 @@ napi_value CreateJsWindowCreateParamsObj(napi_env env,
         napi_set_named_property(env, objValue, "excludeFromRecent",
             CreateJsValue(env, *(windowCreateParams->excludeFromRecent)));
     }
+
+    if (windowCreateParams->positionZ) {
+        napi_set_named_property(env, objValue, "positionZ",
+            CreateJsValue(env, *(windowCreateParams->positionZ)));
+    }
     return objValue;
 }
 

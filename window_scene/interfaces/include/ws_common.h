@@ -641,6 +641,8 @@ struct SessionInfo {
 
     // show params delivered by showAbility, valid for the show triggered by it
     std::shared_ptr<WindowShowParams> showParams = nullptr;
+    
+    std::shared_ptr<int32_t> positionZ = nullptr;
 };
 
 struct RequestTaskInfo {
