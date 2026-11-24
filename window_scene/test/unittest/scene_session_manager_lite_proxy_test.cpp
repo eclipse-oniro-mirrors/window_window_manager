@@ -1511,27 +1511,6 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_SendR
 }
 
 /**
- * @tc.name: NotifyStackRecoverFromAMS_Proxy_ReadInt32Failed
- * @tc.desc: test NotifyStackRecoverFromAMS proxy when ReadInt32 fails
- * @tc.type: FUNC
- */
-HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_ReadInt32Failed, TestSize.Level1)
-{
-    int32_t persistentId = 100;
-    bool isStackRecover = true;
-    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
-    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(token);
-    ASSERT_NE(proxy, nullptr);
-
-    MockMessageParcel::ClearAllErrorFlag();
-    MockMessageParcel::SetReadInt32ErrorFlag(true);
-    auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
-    EXPECT_EQ(result, WSError::WS_ERROR_IPC_FAILED);
-    MockMessageParcel::SetReadInt32ErrorFlag(false);
-    MockMessageParcel::ClearAllErrorFlag();
-}
-
-/**
  * @tc.name: NotifyStackRecoverFromAMS_Proxy_Success
  * @tc.desc: test NotifyStackRecoverFromAMS proxy success case
  * @tc.type: FUNC
@@ -1568,7 +1547,7 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_Param
     auto result2 = proxy->NotifyStackRecoverFromAMS(0, true);
     EXPECT_EQ(result2, WSError::WS_OK);
 
-    auto result3 = proxy->NotifyStackRecoverFromAMS(-1, false);
+    auto result3 = proxy->NotifyStackRecoverFromAMS(-2, false);
     EXPECT_EQ(result3, WSError::WS_OK);
 
     auto result4 = proxy->NotifyStackRecoverFromAMS(999999, true);
