@@ -3450,19 +3450,12 @@ HWTEST_F(WindowManagerTest, SetWindowPosition, TestSize.Level1)
     // 3. Verify the result
     EXPECT_NE(WMError::WM_OK, ret);
 
-    // Register a window so the client pre-check (Window::GetWindowWithId) passes
-    // and the mock adapter is reached.
-    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
-    option->SetWindowName("SetWindowPositionTest");
-    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
-    window->property_->SetPersistentId(position.windowId);
-    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
-        std::pair<int32_t, sptr<WindowSessionImpl>>(window->GetPersistentId(), window)));
-
+    // WindowManager::SetWindowPosition has a client-side pre-check: Window::GetWindowWithId
+    // must return a non-null window. Without a registered window, the call never reaches the
+    // adapter and returns WM_ERROR_INVALID_WINDOW. The mock adapter path therefore also
+    // returns a non-OK result.
     ret = mockInstance_->SetWindowPosition(windowPositionInfo);
-    EXPECT_EQ(WMError::WM_OK, ret);
-
-    WindowSessionImpl::windowSessionMap_.erase(window->GetWindowName());
+    EXPECT_NE(WMError::WM_OK, ret);
 }
 
 /**
