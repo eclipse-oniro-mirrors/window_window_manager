@@ -2572,7 +2572,7 @@ void ScreenSessionManager::SetCastPrivacyFromSettingData()
             continue;
         }
         bool isSuc = SetCastPrivacyToRS(screenSession, enable);
-        SetScreenPrivacyWindowTagSwitch(sessionIt.first, { "SCB_KEYBOARD_FLOATING" }, enable);
+        SetScreenPrivacyWindowTagSwitch(sessionIt.first, { "SCB_KEYBOARD_FLOATING", "SCB_FLOATING_WINDOW" }, enable);
         TLOGNFI(WmsLogTag::DMS, "set cast privacy done, isSuc:%{public}d, enable:%{public}d, screenId:%{public}" PRIu64"",
             isSuc, enable, sessionIt.first);
     }
