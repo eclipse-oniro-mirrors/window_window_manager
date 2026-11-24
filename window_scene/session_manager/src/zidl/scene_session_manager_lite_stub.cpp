@@ -2200,20 +2200,20 @@ int SceneSessionManagerLiteStub::HandleNotifyStackRecoverFromAMS(MessageParcel& 
 
 int SceneSessionManagerLiteStub::HandleMoveTargetWindow(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
     int32_t windowId;
     if (!data.ReadInt32(windowId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read windowId failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read windowId failed");
         return ERR_INVALID_DATA;
     }
     int32_t posX;
     if (!data.ReadInt32(posX)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read posX failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read posX failed");
         return ERR_INVALID_DATA;
     }
     int32_t posY;
     if (!data.ReadInt32(posY)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read posY failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read posY failed");
         return ERR_INVALID_DATA;
     }
     WSErrorResult result = MoveTargetWindow(windowId, posX, posY);
@@ -2224,20 +2224,20 @@ int SceneSessionManagerLiteStub::HandleMoveTargetWindow(MessageParcel& data, Mes
 
 int SceneSessionManagerLiteStub::HandleResizeWindow(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGD(WmsLogTag::WMS_LIFE, "in");
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
     int32_t windowId;
     if (!data.ReadInt32(windowId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read windowId failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read windowId failed");
         return ERR_INVALID_DATA;
     }
     int32_t width;
     if (!data.ReadInt32(width)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read width failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read width failed");
         return ERR_INVALID_DATA;
     }
     int32_t height;
     if (!data.ReadInt32(height)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "read height failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read height failed");
         return ERR_INVALID_DATA;
     }
     WSErrorResult result = ResizeWindow(windowId, width, height);

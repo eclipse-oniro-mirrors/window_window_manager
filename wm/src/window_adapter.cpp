@@ -1938,12 +1938,12 @@ WMError WindowAdapter::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t 
 
     auto ssmProxy = iface_cast<ISceneSessionManager>(wmsProxy->AsObject());
     if (ssmProxy == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "scene session manager proxy is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "scene session manager proxy is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     WSErrorResult result = ssmProxy->MoveTargetWindow(windowId, posX, posY);
     WMError ret = static_cast<WMError>(result.errCode);
-    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, posX: %{public}d, posY: %{public}d, ret: %{public}d",
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, posX: %{public}d, posY: %{public}d, ret: %{public}d",
         windowId, posX, posY, static_cast<int32_t>(ret));
     return ret;
 }
@@ -1959,12 +1959,12 @@ WMError WindowAdapter::ResizeWindow(int32_t windowId, int32_t width, int32_t hei
 
     auto ssmProxy = iface_cast<ISceneSessionManager>(wmsProxy->AsObject());
     if (ssmProxy == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "scene session manager proxy is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "scene session manager proxy is null");
         return WMError::WM_ERROR_IPC_FAILED;
     }
     WSErrorResult result = ssmProxy->ResizeWindow(windowId, width, height);
     WMError ret = static_cast<WMError>(result.errCode);
-    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, width: %{public}d, height: %{public}d, ret: %{public}d",
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, width: %{public}d, height: %{public}d, ret: %{public}d",
         windowId, width, height, static_cast<int32_t>(ret));
     return ret;
 }

@@ -2720,7 +2720,7 @@ napi_value JsWindowManager::OnSetWindowPosition(napi_env env, napi_callback_info
 napi_value JsWindowManager::OnMoveTargetWindow(napi_env env, napi_callback_info info)
 {
     if (!Permission::IsSystemCalling()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "move target window permission denied!");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "move target window permission denied!");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
             "[window][moveTargetWindow]msg: not system application");
     }
@@ -2729,25 +2729,25 @@ napi_value JsWindowManager::OnMoveTargetWindow(napi_env env, napi_callback_info 
     napi_value argv[ARGC_THREE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != ARGC_THREE) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
     }
 
     int32_t windowId = 0;
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], windowId) || windowId <= 0) {
-        TLOGE(WmsLogTag::WMS_LIFE, "failed to convert parameter to windowId");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to windowId");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][moveTargetWindow]msg: failed to convert parameter to windowId");
     }
     int32_t posX = 0;
     if (!ConvertFromJsValue(env, argv[INDEX_ONE], posX)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "failed to convert parameter to x");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to x");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][moveTargetWindow]msg: failed to convert parameter to x");
     }
     int32_t posY = 0;
     if (!ConvertFromJsValue(env, argv[INDEX_TWO], posY)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "failed to convert parameter to y");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to y");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][moveTargetWindow]msg: failed to convert parameter to y");
     }
@@ -2774,7 +2774,7 @@ napi_value JsWindowManager::OnMoveTargetWindow(napi_env env, napi_callback_info 
 
 napi_value JsWindowManager::MoveTargetWindow(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[JsWindowManager][moveTargetWindow] is called");
+    TLOGI(WmsLogTag::WMS_LAYOUT, "[JsWindowManager][moveTargetWindow] is called");
     JsWindowManager* me = CheckParamsAndGetThis<JsWindowManager>(env, info);
     return (me != nullptr) ? me->OnMoveTargetWindow(env, info) : nullptr;
 }
@@ -2786,31 +2786,31 @@ bool JsWindowManager::ParseResizeWindowParams(napi_env env, napi_callback_info i
     napi_value argv[ARGC_THREE] = {nullptr};
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != ARGC_THREE) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Argc is invalid: %{public}zu", argc);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
         NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
         return false;
     }
 
     if (!ConvertFromJsValue(env, argv[INDEX_ZERO], windowId) || windowId <= 0) {
-        TLOGE(WmsLogTag::WMS_LIFE, "failed to convert parameter to windowId");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to windowId");
         NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][resizeWindow]msg: failed to convert parameter to windowId");
         return false;
     }
     if (!ConvertFromJsValue(env, argv[INDEX_ONE], width)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "failed to convert parameter to width");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to width");
         NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][resizeWindow]msg: failed to convert parameter to width");
         return false;
     }
     if (!ConvertFromJsValue(env, argv[INDEX_TWO], height)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "failed to convert parameter to height");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to height");
         NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][resizeWindow]msg: failed to convert parameter to height");
         return false;
     }
     if (width <= 0 || height <= 0) {
-        TLOGE(WmsLogTag::WMS_LIFE, "invalid size, width: %{public}d, height: %{public}d", width, height);
+        TLOGE(WmsLogTag::WMS_LAYOUT, "invalid size, width: %{public}d, height: %{public}d", width, height);
         NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][resizeWindow]msg: width and height must be positive integers");
         return false;
@@ -2821,7 +2821,7 @@ bool JsWindowManager::ParseResizeWindowParams(napi_env env, napi_callback_info i
 napi_value JsWindowManager::OnResizeWindow(napi_env env, napi_callback_info info)
 {
     if (!Permission::IsSystemCalling()) {
-        TLOGE(WmsLogTag::WMS_LIFE, "resize target window permission denied!");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "resize target window permission denied!");
         return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
             "[window][resizeWindow]msg: not system application");
     }
@@ -2855,7 +2855,7 @@ napi_value JsWindowManager::OnResizeWindow(napi_env env, napi_callback_info info
 
 napi_value JsWindowManager::ResizeWindow(napi_env env, napi_callback_info info)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "[JsWindowManager][resizeWindow] is called");
+    TLOGI(WmsLogTag::WMS_LAYOUT, "[JsWindowManager][resizeWindow] is called");
     JsWindowManager* me = CheckParamsAndGetThis<JsWindowManager>(env, info);
     return (me != nullptr) ? me->OnResizeWindow(env, info) : nullptr;
 }

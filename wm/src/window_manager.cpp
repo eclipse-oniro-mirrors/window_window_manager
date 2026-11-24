@@ -3427,11 +3427,11 @@ WMError WindowManager::UpdateOutline(const sptr<IRemoteObject>& remoteObject, co
 
 WMError WindowManager::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, posX: %{public}d, posY: %{public}d",
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, posX: %{public}d, posY: %{public}d",
         windowId, posX, posY);
     WMError ret = WindowAdapter::GetInstance(userId_).MoveTargetWindow(windowId, posX, posY);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_LIFE,
+        TLOGE(WmsLogTag::WMS_LAYOUT,
             "failed, windowId: %{public}d, posX: %{public}d, posY: %{public}d, ret: %{public}d",
             windowId, posX, posY, ret);
     }
@@ -3440,11 +3440,11 @@ WMError WindowManager::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t 
 
 WMError WindowManager::ResizeWindow(int32_t windowId, int32_t width, int32_t height)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "windowId: %{public}d, width: %{public}d, height: %{public}d",
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, width: %{public}d, height: %{public}d",
         windowId, width, height);
     WMError ret = WindowAdapter::GetInstance(userId_).ResizeWindow(windowId, width, height);
     if (ret != WMError::WM_OK) {
-        TLOGE(WmsLogTag::WMS_LIFE,
+        TLOGE(WmsLogTag::WMS_LAYOUT,
             "failed, windowId: %{public}d, width: %{public}d, height: %{public}d, ret: %{public}d",
             windowId, width, height, ret);
     }

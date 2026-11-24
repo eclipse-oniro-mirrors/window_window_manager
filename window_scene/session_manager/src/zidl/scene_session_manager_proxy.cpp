@@ -5302,24 +5302,24 @@ WSErrorResult SceneSessionManagerProxy::MoveTargetWindow(int32_t windowId, int32
     MessageParcel reply;
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write interface token failed.");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write interface token failed.");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write interface token."};
     }
     if (!data.WriteInt32(windowId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write windowId failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write windowId failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write window id."};
     }
     if (!data.WriteInt32(posX)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write posX failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write posX failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write posX."};
     }
     if (!data.WriteInt32(posY)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write posY failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write posY failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write posY."};
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Remote is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Remote is null");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
             "Internal task error, the remote binder object is null."};
     }
@@ -5328,7 +5328,7 @@ WSErrorResult SceneSessionManagerProxy::MoveTargetWindow(int32_t windowId, int32
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_MOVE_TARGET_WINDOW),
         data, reply, option) != ERR_NONE || !reply.ReadInt32(errCode) || !reply.ReadString(errMsg)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SendRequest failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
             "Internal task error, IPC SendRequest invocation failed."};
     }
@@ -5341,24 +5341,24 @@ WSErrorResult SceneSessionManagerProxy::ResizeWindow(int32_t windowId, int32_t w
     MessageParcel reply;
     MessageOption option(MessageOption::TF_SYNC);
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write interface token failed.");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write interface token failed.");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write interface token."};
     }
     if (!data.WriteInt32(windowId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write windowId failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write windowId failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write window id."};
     }
     if (!data.WriteInt32(width)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write width failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write width failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write width."};
     }
     if (!data.WriteInt32(height)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write height failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write height failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write height."};
     }
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Remote is null");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Remote is null");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
             "Internal task error, the remote binder object is null."};
     }
@@ -5367,7 +5367,7 @@ WSErrorResult SceneSessionManagerProxy::ResizeWindow(int32_t windowId, int32_t w
     if (remote->SendRequest(static_cast<uint32_t>(
         SceneSessionManagerMessage::TRANS_ID_RESIZE_WINDOW),
         data, reply, option) != ERR_NONE || !reply.ReadInt32(errCode) || !reply.ReadString(errMsg)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "SendRequest failed");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SendRequest failed");
         return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
             "Internal task error, IPC SendRequest invocation failed."};
     }

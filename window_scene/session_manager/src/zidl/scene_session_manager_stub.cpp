@@ -3315,35 +3315,35 @@ int SceneSessionManagerStub::HandleGetAppWindowShowingInfosByBundleName(MessageP
 
 int SceneSessionManagerStub::HandleMoveTargetWindow(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGI(WmsLogTag::WMS_LAYOUT, "in");
     int32_t windowId = 0;
     if (!data.ReadInt32(windowId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read windowId fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read windowId fail");
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         reply.WriteString("Internal task error, failed to read window id.");
         return ERR_INVALID_DATA;
     }
     int32_t posX = 0;
     if (!data.ReadInt32(posX)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read posX fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read posX fail");
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         reply.WriteString("Internal task error, failed to read posX.");
         return ERR_INVALID_DATA;
     }
     int32_t posY = 0;
     if (!data.ReadInt32(posY)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read posY fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read posY fail");
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         reply.WriteString("Internal task error, failed to read posY.");
         return ERR_INVALID_DATA;
     }
     WSErrorResult result = MoveTargetWindow(windowId, posX, posY);
     if (!reply.WriteInt32(static_cast<int32_t>(result.errCode))) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write errCode fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode fail");
         return ERR_INVALID_DATA;
     }
     if (!reply.WriteString(result.errMsg)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write errMsg fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errMsg fail");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
@@ -3351,35 +3351,35 @@ int SceneSessionManagerStub::HandleMoveTargetWindow(MessageParcel& data, Message
 
 int SceneSessionManagerStub::HandleResizeWindow(MessageParcel& data, MessageParcel& reply)
 {
-    TLOGI(WmsLogTag::WMS_LIFE, "in");
+    TLOGI(WmsLogTag::WMS_LAYOUT, "in");
     int32_t windowId = 0;
     if (!data.ReadInt32(windowId)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read windowId fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read windowId fail");
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         reply.WriteString("Internal task error, failed to read window id.");
         return ERR_INVALID_DATA;
     }
     int32_t width = 0;
     if (!data.ReadInt32(width)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read width fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read width fail");
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         reply.WriteString("Internal task error, failed to read width.");
         return ERR_INVALID_DATA;
     }
     int32_t height = 0;
     if (!data.ReadInt32(height)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Read height fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Read height fail");
         reply.WriteInt32(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
         reply.WriteString("Internal task error, failed to read height.");
         return ERR_INVALID_DATA;
     }
     WSErrorResult result = ResizeWindow(windowId, width, height);
     if (!reply.WriteInt32(static_cast<int32_t>(result.errCode))) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write errCode fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode fail");
         return ERR_INVALID_DATA;
     }
     if (!reply.WriteString(result.errMsg)) {
-        TLOGE(WmsLogTag::WMS_LIFE, "Write errMsg fail");
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write errMsg fail");
         return ERR_INVALID_DATA;
     }
     return ERR_NONE;
