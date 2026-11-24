@@ -1936,5 +1936,47 @@ WMError WindowAdapter::UpdateOutline(const sptr<IRemoteObject>& remoteObject, co
     CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_SAMGR);
     return wmsProxy->UpdateOutline(remoteObject, outlineParams);
 }
+
+WMError WindowAdapter::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    // The caller owns the target window, so no local ownership precheck here; the server
+    // enforces permission and parameter validation. A null proxy means the IPC channel is
+    // unavailable even though it was initialized, report it as an IPC failure.
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_IPC_FAILED);
+
+    auto ssmProxy = iface_cast<ISceneSessionManager>(wmsProxy->AsObject());
+    if (ssmProxy == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "scene session manager proxy is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    WSErrorResult result = ssmProxy->MoveTargetWindow(windowId, posX, posY);
+    WMError ret = static_cast<WMError>(result.errCode);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, posX: %{public}d, posY: %{public}d, ret: %{public}d",
+        windowId, posX, posY, static_cast<int32_t>(ret));
+    return ret;
+}
+
+WMError WindowAdapter::ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+{
+    INIT_PROXY_CHECK_RETURN(WMError::WM_ERROR_SAMGR);
+    auto wmsProxy = GetWindowManagerServiceProxy();
+    // The caller owns the target window, so no local ownership precheck here; the server
+    // enforces permission and parameter validation. A null proxy means the IPC channel is
+    // unavailable even though it was initialized, report it as an IPC failure.
+    CHECK_PROXY_RETURN_ERROR_IF_NULL(wmsProxy, WMError::WM_ERROR_IPC_FAILED);
+
+    auto ssmProxy = iface_cast<ISceneSessionManager>(wmsProxy->AsObject());
+    if (ssmProxy == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "scene session manager proxy is null");
+        return WMError::WM_ERROR_IPC_FAILED;
+    }
+    WSErrorResult result = ssmProxy->ResizeWindow(windowId, width, height);
+    WMError ret = static_cast<WMError>(result.errCode);
+    TLOGI(WmsLogTag::WMS_LAYOUT, "windowId: %{public}d, width: %{public}d, height: %{public}d, ret: %{public}d",
+        windowId, width, height, static_cast<int32_t>(ret));
+    return ret;
+}
 } // namespace Rosen
 } // namespace OHOS

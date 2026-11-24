@@ -73,6 +73,14 @@ const std::string OPTION_VAL_IMAGE_FMT_PNG = "png";
 const std::string STRING_SCREENSHOT_OK = "capture screenshot successfully.";
 const std::string STRING_SCREENSHOT_NG = "error: failed to capture screenshot.";
 
+const size_t MOVE_WINDOW_PARAM_COUNT = 6;
+const size_t RESIZE_WINDOW_PARAM_COUNT = 6;
+const size_t NEXT_OPTION_STEP = 2;
+const std::string OPTION_POS_X = "--posX";
+const std::string OPTION_POS_Y = "--posY";
+const std::string OPTION_WIDTH = "--width";
+const std::string OPTION_HEIGHT = "--height";
+
 constexpr int32_t YEAR_OFFSET = 1900;
 constexpr int32_t MONTH_OFFSET = 1;
 constexpr int32_t RECT_LEFT_INDEX = 0;
@@ -118,6 +126,8 @@ int32_t ClawWindowShellCommand::CreateCommandMap()
         {"restore-window", [this]() { return this->RunAsRestoreWindow(); }},
         {"list-windows", [this]() { return this->RunAsListWindowInfo(); }},
         {"screenshot", [this]() { return this->RunAsScreenshot(); }},
+        {"move-window", [this]() { return this->RunAsMoveWindow(); }},
+        {"resize-window", [this]() { return this->RunAsResizeWindow(); }},
     };
     return ERR_OK;
 }
@@ -786,6 +796,193 @@ WmToolErrorInfo ClawWindowShellCommand::GetErrorInfoFromCode(const int32_t code)
         result = errorInfoMap_.at(code);
     }
     return result;
+}
+
+
+bool ClawWindowShellCommand::ParseMoveWindowOptions(int32_t& windowId, int32_t& posX, int32_t& posY)
+{
+    bool hasWindowId = false;
+    bool hasPosX = false;
+    bool hasPosY = false;
+    for (size_t i = 0; i < argList_.size(); i += NEXT_OPTION_STEP) {
+        const auto& opt = argList_[i];
+        const auto& val = argList_[i + 1];
+        int32_t parsed = 0;
+        auto res = std::from_chars(val.c_str(), val.c_str() + val.size(), parsed);
+        if (res.ec != std::errc() || res.ptr != val.c_str() + val.size()) {
+            WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT, "Invalid input parameters.",
+                "Invalid value for " + opt + " option: " + val, {INVALID_PARAM_SOLUTION}};
+            PrintError(errorInfo);
+            return false;
+        }
+        if (opt == OPTION_WINDOW_ID && !hasWindowId) {
+            if (parsed < 0) {
+                WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT, "Invalid input parameters.",
+                    "Invalid value for " + opt + " option: " + val, {INVALID_PARAM_SOLUTION}};
+                PrintError(errorInfo);
+                return false;
+            }
+            windowId = parsed;
+            hasWindowId = true;
+        } else if (opt == OPTION_POS_X && !hasPosX) {
+            posX = parsed;
+            hasPosX = true;
+        } else if (opt == OPTION_POS_Y && !hasPosY) {
+            posY = parsed;
+            hasPosY = true;
+        } else {
+            WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT, "Invalid input parameters.",
+                "Unsupported or duplicated option: " + opt, {INVALID_PARAM_SOLUTION}};
+            PrintError(errorInfo);
+            return false;
+        }
+    }
+    return hasWindowId && hasPosX && hasPosY;
+}
+
+int32_t ClawWindowShellCommand::RunAsMoveWindow()
+{
+    if (argList_.size() == HELP_PARAM_COUNT && argList_[0] == OPTION_HELP) {
+        std::cout << HELP_MSG_MOVE_WINDOW << std::endl;
+        return ERR_OK;
+    }
+    if (argList_.size() != MOVE_WINDOW_PARAM_COUNT) {
+        WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT,
+            "Invalid options or parameters for move-window command.",
+            "Wrong options or Missing parameters or too many parameters.", {HELP_MSG_MOVE_WINDOW}};
+        PrintError(errorInfo);
+        return ERR_INVALID_VALUE;
+    }
+    int32_t windowId = 0;
+    int32_t posX = 0;
+    int32_t posY = 0;
+    if (ParseMoveWindowOptions(windowId, posX, posY)) {
+        return DoMoveWindow(windowId, posX, posY);
+    }
+    WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT,
+        "Invalid options or parameters for move-window command.",
+        "Wrong options or Missing parameters or too many parameters.", {HELP_MSG_MOVE_WINDOW}};
+    PrintError(errorInfo);
+    return ERR_INVALID_VALUE;
+}
+
+int32_t ClawWindowShellCommand::DoMoveWindow(int32_t windowId, int32_t posX, int32_t posY)
+{
+    auto proxy = GetSceneSessionManagerLiteProxy();
+    if (proxy == nullptr) {
+        WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+        PrintError(errorInfo);
+        resultReceiver_ = STRING_MOVE_WINDOW_NG;
+        return ERR_INVALID_VALUE;
+    }
+
+    WSErrorResult result = proxy->MoveTargetWindow(windowId, posX, posY);
+    if (result.errCode == WSError::WS_OK) {
+        resultReceiver_.append(STRING_MOVE_WINDOW_OK);
+        PrintSuccess(resultReceiver_);
+        return ERR_OK;
+    }
+
+    resultReceiver_.append(STRING_MOVE_WINDOW_NG);
+    WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(result.errCode));
+    if (!result.errMsg.empty()) {
+        errorInfo.cause = result.errMsg;
+    }
+    PrintError(errorInfo);
+    return ERR_INVALID_VALUE;
+}
+
+bool ClawWindowShellCommand::ParseResizeWindowOptions(int32_t& windowId, int32_t& width, int32_t& height)
+{
+    bool hasWindowId = false;
+    bool hasWidth = false;
+    bool hasHeight = false;
+    for (size_t i = 0; i < argList_.size(); i += NEXT_OPTION_STEP) {
+        const auto& opt = argList_[i];
+        const auto& val = argList_[i + 1];
+        int32_t parsed = 0;
+        auto res = std::from_chars(val.c_str(), val.c_str() + val.size(), parsed);
+        if (res.ec != std::errc() || res.ptr != val.c_str() + val.size()) {
+            WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT, "Invalid input parameters.",
+                "Invalid value for " + opt + " option: " + val, {INVALID_PARAM_SOLUTION}};
+            PrintError(errorInfo);
+            return false;
+        }
+        if (opt == OPTION_WINDOW_ID && !hasWindowId) {
+            if (parsed < 0) {
+                WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT, "Invalid input parameters.",
+                    "Invalid value for " + opt + " option: " + val, {INVALID_PARAM_SOLUTION}};
+                PrintError(errorInfo);
+                return false;
+            }
+            windowId = parsed;
+            hasWindowId = true;
+        } else if (opt == OPTION_WIDTH && !hasWidth) {
+            width = parsed;
+            hasWidth = true;
+        } else if (opt == OPTION_HEIGHT && !hasHeight) {
+            height = parsed;
+            hasHeight = true;
+        } else {
+            WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT, "Invalid input parameters.",
+                "Unsupported or duplicated option: " + opt, {INVALID_PARAM_SOLUTION}};
+            PrintError(errorInfo);
+            return false;
+        }
+    }
+    return hasWindowId && hasWidth && hasHeight;
+}
+
+int32_t ClawWindowShellCommand::RunAsResizeWindow()
+{
+    if (argList_.size() == HELP_PARAM_COUNT && argList_[0] == OPTION_HELP) {
+        std::cout << HELP_MSG_RESIZE_WINDOW << std::endl;
+        return ERR_OK;
+    }
+    if (argList_.size() != RESIZE_WINDOW_PARAM_COUNT) {
+        WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT,
+            "Invalid options or parameters for resize-window command.",
+            "Wrong options or Missing parameters or too many parameters.", {HELP_MSG_RESIZE_WINDOW}};
+        PrintError(errorInfo);
+        return ERR_INVALID_VALUE;
+    }
+    int32_t windowId = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    if (ParseResizeWindowOptions(windowId, width, height)) {
+        return DoResizeWindow(windowId, width, height);
+    }
+    WmToolErrorInfo errorInfo = {ERR_INVALID_INPUT,
+        "Invalid options or parameters for resize-window command.",
+        "Wrong options or Missing parameters or too many parameters.", {HELP_MSG_RESIZE_WINDOW}};
+    PrintError(errorInfo);
+    return ERR_INVALID_VALUE;
+}
+
+int32_t ClawWindowShellCommand::DoResizeWindow(int32_t windowId, int32_t width, int32_t height)
+{
+    auto proxy = GetSceneSessionManagerLiteProxy();
+    if (proxy == nullptr) {
+        WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(WSError::WS_ERROR_IPC_FAILED));
+        PrintError(errorInfo);
+        resultReceiver_ = STRING_RESIZE_WINDOW_NG;
+        return ERR_INVALID_VALUE;
+    }
+
+    WSErrorResult result = proxy->ResizeWindow(windowId, width, height);
+    if (result.errCode == WSError::WS_OK) {
+        resultReceiver_.append(STRING_RESIZE_WINDOW_OK);
+        PrintSuccess(resultReceiver_);
+        return ERR_OK;
+    }
+
+    resultReceiver_.append(STRING_RESIZE_WINDOW_NG);
+    WmToolErrorInfo errorInfo = GetErrorInfoFromCode(static_cast<int32_t>(result.errCode));
+    if (!result.errMsg.empty()) {
+        errorInfo.cause = result.errMsg;
+    }
+    PrintError(errorInfo);
+    return ERR_INVALID_VALUE;
 }
 }  // namespace Rosen
 }  // namespace OHOS

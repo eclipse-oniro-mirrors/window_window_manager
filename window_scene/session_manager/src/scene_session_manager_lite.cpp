@@ -588,4 +588,16 @@ WSError SceneSessionManagerLite::NotifyStackRecoverFromAMS(int32_t persistentId,
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
 }
+
+WSErrorResult SceneSessionManagerLite::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    return SceneSessionManager::GetInstance().MoveTargetWindow(windowId, posX, posY);
+}
+
+WSErrorResult SceneSessionManagerLite::ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    return SceneSessionManager::GetInstance().ResizeWindow(windowId, width, height);
+}
 } // namespace OHOS::Rosen

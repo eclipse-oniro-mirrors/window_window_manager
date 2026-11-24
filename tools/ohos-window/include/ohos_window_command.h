@@ -42,13 +42,19 @@ const std::string HELP_MSG =
     "  restore-window            restore a main window to foreground\n"
     "  list-windows              query window information\n"
     "  screenshot                capture a screenshot of the display\n"
+    "  move-window               move a window to the specified position\n"
+    "  resize-window             resize a window to the specified size\n"
     "\nExamples:\n"
     "  # Restore a main window to foreground\n"
     "  ohos-window restore-window --windowId 100\n\n"
     "  # List all visible windows\n"
     "  ohos-window list-windows --filter visible\n\n"
     "  # Capture a full screen screenshot\n"
-    "  ohos-window screenshot\n\n";
+    "  ohos-window screenshot\n\n"
+    "  # Move a main window to (100, 200)\n"
+    "  ohos-window move-window --windowId 100 --posX 100 --posY 200\n\n"
+    "  # Resize a main window to 800x600\n"
+    "  ohos-window resize-window --windowId 100 --width 800 --height 600\n\n";
 
 const std::string VERSION_MSG = "1.0.0\n";
 
@@ -65,6 +71,38 @@ const std::string HELP_MSG_RESTORE_WINDOW =
 
 const std::string STRING_RESTORE_WINDOW_OK = "restore main window to foreground successfully.";
 const std::string STRING_RESTORE_WINDOW_NG = "error: failed to restore main window to foreground.";
+
+const std::string HELP_MSG_MOVE_WINDOW =
+    "ohos-window move-window - Move a main window to the specified position\n\n"
+    "Usage:\n"
+    "  ohos-window move-window [options]\n\n"
+    "Parameters:\n"
+    "  --help                                  display this help message\n"
+    "  --windowId <windowId>                   windowId of the main window to move\n"
+    "  --posX <posX>                           target X coordinate\n"
+    "  --posY <posY>                           target Y coordinate\n"
+    "\nExamples:\n"
+    "  # Move a main window to (100, 200)\n"
+    "  ohos-window move-window --windowId 100 --posX 100 --posY 200\n";
+
+const std::string STRING_MOVE_WINDOW_OK = "move main window successfully.";
+const std::string STRING_MOVE_WINDOW_NG = "error: failed to move main window.";
+
+const std::string HELP_MSG_RESIZE_WINDOW =
+    "ohos-window resize-window - Resize a main window to the specified size\n\n"
+    "Usage:\n"
+    "  ohos-window resize-window [options]\n\n"
+    "Parameters:\n"
+    "  --help                                  display this help message\n"
+    "  --windowId <windowId>                   windowId of the main window to resize\n"
+    "  --width <width>                         target width in pixel unit\n"
+    "  --height <height>                       target height in pixel unit\n"
+    "\nExamples:\n"
+    "  # Resize a main window to 800x600\n"
+    "  ohos-window resize-window --windowId 100 --width 800 --height 600\n";
+
+const std::string STRING_RESIZE_WINDOW_OK = "resize main window successfully.";
+const std::string STRING_RESIZE_WINDOW_NG = "error: failed to resize main window.";
 
 const std::string HELP_MSG_LIST_WINDOWS =
     "ohos-window list-windows - Query window information\n\n"
@@ -131,6 +169,13 @@ private:
     int32_t RunAsHelpCommand();
     int32_t RunAsRestoreWindow();
     int32_t DoRestoreWindow(int32_t persistentId);
+
+    int32_t RunAsMoveWindow();
+    int32_t DoMoveWindow(int32_t windowId, int32_t posX, int32_t posY);
+    bool ParseMoveWindowOptions(int32_t& windowId, int32_t& posX, int32_t& posY);
+    int32_t RunAsResizeWindow();
+    int32_t DoResizeWindow(int32_t windowId, int32_t width, int32_t height);
+    bool ParseResizeWindowOptions(int32_t& windowId, int32_t& width, int32_t& height);
 
     int32_t RunAsListWindowInfo();
     bool ParseListWindowInfoOption(WindowInfoOption& infoOption);

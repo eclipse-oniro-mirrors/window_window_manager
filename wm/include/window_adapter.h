@@ -191,6 +191,8 @@ public:
     virtual WMError SetStartWindowBackgroundColor(
         const std::string& moduleName, const std::string& abilityName, uint32_t color, int32_t uid,
         std::string& errMsg);
+    virtual WMError MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY);
+    virtual WMError ResizeWindow(int32_t windowId, int32_t width, int32_t height);
 
     /*
      * Window Recover

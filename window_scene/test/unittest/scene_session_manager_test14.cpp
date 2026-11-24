@@ -307,7 +307,7 @@ HWTEST_F(SceneSessionManagerTest14, SetWindowPositionDifferentProcess, TestSize.
     // 2. Call the function to be tested
     WSError ret = ssm_->SetWindowPosition(windowPositionInfo);
     // 3. Verify the result
-    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_CALLING);
+    EXPECT_EQ(ret, WSError::WS_ERROR_INVALID_WINDOW);
     ssm_->sceneSessionMap_.clear();
 }
 

@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "mock_RSIWindowAnimationController.h"
+#include "mock_scene_session_manager_stub.h"
 #include "mock_window_manager_service.h"
 #include "remote_animation.h"
 #include "scene_board_judgement.h"
@@ -1875,6 +1876,196 @@ HWTEST_F(WindowAdapterTest, RegisterRecoverCallback_Success, Function | SmallTes
 
     // The result depends on SessionManager state
     // We just verify it doesn.t crash
+}
+
+/**
+ * @tc.name: MoveTargetWindow_NullProxy
+ * @tc.desc: MoveTargetWindow with null proxy returns IPC failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, MoveTargetWindow_NullProxy, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testPosX = 100;
+    constexpr int32_t testPosY = 200;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, windowAdapter.MoveTargetWindow(testWindowId, testPosX, testPosY));
+}
+
+/**
+ * @tc.name: MoveTargetWindow_NotSceneSessionManagerProxy
+ * @tc.desc: MoveTargetWindow with non scene session manager proxy returns IPC failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, MoveTargetWindow_NotSceneSessionManagerProxy, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testPosX = 100;
+    constexpr int32_t testPosY = 200;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    auto plainRemote = sptr<WindowManagerServiceMocker>::MakeSptr();
+    auto plainProxy = iface_cast<IWindowManager>(plainRemote);
+    windowAdapter.windowManagerServiceProxy_ = plainProxy;
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, windowAdapter.MoveTargetWindow(testWindowId, testPosX, testPosY));
+}
+
+/**
+ * @tc.name: MoveTargetWindow_Success
+ * @tc.desc: MoveTargetWindow with scene session manager proxy returning ok
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, MoveTargetWindow_Success, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testPosX = 100;
+    constexpr int32_t testPosY = 200;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    // Heap-allocate the mock: WindowAdapter's destructor calls AsObject() on the stored proxy,
+    // a stack mock would be destroyed first (reverse order) leaving a dangling vptr.
+    auto mockSSM = sptr<MockSceneSessionManagerStub>::MakeSptr();
+    WSErrorResult okResult{WSError::WS_OK, ""};
+    EXPECT_CALL(*mockSSM, MoveTargetWindow(testWindowId, testPosX, testPosY)).WillOnce(Return(okResult));
+    windowAdapter.windowManagerServiceProxy_ = iface_cast<ISceneSessionManager>(mockSSM->AsObject());
+    EXPECT_EQ(WMError::WM_OK, windowAdapter.MoveTargetWindow(testWindowId, testPosX, testPosY));
+}
+
+/**
+ * @tc.name: MoveTargetWindow_PermissionError
+ * @tc.desc: MoveTargetWindow maps server permission error to WM_ERROR_INVALID_PERMISSION
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, MoveTargetWindow_PermissionError, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testPosX = 100;
+    constexpr int32_t testPosY = 200;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    auto mockSSM = sptr<MockSceneSessionManagerStub>::MakeSptr();
+    WSErrorResult permResult{WSError::WS_ERROR_INVALID_PERMISSION, "no permission"};
+    EXPECT_CALL(*mockSSM, MoveTargetWindow(testWindowId, testPosX, testPosY)).WillOnce(Return(permResult));
+    windowAdapter.windowManagerServiceProxy_ = iface_cast<ISceneSessionManager>(mockSSM->AsObject());
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, windowAdapter.MoveTargetWindow(testWindowId, testPosX,
+        testPosY));
+}
+
+/**
+ * @tc.name: MoveTargetWindow_ParamError
+ * @tc.desc: MoveTargetWindow maps server invalid param error to WM_ERROR_INVALID_PARAM
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, MoveTargetWindow_ParamError, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testPosX = 100;
+    constexpr int32_t testPosY = 200;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    auto mockSSM = sptr<MockSceneSessionManagerStub>::MakeSptr();
+    WSErrorResult paramResult{WSError::WS_ERROR_INVALID_PARAM, "invalid param"};
+    EXPECT_CALL(*mockSSM, MoveTargetWindow(testWindowId, testPosX, testPosY)).WillOnce(Return(paramResult));
+    windowAdapter.windowManagerServiceProxy_ = iface_cast<ISceneSessionManager>(mockSSM->AsObject());
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, windowAdapter.MoveTargetWindow(testWindowId, testPosX,
+        testPosY));
+}
+
+/**
+ * @tc.name: ResizeWindow_NullProxy
+ * @tc.desc: ResizeWindow with null proxy returns IPC failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, ResizeWindow_NullProxy, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testWidth = 300;
+    constexpr int32_t testHeight = 400;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, windowAdapter.ResizeWindow(testWindowId, testWidth, testHeight));
+}
+
+/**
+ * @tc.name: ResizeWindow_NotSceneSessionManagerProxy
+ * @tc.desc: ResizeWindow with non scene session manager proxy returns IPC failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, ResizeWindow_NotSceneSessionManagerProxy, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testWidth = 300;
+    constexpr int32_t testHeight = 400;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    auto plainRemote = sptr<WindowManagerServiceMocker>::MakeSptr();
+    auto plainProxy = iface_cast<IWindowManager>(plainRemote);
+    windowAdapter.windowManagerServiceProxy_ = plainProxy;
+    EXPECT_EQ(WMError::WM_ERROR_IPC_FAILED, windowAdapter.ResizeWindow(testWindowId, testWidth, testHeight));
+}
+
+/**
+ * @tc.name: ResizeWindow_Success
+ * @tc.desc: ResizeWindow with scene session manager proxy returning ok
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, ResizeWindow_Success, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testWidth = 300;
+    constexpr int32_t testHeight = 400;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    // Heap-allocate the mock: WindowAdapter's destructor calls AsObject() on the stored proxy,
+    // a stack mock would be destroyed first (reverse order) leaving a dangling vptr.
+    auto mockSSM = sptr<MockSceneSessionManagerStub>::MakeSptr();
+    WSErrorResult okResult{WSError::WS_OK, ""};
+    EXPECT_CALL(*mockSSM, ResizeWindow(testWindowId, testWidth, testHeight)).WillOnce(Return(okResult));
+    windowAdapter.windowManagerServiceProxy_ = iface_cast<ISceneSessionManager>(mockSSM->AsObject());
+    EXPECT_EQ(WMError::WM_OK, windowAdapter.ResizeWindow(testWindowId, testWidth, testHeight));
+}
+
+/**
+ * @tc.name: ResizeWindow_PermissionError
+ * @tc.desc: ResizeWindow maps server permission error to WM_ERROR_INVALID_PERMISSION
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, ResizeWindow_PermissionError, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testWidth = 300;
+    constexpr int32_t testHeight = 400;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    auto mockSSM = sptr<MockSceneSessionManagerStub>::MakeSptr();
+    WSErrorResult permResult{WSError::WS_ERROR_INVALID_PERMISSION, "no permission"};
+    EXPECT_CALL(*mockSSM, ResizeWindow(testWindowId, testWidth, testHeight)).WillOnce(Return(permResult));
+    windowAdapter.windowManagerServiceProxy_ = iface_cast<ISceneSessionManager>(mockSSM->AsObject());
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, windowAdapter.ResizeWindow(testWindowId, testWidth,
+        testHeight));
+}
+
+/**
+ * @tc.name: ResizeWindow_ParamError
+ * @tc.desc: ResizeWindow maps server invalid param error to WM_ERROR_INVALID_PARAM
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowAdapterTest, ResizeWindow_ParamError, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testWidth = 300;
+    constexpr int32_t testHeight = 400;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    auto mockSSM = sptr<MockSceneSessionManagerStub>::MakeSptr();
+    WSErrorResult paramResult{WSError::WS_ERROR_INVALID_PARAM, "invalid param"};
+    EXPECT_CALL(*mockSSM, ResizeWindow(testWindowId, testWidth, testHeight)).WillOnce(Return(paramResult));
+    windowAdapter.windowManagerServiceProxy_ = iface_cast<ISceneSessionManager>(mockSSM->AsObject());
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, windowAdapter.ResizeWindow(testWindowId, testWidth,
+        testHeight));
 }
 } // namespace
 } // namespace Rosen

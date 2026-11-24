@@ -128,6 +128,8 @@ private:
     int HandleUpdateRogWindowConfig(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyStackRecoverFromAMS(MessageParcel& data, MessageParcel& reply);
     int ProcessRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option);
+    int HandleMoveTargetWindow(MessageParcel& data, MessageParcel& reply);
+    int HandleResizeWindow(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_STUB_H

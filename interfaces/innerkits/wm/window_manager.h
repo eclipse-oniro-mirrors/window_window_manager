@@ -1734,6 +1734,32 @@ public:
      */
     WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& floatViewLimits) const;
 
+    /**
+     * @brief Move the target window to the target position. The target window must be a
+     * floating main window.
+     * @caller SA or system app
+     * @permission ohos.permission.CONTROL_DEVICE (SA calling is always allowed)
+     *
+     * @param windowId Window id of the window to be moved, must be greater than 0
+     * @param posX Target x coordinate of the window's top-left corner, in px
+     * @param posY Target y coordinate of the window's top-left corner, in px
+     * @return WM_OK means move success, others means failed.
+     */
+    WMError MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY);
+
+    /**
+     * @brief Resize the target window to the specified absolute size. The target window
+     * must be a floating main window.
+     * @caller SA or system app
+     * @permission ohos.permission.CONTROL_DEVICE (SA calling is always allowed)
+     *
+     * @param windowId Window id of the window to be resized, must be greater than 0
+     * @param width New width of the window, in px, must be positive
+     * @param height New height of the window, in px, must be positive
+     * @return WM_OK means resize success, others means failed.
+     */
+    WMError ResizeWindow(int32_t windowId, int32_t width, int32_t height);
+
 private:
     /**
      * multi user and multi screen

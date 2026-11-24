@@ -96,6 +96,8 @@ public:
     MOCK_METHOD(WMError, RemoveSessionBlackList, (const std::unordered_set<std::string>& bundleNames,
         const std::unordered_set<std::string>& privacyWindowTags), (override));
     MOCK_METHOD(WMError, GetPiPSettingSwitchStatus, (bool& switchStatus), (override));
+    MOCK_METHOD(WSErrorResult, MoveTargetWindow, (int32_t windowId, int32_t posX, int32_t posY), (override));
+    MOCK_METHOD(WSErrorResult, ResizeWindow, (int32_t windowId, int32_t width, int32_t height), (override));
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_MOCK_SCENE_SESSION_MANAGER_STUB_H

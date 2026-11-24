@@ -315,6 +315,7 @@
             OHOS::Rosen::WindowManager::MinimizeAllAppWindows*;
             OHOS::Rosen::WindowManager::MinimizeByWindowId*;
             OHOS::Rosen::WindowManager::MoveMainWindowToTargetDisplay*;
+            OHOS::Rosen::WindowManager::MoveTargetWindow*;
             OHOS::Rosen::WindowManager::NotifyAccessibilityWindowInfo*;
             OHOS::Rosen::WindowManager::NotifyApplicationFocusChangedResult*;
             OHOS::Rosen::WindowManager::NotifyDisplayInfoChange*;
@@ -351,6 +352,7 @@
             OHOS::Rosen::WindowManager::RemoveSessionBlackList*;
             OHOS::Rosen::WindowManager::RemoveInstanceByUserId*;
             OHOS::Rosen::WindowManager::RequestFocus*;
+            OHOS::Rosen::WindowManager::ResizeWindow*;
             OHOS::Rosen::WindowManager::SetAppDragResizeType*;
             OHOS::Rosen::WindowManager::SetAppKeyFramePolicy*;
             OHOS::Rosen::WindowManager::SetForegroundWindowNum*;
