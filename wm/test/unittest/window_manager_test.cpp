@@ -3443,15 +3443,26 @@ HWTEST_F(WindowManagerTest, SetWindowPosition, TestSize.Level1)
     windowPositionInfo.windowPositions.push_back(position);
 
     WMError ret;
-    windowAdapter_->isProxyValid_ = true; // skip InitSSMProxy, proxy remains null
-    windowAdapter_->windowManagerServiceProxy_ = nullptr;
+    windowAdapter->isProxyValid_ = true; // skip InitSSMProxy, proxy remains null
+    windowAdapter->windowManagerServiceProxy_ = nullptr;
     // 2. Call the function to be tested
     ret = instance_->SetWindowPosition(windowPositionInfo);
     // 3. Verify the result
     EXPECT_NE(WMError::WM_OK, ret);
 
+    // Register a window so the client pre-check (Window::GetWindowWithId) passes
+    // and the mock adapter is reached.
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowPositionTest");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    window->property_->SetPersistentId(position.windowId);
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
+        std::pair<int32_t, sptr<WindowSessionImpl>>(window->GetPersistentId(), window)));
+
     ret = mockInstance_->SetWindowPosition(windowPositionInfo);
     EXPECT_EQ(WMError::WM_OK, ret);
+
+    WindowSessionImpl::windowSessionMap_.erase(window->GetWindowName());
 }
 
 /**
