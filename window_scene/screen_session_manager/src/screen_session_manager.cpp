@@ -7527,7 +7527,8 @@ PowerStateChangeReason reason, bool isApAod)
 void ScreenSessionManager::PostProcessScreenPowerStatus(ScreenId screenId, ScreenPowerStatus status)
 {
     #ifdef WM_MULTI_SCREEN_ENABLE
-    if (g_isPcDevice && status == ScreenPowerStatus::POWER_STATUS_ON && IsDefaultMirrorMode(screenId)) {
+    if (g_isPcDevice && status == ScreenPowerStatus::POWER_STATUS_ON &&
+        IsDefaultMirrorMode(screenId)) {
         TLOGNFI(WmsLogTag::DMS, "set screen active mode,rsScreenId:%{public}" PRIu64, screenId);
         if (RecoverScreenActiveMode(screenId)) {
             RecoverMultiScreenRelativePosition(screenId);
