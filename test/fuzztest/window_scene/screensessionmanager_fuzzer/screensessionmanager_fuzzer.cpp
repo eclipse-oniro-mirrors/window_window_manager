@@ -164,8 +164,6 @@ void IPCSpecificInterfaceFuzzTest3(sptr<IRemoteObject> proxy, MessageParcel& sen
         sendData, reply, option);
     proxy->SendRequest(static_cast<uint32_t>(DMMessage::TRANS_ID_SCREEN_SET_COLOR_TRANSFORM),
         sendData, reply, option);
-    proxy->SendRequest(static_cast<uint32_t>(DMMessage::TRANS_ID_RSIO_PLUGIN_RENDER_PARAM_UPDATE),
-        sendData, reply, option);
     proxy->SendRequest(static_cast<uint32_t>(DMMessage::TRANS_ID_SET_ORIENTATION),
         sendData, reply, option);
     proxy->SendRequest(static_cast<uint32_t>(DMMessage::TRANS_ID_SET_SCREEN_ROTATION_LOCKED),
@@ -353,11 +351,6 @@ void ProxyInterfaceFuzzTestPart4(const uint8_t* data, size_t size)
     proxy->SetScreenGamutMap(screenId, gamutMap);
     proxy->GetScreenGamutMap(screenId, gamutMap);
     proxy->SetScreenColorTransform(screenId);
-
-    DisplayId renderParamDisplayId = source.GetObject<DisplayId>();
-    uint8_t renderParam = source.GetObject<uint8_t>();
-    std::vector<uint8_t> renderParams(renderParam % 16, renderParam);
-    proxy->RSIOPluginRenderParamUpdate(renderParamDisplayId, renderParams);
 
     screenId = source.GetObject<ScreenId>();
     Orientation orientation = source.GetObject<Orientation>();
