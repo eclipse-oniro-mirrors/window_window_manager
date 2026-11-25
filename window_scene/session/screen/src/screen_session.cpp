@@ -2117,8 +2117,26 @@ void ScreenSession::FillScreenInfo(sptr<ScreenInfo> info) const
     info->SetScreenTypeInfo(property_.GetScreenTypeInfo());
     info->SetModeId(activeIdx_);
     auto logicalBounds = property_.GetBounds();
-    info->SetLogicalWidth(static_cast<uint32_t>(logicalBounds.rect_.GetWidth()));
-    info->SetLogicalHeight(static_cast<uint32_t>(logicalBounds.rect_.GetHeight()));
+    uint32_t logicalWidth = static_cast<uint32_t>(logicalBounds.rect_.GetWidth());
+    uint32_t logicalHeight = static_cast<uint32_t>(logicalBounds.rect_.GetHeight());
+    if (isPcUse_) {
+        if (property_.GetScreenTypeInfo() == ScreenTypeInfo::BUILT_IN) {
+            uint32_t rogWidth = property_.GetRogWidth();
+            uint32_t rogHeight = property_.GetRogHeight();
+            if (rogWidth > 0 && rogHeight > 0) {
+                logicalWidth = rogWidth;
+                logicalHeight = rogHeight;
+            }
+        }
+    } else if (property_.GetScreenTypeInfo() == ScreenTypeInfo::EXTERNAL) {
+        sptr<SupportedScreenModes> activeMode = GetActiveScreenMode();
+        if (activeMode != nullptr && activeMode->width_ > 0 && activeMode->height_ > 0) {
+            logicalWidth = activeMode->width_;
+            logicalHeight = activeMode->height_;
+        }
+    }
+    info->SetLogicalWidth(logicalWidth);
+    info->SetLogicalHeight(logicalHeight);
     info->SetLogicalRotation(property_.GetScreenRotation());
     info->SetSerialNumber(serialNumber_);
     info->SetMirrorWidth(property_.GetMirrorWidth());
