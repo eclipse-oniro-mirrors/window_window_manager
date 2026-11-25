@@ -970,6 +970,7 @@ public:
     float GetSurfaceNodeAlpha() const { return property_->GetSurfaceNodeAlpha(); }
 
     std::atomic<bool> isSkipSelfWhenShowOnVirtualScreen_ { false };
+    std::atomic<bool> isSessionBlackList_ { false };
 
     /*
      * Window Pattern

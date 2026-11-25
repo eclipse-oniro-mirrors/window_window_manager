@@ -165,7 +165,10 @@ bool KeyboardSession::GetSkipFlagForCallingSession(const sptr<SceneSession>& cal
     if (!mainSession) {
         return false;
     }
-    return mainSession->isSkipSelfWhenShowOnVirtualScreen_.load();
+    TLOGW(WmsLogTag::WMS_KEYBOARD,
+        "GetSkipFlagForCallingSession: isSkipSelfWhenShowOnVirtualScreen_: %{public}d, isSessionBlackList_: %{public}d",
+        mainSession->isSkipSelfWhenShowOnVirtualScreen_.load(), mainSession->isSessionBlackList_.load());
+    return mainSession->isSkipSelfWhenShowOnVirtualScreen_.load() || mainSession->isSessionBlackList_.load();
 }
 
 WSError KeyboardSession::Hide()
