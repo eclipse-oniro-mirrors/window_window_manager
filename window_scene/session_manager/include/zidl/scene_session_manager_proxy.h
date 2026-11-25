@@ -235,6 +235,8 @@ public:
     WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override;
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
+    WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override;
+    WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height) override;
 
 private:
     template<typename T>

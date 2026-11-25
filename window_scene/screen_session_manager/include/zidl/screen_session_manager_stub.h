@@ -48,6 +48,7 @@ private:
     void ProcGetScreenAreaOfDisplayArea(MessageParcel& data, MessageParcel& reply);
     void ProcSetPrimaryDisplaySystemDpi(MessageParcel& data, MessageParcel& reply);
     void ProcSetVirtualScreenAutoRotation(MessageParcel& data, MessageParcel& reply);
+    void ProcSetVirtualScreenCursorMode(MessageParcel& data, MessageParcel& reply);
     bool ProcGetScreenCapability(MessageParcel& data, MessageParcel& reply);
 };
 } // namespace Rosen

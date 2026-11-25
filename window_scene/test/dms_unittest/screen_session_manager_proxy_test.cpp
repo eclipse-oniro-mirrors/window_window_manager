@@ -2464,6 +2464,61 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetVirtualScreenAutoRotation, Function |
 }
 
 /**
+ * @tc.name: SetVirtualScreenCursorMode
+ * @tc.desc: SetVirtualScreenCursorMode test
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, SetVirtualScreenCursorMode, Function | SmallTest | Level1)
+{
+    LOG_SetCallback(MyLogCallback);
+    ScreenId cursorScreenId = 2111;
+
+    sptr<MockIRemoteObject> remoteMocker = nullptr;
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    DMError ret = proxy->SetVirtualScreenCursorMode(cursorScreenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_TRUE(logMsg.find("remote is null") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->SetVirtualScreenCursorMode(cursorScreenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    ret = proxy->SetVirtualScreenCursorMode(cursorScreenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_TRUE(logMsg.find("Write screenId failed") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint8ErrorFlag(true);
+    ret = proxy->SetVirtualScreenCursorMode(cursorScreenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_TRUE(logMsg.find("Write cursor mode failed") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->SetVirtualScreenCursorMode(cursorScreenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") != std::string::npos);
+    EXPECT_EQ(ret, DMError::DM_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    logMsg.clear();
+    MockMessageParcel::ClearAllErrorFlag();
+    proxy->SetVirtualScreenCursorMode(cursorScreenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_TRUE(logMsg.find("SendRequest failed") == std::string::npos);
+    MockMessageParcel::ClearAllErrorFlag();
+    LOG_SetCallback(nullptr);
+}
+
+/**
  * @tc.name: SetScreenPrivacyWindowTagSwitch
  * @tc.desc: SetScreenPrivacyWindowTagSwitch test
  * @tc.type: FUNC

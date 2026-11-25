@@ -2572,7 +2572,7 @@ void ScreenSessionManager::SetCastPrivacyFromSettingData()
             continue;
         }
         bool isSuc = SetCastPrivacyToRS(screenSession, enable);
-        SetScreenPrivacyWindowTagSwitch(sessionIt.first, { "SCB_KEYBOARD_FLOATING" }, enable);
+        SetScreenPrivacyWindowTagSwitch(sessionIt.first, { "SCB_KEYBOARD_FLOATING", "SCB_FLOATING_WINDOW" }, enable);
         TLOGNFI(WmsLogTag::DMS, "set cast privacy done, isSuc:%{public}d, enable:%{public}d, screenId:%{public}" PRIu64"",
             isSuc, enable, sessionIt.first);
     }
@@ -18105,6 +18105,30 @@ DMError ScreenSessionManager::SetVirtualScreenAutoRotation(ScreenId screenId, bo
     TLOGNFI(WmsLogTag::DMS, "unique screenId: %{public}" PRIu64 " rsScreenId: %{public}" PRIu64, screenId, rsScreenId);
 
     auto ret = rsInterface_.SetVirtualScreenAutoRotation(rsScreenId, enable);
+    if (ret != StatusCode::SUCCESS) {
+        TLOGNFE(WmsLogTag::DMS, "rsInterface error: %{public}d", ret);
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    return DMError::DM_OK;
+}
+
+DMError ScreenSessionManager::SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+{
+    sptr<ScreenSession> screenSession = GetScreenSession(screenId);
+    if (screenSession == nullptr || screenSession->GetScreenProperty().GetScreenType() != ScreenType::VIRTUAL) {
+        TLOGNFE(WmsLogTag::DMS, "No such screen or not virtual screen.");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+
+    ScreenId rsScreenId = SCREEN_ID_INVALID;
+    bool res = ConvertScreenIdToRsScreenId(screenId, rsScreenId);
+    if (!res) {
+        TLOGNFE(WmsLogTag::DMS, "convert screenId to rsScreenId failed");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    TLOGNFI(WmsLogTag::DMS, "rsScreenId: %{public}" PRIu64 " mode: %{public}d", rsScreenId, static_cast<int>(mode));
+
+    auto ret = rsInterface_.SetVirtualScreenCursorMode(rsScreenId, mode);
     if (ret != StatusCode::SUCCESS) {
         TLOGNFE(WmsLogTag::DMS, "rsInterface error: %{public}d", ret);
         return DMError::DM_ERROR_INVALID_PARAM;

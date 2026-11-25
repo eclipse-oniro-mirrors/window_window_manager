@@ -2416,6 +2416,76 @@ HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionsExcludeParam_ReadP
     data.WriteInt32(1);
     EXPECT_EQ(sceneSessionManagerLiteStub_->HandleUpdateSessionsExcludeParam(data, reply), ERR_INVALID_DATA);
 }
+
+/**
+ * @tc.name: HandleMoveTargetWindow
+ * @tc.desc: test function : HandleMoveTargetWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleMoveTargetWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100); // windowId
+    data.WriteInt32(10); // posX
+    data.WriteInt32(20); // posY
+    int res = sceneSessionManagerLiteStub_->HandleMoveTargetWindow(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t errCode = 0;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+}
+
+/**
+ * @tc.name: HandleMoveMainWindowTo_ReadFailed
+ * @tc.desc: test function : HandleMoveTargetWindow when read params failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleMoveMainWindowTo_ReadFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100); // windowId
+    data.WriteInt32(10); // posX, posY is missing
+    int res = sceneSessionManagerLiteStub_->HandleMoveTargetWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleResizeWindow
+ * @tc.desc: test function : HandleResizeWindow
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleResizeWindow, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100); // windowId
+    data.WriteInt32(300); // width
+    data.WriteInt32(400); // height
+    int res = sceneSessionManagerLiteStub_->HandleResizeWindow(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t errCode = 0;
+    std::string errMsg = "";
+    EXPECT_TRUE(reply.ReadInt32(errCode));
+    EXPECT_TRUE(reply.ReadString(errMsg));
+}
+
+/**
+ * @tc.name: HandleResizeWindow_ReadFailed
+ * @tc.desc: test function : HandleResizeWindow when read params failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleResizeWindow_ReadFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(100); // windowId
+    data.WriteInt32(300); // width, height is missing
+    int res = sceneSessionManagerLiteStub_->HandleResizeWindow(data, reply);
+    EXPECT_EQ(res, ERR_INVALID_DATA);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

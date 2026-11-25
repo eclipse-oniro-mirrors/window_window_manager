@@ -142,6 +142,8 @@ public:
         TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
         TRANS_ID_NOTIFY_STACK_RECOVER,
         TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM,
+        TRANS_ID_MOVE_TARGET_WINDOW,
+        TRANS_ID_RESIZE_WINDOW,
     };
 
     /*
@@ -536,6 +538,15 @@ public:
     virtual WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
     {
         return WMError::WM_OK;
+    }
+
+    virtual WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+    {
+        return WSErrorResult{WSError::WS_ERROR_INVALID_CALLING, "Not implemented"};
+    }
+    virtual WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+    {
+        return WSErrorResult{WSError::WS_ERROR_INVALID_CALLING, "Not implemented"};
     }
 };
 } // namespace OHOS::Rosen

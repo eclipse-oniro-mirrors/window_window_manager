@@ -239,6 +239,10 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleNotifyStackRecoverFromAMS(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM):
             return HandleUpdateSessionsExcludeParam(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_MOVE_TARGET_WINDOW):
+            return HandleMoveTargetWindow(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_RESIZE_WINDOW):
+            return HandleResizeWindow(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -2218,6 +2222,54 @@ int SceneSessionManagerLiteStub::HandleUpdateSessionsExcludeParam(MessageParcel&
         TLOGE(WmsLogTag::WMS_MAIN, "write ret failed");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleMoveTargetWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    int32_t windowId;
+    if (!data.ReadInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read windowId failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t posX;
+    if (!data.ReadInt32(posX)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read posX failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t posY;
+    if (!data.ReadInt32(posY)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read posY failed");
+        return ERR_INVALID_DATA;
+    }
+    WSErrorResult result = MoveTargetWindow(windowId, posX, posY);
+    reply.WriteInt32(static_cast<int32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleResizeWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    int32_t windowId;
+    if (!data.ReadInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read windowId failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t width;
+    if (!data.ReadInt32(width)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read width failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t height;
+    if (!data.ReadInt32(height)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read height failed");
+        return ERR_INVALID_DATA;
+    }
+    WSErrorResult result = ResizeWindow(windowId, width, height);
+    reply.WriteInt32(static_cast<int32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
     return ERR_NONE;
 }
 } // namespace OHOS::Rosen

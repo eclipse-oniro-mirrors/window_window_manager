@@ -18,6 +18,9 @@
 
 #include "picture_in_picture_controller_base.h"
 
+#include <event_handler.h>
+#include <event_runner.h>
+
 namespace OHOS {
 namespace Rosen {
 
@@ -75,6 +78,7 @@ protected:
     void NotifyStateChangeInner(PiPState state) override;
     void NotifyStateChangeInner(ani_env* env, PiPState state) override;
 
+    std::shared_ptr<AppExecFwk::EventHandler> eventHandler_ = nullptr;
     wptr<PictureInPictureControllerAni> weakRef_ = nullptr;
     std::shared_ptr<XComponentController> mainWindowXComponentController_ = nullptr;
     int32_t firstHandleId_ = -1;

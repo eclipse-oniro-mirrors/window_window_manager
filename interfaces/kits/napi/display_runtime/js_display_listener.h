@@ -17,6 +17,7 @@
 #define OHOS_JS_DISPLAY_LISTENER_H
 
 #include <mutex>
+#include <thread>
 #include "dm_common.h"
 #include "native_engine/native_engine.h"
 #include "native_engine/native_value.h"
@@ -53,6 +54,13 @@ public:
     void OnAttributeChange(DisplayId displayId, const std::vector<std::string>& attribuutes) override;
 
 private:
+    struct HookContext {
+        std::mutex mutex;
+        JsDisplayListener* listener = nullptr;
+        napi_env env = nullptr;
+        bool hookFired = false;
+        bool hookRemoved = false;
+    };
     void CallJsMethod(const std::string& methodName, napi_value const * argv = nullptr, size_t argc = 0);
     void ProcessAttributeCallbacks(napi_env env, const std::vector<std::string>& attributes, DisplayId displayId,
         sptr<JsDisplayListener> thisListener);
@@ -63,6 +71,9 @@ private:
     std::map<std::string, std::vector<std::unique_ptr<NativeReference>>> jsCallBack_;
     napi_value CreateDisplayIdArray(napi_env env, const std::vector<DisplayId>& data);
     static void CleanEnv(void* obj);
+
+    HookContext* hookCtx_ = nullptr;
+    std::thread::id jsThreadId_;
 };
 extern const std::string EVENT_ADD;
 extern const std::string EVENT_REMOVE;

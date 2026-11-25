@@ -77,6 +77,8 @@ TEST_F(OhosWindowCommandUtilTest, CreateCommandMap_0100)
     EXPECT_NE(cmd.commandMap_.find("--help"), cmd.commandMap_.end());
     EXPECT_NE(cmd.commandMap_.find("help"), cmd.commandMap_.end());
     EXPECT_NE(cmd.commandMap_.find("restore-window"), cmd.commandMap_.end());
+    EXPECT_NE(cmd.commandMap_.find("move-window"), cmd.commandMap_.end());
+    EXPECT_NE(cmd.commandMap_.find("resize-window"), cmd.commandMap_.end());
 }
 
 TEST_F(OhosWindowCommandUtilTest, CreateErrorInfoMap_0100)
@@ -347,4 +349,251 @@ TEST_F(OhosWindowCommandUtilTest, RunAsRestoreWindow_NegativeId_0100)
     int argc = ARGC_OPTION_VALUE;
     ClawWindowShellCommand cmd(argc, argv);
     EXPECT_EQ(cmd.RunAsRestoreWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsMoveWindow_Help)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("move-window"),
+        const_cast<char*>("--help"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_HELP_OPTION;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsMoveWindow(), ERR_OK);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsMoveWindow_MissingPosY)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("move-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>("--posX"),
+        const_cast<char*>("10"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_EXTRA_ARG;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsMoveWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsMoveWindow_MissingParam)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("move-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_OPTION_VALUE;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsMoveWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsMoveWindow_InvalidNumber)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("move-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("abc"),
+        const_cast<char*>("--posX"),
+        const_cast<char*>("10"),
+        const_cast<char*>("--posY"),
+        const_cast<char*>("20"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsMoveWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsMoveWindow_NegativeWindowId)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("move-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("-90"),
+        const_cast<char*>("--posX"),
+        const_cast<char*>("10"),
+        const_cast<char*>("--posY"),
+        const_cast<char*>("20"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsMoveWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsMoveWindow_UnsupportedOption)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("move-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>("--foo"),
+        const_cast<char*>("10"),
+        const_cast<char*>("--posY"),
+        const_cast<char*>("20"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsMoveWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsMoveWindow_NullProxy)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("move-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>("--posX"),
+        const_cast<char*>("10"),
+        const_cast<char*>("--posY"),
+        const_cast<char*>("20"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    MockClawWindowShellCommand cmd(argc, argv);
+    cmd.CreateErrorInfoMap();
+    cmd.SetProxy(nullptr);
+    EXPECT_EQ(cmd.RunAsMoveWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, CreateCommandMap_ResizeWindow)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_SUBCOMMAND_ONLY;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.CreateCommandMap(), ERR_OK);
+    EXPECT_NE(cmd.commandMap_.find("resize-window"), cmd.commandMap_.end());
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsResizeWindow_Help)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>("--help"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_HELP_OPTION;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsResizeWindow(), ERR_OK);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsResizeWindow_MissingHeight)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>("--width"),
+        const_cast<char*>("300"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_EXTRA_ARG;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsResizeWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsResizeWindow_MissingParam)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>(""),
+    };
+    int argc = ARGC_OPTION_VALUE;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsResizeWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsResizeWindow_InvalidNumber)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("abc"),
+        const_cast<char*>("--width"),
+        const_cast<char*>("300"),
+        const_cast<char*>("--height"),
+        const_cast<char*>("400"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsResizeWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsResizeWindow_NegativeWindowId)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("-90"),
+        const_cast<char*>("--width"),
+        const_cast<char*>("300"),
+        const_cast<char*>("--height"),
+        const_cast<char*>("400"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsResizeWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsResizeWindow_UnsupportedOption)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>("--foo"),
+        const_cast<char*>("300"),
+        const_cast<char*>("--height"),
+        const_cast<char*>("400"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    ClawWindowShellCommand cmd(argc, argv);
+    EXPECT_EQ(cmd.RunAsResizeWindow(), ERR_INVALID_VALUE);
+}
+
+TEST_F(OhosWindowCommandUtilTest, RunAsResizeWindow_NullProxy)
+{
+    char* argv[] = {
+        const_cast<char*>("ohos-window"),
+        const_cast<char*>("resize-window"),
+        const_cast<char*>("--windowId"),
+        const_cast<char*>("100"),
+        const_cast<char*>("--width"),
+        const_cast<char*>("300"),
+        const_cast<char*>("--height"),
+        const_cast<char*>("400"),
+        const_cast<char*>(""),
+    };
+    int argc = 9;
+    MockClawWindowShellCommand cmd(argc, argv);
+    cmd.CreateErrorInfoMap();
+    cmd.SetProxy(nullptr);
+    EXPECT_EQ(cmd.RunAsResizeWindow(), ERR_INVALID_VALUE);
 }

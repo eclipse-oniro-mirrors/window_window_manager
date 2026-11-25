@@ -14,6 +14,9 @@
  */
 
 #include "js_pip_controller.h"
+#include <string>
+#include <unordered_map>
+#include <utility>
 #include "js_pip_utils.h"
 #include "js_err_utils.h"
 #include "picture_in_picture_manager.h"
@@ -43,9 +46,25 @@ constexpr std::string_view ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED = "ArkUI.wind
 constexpr std::string_view ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO = "ArkUI.window.pip.onGetPiPWindowInfo";
 constexpr std::string_view ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH = "ArkUI.window.pip.onGetPiPSettingSwitch";
 constexpr std::string_view ARKUI_WINDOW_PIP_ONISPIPACTIVE = "ArkUI.window.pip.onIsPiPActive";
-constexpr std::string_view ARKUI_WINDOW_PIP_ONREGISTERCALLBACK = "ArkUI.window.pip.onRegisterCallback";
-constexpr std::string_view ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK = "ArkUI.window.pip.onUnregisterCallback";
 constexpr std::string_view ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE = "ArkUI.window.pip.PictureInPicturePossible";
+const std::string ARKUI_WINDOW_PIP = "ArkUI.window.pip.";
+// key: callback type, value: { register suffix, unregister suffix }
+const std::unordered_map<std::string, std::pair<std::string, std::string>> PIP_CALLBACK_REPORT_FIELD_MAP = {
+    { STATE_CHANGE_CB, { "onStateChange", "offStateChange" } },
+    { CONTROL_EVENT_CB, { "onControlEvent", "offControlEvent" } },
+    { CONTROL_PANEL_ACTION_EVENT_CB, { "onControlPanelActionEvent", "offControlPanelActionEvent" } },
+    { SIZE_CHANGE_CB, { "onPipWindowSizeChange", "offPipWindowSizeChange" } },
+    { ACTIVE_STATUS_CHANGE_CB, { "onActiveStatusChange", "offActiveStatusChange" } },
+};
+
+std::string GetCallbackReportField(const std::string& cbType, bool isRegister)
+{
+    auto iter = PIP_CALLBACK_REPORT_FIELD_MAP.find(cbType);
+    if (iter == PIP_CALLBACK_REPORT_FIELD_MAP.end()) {
+        return "";
+    }
+    return ARKUI_WINDOW_PIP + (isRegister ? iter->second.first : iter->second.second);
+}
 }
 
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
@@ -558,28 +577,29 @@ napi_value JsPipController::OnRegisterCallback(napi_env env, napi_callback_info 
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "JsPipController Params not match: %{public}zu", argc);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
             "[PiPWindow][on]msg: Invalid args count, count >= 2 is needed");
     }
     std::string cbType = "";
     if (!ConvertFromJsValue(env, argv[0], cbType)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to callbackType");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
             "[PiPWindow][on]msg: Failed to convert parameter to callbackType");
     }
     napi_value value = argv[1];
+    const std::string reportField = GetCallbackReportField(cbType, true);
     if (value == nullptr || !NapiIsCallable(env, value)) {
         TLOGE(WmsLogTag::WMS_PIP, "Callback is nullptr or not callable");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, reportField,
             "[PiPWindow][on]msg: Callback is nullptr or not callable. Type is " + cbType);
     }
     WmErrorCode ret = RegisterListenerWithType(env, cbType, value);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "OnRegisterCallback failed");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, reportField,
             "[PiPWindow][on]msg: RegisterCallback failed. Type is " + cbType);
     }
-    ResultReport(ARKUI_WINDOW_PIP_ONREGISTERCALLBACK, WmErrorCode::WM_OK);
+    ResultReport(reportField, WmErrorCode::WM_OK);
     return NapiGetUndefined(env);
 }
 
@@ -754,24 +774,25 @@ napi_value JsPipController::OnUnregisterCallback(napi_env env, napi_callback_inf
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc == NUMBER_ZERO || argc > NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "JsPipController Params not match: %{public}zu", argc);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
             "[PiPWindow][off]msg: Invalid args count, 0 < count <= 2 is needed");
     }
     std::string cbType = "";
     if (!ConvertFromJsValue(env, argv[0], cbType)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to string");
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK,
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
             "[PiPWindow][off]msg: Failed to convert parameter to string");
     }
+    const std::string reportField = GetCallbackReportField(cbType, false);
     if (argc == NUMBER_ONE) {
         auto ret = UnRegisterListenerWithType(env, cbType, nullptr);
-        ResultReport(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK, ret);
+        ResultReport(reportField, ret);
         return NapiGetUndefined(env);
     }
     napi_value value = argv[NUMBER_ONE];
     if (value != nullptr && NapiIsCallable(env, value)) {
         auto ret = UnRegisterListenerWithType(env, cbType, value);
-        ResultReport(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK, ret);
+        ResultReport(reportField, ret);
     }
     return NapiGetUndefined(env);
 }

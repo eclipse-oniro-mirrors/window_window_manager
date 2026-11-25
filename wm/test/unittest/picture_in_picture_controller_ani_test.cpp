@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -28,6 +28,10 @@
 #include "window_session_impl.h"
 #include "wm_common.h"
 #include "xcomponent_controller.h"
+
+#include <atomic>
+#include <chrono>
+#include <thread>
 
 using namespace testing;
 using namespace testing::ext;
@@ -97,6 +101,14 @@ public:
         ani_env* env) : PictureInPictureControllerAni(pipOption, mainWindow, mainWindowId, env) {}
     ~MockPictureInPictureControllerAni() {};
     MOCK_METHOD1(GetNavigationController, NavigationController*(const std::string& navId));
+
+    // Expose the protected members/methods required by the NotifyStateChangeInner tests
+    // so that they can be exercised from a non-derived test fixture.
+    using PictureInPictureControllerAni::NotifyStateChangeInner;
+    sptr<PipOptionAni>& GetPipOptionRef() { return pipOption_; }
+    ani_vm*& GetVmRef() { return vm_; }
+    std::shared_ptr<AppExecFwk::EventHandler>& GetEventHandlerRef() { return eventHandler_; }
+    wptr<PictureInPictureControllerAni>& GetWeakRef() { return weakRef_; }
 };
 
 class MockNavigationController : public NavigationController {
@@ -124,7 +136,7 @@ public:
     void SetUp() override;
     void TearDown() override;
 private:
-    static constexpr uint32_t WAIT_SYNC_IN_NS = 200000;
+    static constexpr uint32_t waitSyncInNs = 200000;
 
     sptr<MockPictureInPictureControllerAni> pipControl_ {nullptr};
     std::shared_ptr<MockNavigationController> naviControl_ {nullptr};
@@ -176,6 +188,85 @@ public:
         return std::make_shared<AppExecFwk::ApplicationInfo>();
     }
 };
+
+// Counts how many times the posted state-change task reaches vm->GetEnv.
+std::atomic<int32_t> g_aniGetEnvCount {0};
+
+ani_status GetEnvOkNull(ani_vm *vm, uint32_t version, ani_env **result)
+{
+    (void)vm;
+    (void)version;
+    ++g_aniGetEnvCount;
+    if (result != nullptr) {
+        *result = nullptr;
+    }
+    return ANI_OK;
+}
+
+ani_status GetEnvFail(ani_vm *vm, uint32_t version, ani_env **result)
+{
+    (void)vm;
+    (void)version;
+    ++g_aniGetEnvCount;
+    if (result != nullptr) {
+        *result = nullptr;
+    }
+    return ANI_ERROR;
+}
+
+ani_status GetEnvOkNonNull(ani_vm *vm, uint32_t version, ani_env **result)
+{
+    (void)vm;
+    (void)version;
+    ++g_aniGetEnvCount;
+    static int32_t dummyEnv = 0;
+    if (result != nullptr) {
+        *result = reinterpret_cast<ani_env*>(&dummyEnv);
+    }
+    return ANI_OK;
+}
+
+ani_vm* BuildFakeVmOkNull()
+{
+    static struct __ani_vm_api api = {};
+    static struct __ani_vm vm = {};
+    api.GetEnv = &GetEnvOkNull;
+    vm.c_api = &api;
+    return &vm;
+}
+
+ani_vm* BuildFakeVmFail()
+{
+    static struct __ani_vm_api api = {};
+    static struct __ani_vm vm = {};
+    api.GetEnv = &GetEnvFail;
+    vm.c_api = &api;
+    return &vm;
+}
+
+ani_vm* BuildFakeVmOkNonNull()
+{
+    static struct __ani_vm_api api = {};
+    static struct __ani_vm vm = {};
+    api.GetEnv = &GetEnvOkNonNull;
+    vm.c_api = &api;
+    return &vm;
+}
+
+static constexpr uint32_t WAIT_FOR_ANI_GET_ENV_TIME = 5;
+
+bool WaitForAniGetEnv(int32_t expectedMin, int timeoutMs = 1000)
+{
+    auto start = std::chrono::steady_clock::now();
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count() < timeoutMs) {
+        if (g_aniGetEnvCount.load() >= expectedMin) {
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_FOR_ANI_GET_ENV_TIME));
+    }
+    return g_aniGetEnvCount.load() >= expectedMin;
+}
 
 /**
  * @tc.name: CreatePictureInPictureWindow
@@ -420,6 +511,135 @@ HWTEST_F(PictureInPictureControllerAniTest, StartPictureInPicture04, TestSize.Le
     // reuse path calls PutPipControllerInfo(window_->GetWindowId(), this), and MockWindow::GetWindowId()
     // returns INVALID_WINDOW_ID(0), so clean up the leaked entry holding pipControl_ (and mainWindow_ mock)
     PictureInPictureManager::RemovePipControllerInfo(INVALID_WINDOW_ID);
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner01
+ * @tc.desc: eventHandler_ is nullptr, the function returns without posting a task
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerAniTest, NotifyStateChangeInner01, TestSize.Level1)
+{
+    pipControl_->GetEventHandlerRef() = nullptr;
+    pipControl_->GetVmRef() = BuildFakeVmOkNull();
+    g_aniGetEnvCount = 0;
+    pipControl_->NotifyStateChangeInner(PiPState::ABOUT_TO_START);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_EQ(0, g_aniGetEnvCount.load()) << "no task should be posted when eventHandler_ is null";
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner02
+ * @tc.desc: eventHandler_ has no runner, PostTask returns false and no task is executed
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerAniTest, NotifyStateChangeInner02, TestSize.Level1)
+{
+    pipControl_->GetEventHandlerRef() = std::make_shared<AppExecFwk::EventHandler>(nullptr);
+    pipControl_->GetVmRef() = BuildFakeVmOkNull();
+    g_aniGetEnvCount = 0;
+    pipControl_->NotifyStateChangeInner(PiPState::STARTED);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_EQ(0, g_aniGetEnvCount.load()) << "PostTask failure must not execute the task";
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner03
+ * @tc.desc: PostTask succeeds but weakRef_ is null, the task exits at controller null
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerAniTest, NotifyStateChangeInner03, TestSize.Level1)
+{
+    auto runner = AppExecFwk::EventRunner::Create("pip_ani_notify_03");
+    ASSERT_NE(nullptr, runner);
+    pipControl_->GetEventHandlerRef() = std::make_shared<AppExecFwk::EventHandler>(runner);
+    pipControl_->GetWeakRef() = nullptr;
+    pipControl_->GetVmRef() = BuildFakeVmOkNull();
+    g_aniGetEnvCount = 0;
+    pipControl_->NotifyStateChangeInner(PiPState::STOPPED);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(0, g_aniGetEnvCount.load()) << "task must exit before GetEnv when controller is null";
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner04
+ * @tc.desc: PostTask succeeds, controller is valid but vm_ is null, the task exits at vm null
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerAniTest, NotifyStateChangeInner04, TestSize.Level1)
+{
+    auto runner = AppExecFwk::EventRunner::Create("pip_ani_notify_04");
+    ASSERT_NE(nullptr, runner);
+    pipControl_->GetEventHandlerRef() = std::make_shared<AppExecFwk::EventHandler>(runner);
+    ASSERT_NE(nullptr, pipControl_->GetWeakRef().promote());
+    pipControl_->GetVmRef() = nullptr;
+    g_aniGetEnvCount = 0;
+    pipControl_->NotifyStateChangeInner(PiPState::STARTED);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(0, g_aniGetEnvCount.load()) << "task must exit before GetEnv when vm_ is null";
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner05
+ * @tc.desc: PostTask succeeds, vm->GetEnv returns non-OK, the task exits at GetEnv failure
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerAniTest, NotifyStateChangeInner05, TestSize.Level1)
+{
+    auto runner = AppExecFwk::EventRunner::Create("pip_ani_notify_05");
+    ASSERT_NE(nullptr, runner);
+    pipControl_->GetEventHandlerRef() = std::make_shared<AppExecFwk::EventHandler>(runner);
+    ASSERT_NE(nullptr, pipControl_->GetWeakRef().promote());
+    pipControl_->GetVmRef() = BuildFakeVmFail();
+    g_aniGetEnvCount = 0;
+    pipControl_->NotifyStateChangeInner(PiPState::STARTED);
+    EXPECT_TRUE(WaitForAniGetEnv(1)) << "task should reach vm->GetEnv";
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_EQ(1, g_aniGetEnvCount.load()) << "GetEnv should be called exactly once on failure";
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner06
+ * @tc.desc: PostTask succeeds, vm->GetEnv returns OK but env is null, the task exits at env null
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerAniTest, NotifyStateChangeInner06, TestSize.Level1)
+{
+    auto runner = AppExecFwk::EventRunner::Create("pip_ani_notify_06");
+    ASSERT_NE(nullptr, runner);
+    pipControl_->GetEventHandlerRef() = std::make_shared<AppExecFwk::EventHandler>(runner);
+    ASSERT_NE(nullptr, pipControl_->GetWeakRef().promote());
+    pipControl_->GetVmRef() = BuildFakeVmOkNull();
+    g_aniGetEnvCount = 0;
+    pipControl_->NotifyStateChangeInner(PiPState::STARTED);
+    EXPECT_TRUE(WaitForAniGetEnv(1)) << "task should reach vm->GetEnv";
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_EQ(1, g_aniGetEnvCount.load()) << "GetEnv should be called exactly once when env is null";
+}
+
+/**
+ * @tc.name: NotifyStateChangeInner07
+ * @tc.desc: PostTask succeeds, GetEnv returns OK with a non-null env, the task invokes the
+ *           inner overload which returns early because no stateChange callback is registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(PictureInPictureControllerAniTest, NotifyStateChangeInner07, TestSize.Level1)
+{
+    auto runner = AppExecFwk::EventRunner::Create("pip_ani_notify_07");
+    ASSERT_NE(nullptr, runner);
+    pipControl_->GetEventHandlerRef() = std::make_shared<AppExecFwk::EventHandler>(runner);
+    ASSERT_NE(nullptr, pipControl_->GetWeakRef().promote());
+    pipControl_->GetPipOptionRef() = sptr<PipOptionAni>::MakeSptr();
+    ASSERT_NE(nullptr, pipControl_->GetPipOptionRef());
+    EXPECT_EQ(nullptr, pipControl_->GetANIPipContentCallbackRef("stateChange"));
+    pipControl_->GetVmRef() = BuildFakeVmOkNonNull();
+    g_aniGetEnvCount = 0;
+    pipControl_->NotifyStateChangeInner(PiPState::STARTED);
+    EXPECT_TRUE(WaitForAniGetEnv(1)) << "task should reach vm->GetEnv";
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_EQ(1, g_aniGetEnvCount.load()) << "GetEnv should be called exactly once on success";
+    EXPECT_EQ(nullptr, pipControl_->GetANIPipContentCallbackRef("stateChange"))
+        << "no stateChange callback should be registered so the inner overload returns early";
 }
 
 } // namespace

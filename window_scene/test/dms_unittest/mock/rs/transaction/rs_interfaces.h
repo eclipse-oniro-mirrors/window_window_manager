@@ -125,6 +125,7 @@ public:
     int32_t SetPhysicalScreenResolution(ScreenId id, uint32_t width, uint32_t height);
     bool SetVirtualMirrorScreenCanvasRotation(ScreenId id, bool canvasRotation);
     int32_t SetVirtualScreenAutoRotation(ScreenId id, bool isAutoRotation);
+    int32_t SetVirtualScreenCursorMode(ScreenId id, RSVirtualScreenCursorMode mode);
     bool SetVirtualMirrorScreenScaleMode(ScreenId id, ScreenScaleMode scaleMode);
     void MarkPowerOffNeedProcessOneFrame();
     void DisablePowerOffRenderControl(ScreenId id);

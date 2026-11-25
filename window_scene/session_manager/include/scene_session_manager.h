@@ -937,6 +937,8 @@ public:
     WSError PendingSessionToForeground(const sptr<IRemoteObject>& token,
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) override;
     WSErrorResult RestoreSessionToForeground(int32_t persistentId);
+    WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override;
+    WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height) override;
     WSError PendingSessionToBackground(const sptr<IRemoteObject>& token, const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
         bool shouldBackToCaller = true, int32_t reason = 0) override;
@@ -1494,6 +1496,7 @@ private:
     void UpdateWindowDrawingData(uint64_t surfaceId, int32_t pid, int32_t uid);
     bool GetSpecifiedDrawingData(uint64_t surfaceId, int32_t& pid, int32_t& uid);
     void RemoveSpecifiedDrawingData(uint64_t surfaceId);
+    void ClearSessionCachedRecords(const sptr<SceneSession>& session);
     WMError ReleaseScreenLockForApp(const std::string& bundleName);
     WMError RelockScreenLockForApp(const std::string& bundleName);
     void GetAllSessionsToReleaseScreenLock(
@@ -1911,6 +1914,8 @@ private:
     bool CheckModalSubWindowPermission(const sptr<WindowSessionProperty>& property);
     WSError CheckSubWindowCallingProcess(const sptr<WindowSessionProperty>& property,
         const sptr<SceneSession>& parentSession);
+    WSError CheckCrossWindowControlCalling();
+    WSError CheckWindowControlTarget(int32_t windowId, sptr<SceneSession>& sceneSession);
 
     /*
      * Window Snapshot
