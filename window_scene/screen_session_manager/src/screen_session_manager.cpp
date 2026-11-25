@@ -5829,8 +5829,8 @@ void ScreenSessionManager::GetInternalWidth()
         return;
     }
     ScreenProperty screenProperty = screenSession->GetScreenProperty();
-    uint32_t screenWidth = screenProperty.GetScreenRealWidth();
-    uint32_t screenHeight = screenProperty.GetScreenRealHeight();
+    uint32_t screenWidth = screenProperty.GetPhyBounds().rect_.GetWidth();
+    uint32_t screenHeight = screenProperty.GetPhyBounds().rect_.GetHeight();
     g_internalWidth = (screenWidth > screenHeight) ? screenWidth : screenHeight;
     TLOGNFI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64", g_internalWidth is:%{public}u",
         screenId, static_cast<uint32_t>(g_internalWidth));
