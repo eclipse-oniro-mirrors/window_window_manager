@@ -2128,7 +2128,8 @@ void ScreenSession::FillScreenInfo(sptr<ScreenInfo> info) const
                 logicalHeight = rogHeight;
             }
         }
-    } else if (property_.GetScreenTypeInfo() == ScreenTypeInfo::EXTERNAL) {
+    } else if (property_.GetScreenTypeInfo() == ScreenTypeInfo::EXTERNAL &&
+               GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
         sptr<SupportedScreenModes> activeMode = GetActiveScreenMode();
         if (activeMode != nullptr && activeMode->width_ > 0 && activeMode->height_ > 0) {
             logicalWidth = activeMode->width_;
