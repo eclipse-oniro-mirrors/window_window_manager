@@ -533,7 +533,10 @@ public:
      */
     virtual WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) = 0;
 
-    virtual WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam) = 0;
+    virtual WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
+    {
+        return WMError::WM_OK;
+    }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_INTERFACE_H
