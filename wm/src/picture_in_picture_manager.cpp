@@ -550,6 +550,7 @@ void PictureInPictureManager::SetMultiPipConfig(const PiPMultiConfig& config)
 {
     std::lock_guard<std::mutex> lock(controllerMapMutex_);
     pipMultiConfig_ = config;
+    TLOGI(WmsLogTag::WMS_PIP, "pipMultiConfig updated, groups.size: %{public}zu", pipMultiConfig_.groups.size());
     pipMultiConfig_.ResetGroupCounts();
     for (const auto& pair : windowToControllerMap_) {
         UpdatePipGroupCountLocked(pair.second, true);

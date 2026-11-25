@@ -104,6 +104,7 @@ const std::map<WindowType, JsSessionType> WINDOW_TO_JS_SESSION_TYPE_MAP {
     { WindowType::WINDOW_TYPE_SELECTION,                JsSessionType::TYPE_SELECTION               },
     { WindowType::WINDOW_TYPE_FB,                       JsSessionType::TYPE_FLOATING_BALL           },
     { WindowType::WINDOW_TYPE_FV,                       JsSessionType::TYPE_FLOAT_VIEW              },
+    { WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER, JsSessionType::TYPE_ACCESSIBILITY_CALL_HELPER},
 };
 
 const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP {
@@ -153,6 +154,7 @@ const std::map<JsSessionType, WindowType> JS_SESSION_TO_WINDOW_TYPE_MAP {
     { JsSessionType::TYPE_SELECTION,                WindowType::WINDOW_TYPE_SELECTION               },
     { JsSessionType::TYPE_FLOATING_BALL,            WindowType::WINDOW_TYPE_FB                      },
     { JsSessionType::TYPE_FLOAT_VIEW,               WindowType::WINDOW_TYPE_FV                      },
+    { JsSessionType::TYPE_ACCESSIBILITY_CALL_HELPER, WindowType::WINDOW_TYPE_ACCESSIBILITY_CALL_HELPER},
 };
 
 const std::unordered_map<int32_t, int32_t> JS_TO_MMI_ACTION_MAP = {
@@ -2281,6 +2283,18 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
         napi_set_named_property(env, objValue, "windowCreateParams", windowCreateParamsObj);
     }
 
+    if (sessionInfo.showParams != nullptr) {
+        napi_value windowShowParamsObj = nullptr;
+        napi_create_object(env, &windowShowParamsObj);
+        if (windowShowParamsObj != nullptr) {
+            napi_set_named_property(env, windowShowParamsObj, "windowFocused",
+                CreateJsValue(env, sessionInfo.showParams->windowFocused));
+            napi_set_named_property(env, windowShowParamsObj, "raiseTop",
+                CreateJsValue(env, sessionInfo.showParams->raiseTop));
+            napi_set_named_property(env, objValue, "windowShowParams", windowShowParamsObj);
+        }
+    }
+
     if (sessionInfo.startWindowOption) {
         napi_value startWindowObj = CreateJsStartWindowOptionObj(env, sessionInfo.startWindowOption);
         napi_set_named_property(env, objValue, "startWindowOption", startWindowObj);
@@ -2307,13 +2321,13 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     return objValue;
 }
 
-void ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
+uint32_t ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
     const std::shared_ptr<SessionInfo>& sessionInfo)
 {
     uint32_t resultCode = 0;
     std::string resultMessage = "";
     if (!ConvertSessionResultFromJsValue(env, callResult, resultCode, resultMessage)) {
-        return;
+        return static_cast<uint32_t>(RequestResultCode::FAIL);
     }
     if (resultCode >= static_cast<uint32_t>(RequestResultCode::FAIL)) {
         SceneSessionManager::GetInstance().NotifyAmsPendingSessionWhenFail(resultCode,
@@ -2322,6 +2336,7 @@ void ProcessPendingSessionActivationResult(napi_env env, napi_value callResult,
     TLOGI(WmsLogTag::WMS_LIFE, "persistentId:%{public}d, requestId:%{public}d,"
         "resultCode:%{public}d, resultMessage:%{public}s",
         sessionInfo->persistentId_, sessionInfo->requestId, resultCode, resultMessage.c_str());
+    return resultCode;
 }
 
 bool ConvertSessionResultFromJsValue(napi_env env, napi_value jsResult, uint32_t& resultCode,
@@ -3327,6 +3342,7 @@ napi_value SessionTypeInit(napi_env env)
     SetTypeProperty(objValue, env, "TYPE_SELECTION", JsSessionType::TYPE_SELECTION);
     SetTypeProperty(objValue, env, "TYPE_FLOATING_BALL", JsSessionType::TYPE_FLOATING_BALL);
     SetTypeProperty(objValue, env, "TYPE_FLOAT_VIEW", JsSessionType::TYPE_FLOAT_VIEW);
+    SetTypeProperty(objValue, env, "TYPE_ACCESSIBILITY_CALL_HELPER", JsSessionType::TYPE_ACCESSIBILITY_CALL_HELPER);
     return objValue;
 }
 

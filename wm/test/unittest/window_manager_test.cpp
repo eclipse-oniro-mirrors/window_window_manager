@@ -74,6 +74,32 @@ public:
         return WMError::WM_OK;
     }
 
+    WMError MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override
+    {
+        lastMovedWindowId_ = windowId;
+        lastMovedPosX_ = posX;
+        lastMovedPosY_ = posY;
+        return moveMainWindowToRet_;
+    }
+
+    WMError ResizeWindow(int32_t windowId, int32_t width, int32_t height) override
+    {
+        lastResizedWindowId_ = windowId;
+        lastResizedWidth_ = width;
+        lastResizedHeight_ = height;
+        return resizeMainWindowToRet_;
+    }
+
+    static int32_t lastMovedWindowId_;
+    static int32_t lastMovedPosX_;
+    static int32_t lastMovedPosY_;
+    WMError moveMainWindowToRet_ = WMError::WM_OK;
+
+    static int32_t lastResizedWindowId_;
+    static int32_t lastResizedWidth_;
+    static int32_t lastResizedHeight_;
+    WMError resizeMainWindowToRet_ = WMError::WM_OK;
+
     WMError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override
     {
         return WMError::WM_OK;
@@ -124,6 +150,12 @@ std::string MockWindowAdapter::lastModuleName_;
 std::string MockWindowAdapter::lastAbilityName_;
 uint32_t MockWindowAdapter::lastColor_ = 0;
 int32_t MockWindowAdapter::lastUid_ = 0;
+int32_t MockWindowAdapter::lastMovedWindowId_ = INVALID_SESSION_ID;
+int32_t MockWindowAdapter::lastMovedPosX_ = 0;
+int32_t MockWindowAdapter::lastMovedPosY_ = 0;
+int32_t MockWindowAdapter::lastResizedWindowId_ = INVALID_SESSION_ID;
+int32_t MockWindowAdapter::lastResizedWidth_ = 0;
+int32_t MockWindowAdapter::lastResizedHeight_ = 0;
 
 class TestCameraFloatWindowChangedListener : public ICameraFloatWindowChangedListener {
 public:
@@ -3326,6 +3358,74 @@ HWTEST_F(WindowManagerTest, MoveMainWindowToTargetDisplay, TestSize.Level1)
 
     ret = mockInstance_->MoveMainWindowToTargetDisplay(0, 1);
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: MoveTargetWindow
+ * @tc.desc: MoveTargetWindow pass-through and error mapping
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, MoveTargetWindow, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testPosX = 100;
+    constexpr int32_t testPosY = 200;
+
+    // proxy null: windowAdapter inited but proxy is null -> adapter returns IPC failed, not WM_OK
+    WMError ret;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    ret = instance_->MoveTargetWindow(testWindowId, testPosX, testPosY);
+    EXPECT_NE(WMError::WM_OK, ret);
+
+    // mock adapter returns ok
+    MockWindowAdapter::lastMovedWindowId_ = INVALID_SESSION_ID;
+    ret = mockInstance_->MoveTargetWindow(testWindowId, testPosX, testPosY);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(MockWindowAdapter::lastMovedWindowId_, testWindowId);
+    EXPECT_EQ(MockWindowAdapter::lastMovedPosX_, testPosX);
+    EXPECT_EQ(MockWindowAdapter::lastMovedPosY_, testPosY);
+
+    // mock adapter returns permission error
+    mockAdapter_->moveMainWindowToRet_ = WMError::WM_ERROR_INVALID_PERMISSION;
+    ret = mockInstance_->MoveTargetWindow(testWindowId, testPosX, testPosY);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, ret);
+    mockAdapter_->moveMainWindowToRet_ = WMError::WM_OK;
+}
+
+/**
+ * @tc.name: ResizeWindow
+ * @tc.desc: ResizeWindow pass-through and error mapping
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowManagerTest, ResizeWindow, TestSize.Level1)
+{
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t testWidth = 300;
+    constexpr int32_t testHeight = 400;
+
+    // proxy null: windowAdapter inited but proxy is null -> adapter returns IPC failed, not WM_OK
+    WMError ret;
+    WindowAdapter windowAdapter;
+    windowAdapter.isProxyValid_ = true;
+    windowAdapter.windowManagerServiceProxy_ = nullptr;
+    ret = instance_->ResizeWindow(testWindowId, testWidth, testHeight);
+    EXPECT_NE(WMError::WM_OK, ret);
+
+    // mock adapter returns ok
+    MockWindowAdapter::lastResizedWindowId_ = INVALID_SESSION_ID;
+    ret = mockInstance_->ResizeWindow(testWindowId, testWidth, testHeight);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(MockWindowAdapter::lastResizedWindowId_, testWindowId);
+    EXPECT_EQ(MockWindowAdapter::lastResizedWidth_, testWidth);
+    EXPECT_EQ(MockWindowAdapter::lastResizedHeight_, testHeight);
+
+    // mock adapter returns permission error
+    mockAdapter_->resizeMainWindowToRet_ = WMError::WM_ERROR_INVALID_PERMISSION;
+    ret = mockInstance_->ResizeWindow(testWindowId, testWidth, testHeight);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, ret);
+    mockAdapter_->resizeMainWindowToRet_ = WMError::WM_OK;
 }
 
 /**

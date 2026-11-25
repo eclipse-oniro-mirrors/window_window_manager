@@ -73,6 +73,8 @@ public:
     static napi_value CreateSubWindowAndBindParent(napi_env env, napi_callback_info info);
     static napi_value MoveMainWindowToTargetDisplay(napi_env env, napi_callback_info info);
     static napi_value SetWindowPosition(napi_env env, napi_callback_info info);
+    static napi_value MoveTargetWindow(napi_env env, napi_callback_info info);
+    static napi_value ResizeWindow(napi_env env, napi_callback_info info);
 
 private:
     static napi_value OnCreate(napi_env env, napi_callback_info info);
@@ -125,6 +127,10 @@ private:
         const std::shared_ptr<AbilityRuntime::NapiAsyncTask>& napiAsyncCallBackTask);
     static WmErrorCode MinimizeAllParamParse(
         napi_env env, size_t argc, napi_value* argv, int64_t& displayId, int32_t& excludeWindowId);
+    static napi_value OnMoveTargetWindow(napi_env env, napi_callback_info info);
+    static napi_value OnResizeWindow(napi_env env, napi_callback_info info);
+    static bool ParseResizeWindowParams(napi_env env, napi_callback_info info, int32_t& windowId,
+        int32_t& width, int32_t& height);
 };
 }  // namespace Rosen
 }  // namespace OHOS

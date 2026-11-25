@@ -420,6 +420,154 @@ HWTEST_F(SceneSessionManagerLayoutTest, UpdateAppHookWindowInfoWhenSwitchFreeMul
 }
 
 /**
+ * @tc.name: UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_DisplayInFreeMulti
+ * @tc.desc: test UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow with isForce=false, display in freeMulti
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest,
+    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_DisplayInFreeMulti, TestSize.Level1)
+{
+    ASSERT_TRUE(ssm_ != nullptr);
+    constexpr uint64_t TEST_DISPLAY_ID = 100;
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(TEST_DISPLAY_ID);
+ 
+    std::string bundleName = "UpdateAppHookNotForce_InFreeMulti_Test";
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = bundleName;
+    sessionInfo.abilityName_ = bundleName;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->GetSessionProperty()->SetDisplayId(TEST_DISPLAY_ID);
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+ 
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    sceneSession->GetSessionProperty()->SetHookWindowInfo(hookWindowInfo);
+ 
+    // isForce=false, display in freeMulti -> enableHookWindow = !displayInFreeMulti = false
+    ssm_->UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(true, false);
+    EXPECT_EQ(sceneSession->GetSessionProperty()->GetHookWindowInfo().enableHookWindow, false);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+ 
+/**
+ * @tc.name: UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_DisplayNotInFreeMulti
+ * @tc.desc: test UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow with isForce=false, display NOT in freeMulti
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest,
+    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_DisplayNotInFreeMulti, TestSize.Level1)
+{
+    ASSERT_TRUE(ssm_ != nullptr);
+    constexpr uint64_t TEST_DISPLAY_ID = 200;
+    // display NOT in supportMultiWindowScreenSet_
+ 
+    std::string bundleName = "UpdateAppHookNotForce_NotInFreeMulti_Test";
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = bundleName;
+    sessionInfo.abilityName_ = bundleName;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession->GetSessionProperty()->SetDisplayId(TEST_DISPLAY_ID);
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+ 
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = false;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    sceneSession->GetSessionProperty()->SetHookWindowInfo(hookWindowInfo);
+ 
+    // isForce=false, display NOT in freeMulti -> enableHookWindow = !displayInFreeMulti = true
+    ssm_->UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(true, false);
+    EXPECT_EQ(sceneSession->GetSessionProperty()->GetHookWindowInfo().enableHookWindow, true);
+}
+ 
+/**
+ * @tc.name: UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_NonMainWindow
+ * @tc.desc: test UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow with isForce=false for non-main window
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest,
+    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_NonMainWindow, TestSize.Level1)
+{
+    ASSERT_TRUE(ssm_ != nullptr);
+    constexpr uint64_t TEST_DISPLAY_ID = 300;
+ 
+    std::string bundleName = "UpdateAppHookNotForce_NonMain_Test";
+    SessionInfo sessionInfo;
+    sessionInfo.bundleName_ = bundleName;
+    sessionInfo.abilityName_ = bundleName;
+    sptr<SceneSession> sceneSession = ssm_->CreateSceneSession(sessionInfo, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    // Set to sub window (not main window) - should be skipped
+    sceneSession->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_SYSTEM_SUB_WINDOW);
+    sceneSession->GetSessionProperty()->SetDisplayId(TEST_DISPLAY_ID);
+    ssm_->sceneSessionMap_.insert({ sceneSession->GetPersistentId(), sceneSession });
+ 
+    HookWindowInfo hookWindowInfo;
+    hookWindowInfo.enableHookWindow = true;
+    hookWindowInfo.widthHookRatio = 0.5f;
+    sceneSession->GetSessionProperty()->SetHookWindowInfo(hookWindowInfo);
+ 
+    // Non-main window should not be updated
+    ssm_->UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(true, false);
+    EXPECT_EQ(sceneSession->GetSessionProperty()->GetHookWindowInfo().enableHookWindow, true);
+}
+ 
+/**
+ * @tc.name: UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_MultipleDisplays
+ * @tc.desc: test UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow with isForce=false for multiple sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLayoutTest,
+    UpdateAppHookWindowInfoWhenSwitchFreeMultiWindowNotForce_MultipleDisplays, TestSize.Level1)
+{
+    ASSERT_TRUE(ssm_ != nullptr);
+    constexpr uint64_t DISPLAY_ID_IN_FREE = 100;
+    constexpr uint64_t DISPLAY_ID_NOT_IN_FREE = 200;
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.insert(DISPLAY_ID_IN_FREE);
+ 
+    // Session 1: display in free multi
+    SessionInfo sessionInfo1;
+    sessionInfo1.bundleName_ = "MultiDisplay_InFree";
+    sessionInfo1.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession1 = ssm_->CreateSceneSession(sessionInfo1, nullptr);
+    ASSERT_NE(sceneSession1, nullptr);
+    sceneSession1->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession1->GetSessionProperty()->SetDisplayId(DISPLAY_ID_IN_FREE);
+    ssm_->sceneSessionMap_.insert({ sceneSession1->GetPersistentId(), sceneSession1 });
+ 
+    HookWindowInfo hookInfo1;
+    hookInfo1.enableHookWindow = true;
+    sceneSession1->GetSessionProperty()->SetHookWindowInfo(hookInfo1);
+ 
+    // Session 2: display NOT in free multi
+    SessionInfo sessionInfo2;
+    sessionInfo2.bundleName_ = "MultiDisplay_NotInFree";
+    sessionInfo2.abilityName_ = "testAbility";
+    sptr<SceneSession> sceneSession2 = ssm_->CreateSceneSession(sessionInfo2, nullptr);
+    ASSERT_NE(sceneSession2, nullptr);
+    sceneSession2->GetSessionProperty()->SetWindowType(WindowType::WINDOW_TYPE_APP_MAIN_WINDOW);
+    sceneSession2->GetSessionProperty()->SetDisplayId(DISPLAY_ID_NOT_IN_FREE);
+    ssm_->sceneSessionMap_.insert({ sceneSession2->GetPersistentId(), sceneSession2 });
+ 
+    HookWindowInfo hookInfo2;
+    hookInfo2.enableHookWindow = false;
+    sceneSession2->GetSessionProperty()->SetHookWindowInfo(hookInfo2);
+ 
+    ssm_->UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(true, false);
+    // display in free -> enableHookWindow = false
+    EXPECT_EQ(sceneSession1->GetSessionProperty()->GetHookWindowInfo().enableHookWindow, false);
+    // display NOT in free -> enableHookWindow = true
+    EXPECT_EQ(sceneSession2->GetSessionProperty()->GetHookWindowInfo().enableHookWindow, true);
+ 
+    ssm_->systemConfig_.supportMultiWindowScreenSet_.clear();
+}
+
+/**
  * @tc.name: UpdateRsCmdBlockingCount
  * @tc.desc: test function : UpdateRsCmdBlockingCount
  * @tc.type: FUNC

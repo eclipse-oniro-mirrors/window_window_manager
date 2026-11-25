@@ -609,7 +609,7 @@ public:
     {
         TransformHelper::Vector2 p(static_cast<float>(pointPos.x), static_cast<float>(pointPos.y));
         TransformHelper::Vector2 originPos = TransformHelper::GetOriginScreenPoint(p, transformMat);
-        return PointInfo { static_cast<uint32_t>(originPos.x_), static_cast<uint32_t>(originPos.y_) };
+        return PointInfo { static_cast<int32_t>(originPos.x_), static_cast<int32_t>(originPos.y_) };
     }
 
     // This method is used to update transform when rect changed, but world transform matrix should not change.

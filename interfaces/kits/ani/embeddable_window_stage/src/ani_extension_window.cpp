@@ -337,7 +337,7 @@ ani_object AniExtensionWindow::SnapshotSync(ani_env* env)
     }
     auto window = extensionWindow_->GetWindow();
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->Snapshot(pixelMap));
+    WmErrorCode ret = ConvertErrorToCode(window->Snapshot(pixelMap));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]windowId:%{public}u snapshotSync failed, code:%{public}d",
             window->GetWindowId(), ret);
@@ -361,7 +361,7 @@ ani_object AniExtensionWindow::SnapshotIgnorePrivacy(ani_env* env)
     }
     auto window = extensionWindow_->GetWindow();
     std::shared_ptr<Media::PixelMap> pixelMap = nullptr;
-    WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(window->SnapshotIgnorePrivacy(pixelMap));
+    WmErrorCode ret = ConvertErrorToCode(window->SnapshotIgnorePrivacy(pixelMap));
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_UIEXT, "[ANI]windowId:%{public}u snapshotIgnorePrivacy failed, code:%{public}d",
             window->GetWindowId(), ret);

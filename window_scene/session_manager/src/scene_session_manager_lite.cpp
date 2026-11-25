@@ -377,6 +377,12 @@ WMError SceneSessionManagerLite::HasFloatingWindowForeground(const sptr<IRemoteO
         hasOrNot);
 }
 
+WMError SceneSessionManagerLite::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
+{
+    return SceneSessionManager::GetInstance().GetSessionSnapshotById(persistentId, snapshot, extraInfo);
+}
+
 WMError SceneSessionManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos)
 {
@@ -575,5 +581,23 @@ WMError SceneSessionManagerLite::UpdateRogWindowConfig(const RogWindowConfig& wi
 {
     TLOGD(WmsLogTag::WMS_MAIN, "in");
     return SceneSessionManager::GetInstance().UpdateRogWindowConfig(windowConfig);
+}
+
+WSError SceneSessionManagerLite::NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+}
+
+WSErrorResult SceneSessionManagerLite::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    return SceneSessionManager::GetInstance().MoveTargetWindow(windowId, posX, posY);
+}
+
+WSErrorResult SceneSessionManagerLite::ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    return SceneSessionManager::GetInstance().ResizeWindow(windowId, width, height);
 }
 } // namespace OHOS::Rosen

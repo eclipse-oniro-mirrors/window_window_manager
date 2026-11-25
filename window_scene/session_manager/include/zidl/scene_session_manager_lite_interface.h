@@ -77,6 +77,7 @@ public:
         TRANS_ID_SET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_GET_APP_DRAG_RESIZE_TYPE,
         TRANS_ID_SET_APP_KEY_FRAME_POLICY,
+        TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID,
         TRANS_ID_LIST_WINDOW_INFO,
         TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
         TRANS_ID_UNREGISTER_WINDOW_PROPERTY_CHANGE_AGENT,
@@ -139,6 +140,9 @@ public:
         TRANS_ID_UPDATE_ROG_WINDOW_CONFIG,
         TRANS_ID_RESTORE_SESSION_TO_FOREGROUND,
         TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
+        TRANS_ID_NOTIFY_STACK_RECOVER,
+        TRANS_ID_MOVE_TARGET_WINDOW,
+        TRANS_ID_RESIZE_WINDOW,
     };
 
     /*
@@ -198,6 +202,10 @@ public:
         DragResizeType& dragResizeType) { return WMError::WM_OK; }
     virtual WMError SetAppKeyFramePolicy(const std::string& bundleName,
         const KeyFramePolicy& keyFramePolicy) { return WMError::WM_OK; }
+    virtual WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
     virtual WMError ListWindowInfo(const WindowInfoOption& windowInfoOption,
         std::vector<sptr<WindowInfo>>& infos) = 0;
 
@@ -383,6 +391,15 @@ public:
     }
 
     /**
+     * @brief Notify session to set stack recovery flag
+     *
+     * @param persistentId the id of session
+     * @param isStackRecover whether stack recovery is enabled
+     * @return Successful call returns WSError: WS_OK, otherwise it indicates failure
+     */
+    virtual WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) { return WSError::WS_OK; }
+
+    /**
      * @brief Create a new instanceKey of a specific bundle
      *
      * This function is used to create a new instanceKey
@@ -516,6 +533,15 @@ public:
      * @return Successful call returns WMError: WM-OK, otherwise it indicates failure
      */
     virtual WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) = 0;
+
+    virtual WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+    {
+        return WSErrorResult{WSError::WS_ERROR_INVALID_CALLING, "Not implemented"};
+    }
+    virtual WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+    {
+        return WSErrorResult{WSError::WS_ERROR_INVALID_CALLING, "Not implemented"};
+    }
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_SESSION_MANAGER_LITE_INTERFACE_H

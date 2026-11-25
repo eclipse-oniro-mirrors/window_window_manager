@@ -791,6 +791,8 @@ napi_value JsWindowManager::OnCreateWindow(napi_env env, napi_callback_info info
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnCreateWindow") != napi_status::napi_ok) {
         TLOGE(WmsLogTag::WMS_LIFE, "napi send event failed, window state is abnormal");
+        napiAsyncTask->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_STATE_ABNORMALLY,
+            "[window][createWindow]msg: send event failed"));
     }
     return result;
 }
@@ -934,7 +936,7 @@ napi_value JsWindowManager::OnFindWindowSync(napi_env env, napi_callback_info in
     }
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
-            "[window][createWindow]msg: Parameter verification failed."));
+            "[window][findWindow]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -994,7 +996,8 @@ napi_value JsWindowManager::OnMinimizeAll(napi_env env, napi_callback_info info)
     WmErrorCode errCode = MinimizeAllParamParse(env, argc, argv, displayId, excludeWindowId);
     if (errCode == WmErrorCode::WM_ERROR_INVALID_PARAM) {
         TLOGE(WmsLogTag::WMS_LIFE, "JsWindowManager::OnMinimizeAll failed, Invalidate params.");
-        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM));
+        napi_throw(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][minimizeAll]msg: Parameter verification failed."));
         return NapiGetUndefined(env);
     }
 
@@ -1014,7 +1017,7 @@ napi_value JsWindowManager::OnMinimizeAll(napi_env env, napi_callback_info info)
             task->Resolve(env, NapiGetUndefined(env));
             TLOGNI(WmsLogTag::WMS_LIFE, "OnMinimizeAll success");
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "OnMinimizeAll failed"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "[window][minimizeAll]msg: Minimize all failed."));
         }
     };
     if (napi_send_event(env, asyncTask, napi_eprio_high, "OnMinimizeAll") != napi_status::napi_ok) {
@@ -1839,13 +1842,16 @@ napi_value JsWindowManager::OnGetAllMainWindowInfo(napi_env env, napi_callback_i
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [env, task = napiAsyncTask, where = __func__] {
         std::vector<sptr<MainWindowInfo>> infos;
-        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(
+        auto retIt = WM_JS_TO_ERROR_CODE_MAP.find(
             SingletonContainer::Get<WindowManager>().GetAllMainWindowInfo(infos));
+        WmErrorCode ret = (retIt != WM_JS_TO_ERROR_CODE_MAP.end()) ?
+            retIt->second : WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
         if (ret == WmErrorCode::WM_OK) {
             task->Resolve(env, CreateJsMainWindowInfoArrayObject(env, infos));
             TLOGNI(WmsLogTag::WMS_LIFE, "%{public}s success", where);
         } else {
-            task->Reject(env, JsErrUtils::CreateJsError(env, ret, "failed"));
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                "[window][getAllMainWindowInfo]msg: Get all main window info failed."));
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s failed", where);
         }
     };
@@ -2269,18 +2275,19 @@ napi_value JsWindowManager::OnShiftAppWindowTouchEvent(napi_env env, napi_callba
         return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
             "[window][shiftAppWindowTouchEvent]msg: Failed to convert parameter to fingerId");
     }
-    if (sourceWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
-        targetWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
-        (fingerId <= static_cast<int32_t>(INVALID_FINGER_ID))) {
-        TLOGE(WmsLogTag::WMS_PC, "invalid sourceWindowId or targetWindowId or fingerId");
-        HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
-            WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
-        return NapiThrowError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
-            "[window][shiftAppWindowTouchEvent]msg: Invalid sourceWindowId or targetWindowId or fingerId");
-    }
     napi_value result = nullptr;
     std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
     auto asyncTask = [sourceWindowId, targetWindowId, fingerId, env, task = napiAsyncTask] {
+        if (sourceWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
+            targetWindowId <= static_cast<int32_t>(INVALID_WINDOW_ID) ||
+            (fingerId <= static_cast<int32_t>(INVALID_FINGER_ID))) {
+            TLOGE(WmsLogTag::WMS_PC, "invalid sourceWindowId or targetWindowId or fingerId");
+            HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.shiftAppWindowTouchEvent",
+                WmErrorCode::WM_ERROR_ILLEGAL_PARAM);
+            task->Reject(env, JsErrUtils::CreateJsError(env, WmErrorCode::WM_ERROR_ILLEGAL_PARAM,
+                        "[window][shiftAppWindowTouchEvent]msg: Invalid sourceWindowId or targetWindowId or fingerId"));
+            return;
+        }
         WmErrorCode ret = ConvertErrorToCode(SingletonContainer::Get<WindowManager>().
             ShiftAppWindowPointerEvent(sourceWindowId, targetWindowId, fingerId));
         if (ret == WmErrorCode::WM_OK) {
@@ -2559,7 +2566,10 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         if (subWindow == nullptr || wmError != WMError::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s create window failed", where);
             napi_delete_reference(env, callbackRef);
-            task->Reject(env, JsErrUtils::CreateJsError(env, WM_JS_TO_ERROR_CODE_MAP.at(wmError),
+            auto retIt = WM_JS_TO_ERROR_CODE_MAP.find(wmError);
+            WmErrorCode ret = (retIt != WM_JS_TO_ERROR_CODE_MAP.end()) ?
+                retIt->second : WmErrorCode::WM_ERROR_SYSTEM_ABNORMALLY;
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
                 "[window][CreateSubWindowAndBindParent]msg: Create window failed"));
             return;
         }
@@ -2572,7 +2582,10 @@ napi_value JsWindowManager::OnCreateSubWindowAndBindParent(napi_env env, napi_ca
         if (registerResult != WmErrorCode::WM_OK) {
             TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s register listener failed", where);
             napi_delete_reference(env, callbackRef);
-            subWindow->Destroy();
+            auto destroyRet = subWindow->Destroy();
+            if (destroyRet != WMError::WM_OK) {
+                TLOGNE(WmsLogTag::WMS_LIFE, "%{public}s destroy window failed, ret=%{public}d", where, destroyRet);
+            }
             task->Reject(env, JsErrUtils::CreateJsError(env, registerResult,
                 "[window][CreateSubWindowAndBindParent]msg: " + (errMsg.empty()? "Create window failed" : errMsg)));
             return;
@@ -2704,6 +2717,149 @@ napi_value JsWindowManager::OnSetWindowPosition(napi_env env, napi_callback_info
     return result;
 }
 
+napi_value JsWindowManager::OnMoveTargetWindow(napi_env env, napi_callback_info info)
+{
+    if (!Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "move target window permission denied!");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+            "[window][moveTargetWindow]msg: not system application");
+    }
+
+    size_t argc = ARGC_THREE;
+    napi_value argv[ARGC_THREE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_THREE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+    }
+
+    int32_t windowId = 0;
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], windowId) || windowId <= 0) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to windowId");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][moveTargetWindow]msg: failed to convert parameter to windowId");
+    }
+    int32_t posX = 0;
+    if (!ConvertFromJsValue(env, argv[INDEX_ONE], posX)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to x");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][moveTargetWindow]msg: failed to convert parameter to x");
+    }
+    int32_t posY = 0;
+    if (!ConvertFromJsValue(env, argv[INDEX_TWO], posY)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to y");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][moveTargetWindow]msg: failed to convert parameter to y");
+    }
+
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [windowId, posX, posY, env, task = napiAsyncTask] {
+        WMError err = WindowManager::GetInstance().MoveTargetWindow(windowId, posX, posY);
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(err);
+        if (ret == WmErrorCode::WM_OK) {
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                "[window][moveTargetWindow]msg: move target window failed"));
+        }
+    };
+    napi_status status = napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnMoveTargetWindow");
+    if (status != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][moveTargetWindow]msg: send event failed"));
+    }
+    return result;
+}
+
+napi_value JsWindowManager::MoveTargetWindow(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "[JsWindowManager][moveTargetWindow] is called");
+    JsWindowManager* me = CheckParamsAndGetThis<JsWindowManager>(env, info);
+    return (me != nullptr) ? me->OnMoveTargetWindow(env, info) : nullptr;
+}
+
+bool JsWindowManager::ParseResizeWindowParams(napi_env env, napi_callback_info info, int32_t& windowId,
+    int32_t& width, int32_t& height)
+{
+    size_t argc = ARGC_THREE;
+    napi_value argv[ARGC_THREE] = {nullptr};
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+    if (argc != ARGC_THREE) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Argc is invalid: %{public}zu", argc);
+        NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM);
+        return false;
+    }
+
+    if (!ConvertFromJsValue(env, argv[INDEX_ZERO], windowId) || windowId <= 0) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to windowId");
+        NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][resizeWindow]msg: failed to convert parameter to windowId");
+        return false;
+    }
+    if (!ConvertFromJsValue(env, argv[INDEX_ONE], width)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to width");
+        NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][resizeWindow]msg: failed to convert parameter to width");
+        return false;
+    }
+    if (!ConvertFromJsValue(env, argv[INDEX_TWO], height)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "failed to convert parameter to height");
+        NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][resizeWindow]msg: failed to convert parameter to height");
+        return false;
+    }
+    if (width <= 0 || height <= 0) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "invalid size, width: %{public}d, height: %{public}d", width, height);
+        NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM,
+            "[window][resizeWindow]msg: width and height must be positive integers");
+        return false;
+    }
+    return true;
+}
+
+napi_value JsWindowManager::OnResizeWindow(napi_env env, napi_callback_info info)
+{
+    if (!Permission::IsSystemCalling()) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "resize target window permission denied!");
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_NOT_SYSTEM_APP,
+            "[window][resizeWindow]msg: not system application");
+    }
+
+    int32_t windowId = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    if (!ParseResizeWindowParams(env, info, windowId, width, height)) {
+        return NapiGetUndefined(env);
+    }
+
+    napi_value result = nullptr;
+    std::shared_ptr<NapiAsyncTask> napiAsyncTask = CreateEmptyAsyncTask(env, nullptr, &result);
+    auto asyncTask = [windowId, width, height, env, task = napiAsyncTask] {
+        WMError err = WindowManager::GetInstance().ResizeWindow(windowId, width, height);
+        WmErrorCode ret = WM_JS_TO_ERROR_CODE_MAP.at(err);
+        if (ret == WmErrorCode::WM_OK) {
+            task->Resolve(env, NapiGetUndefined(env));
+        } else {
+            task->Reject(env, JsErrUtils::CreateJsError(env, ret,
+                "[window][resizeWindow]msg: resize window failed"));
+        }
+    };
+    napi_status status = napi_send_event(env, std::move(asyncTask), napi_eprio_high, "OnResizeWindow");
+    if (status != napi_status::napi_ok) {
+        napiAsyncTask->Reject(env, CreateJsError(env, static_cast<int32_t>(WmErrorCode::WM_ERROR_STATE_ABNORMALLY),
+            "[window][resizeWindow]msg: send event failed"));
+    }
+    return result;
+}
+
+napi_value JsWindowManager::ResizeWindow(napi_env env, napi_callback_info info)
+{
+    TLOGI(WmsLogTag::WMS_LAYOUT, "[JsWindowManager][resizeWindow] is called");
+    JsWindowManager* me = CheckParamsAndGetThis<JsWindowManager>(env, info);
+    return (me != nullptr) ? me->OnResizeWindow(env, info) : nullptr;
+}
+
 napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
 {
     WLOGFD("JsWindowManagerInit");
@@ -2802,6 +2958,8 @@ napi_value JsWindowManagerInit(napi_env env, napi_value exportObj)
         JsWindowManager::MoveMainWindowToTargetDisplay);
     BindNativeFunction(env, exportObj, "setWindowPosition", moduleName,
         JsWindowManager::SetWindowPosition);
+    BindNativeFunction(env, exportObj, "moveTargetWindow", moduleName, JsWindowManager::MoveTargetWindow);
+    BindNativeFunction(env, exportObj, "resizeWindow", moduleName, JsWindowManager::ResizeWindow);
     return NapiGetUndefined(env);
 }
 }  // namespace Rosen

@@ -76,7 +76,7 @@ public:
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) override;
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
         bool shouldBackToCaller = true, int32_t reason = 0) override;
-    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot) override;
+    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo) override;
     WMError GetSnapshotByWindowId(int32_t persistentId, std::shared_ptr<Media::PixelMap>& pixelMap) override;
     WSError GetFocusSessionToken(sptr<IRemoteObject>& token, DisplayId displayId = DISPLAY_ID_INVALID) override;
     WSError GetFocusSessionElement(AppExecFwk::ElementName& element, DisplayId displayId = DISPLAY_ID_INVALID) override;
@@ -235,6 +235,8 @@ public:
     WMError GetFloatViewLimits(uint32_t templateType, FloatViewLimits& limits) override;
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
+    WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override;
+    WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height) override;
 
 private:
     template<typename T>

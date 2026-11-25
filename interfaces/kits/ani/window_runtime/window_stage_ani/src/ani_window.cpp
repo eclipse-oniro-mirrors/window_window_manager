@@ -2418,7 +2418,8 @@ void AniWindow::OnClearWindowMask(ani_env* env)
     if (!WindowHelper::IsSubWindow(window->GetType()) && !WindowHelper::IsAppFloatingWindow(window->GetType())) {
         HISTOGRAM_ENUMERATION_ERROR_CODE("ArkUI.window.clearWindowMask",
             WmErrorCode::WM_ERROR_INVALID_CALLING);
-        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING, "Invalid window type");
+        AniWindowUtils::AniThrowError(env, WmErrorCode::WM_ERROR_INVALID_CALLING,
+            "[window][clearWindowMask]msg: Only subwindows and float windows are supported");
         return;
     }
     WmErrorCode ret = AniWindowUtils::ToErrorCode(window->ClearWindowMask());

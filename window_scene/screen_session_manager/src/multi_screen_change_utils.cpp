@@ -25,6 +25,12 @@
 
 namespace OHOS {
 namespace Rosen {
+namespace {
+constexpr uint32_t ROTATION_MOD = 4;
+constexpr uint32_t ROTATION_270 = 3;
+constexpr uint32_t ROTATION_PARITY_MOD = 2;
+constexpr uint32_t ROTATION_LANDSCAPE_PARITY = 1;
+}
 
 void MultiScreenChangeUtils::ScreenPropertyChangeNotify(sptr<ScreenSession>& innerScreen,
     sptr<ScreenSession>& externalScreen)
@@ -446,6 +452,63 @@ void MultiScreenChangeUtils::CreateExtendSession(sptr<ScreenSession>& screenSess
 void MultiScreenChangeUtils::SetMultiScreenModeChangeTracker(std::string changeProc)
 {
     ScreenSessionManager::GetInstance().SetMultiScreenModeChangeTracker(changeProc);
+}
+
+void MultiScreenChangeUtils::NotifySuperOuterOnlyPropertyChange(sptr<ScreenSession>& screenSession)
+{
+    if (screenSession == nullptr) {
+        return;
+    }
+    if (!ScreenSessionManager::GetInstance().GetIsOuterOnlyMode() ||
+        !FoldScreenStateInternel::IsSuperFoldMultiDisplayDevice()) {
+        return;
+    }
+    ScreenProperty property = screenSession->GetScreenProperty();
+    property.SetPropertyChangeReason(ScreenPropertyChangeReason::SUPER_OUTER_ONLY);
+    TLOGW(WmsLogTag::DMS, "notify super outer only property change screenId=%{public}" PRIu64,
+        screenSession->GetScreenId());
+    screenSession->PropertyChange(property, ScreenPropertyChangeReason::SUPER_OUTER_ONLY);
+}
+
+Rotation MultiScreenChangeUtils::GetSuperFoldRotationWithBounds(Rotation rotation, const RRect& bounds)
+{
+    if (static_cast<uint32_t>(rotation) >= ROTATION_MOD) {
+        TLOGE(WmsLogTag::DMS, "SuperFold invalid rotation:%{public}u", static_cast<uint32_t>(rotation));
+        return rotation;
+    }
+    const float width = bounds.rect_.GetWidth();
+    const float height = bounds.rect_.GetHeight();
+    if (width == height) {
+        TLOGD(WmsLogTag::DMS, "SuperFold square bounds, keep rotation:%{public}u", static_cast<uint32_t>(rotation));
+        return rotation;
+    }
+    const bool isLandscapeBounds = width > height;
+    const bool isLandscapeRotation =
+        (static_cast<uint32_t>(rotation) % ROTATION_PARITY_MOD) == ROTATION_LANDSCAPE_PARITY;
+    if (isLandscapeBounds == isLandscapeRotation) {
+        return rotation;
+    }
+    uint32_t corrected = (static_cast<uint32_t>(rotation) + ROTATION_270) % ROTATION_MOD;
+    TLOGW(WmsLogTag::DMS, "rotation:%{public}u, bounds:%{public}f x %{public}f, corrected:%{public}u",
+        static_cast<uint32_t>(rotation), width, height, corrected);
+    return static_cast<Rotation>(corrected);
+}
+
+void MultiScreenChangeUtils::CorrectSuperFoldRotationWithBounds(sptr<ScreenSession>& screenSession)
+{
+    if (screenSession == nullptr) {
+        return;
+    }
+    ScreenProperty property = screenSession->GetScreenProperty();
+    Rotation currentRotation = static_cast<Rotation>(property.GetScreenRotation());
+    Rotation correctedRotation = GetSuperFoldRotationWithBounds(currentRotation, property.GetBounds());
+    if (correctedRotation == currentRotation) {
+        return;
+    }
+    TLOGW(WmsLogTag::DMS, "screenId:%{public}" PRIu64 ", rotation:%{public}u -> %{public}u",
+        screenSession->GetScreenId(), static_cast<uint32_t>(currentRotation), static_cast<uint32_t>(correctedRotation));
+    screenSession->UpdatePropertyByActiveModeChange();
+    screenSession->UpdateDisplayNodeRotation(ScreenSessionManager::GetInstance().GetFoldDisplayMode());
 }
 } // Rosen
 } // OHOS

@@ -33,25 +33,96 @@ const std::string EVENT_CHANGE = "change";
 JsScreenListener::JsScreenListener(napi_env env) : env_(env), weakRef_(wptr<JsScreenListener> (this))
 {
     TLOGI(WmsLogTag::DMS, "Constructor execution");
-    napi_add_env_cleanup_hook(env_, CleanEnv, this);
+    jsThreadId_ = std::this_thread::get_id();
+
+    hookCtx_ = new (std::nothrow) HookContext();
+    if (hookCtx_ == nullptr) {
+        TLOGE(WmsLogTag::DMS, "hookCtx_ is nullptr");
+        return;
+    }
+    hookCtx_->listener = this;
+    hookCtx_->env = env;
+
+    auto ret = napi_add_env_cleanup_hook(env_, CleanEnv, hookCtx_);
+    if (ret != napi_status::napi_ok) {
+        TLOGE(WmsLogTag::DMS, "add env hook failed: %{public}d", ret);
+    }
 }
 
 JsScreenListener::~JsScreenListener()
 {
     TLOGI(WmsLogTag::DMS, "Destructor execution");
-    napi_remove_env_cleanup_hook(env_, CleanEnv, this);
+    if (hookCtx_ == nullptr) {
+        env_ = nullptr;
+        return;
+    }
+
+    HookContext* ctx = hookCtx_;
+    hookCtx_ = nullptr;
+
+    bool alreadyFired = false;
+    {
+        std::lock_guard<std::mutex> lock(ctx->mutex);
+        ctx->listener = nullptr;
+        alreadyFired = ctx->hookFired;
+    }
+
+    if (alreadyFired) {
+        delete ctx;
+        env_ = nullptr;
+        return;
+    }
+
+    if (std::this_thread::get_id() == jsThreadId_) {
+        auto ret = napi_remove_env_cleanup_hook(ctx->env, CleanEnv, ctx);
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::DMS, "remove env hook failed: %{public}d", ret);
+        }
+        {
+            std::lock_guard<std::mutex> lock(ctx->mutex);
+            ctx->hookRemoved = true;
+        }
+        delete ctx;
+    } else {
+        TLOGW(WmsLogTag::DMS, "~JsScreenListener on non-js thread, post remove-hook to js thread");
+        napi_env env = ctx->env;
+        auto task = [ctx]() {
+            {
+                std::lock_guard<std::mutex> lock(ctx->mutex);
+                if (!ctx->hookFired && !ctx->hookRemoved) {
+                    napi_remove_env_cleanup_hook(ctx->env, CleanEnv, ctx);
+                    ctx->hookRemoved = true;
+                }
+            }
+            delete ctx;
+        };
+        auto ret = napi_send_event(env, task, napi_eprio_immediate);
+        if (ret != napi_status::napi_ok) {
+            TLOGE(WmsLogTag::DMS, "napi_send_event for remove hook failed: %{public}d", ret);
+        }
+    }
     env_ = nullptr;
 }
 
 void JsScreenListener::CleanEnv(void* obj)
 {
-    JsScreenListener* thisObj = reinterpret_cast<JsScreenListener*>(obj);
-    if (!thisObj) {
-        TLOGE(WmsLogTag::DMS, "obj is nullptr");
+    auto* ctx = reinterpret_cast<HookContext*>(obj);
+    if (ctx == nullptr) {
+        return;
+    }
+
+    JsScreenListener* listener = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(ctx->mutex);
+        ctx->hookFired = true;
+        listener = ctx->listener;
+    }
+    if (!listener) {
+        TLOGE(WmsLogTag::DMS, "listener is nullptr");
         return;
     }
     TLOGI(WmsLogTag::DMS, "env_ is invalid, set to nullptr");
-    thisObj->env_ = nullptr;
+    listener->env_ = nullptr;
 }
 
 void JsScreenListener::AddCallback(const std::string& type, napi_value jsListenerObject)

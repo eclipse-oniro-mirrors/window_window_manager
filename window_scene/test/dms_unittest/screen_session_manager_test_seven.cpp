@@ -828,6 +828,23 @@ HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenSecurityExemption, TestSize.L
 }
 
 /**
+ * @tc.name: SetVirtualScreenSecurityExemptionExemptAll
+ * @tc.desc: SetVirtualScreenSecurityExemption with exemptAll
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenSecurityExemptionExemptAll, TestSize.Level1)
+{
+    ScreenId screenId = 0;
+    uint32_t pid = 1111;
+    std::vector<uint64_t> windowList = {};  // empty list, exempt all security layers
+    auto ret = ssm_->SetVirtualScreenSecurityExemption(screenId, pid, windowList, true);
+    ASSERT_EQ(ret, DMError::DM_ERROR_UNKNOWN);
+
+    ret = ssm_->SetVirtualScreenSecurityExemption(screenId, pid, windowList, false);
+    ASSERT_EQ(ret, DMError::DM_ERROR_UNKNOWN);
+}
+
+/**
  * @tc.name: NotifyFoldToExpandCompletion
  * @tc.desc: NotifyFoldToExpandCompletion
  * @tc.type: FUNC

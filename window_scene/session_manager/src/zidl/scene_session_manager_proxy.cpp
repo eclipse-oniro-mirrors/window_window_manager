@@ -303,36 +303,41 @@ WMError SceneSessionManagerProxy::SetParentWindow(int32_t subWindowId, int32_t n
     return static_cast<WMError>(ret);
 }
 
-WMError SceneSessionManagerProxy::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot)
+WMError SceneSessionManagerProxy::GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot,
+    std::string& extraInfo)
 {
     MessageParcel data;
     MessageParcel reply;
     MessageOption option;
     if (!data.WriteInterfaceToken(GetDescriptor())) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "WriteInterfaceToken failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write interfaceToken failed, persistentId=%{public}d", persistentId);
         return WMError::WM_ERROR_IPC_FAILED;
     }
     if (!data.WriteInt32(persistentId)) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Write persistentId failed");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "write persistentId failed, persistentId=%{public}d", persistentId);
         return WMError::WM_ERROR_IPC_FAILED;
     }
 
     sptr<IRemoteObject> remote = Remote();
     if (remote == nullptr) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "remote is null");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "remote is null, persistentId=%{public}d", persistentId);
         return WMError::WM_ERROR_IPC_FAILED;
     }
-    if (remote->SendRequest(static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID),
-        data, reply, option) != ERR_NONE) {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "SendRequest failed");
+    auto reqErrCode = remote->SendRequest(
+        static_cast<uint32_t>(SceneSessionManagerMessage::TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID),
+        data, reply, option);
+    if (reqErrCode != ERR_NONE) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "send request failed, persistentId=%{public}d, errCode=%{public}d",
+            persistentId, reqErrCode);
         return WMError::WM_ERROR_IPC_FAILED;
     }
     sptr<SessionSnapshot> info(reply.ReadParcelable<SessionSnapshot>());
     if (info) {
         snapshot = *info;
     } else {
-        TLOGE(WmsLogTag::WMS_SYSTEM, "Read snapshot is null.");
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read snapshot is null, persistentId=%{public}d", persistentId);
     }
+    reply.ReadString(extraInfo);
     return static_cast<WMError>(reply.ReadInt32());
 }
 
@@ -340,7 +345,8 @@ WMError SceneSessionManagerProxy::GetSnapshotByWindowId(int32_t persistentId,
     std::shared_ptr<Media::PixelMap>& pixelMap)
 {
     SessionSnapshot snapshot;
-    WMError ret = GetSessionSnapshotById(persistentId, snapshot);
+    std::string extraInfo;
+    WMError ret = GetSessionSnapshotById(persistentId, snapshot, extraInfo);
     if (ret == WMError::WM_OK) {
         pixelMap = snapshot.snapshot;
     }
@@ -5288,5 +5294,83 @@ WMError SceneSessionManagerProxy::SetGameAdaptiveResolutionForWindow(const GameA
         return WMError::WM_ERROR_IPC_FAILED;
     }
     return static_cast<WMError>(ret);
+}
+
+WSErrorResult SceneSessionManagerProxy::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write interface token failed.");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write interface token."};
+    }
+    if (!data.WriteInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write windowId failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write window id."};
+    }
+    if (!data.WriteInt32(posX)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write posX failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write posX."};
+    }
+    if (!data.WriteInt32(posY)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write posY failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write posY."};
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Remote is null");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
+            "Internal task error, the remote binder object is null."};
+    }
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    if (remote->SendRequest(static_cast<uint32_t>(
+        SceneSessionManagerMessage::TRANS_ID_MOVE_TARGET_WINDOW),
+        data, reply, option) != ERR_NONE || !reply.ReadInt32(errCode) || !reply.ReadString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SendRequest failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
+            "Internal task error, IPC SendRequest invocation failed."};
+    }
+    return WSErrorResult{static_cast<WSError>(errCode), errMsg};
+}
+
+WSErrorResult SceneSessionManagerProxy::ResizeWindow(int32_t windowId, int32_t width, int32_t height)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option(MessageOption::TF_SYNC);
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write interface token failed.");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write interface token."};
+    }
+    if (!data.WriteInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write windowId failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write window id."};
+    }
+    if (!data.WriteInt32(width)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write width failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write width."};
+    }
+    if (!data.WriteInt32(height)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Write height failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED, "Internal task error, failed to write height."};
+    }
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "Remote is null");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
+            "Internal task error, the remote binder object is null."};
+    }
+    int32_t errCode = ERR_NONE;
+    std::string errMsg = "";
+    if (remote->SendRequest(static_cast<uint32_t>(
+        SceneSessionManagerMessage::TRANS_ID_RESIZE_WINDOW),
+        data, reply, option) != ERR_NONE || !reply.ReadInt32(errCode) || !reply.ReadString(errMsg)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "SendRequest failed");
+        return WSErrorResult{WSError::WS_ERROR_IPC_FAILED,
+            "Internal task error, IPC SendRequest invocation failed."};
+    }
+    return WSErrorResult{static_cast<WSError>(errCode), errMsg};
 }
 } // namespace OHOS::Rosen

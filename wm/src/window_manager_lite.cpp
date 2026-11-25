@@ -2126,7 +2126,7 @@ WMError WindowManagerLite::SetAppKeyFramePolicy(const std::string& bundleName, c
 WMError WindowManagerLite::ListWindowInfo(const WindowInfoOption& windowInfoOption,
     std::vector<sptr<WindowInfo>>& infos) const
 {
-    TLOGI(WmsLogTag::WMS_ATTRIBUTE,
+    TLOGD(WmsLogTag::WMS_ATTRIBUTE,
         "lite: userId=%{public}d, filter=%{public}u, type=%{public}u, winId=%{public}d, displayId=%{public}" PRIu64,
         userId_, static_cast<WindowInfoFilterOptionDataType>(windowInfoOption.windowInfoFilterOption),
         static_cast<WindowInfoTypeOptionDataType>(windowInfoOption.windowInfoTypeOption),

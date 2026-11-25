@@ -87,6 +87,7 @@ public:
     WMError SetAppDragResizeType(const std::string& bundleName, DragResizeType dragResizeType) override;
     WMError GetAppDragResizeType(const std::string& bundleName, DragResizeType& dragResizeType) override;
     WMError SetAppKeyFramePolicy(const std::string& bundleName, const KeyFramePolicy& keyFramePolicy) override;
+    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo) override;
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos) override;
     WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
         const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
@@ -150,6 +151,9 @@ public:
     WMError GetAppWindowShowingInfosByBundleName(const ApplicationInfo& appInfo,
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override;
+    WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override;
+    WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height) override;
 private:
     template<typename T>
     WSError GetParcelableInfos(MessageParcel& reply, std::vector<T>& parcelableInfos);

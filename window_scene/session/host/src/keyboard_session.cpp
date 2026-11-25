@@ -360,7 +360,8 @@ WSError KeyboardSession::AdjustKeyboardLayout(const KeyboardLayoutParams& params
             session->SetWindowAnimationFlag(false);
         } else {
             if (session->IsLifecycleForeground()) {
-                session->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_BOTTOM);
+                session->NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason::KEYBOARD_GRAVITY_BOTTOM,
+                    params.displayId_);
             }
             session->SetWindowAnimationFlag(true);
         }
@@ -754,7 +755,7 @@ void KeyboardSession::EnableCallingSessionAvoidArea()
     ProcessKeyboardOccupiedAreaInfo(GetCallingSessionId(), true, false);
 }
 
-void KeyboardSession::NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason reason)
+void KeyboardSession::NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeReason reason, DisplayId displayId)
 {
     if (!systemConfig_.IsPcWindow()) {
         TLOGI(WmsLogTag::WMS_KEYBOARD, "This device is not pc");
@@ -769,7 +770,10 @@ void KeyboardSession::NotifySystemKeyboardAvoidChange(SystemKeyboardAvoidChangeR
             GetPersistentId());
         return;
     }
-    keyboardCallback_->onSystemKeyboardAvoidChange(GetScreenId(), reason);
+    if (displayId == DISPLAY_ID_INVALID) {
+        displayId = GetScreenId();
+    }
+    keyboardCallback_->onSystemKeyboardAvoidChange(displayId, reason);
 }
 
 void KeyboardSession::OpenKeyboardSyncTransaction()

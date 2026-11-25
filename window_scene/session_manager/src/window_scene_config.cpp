@@ -143,6 +143,10 @@ const std::map<std::string, WindowSceneConfig::ValueType> WindowSceneConfig::con
     { "marginBottom",                                 WindowSceneConfig::ValueType::INTS },
     { "maxFontScale",                                 WindowSceneConfig::ValueType::STRING },
     { "isSettingButtonMirror",                        WindowSceneConfig::ValueType::STRING },
+    // ========================= App DPI Scale Config =========================
+    { "appDpiScaleConfig",                            WindowSceneConfig::ValueType::MAP },
+    { "maxDpiScale",                                  WindowSceneConfig::ValueType::POSITIVE_FLOATS },
+    { "minDpiScale",                                  WindowSceneConfig::ValueType::POSITIVE_FLOATS },
 };
 
 std::vector<std::string> WindowSceneConfig::SplitNodeContent(const xmlNodePtr& node, const std::string& pattern)

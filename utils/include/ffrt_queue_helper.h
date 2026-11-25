@@ -53,6 +53,7 @@ private:
     uint32_t statBufferSize_ = 0;
     int statTimer_ = -1;
     std::atomic<bool> statEnabled_ {false};
+    uint64_t statStartTime_ = 0;
 };
 } // namespace OHOS::Rosen
 

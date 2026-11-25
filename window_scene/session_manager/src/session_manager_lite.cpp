@@ -20,6 +20,7 @@
 #include <system_ability_definition.h>
 
 #include "scene_session_manager_lite_proxy.h"
+#include "session_manager_service_proxy.h"
 #include "window_manager_hilog.h"
 
 namespace OHOS::Rosen {
@@ -99,7 +100,10 @@ void SessionManagerServiceLiteRecoverListener::OnWMSConnectionChanged(
     const sptr<IRemoteObject>& sessionManagerService)
 {
     TLOGD(WmsLogTag::WMS_RECOVER, "enter, userId=%{public}d", userId_);
-    auto sms = iface_cast<ISessionManagerService>(sessionManagerService);
+    sptr<ISessionManagerService> sms = nullptr;
+    if (sessionManagerService != nullptr && sessionManagerService->IsProxyObject()) {
+        sms = new SessionManagerServiceProxy(sessionManagerService);
+    }
     SessionManagerLite::GetInstance(userId_).OnWMSConnectionChanged(wmsUserId, screenId, isConnected,
         pid, fromUserId, fromPid, sms);
 }

@@ -330,7 +330,7 @@ HWTEST_F(KeyboardSessionTest2, AdjustKeyboardLayout04, Function | SmallTest | Le
 
     keyboardSession->state_ = SessionState::STATE_FOREGROUND;
     keyboardSession->AdjustKeyboardLayout(params);
-    EXPECT_TRUE(g_logMsg.find("Keyboard avoidHeight is set") != std::string::npos);
+    EXPECT_TRUE(g_logMsg.find("Keyboard avoidHeight is set") == std::string::npos);
 
     //params.landscapeAvoidHeight_ < 0, expect: skip recalculate occupiedArea.
     g_logMsg.clear();

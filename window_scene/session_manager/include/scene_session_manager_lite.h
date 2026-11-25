@@ -100,6 +100,7 @@ public:
     WMError LockSessionByAbilityInfo(const AbilityInfoBase& abilityInfo, bool isLock) override;
     WMError HasFloatingWindowForeground(const sptr<IRemoteObject>& abilityToken,
         bool& hasOrNot) override;
+    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo) override;
     WMError ListWindowInfo(const WindowInfoOption& windowInfoOption, std::vector<sptr<WindowInfo>>& infos) override;
     WMError RegisterWindowPropertyChangeAgent(WindowInfoKey windowInfoKey, uint32_t interestInfo,
         const sptr<IWindowManagerAgent>& windowManagerAgent, int32_t instanceUserId = INVALID_USER_ID) override;
@@ -143,6 +144,9 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override;
+    WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override;
+    WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height) override;
 };
 } // namespace OHOS::Rosen
 

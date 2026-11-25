@@ -14,6 +14,9 @@
  */
 
 #include "js_pip_controller.h"
+#include <string>
+#include <unordered_map>
+#include <utility>
 #include "js_pip_utils.h"
 #include "js_err_utils.h"
 #include "picture_in_picture_manager.h"
@@ -24,42 +27,44 @@ namespace OHOS {
 namespace Rosen {
 using namespace AbilityRuntime;
 namespace {
-    constexpr int32_t NUMBER_ZERO = 0;
-    constexpr int32_t NUMBER_ONE = 1;
-    constexpr int32_t NUMBER_TWO = 2;
-    constexpr int32_t NUMBER_FOUR = 4;
-    const std::string STATE_CHANGE_CB = "stateChange";
-    const std::string CONTROL_PANEL_ACTION_EVENT_CB = "controlPanelActionEvent";
-    const std::string CONTROL_EVENT_CB = "controlEvent";
-    const std::string SIZE_CHANGE_CB = "pipWindowSizeChange";
-    const std::string ACTIVE_STATUS_CHANGE_CB = "activeStatusChange";
-    const char* ARKUI_WINDOW_PIP_STARTPIP = "ArkUI.window.pip.startPiP";
-    const char* ARKUI_WINDOW_PIP_STOPPIP = "ArkUI.window.pip.stopPiP";
-    const char* ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED = "ArkUI.window.pip.onSetAutoStartEnabled";
-    const char* ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE = "ArkUI.window.pip.onUpdateContentNode";
-    const char* ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE = "ArkUI.window.pip.onUpdateContentSize";
-    const char* ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS = "ArkUI.window.pip.onUpdatePiPControlStatus";
-    const char* ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED = "ArkUI.window.pip.onSetPiPControlEnabled";
-    const char* ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO = "ArkUI.window.pip.onGetPiPWindowInfo";
-    const char* ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH = "ArkUI.window.pip.onGetPiPSettingSwitch";
-    const char* ARKUI_WINDOW_PIP_ONISPIPACTIVE = "ArkUI.window.pip.onIsPiPActive";
-    const char* ARKUI_WINDOW_PIP_ONREGISTERCALLBACK = "ArkUI.window.pip.onRegisterCallback";
-    const char* ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK = "ArkUI.window.pip.onUnregisterCallback";
-    const char* ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE = "ArkUI.window.pip.PictureInPicturePossible";
+constexpr int32_t NUMBER_ZERO = 0;
+constexpr int32_t NUMBER_ONE = 1;
+constexpr int32_t NUMBER_TWO = 2;
+constexpr int32_t NUMBER_FOUR = 4;
+const std::string STATE_CHANGE_CB = "stateChange";
+const std::string CONTROL_PANEL_ACTION_EVENT_CB = "controlPanelActionEvent";
+const std::string CONTROL_EVENT_CB = "controlEvent";
+const std::string SIZE_CHANGE_CB = "pipWindowSizeChange";
+const std::string ACTIVE_STATUS_CHANGE_CB = "activeStatusChange";
+constexpr std::string_view ARKUI_WINDOW_PIP_STARTPIP = "ArkUI.window.pip.startPiP";
+constexpr std::string_view ARKUI_WINDOW_PIP_STOPPIP = "ArkUI.window.pip.stopPiP";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED = "ArkUI.window.pip.onSetAutoStartEnabled";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE = "ArkUI.window.pip.onUpdateContentNode";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE = "ArkUI.window.pip.onUpdateContentSize";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS = "ArkUI.window.pip.onUpdatePiPControlStatus";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED = "ArkUI.window.pip.onSetPiPControlEnabled";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO = "ArkUI.window.pip.onGetPiPWindowInfo";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH = "ArkUI.window.pip.onGetPiPSettingSwitch";
+constexpr std::string_view ARKUI_WINDOW_PIP_ONISPIPACTIVE = "ArkUI.window.pip.onIsPiPActive";
+constexpr std::string_view ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE = "ArkUI.window.pip.PictureInPicturePossible";
+const std::string ARKUI_WINDOW_PIP = "ArkUI.window.pip.";
+// key: callback type, value: { register suffix, unregister suffix }
+const std::unordered_map<std::string, std::pair<std::string, std::string>> PIP_CALLBACK_REPORT_FIELD_MAP = {
+    { STATE_CHANGE_CB, { "onStateChange", "offStateChange" } },
+    { CONTROL_EVENT_CB, { "onControlEvent", "offControlEvent" } },
+    { CONTROL_PANEL_ACTION_EVENT_CB, { "onControlPanelActionEvent", "offControlPanelActionEvent" } },
+    { SIZE_CHANGE_CB, { "onPipWindowSizeChange", "offPipWindowSizeChange" } },
+    { ACTIVE_STATUS_CHANGE_CB, { "onActiveStatusChange", "offActiveStatusChange" } },
+};
 
-    const char* ARKUI_WINDOW_PIP_STARTPIP_BOOL = "ArkUI.window.pip.startPiP.bool";
-    const char* ARKUI_WINDOW_PIP_STOPPIP_BOOL = "ArkUI.window.pip.stopPiP.bool";
-    const char* ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED_BOOL = "ArkUI.window.pip.onSetAutoStartEnabled.bool";
-    const char* ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE_BOOL = "ArkUI.window.pip.onUpdateContentNode.bool";
-    const char* ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE_BOOL = "ArkUI.window.pip.onUpdateContentSize.bool";
-    const char* ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS_BOOL = "ArkUI.window.pip.onUpdatePiPControlStatus.bool";
-    const char* ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED_BOOL = "ArkUI.window.pip.onSetPiPControlEnabled.bool";
-    const char* ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO_BOOL = "ArkUI.window.pip.onGetPiPWindowInfo.bool";
-    const char* ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH_BOOL = "ArkUI.window.pip.onGetPiPSettingSwitch.bool";
-    const char* ARKUI_WINDOW_PIP_ONISPIPACTIVE_BOOL = "ArkUI.window.pip.onIsPiPActive.bool";
-    const char* ARKUI_WINDOW_PIP_ONREGISTERCALLBACK_BOOL = "ArkUI.window.pip.onRegisterCallback.bool";
-    const char* ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK_BOOL = "ArkUI.window.pip.onUnregisterCallback.bool";
-    const char* ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE_BOOL = "ArkUI.window.pip.PictureInPicturePossible.bool";
+std::string GetCallbackReportField(const std::string& cbType, bool isRegister)
+{
+    auto iter = PIP_CALLBACK_REPORT_FIELD_MAP.find(cbType);
+    if (iter == PIP_CALLBACK_REPORT_FIELD_MAP.end()) {
+        return "";
+    }
+    return ARKUI_WINDOW_PIP + (isRegister ? iter->second.first : iter->second.second);
+}
 }
 
 void BindFunctions(napi_env env, napi_value object, const char* moduleName)
@@ -141,24 +146,25 @@ napi_value JsPipController::OnStartPictureInPicture(napi_env env, napi_callback_
         if (pipController == nullptr) {
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "startPiP", WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY, "The PiP controller has been destroyed."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_STARTPIP, WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY);
+            ResultReport(ARKUI_WINDOW_PIP_STARTPIP, WmErrorCode::WM_ERROR_PIP_STATE_ABNORMALLY);
             return;
         }
         pipController->SetStateChangeReason(PiPStateChangeReason::REQUEST_START);
         WMErrorResult result = pipController->StartPictureInPicture(StartPipType::USER_START);
         if (result.errCode != WMError::WM_OK) {
-            WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(result.errCode);
+            WmErrorCode errorCode = ConvertErrorToCode(result.errCode);
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "startPiP", errorCode, result.errMsg));
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STARTPIP_BOOL, 0);
+            ResultReport(ARKUI_WINDOW_PIP_STARTPIP, errorCode);
             return;
         }
+        ResultReport(ARKUI_WINDOW_PIP_STARTPIP, WmErrorCode::WM_OK);
         task->Resolve(env, NapiGetUndefined(env));
-        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STARTPIP_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStartPictureInPicture") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
             "startPiP", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
+        ResultReport(ARKUI_WINDOW_PIP_STARTPIP, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
     return result;
 }
@@ -180,24 +186,25 @@ napi_value JsPipController::OnStopPictureInPicture(napi_env env, napi_callback_i
         if (pipController == nullptr) {
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "stopPiP", WmErrorCode::WM_ERROR_STATE_ABNORMALLY, "The PiP controller has been destroyed."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_STOPPIP, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
+            ResultReport(ARKUI_WINDOW_PIP_STOPPIP, WmErrorCode::WM_ERROR_STATE_ABNORMALLY);
             return;
         }
         pipController->SetStateChangeReason(PiPStateChangeReason::REQUEST_DELETE);
         WMErrorResult result = pipController->StopPictureInPictureFromClient();
         if (result.errCode != WMError::WM_OK) {
-            WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(result.errCode);
+            WmErrorCode errorCode = ConvertErrorToCode(result.errCode);
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "stopPiP", errorCode, result.errMsg));
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STOPPIP_BOOL, 0);
+            ResultReport(ARKUI_WINDOW_PIP_STOPPIP, errorCode);
             return;
         }
+        ResultReport(ARKUI_WINDOW_PIP_STOPPIP, WmErrorCode::WM_OK);
         task->Resolve(env, NapiGetUndefined(env));
-        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_STOPPIP_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnStopPictureInPicture") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
             "stopPiP", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
+        ResultReport(ARKUI_WINDOW_PIP_STOPPIP, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
     return result;
 }
@@ -216,20 +223,22 @@ napi_value JsPipController::OnSetAutoStartEnabled(napi_env env, napi_callback_in
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != 1) {
         TLOGE(WmsLogTag::WMS_PIP, "Argc count is invalid: %{public}zu", argc);
-        return NapiThrowInvalidParam(env, "[PiPWindow][setAutoStartEnabled]msg: Invalid args count, 1 arg is needed",
-            ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED, ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED,
+            "[PiPWindow][setAutoStartEnabled]msg: Invalid args count, 1 arg is needed");
     }
     bool enable = false;
     if (!ConvertFromJsValue(env, argv[0], enable)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to bool");
+        ResultReport(ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
         return NapiGetUndefined(env);
     }
     if (pipController_ == nullptr) {
         TLOGE(WmsLogTag::WMS_PIP, "error, controller is nullptr");
+        ResultReport(ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
         return NapiGetUndefined(env);
     }
     pipController_->SetAutoStartEnabled(enable);
-    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED_BOOL, 1);
+    ResultReport(ARKUI_WINDOW_PIP_ONSETAUTOSTARTENABLED, WmErrorCode::WM_OK);
     return NapiGetUndefined(env);
 }
 
@@ -247,14 +256,14 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != NUMBER_ONE) {
         TLOGE(WmsLogTag::WMS_PIP, "Argc count is invalid:%{public}zu", argc);
-        return NapiThrowInvalidParam(env, "[PiPWindow][updateContentNode]msg: Invalid args count, 1 arg is needed",
-            ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE, ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
+            "[PiPWindow][updateContentNode]msg: Invalid args count, 1 arg is needed");
     }
     napi_value typeNode = argv[0];
     if (GetType(env, typeNode) == napi_null || GetType(env, typeNode) == napi_undefined) {
         TLOGE(WmsLogTag::WMS_PIP, "Invalid typeNode");
-        return NapiThrowInvalidParam(env, "[PiPWindow][updateContentNode]msg: Invalid typeNode",
-            ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE, ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
+            "[PiPWindow][updateContentNode]msg: Invalid typeNode");
     }
     napi_ref ref = nullptr;
     napi_create_reference(env, typeNode, NUMBER_ONE, &ref);
@@ -266,27 +275,23 @@ napi_value JsPipController::OnUpdateContentNode(napi_env env, napi_callback_info
         if (!PictureInPictureManager::IsSupportPiP()) {
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "updateContentNode", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT, ""));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
-                                             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+            ResultReport(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
         }
         auto pipController = weak.promote();
         if (pipController == nullptr) {
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP, "updateContentNode",
                 WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "The PiP controller has been destroyed."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
-                                             WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+            ResultReport(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
         }
         pipController->UpdateContentNodeRef(typeNodeRef);
         task->Resolve(env, NapiGetUndefined(env));
-        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnUpdateContentNode") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
             "updateContentNode", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE,
-                                         WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+        ResultReport(ARKUI_WINDOW_PIP_ONUPDATECONTENTNODE, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
     return result;
 }
@@ -305,32 +310,29 @@ napi_value JsPipController::OnUpdateContentSize(napi_env env, napi_callback_info
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "Invalid args count, need 2 args but received: %{public}zu", argc);
-        return NapiThrowInvalidParam(env, "[PiPWindow][updateContentSize]msg: Invalid args count, 2 args is needed",
-            ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE,
+            "[PiPWindow][updateContentSize]msg: Invalid args count, 2 args is needed");
     }
     int32_t width = 0;
     std::string errMsg = "";
     if (!ConvertFromJsValue(env, argv[0], width) || width <= 0) {
         errMsg = "[PiPWindow][updateContentSize]msg: Failed to convert parameter to int or width <= 0";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg,
-            ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, errMsg);
     }
     int32_t height = 0;
     if (!ConvertFromJsValue(env, argv[1], height) || height <= 0) {
         errMsg = "[PiPWindow][updateContentSize]msg: Failed to convert parameter to int or height <= 0";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg,
-            ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, errMsg);
     }
     if (pipController_ == nullptr) {
         errMsg = "[PiPWindow][updateContentSize]msg: Controller is nullptr";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg,
-            ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, errMsg);
     }
     pipController_->UpdateContentSize(width, height);
-    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE_BOOL, 1);
+    ResultReport(ARKUI_WINDOW_PIP_ONUPDATECONTENTSIZE, WmErrorCode::WM_OK);
     return NapiGetUndefined(env);
 }
 
@@ -348,33 +350,32 @@ napi_value JsPipController::OnUpdatePiPControlStatus(napi_env env, napi_callback
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "Invalid args count, need 2 args but received: %{public}zu", argc);
-        return NapiThrowInvalidParam(env,
-            "[PiPWindow][updatePiPControlStatus]msg: Invalid args count, 2 args is needed",
-            ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS,
+            "[PiPWindow][updatePiPControlStatus]msg: Invalid args count, 2 args is needed");
     }
     auto controlType = PiPControlType::VIDEO_PLAY_PAUSE;
     std::string errMsg;
     if (!ConvertFromJsValue(env, argv[0], controlType)) {
         errMsg = "[PiPWindow][updatePiPControlStatus]msg: Failed to convert parameter to int or controlType < 0";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS,
-            ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS,
+            errMsg);
     }
     auto status = PiPControlStatus::PLAY;
     if (!ConvertFromJsValue(env, argv[1], status)) {
         errMsg = "[PiPWindow][updatePiPControlStatus]msg: Failed to convert parameter to int";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS,
-            ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS,
+            errMsg);
     }
     if (pipController_ == nullptr) {
         errMsg = "[PiPWindow][updatePiPControlStatus]msg: Controller is nullptr";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS,
-            ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS,
+            errMsg);
     }
     pipController_->UpdatePiPControlStatus(controlType, status);
-    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS_BOOL, 1);
+    ResultReport(ARKUI_WINDOW_PIP_ONUPDATEPIPCONTROLSTATUS, WmErrorCode::WM_OK);
     return NapiGetUndefined(env);
 }
 
@@ -392,34 +393,33 @@ napi_value JsPipController::OnSetPiPControlEnabled(napi_env env, napi_callback_i
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc != NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "Invalid args count, need 2 args but received: %{public}zu", argc);
-        return NapiThrowInvalidParam(env,
-            "[PiPWindow][setPiPControlEnabled]msg: Invalid args count, 2 args is needed",
-            ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED,
+            "[PiPWindow][setPiPControlEnabled]msg: Invalid args count, 2 args is needed");
     }
     auto controlType = PiPControlType::VIDEO_PLAY_PAUSE;
     std::string errMsg = "";
     if (!ConvertFromJsValue(env, argv[0], controlType)) {
         errMsg = "[PiPWindow][setPiPControlEnabled]msg: Failed to convert parameter to int";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED,
-            ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED,
+            errMsg);
     }
     bool enabled = true;
     if (!ConvertFromJsValue(env, argv[1], enabled)) {
         errMsg = "[PiPWindow][setPiPControlEnabled]msg: Failed to convert parameter to bool";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED,
-            ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED,
+            errMsg);
     }
     if (pipController_ == nullptr) {
         errMsg = "[PiPWindow][setPiPControlEnabled]msg: Controller is nullptr";
         TLOGE(WmsLogTag::WMS_PIP, "%{public}s", errMsg.c_str());
-        return NapiThrowInvalidParam(env, errMsg, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED,
-            ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED,
+            errMsg);
     }
     pipController_->UpdatePiPControlStatus(controlType, enabled ?
         PiPControlStatus::ENABLED : PiPControlStatus::DISABLED);
-    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED_BOOL, 1);
+    ResultReport(ARKUI_WINDOW_PIP_ONSETPIPCONTROLENABLED, WmErrorCode::WM_OK);
     return NapiGetUndefined(env);
 }
 
@@ -440,8 +440,7 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "getPiPWindowInfo", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "Failed to call the API due to limited device capabilities."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
-                                             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+            ResultReport(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
         }
         auto pipController = weak.promote();
@@ -449,8 +448,7 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "getPiPWindowInfo", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
                 "The PiP controller has been destroyed."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
-                                             WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+            ResultReport(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
         }
         const sptr<Window>& pipWindow = pipController->GetPipWindow();
@@ -459,18 +457,16 @@ napi_value JsPipController::OnGetPiPWindowInfo(napi_env env, napi_callback_info 
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "getPiPWindowInfo", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
                 "The PiP window is not created or has been destroyed."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
-                                             WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+            ResultReport(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
         }
+        ResultReport(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO, WmErrorCode::WM_OK);
         task->Resolve(env, CreateJsPiPWindowInfoObject(env, pipWindow));
-        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetPiPWindowInfo") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
             "getPiPWindowInfo", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO,
-                                         WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+        ResultReport(ARKUI_WINDOW_PIP_ONGETPIPWINDOWINFO, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
     return result;
 }
@@ -493,26 +489,23 @@ napi_value JsPipController::OnGetPiPSettingSwitch(napi_env env, napi_callback_in
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "getPiPSettingSwitch", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
                 "The PiP controller has been destroyed."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
-                                             WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+            ResultReport(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
         }
         if (!pipController->GetPipSettingSwitchStatusEnabled()) {
             task->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "getPiPSettingSwitch", WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT,
                 "Failed to call the API due to limited device capabilities."));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
-                                             WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
+            ResultReport(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH, WmErrorCode::WM_ERROR_DEVICE_NOT_SUPPORT);
             return;
         }
+        ResultReport(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH, WmErrorCode::WM_OK);
         task->Resolve(env, CreateJsValue(env, pipController->GetPiPSettingSwitchStatus()));
-        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH_BOOL, 1);
     };
     if (napi_send_event(env, asyncTask, napi_eprio_immediate, "OnGetPiPSettingSwitch") != napi_status::napi_ok) {
         napiAsyncTask->Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
             "getPiPSettingSwitch", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH,
-                                         WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+        ResultReport(ARKUI_WINDOW_PIP_ONGETPIPSETTINGSWITCH, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
     }
     return result;
 }
@@ -552,18 +545,16 @@ napi_value JsPipController::OnIsPiPActive(napi_env env, napi_callback_info info)
         if (resultPtr == nullptr || statusPtr == nullptr) {
             task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                         "isPiPActive", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR, "Internal task error"));
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONISPIPACTIVE,
-                                             WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
+            ResultReport(ARKUI_WINDOW_PIP_ONISPIPACTIVE, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
             return;
         }
+        WmErrorCode errorCode = ConvertErrorToCode(resultPtr->errCode);
+        ResultReport(ARKUI_WINDOW_PIP_ONISPIPACTIVE, errorCode);
         if (resultPtr->errCode == WMError::WM_OK) {
             task.Resolve(env, CreateJsValue(env, *statusPtr));
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONISPIPACTIVE_BOOL, 1);
         } else {
-            WmErrorCode errorCode = WM_JS_TO_ERROR_CODE_MAP.at(resultPtr->errCode);
             task.Reject(env, JsErrUtils::CreateFloatWindowJsError(env, FloatWindowModule::PIP,
                 "isPiPActive", errorCode, resultPtr->errMsg));
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONISPIPACTIVE_BOOL, 0);
         }
     };
     napi_value result = nullptr;
@@ -586,29 +577,29 @@ napi_value JsPipController::OnRegisterCallback(napi_env env, napi_callback_info 
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc < NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "JsPipController Params not match: %{public}zu", argc);
-        return NapiThrowInvalidParam(env, "[PiPWindow][on]msg: Invalid args count, count >= 2 is needed",
-            ARKUI_WINDOW_PIP_ONREGISTERCALLBACK, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
+            "[PiPWindow][on]msg: Invalid args count, count >= 2 is needed");
     }
     std::string cbType = "";
     if (!ConvertFromJsValue(env, argv[0], cbType)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to callbackType");
-        return NapiThrowInvalidParam(env, "[PiPWindow][on]msg: Failed to convert parameter to callbackType",
-            ARKUI_WINDOW_PIP_ONREGISTERCALLBACK, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
+            "[PiPWindow][on]msg: Failed to convert parameter to callbackType");
     }
     napi_value value = argv[1];
+    const std::string reportField = GetCallbackReportField(cbType, true);
     if (value == nullptr || !NapiIsCallable(env, value)) {
         TLOGE(WmsLogTag::WMS_PIP, "Callback is nullptr or not callable");
-        return NapiThrowInvalidParam(env, "[PiPWindow][on]msg: Callback is nullptr or not callable. Type is " + cbType,
-            ARKUI_WINDOW_PIP_ONREGISTERCALLBACK, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, reportField,
+            "[PiPWindow][on]msg: Callback is nullptr or not callable. Type is " + cbType);
     }
     WmErrorCode ret = RegisterListenerWithType(env, cbType, value);
     if (ret != WmErrorCode::WM_OK) {
         TLOGE(WmsLogTag::WMS_PIP, "OnRegisterCallback failed");
-        return NapiThrowInvalidParam(env, "[PiPWindow][on]msg: RegisterCallback failed. Type is " + cbType,
-            ARKUI_WINDOW_PIP_ONREGISTERCALLBACK, ARKUI_WINDOW_PIP_ONREGISTERCALLBACK_BOOL);
-    } else {
-        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONREGISTERCALLBACK_BOOL, 1);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, reportField,
+            "[PiPWindow][on]msg: RegisterCallback failed. Type is " + cbType);
     }
+    ResultReport(reportField, WmErrorCode::WM_OK);
     return NapiGetUndefined(env);
 }
 
@@ -783,22 +774,25 @@ napi_value JsPipController::OnUnregisterCallback(napi_env env, napi_callback_inf
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
     if (argc == NUMBER_ZERO || argc > NUMBER_TWO) {
         TLOGE(WmsLogTag::WMS_PIP, "JsPipController Params not match: %{public}zu", argc);
-        return NapiThrowInvalidParam(env, "[PiPWindow][off]msg: Invalid args count, 0 < count <= 2 is needed",
-            ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK, ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
+            "[PiPWindow][off]msg: Invalid args count, 0 < count <= 2 is needed");
     }
     std::string cbType = "";
     if (!ConvertFromJsValue(env, argv[0], cbType)) {
         TLOGE(WmsLogTag::WMS_PIP, "Failed to convert parameter to string");
-        return NapiThrowInvalidParam(env, "[PiPWindow][off]msg: Failed to convert parameter to string",
-            ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK, ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK_BOOL);
+        return NapiThrowError(env, WmErrorCode::WM_ERROR_INVALID_PARAM, "",
+            "[PiPWindow][off]msg: Failed to convert parameter to string");
     }
+    const std::string reportField = GetCallbackReportField(cbType, false);
     if (argc == NUMBER_ONE) {
-        UnRegisterListenerWithType(env, cbType, nullptr);
+        auto ret = UnRegisterListenerWithType(env, cbType, nullptr);
+        ResultReport(reportField, ret);
         return NapiGetUndefined(env);
     }
     napi_value value = argv[NUMBER_ONE];
     if (value != nullptr && NapiIsCallable(env, value)) {
-        UnRegisterListenerWithType(env, cbType, value);
+        auto ret = UnRegisterListenerWithType(env, cbType, value);
+        ResultReport(reportField, ret);
     }
     return NapiGetUndefined(env);
 }
@@ -807,8 +801,6 @@ WmErrorCode JsPipController::UnRegisterListenerWithType(napi_env env, const std:
 {
     if (jsCbMap_.empty() || jsCbMap_.find(type) == jsCbMap_.end()) {
         TLOGI(WmsLogTag::WMS_PIP, "methodName %{public}s not registered!", type.c_str());
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK,
-                                         WmErrorCode::WM_ERROR_INVALID_CALLING);
         return WmErrorCode::WM_ERROR_INVALID_CALLING;
     }
 
@@ -816,7 +808,6 @@ WmErrorCode JsPipController::UnRegisterListenerWithType(napi_env env, const std:
         TLOGI(WmsLogTag::WMS_PIP, "SubEvent op=off_all kit=ArkUIKit event=%{public}s", type.c_str());
         for (auto& listener : jsCbMap_[type]) {
             WmErrorCode ret = UnRegisterListener(type, listener);
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK, ret);
             if (ret != WmErrorCode::WM_OK) {
                 TLOGE(WmsLogTag::WMS_PIP, "Unregister type %{public}s failed, no value", type.c_str());
                 return ret;
@@ -833,7 +824,6 @@ WmErrorCode JsPipController::UnRegisterListenerWithType(napi_env env, const std:
             }
             foundCallbackValue = true;
             WmErrorCode ret = UnRegisterListener(type, listener);
-            HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK, ret);
             if (ret != WmErrorCode::WM_OK) {
                 TLOGE(WmsLogTag::WMS_PIP, "Unregister type %{public}s failed", type.c_str());
                 return ret;
@@ -842,7 +832,6 @@ WmErrorCode JsPipController::UnRegisterListenerWithType(napi_env env, const std:
             break;
         }
         if (!foundCallbackValue) {
-            HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK_BOOL, 1);
             TLOGE(WmsLogTag::WMS_PIP, "Unregister type %{public}s failed because not found callback!", type.c_str());
             return WmErrorCode::WM_OK;
         }
@@ -851,7 +840,6 @@ WmErrorCode JsPipController::UnRegisterListenerWithType(napi_env env, const std:
         }
     }
     TLOGI(WmsLogTag::WMS_PIP, "Unregister type %{public}s success!", type.c_str());
-    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_ONUNREGISTERCALLBACK_BOOL, 1);
     return WmErrorCode::WM_OK;
 }
 
@@ -895,13 +883,11 @@ napi_value JsPipController::OnPictureInPicturePossible(napi_env env, napi_callba
             "isPiPSupported", WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR,
             "The PiP controller has been destroyed."));
         TLOGE(WmsLogTag::WMS_PIP, "error, controller is nullptr");
-        HISTOGRAM_ENUMERATION_ERROR_CODE(ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE,
-            WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
-        HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE_BOOL, 0);
+        ResultReport(ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE, WmErrorCode::WM_ERROR_PIP_INTERNAL_ERROR);
         return CreateJsValue(env, isPiPSupported);
     }
     pipController_->GetPipPossible(isPiPSupported);
-    HISTOGRAM_BOOLEAN(ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE_BOOL, 1);
+    ResultReport(ARKUI_WINDOW_PIP_PICTUREINPICTUREPOSSIBLE, WmErrorCode::WM_OK);
     return CreateJsValue(env, isPiPSupported);
 }
 } // namespace Rosen

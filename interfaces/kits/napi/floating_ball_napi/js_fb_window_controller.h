@@ -42,7 +42,7 @@ public:
     static napi_value OffDestroy(napi_env env, napi_callback_info info);
     static napi_value GetFloatingBallWindowInfo(napi_env env, napi_callback_info info);
     static napi_value SetInApplicationVisible(napi_env env, napi_callback_info info);
-    napi_value GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option);
+    bool GetFloatingBallOptionFromJs(napi_env env, napi_value optionObject, FbOption& option);
     sptr<FloatingBallController> GetController() const;
 private:
     napi_value OnStartFloatingBall(napi_env env, napi_callback_info info);

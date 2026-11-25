@@ -274,10 +274,11 @@ std::shared_ptr<NativeReference> JsRootSceneSession::GetJSCallback(const std::st
     return jsCallBack;
 }
 
-void JsRootSceneSession::PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo)
+void JsRootSceneSession::PendingSessionActivationInner(std::shared_ptr<SessionInfo> sessionInfo, bool isNewSession,
+    const sptr<SceneSession>& sceneSession)
 {
     napi_env& env_ref = env_;
-    auto task = [sessionInfo, jsCallBack = GetJSCallback(PENDING_SCENE_CB), env_ref]() {
+    auto task = [sessionInfo, isNewSession, jsCallBack = GetJSCallback(PENDING_SCENE_CB), env_ref, sceneSession]() {
         if (!jsCallBack) {
             TLOGNE(WmsLogTag::WMS_LIFE, "jsCallBack is nullptr");
             return;
@@ -301,7 +302,15 @@ void JsRootSceneSession::PendingSessionActivationInner(std::shared_ptr<SessionIn
             jsCallBack->GetNapiValue(), ArraySize(argv), argv, &callResult);
         SceneSessionManager::GetInstance().RemoveLifeCycleTaskByPersistentId(
             sessionInfo->persistentId_, LifeCycleTaskType::START);
-        ProcessPendingSessionActivationResult(env_ref, callResult, sessionInfo);
+        uint32_t resultCode = 0;
+        resultCode = ProcessPendingSessionActivationResult(env_ref, callResult, sessionInfo);
+        if (resultCode >= static_cast<uint32_t>(RequestResultCode::FAIL) && isNewSession
+            && sessionInfo->callState_ != static_cast<uint32_t>(AAFwk::CallToState::UNKNOW)) {
+            TLOGI(WmsLogTag::WMS_LIFE, "pending session activation fail, clear session want info, "
+                "persistentId:%{public}d, resultCode:%{public}u",
+                sessionInfo->persistentId_, resultCode);
+            SceneSessionManager::GetInstance().ResetWantInfo(sceneSession);
+        }
     };
     taskScheduler_->PostMainThreadTask(task, "PendingSessionActivationInner");
 }
@@ -417,7 +426,8 @@ void JsRootSceneSession::PendingSessionActivation(SessionInfo& info)
         "frameNum:%{public}d",
         info.persistentId_, info.bundleName_.c_str(), info.moduleName_.c_str(), info.abilityName_.c_str(),
         info.appIndex_, info.reuse, info.requestId, info.specifiedFlag_.c_str(), info.isPrelaunch_, info.frameNum_);
-    sptr<SceneSession> sceneSession = GenSceneSession(info);
+    bool isNewSession = false;
+    sptr<SceneSession> sceneSession = GenSceneSession(info, isNewSession);
     if (sceneSession == nullptr) {
         TLOGE(WmsLogTag::WMS_LIFE, "sceneSession is nullptr");
         return;
@@ -457,8 +467,8 @@ void JsRootSceneSession::PendingSessionActivation(SessionInfo& info)
     sceneSession->SetSessionInfo(info);
     std::shared_ptr<SessionInfo> sessionInfo = std::make_shared<SessionInfo>(info);
     SceneSessionManager::GetInstance().AddRequestTaskInfo(sceneSession, info.requestId);
-    auto task = [this, sessionInfo]() {
-        PendingSessionActivationInner(sessionInfo);
+    auto task = [this, sessionInfo, isNewSession, sceneSession]() {
+        PendingSessionActivationInner(sessionInfo, isNewSession, sceneSession);
     };
     sceneSession->PostLifeCycleTask(task, "PendingSessionActivation", LifeCycleTaskType::START);
     if (info.fullScreenStart_) {
@@ -487,7 +497,8 @@ void JsRootSceneSession::BatchPendingSessionsActivation(const std::vector<std::s
             "appIndex %{public}d, reuse %{public}d, requestId %{public}d, specifiedFlag %{public}s",
             info->bundleName_.c_str(), info->moduleName_.c_str(),
             info->abilityName_.c_str(), info->appIndex_, info->reuse, info->requestId, info->specifiedFlag_.c_str());
-        auto sceneSession = GenSceneSession(*info);
+        bool isNewSession = false;
+        auto sceneSession = GenSceneSession(*info, isNewSession);
         if (sceneSession == nullptr) {
             TLOGE(WmsLogTag::WMS_LIFE, "GenSceneSession failed");
             return;
@@ -551,9 +562,10 @@ void JsRootSceneSession::VerifyCallerToken(SessionInfo& info)
     }
 }
 
-sptr<SceneSession> JsRootSceneSession::GenSceneSession(SessionInfo& info)
+sptr<SceneSession> JsRootSceneSession::GenSceneSession(SessionInfo& info, bool& isNewSession)
 {
     sptr<SceneSession> sceneSession;
+    isNewSession = false;
     if (info.persistentId_ == INVALID_SESSION_ID) {
         auto result = SceneSessionManager::GetInstance().CheckIfReuseSession(info);
         if (result == BrokerStates::BROKER_NOT_START) {
@@ -579,7 +591,7 @@ sptr<SceneSession> JsRootSceneSession::GenSceneSession(SessionInfo& info)
         }
         if (sceneSession == nullptr) {
             TLOGI(WmsLogTag::WMS_LIFE, "SceneSession not exist, request a new one.");
-            sceneSession = SceneSessionManager::GetInstance().RequestSceneSession(info);
+            sceneSession = SceneSessionManager::GetInstance().RequestSceneSession(info, nullptr, isNewSession);
             if (sceneSession == nullptr) {
                 WLOGFE("RequestSceneSession return nullptr");
                 return sceneSession;
@@ -592,7 +604,7 @@ sptr<SceneSession> JsRootSceneSession::GenSceneSession(SessionInfo& info)
         sceneSession = SceneSessionManager::GetInstance().GetSceneSession(info.persistentId_);
         if (sceneSession == nullptr) {
             WLOGFE("GetSceneSession return nullptr");
-            sceneSession = SceneSessionManager::GetInstance().RequestSceneSession(info);
+            sceneSession = SceneSessionManager::GetInstance().RequestSceneSession(info, nullptr, isNewSession);
             if (sceneSession == nullptr) {
                 WLOGFE("retry RequestSceneSession return nullptr");
                 return sceneSession;

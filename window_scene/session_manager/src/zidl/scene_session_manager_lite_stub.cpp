@@ -114,6 +114,8 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetAppDragResizeType(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_SET_APP_KEY_FRAME_POLICY):
             return HandleSetAppKeyFramePolicy(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_GET_SESSION_SNAPSHOT_BY_ID):
+            return HandleGetSessionSnapshotById(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_LIST_WINDOW_INFO):
             return HandleListWindowInfo(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_REGISTER_WINDOW_PROPERTY_CHANGE_AGENT):
@@ -233,6 +235,12 @@ int SceneSessionManagerLiteStub::ProcessRemoteRequest(uint32_t code, MessageParc
             return HandleGetAppWindowShowingInfosByBundleName(data, reply);
         case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_UPDATE_ROG_WINDOW_CONFIG):
             return HandleUpdateRogWindowConfig(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_NOTIFY_STACK_RECOVER):
+            return HandleNotifyStackRecoverFromAMS(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_MOVE_TARGET_WINDOW):
+            return HandleMoveTargetWindow(data, reply);
+        case static_cast<uint32_t>(SceneSessionManagerLiteMessage::TRANS_ID_RESIZE_WINDOW):
+            return HandleResizeWindow(data, reply);
         default:
             WLOGFE("Failed to find function handler!");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
@@ -1034,6 +1042,22 @@ int SceneSessionManagerLiteStub::HandleSetAppKeyFramePolicy(MessageParcel& data,
         TLOGE(WmsLogTag::WMS_LAYOUT, "Write errCode fail.");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleGetSessionSnapshotById(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_ATTRIBUTE, "read persistentId fail");
+        return ERR_INVALID_DATA;
+    }
+    std::shared_ptr<SessionSnapshot> snapshot = std::make_shared<SessionSnapshot>();
+    std::string extraInfo;
+    const WMError ret = GetSessionSnapshotById(persistentId, *snapshot, extraInfo);
+    reply.WriteParcelable(snapshot.get());
+    reply.WriteString(extraInfo);
+    reply.WriteInt32(static_cast<int32_t>(ret));
     return ERR_NONE;
 }
 
@@ -2154,6 +2178,71 @@ int SceneSessionManagerLiteStub::HandleUpdateRogWindowConfig(MessageParcel& data
         TLOGE(WmsLogTag::WMS_COMPAT, "write ret failed");
         return ERR_INVALID_DATA;
     }
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleNotifyStackRecoverFromAMS(MessageParcel& data, MessageParcel& reply)
+{
+    int32_t persistentId = 0;
+    if (!data.ReadInt32(persistentId)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read persistentId failed");
+        return ERR_INVALID_DATA;
+    }
+    bool isStackRecover = false;
+    if (!data.ReadBool(isStackRecover)) {
+        TLOGE(WmsLogTag::WMS_MAIN, "read isStackRecover failed");
+        return ERR_INVALID_DATA;
+    }
+    WSError errCode = NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    reply.WriteInt32(static_cast<int32_t>(errCode));
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleMoveTargetWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    int32_t windowId;
+    if (!data.ReadInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read windowId failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t posX;
+    if (!data.ReadInt32(posX)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read posX failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t posY;
+    if (!data.ReadInt32(posY)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read posY failed");
+        return ERR_INVALID_DATA;
+    }
+    WSErrorResult result = MoveTargetWindow(windowId, posX, posY);
+    reply.WriteInt32(static_cast<int32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
+    return ERR_NONE;
+}
+
+int SceneSessionManagerLiteStub::HandleResizeWindow(MessageParcel& data, MessageParcel& reply)
+{
+    TLOGD(WmsLogTag::WMS_LAYOUT, "in");
+    int32_t windowId;
+    if (!data.ReadInt32(windowId)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read windowId failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t width;
+    if (!data.ReadInt32(width)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read width failed");
+        return ERR_INVALID_DATA;
+    }
+    int32_t height;
+    if (!data.ReadInt32(height)) {
+        TLOGE(WmsLogTag::WMS_LAYOUT, "read height failed");
+        return ERR_INVALID_DATA;
+    }
+    WSErrorResult result = ResizeWindow(windowId, width, height);
+    reply.WriteInt32(static_cast<int32_t>(result.errCode));
+    reply.WriteString(result.errMsg);
     return ERR_NONE;
 }
 } // namespace OHOS::Rosen

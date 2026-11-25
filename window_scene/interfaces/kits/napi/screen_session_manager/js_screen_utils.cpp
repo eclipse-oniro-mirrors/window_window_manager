@@ -136,6 +136,8 @@ napi_value JsScreenUtils::CreateJsScreenPropertyChangeReason(napi_env env)
         static_cast<int32_t>(ScreenPropertyChangeReason::ACTIVE_MODE_CHANGE)));
     napi_set_named_property(env, objValue, "RESOLUTION_EFFECT_CHANGE", CreateJsValue(env,
         static_cast<int32_t>(ScreenPropertyChangeReason::RESOLUTION_EFFECT_CHANGE)));
+    napi_set_named_property(env, objValue, "SUPER_OUTER_ONLY", CreateJsValue(env,
+        static_cast<int32_t>(ScreenPropertyChangeReason::SUPER_OUTER_ONLY)));
     return objValue;
 }
 

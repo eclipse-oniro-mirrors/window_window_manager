@@ -1788,11 +1788,12 @@ bool ScreenManagerAdapter::SetVirtualScreenStatus(ScreenId screenId, VirtualScre
 }
 
 DMError DisplayManagerAdapter::SetVirtualScreenSecurityExemption(ScreenId screenId, uint32_t pid,
-    std::vector<uint64_t>& windowIdList)
+    std::vector<uint64_t>& windowIdList, bool exemptAll)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
     if (screenSessionManagerServiceProxy_) {
-        return screenSessionManagerServiceProxy_->SetVirtualScreenSecurityExemption(screenId, pid, windowIdList);
+        return screenSessionManagerServiceProxy_->SetVirtualScreenSecurityExemption(
+            screenId, pid, windowIdList, exemptAll);
     }
 
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
@@ -1952,6 +1953,15 @@ DMError ScreenManagerAdapter::SetVirtualScreenAutoRotation(ScreenId screenId, bo
         return screenSessionManagerServiceProxy_->SetVirtualScreenAutoRotation(screenId, enable);
     }
     return DMError::DM_OK;
+}
+
+DMError ScreenManagerAdapter::SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->SetVirtualScreenCursorMode(screenId, mode);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
 DMError ScreenManagerAdapter::SetScreenPrivacyWindowTagSwitch(ScreenId screenId,

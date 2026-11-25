@@ -2341,6 +2341,44 @@ HWTEST_F(WindowSessionTest, UpdateScreenSupportMultiWindowToClient01, TestSize.L
     auto result = session->UpdateScreenSupportMultiWindowToClient();
     EXPECT_EQ(result, WSError::WS_OK);
 }
+
+/**
+ * @tc.name: SetTryUseSnapshot01
+ * @tc.desc: test SetTryUseSnapshot and GetTryUseSnapshot
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, SetTryUseSnapshot01, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
+
+    session_->SetTryUseSnapshot(true);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), true);
+
+    session_->SetTryUseSnapshot(false);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
+}
+
+/**
+ * @tc.name: SetTryUseSnapshot02
+ * @tc.desc: test SetTryUseSnapshot with multiple toggle
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionTest, SetTryUseSnapshot02, TestSize.Level1)
+{
+    ASSERT_NE(session_, nullptr);
+    session_->SetTryUseSnapshot(true);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), true);
+
+    session_->SetTryUseSnapshot(true);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), true);
+
+    session_->SetTryUseSnapshot(false);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
+
+    session_->SetTryUseSnapshot(false);
+    EXPECT_EQ(session_->GetTryUseSnapshot(), false);
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

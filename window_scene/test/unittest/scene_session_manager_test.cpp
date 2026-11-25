@@ -867,7 +867,8 @@ HWTEST_F(SceneSessionManagerTest, GetSessionSnapshotById, TestSize.Level1)
 {
     int32_t persistentId = -1;
     SessionSnapshot snapshot;
-    WMError ret = ssm_->GetSessionSnapshotById(persistentId, snapshot);
+    std::string extraInfo;
+    WMError ret = ssm_->GetSessionSnapshotById(persistentId, snapshot, extraInfo);
     EXPECT_EQ(WMError::WM_ERROR_INVALID_PARAM, ret);
 }
 

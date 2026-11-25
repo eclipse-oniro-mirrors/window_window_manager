@@ -988,6 +988,18 @@ int SessionStub::HandleChangeSessionVisibilityWithStatusBar(MessageParcel& data,
         TLOGE(WmsLogTag::WMS_LIFE, "Read visible failed.");
         return ERR_INVALID_DATA;
     }
+    bool hasShowParams = false;
+    if (!data.ReadBool(hasShowParams)) {
+        TLOGE(WmsLogTag::WMS_LIFE, "Read hasShowParams failed.");
+        return ERR_INVALID_DATA;
+    }
+    if (hasShowParams) {
+        abilitySessionInfo->showParams.reset(data.ReadParcelable<WindowShowParams>());
+        if (abilitySessionInfo->showParams == nullptr) {
+            TLOGE(WmsLogTag::WMS_LIFE, "Read showParams failed.");
+            return ERR_INVALID_DATA;
+        }
+    }
     WSError errCode = ChangeSessionVisibilityWithStatusBar(abilitySessionInfo, visible);
     reply.WriteUint32(static_cast<uint32_t>(errCode));
     return ERR_NONE;

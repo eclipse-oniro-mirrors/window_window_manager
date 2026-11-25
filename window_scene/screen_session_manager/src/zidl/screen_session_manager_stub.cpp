@@ -1688,6 +1688,10 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             ProcSetVirtualScreenAutoRotation(data, reply);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_SET_VIRTUAL_SCREEN_CURSOR_MODE: {
+            ProcSetVirtualScreenCursorMode(data, reply);
+            break;
+        }
         case DisplayManagerMessage::TRANS_ID_SYNCHRONIZED_POWER_STATUS: {
             uint32_t stateTemp = 0;
             if (!data.ReadUint32(stateTemp)) {
@@ -1935,7 +1939,8 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenSecurityExemption(MessageParc
     uint32_t pid = data.ReadUint32();
     std::vector<uint64_t> windowIdList;
     data.ReadUInt64Vector(&windowIdList);
-    DMError ret = SetVirtualScreenSecurityExemption(screenId, pid, windowIdList);
+    bool exemptAll = data.ReadBool();
+    DMError ret = SetVirtualScreenSecurityExemption(screenId, pid, windowIdList, exemptAll);
     reply.WriteInt32(static_cast<int32_t>(ret));
 }
 
@@ -2090,6 +2095,22 @@ void ScreenSessionManagerStub::ProcSetVirtualScreenAutoRotation(MessageParcel& d
         return;
     }
     DMError ret = SetVirtualScreenAutoRotation(screenId, enable);
+    reply.WriteInt32(static_cast<int32_t>(ret));
+}
+
+void ScreenSessionManagerStub::ProcSetVirtualScreenCursorMode(MessageParcel& data, MessageParcel& reply)
+{
+    ScreenId screenId = 0;
+    if (!data.ReadUint64(screenId)) {
+        TLOGE(WmsLogTag::DMS, "Read screenId failed.");
+        return;
+    }
+    uint8_t cursorMode = 0;
+    if (!data.ReadUint8(cursorMode)) {
+        TLOGE(WmsLogTag::DMS, "Read cursor mode failed.");
+        return;
+    }
+    DMError ret = SetVirtualScreenCursorMode(screenId, static_cast<RSVirtualScreenCursorMode>(cursorMode));
     reply.WriteInt32(static_cast<int32_t>(ret));
 }
 

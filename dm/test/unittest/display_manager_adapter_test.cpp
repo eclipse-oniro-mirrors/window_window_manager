@@ -942,6 +942,38 @@ HWTEST_F(DisplayManagerAdapterTest, SetVirtualScreenAutoRotation02, TestSize.Lev
 }
 
 /**
+ * @tc.name: SetVirtualScreenCursorMode
+ * @tc.desc: SetVirtualScreenCursorMode test invalid ID
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetVirtualScreenCursorMode, TestSize.Level1)
+{
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        return;
+    }
+    ScreenId screenId = 1111;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualScreenCursorMode(screenId,
+        RSVirtualScreenCursorMode::HIDE);
+    EXPECT_EQ(err, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetVirtualScreenCursorMode02
+ * @tc.desc: SetVirtualScreenCursorMode test main screen ID
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetVirtualScreenCursorMode02, TestSize.Level1)
+{
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        return;
+    }
+    ScreenId screenId = 0;
+    DMError err = SingletonContainer::Get<ScreenManagerAdapter>().SetVirtualScreenCursorMode(screenId,
+        RSVirtualScreenCursorMode::FORCE_RENDER);
+    EXPECT_EQ(err, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
  * @tc.name: GetDisplayHDRSnapshotWithOption001
  * @tc.desc: GetDisplayHDRSnapshotWithOption test
  * @tc.type: FUNC

@@ -1506,6 +1506,53 @@ HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenAutoRotation03, Function | Sm
 }
 
 /**
+ * @tc.name: SetVirtualScreenCursorMode01
+ * @tc.desc: SetVirtualScreenCursorMode with a screenId which does not exist
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenCursorMode01, Function | SmallTest | Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 1888;
+    auto ret = ssm_->SetVirtualScreenCursorMode(screenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetVirtualScreenCursorMode02
+ * @tc.desc: SetVirtualScreenCursorMode with a physical screen, only virtual screen is allowed
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenCursorMode02, Function | SmallTest | Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    ScreenId screenId = 0;
+    auto ret = ssm_->SetVirtualScreenCursorMode(screenId, RSVirtualScreenCursorMode::FORCE_RENDER);
+    EXPECT_EQ(ret, DMError::DM_ERROR_NULLPTR);
+}
+
+/**
+ * @tc.name: SetVirtualScreenCursorMode03
+ * @tc.desc: SetVirtualScreenCursorMode on a virtual screen with all valid modes
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetVirtualScreenCursorMode03, Function | SmallTest | Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    sptr<IDisplayManagerAgent> displayManagerAgent = new DisplayManagerAgentDefault();
+    VirtualScreenOption virtualOption;
+    virtualOption.name_ = "cursorModeValidOption";
+    DMError errorCode = DMError::DM_OK;
+    ScreenId screenId = ssm_->CreateVirtualScreen(virtualOption, displayManagerAgent->AsObject(), &errorCode);
+    ASSERT_NE(screenId, SCREEN_ID_INVALID);
+
+    auto ret = ssm_->SetVirtualScreenCursorMode(screenId, RSVirtualScreenCursorMode::HIDE);
+    EXPECT_EQ(ret, DMError::DM_OK);
+
+    EXPECT_EQ(DMError::DM_OK, ssm_->DestroyVirtualScreen(screenId));
+}
+
+/**
  * @tc.name: CreateScreenProperty
  * @tc.desc: CreateScreenProperty test
  * @tc.type: FUNC

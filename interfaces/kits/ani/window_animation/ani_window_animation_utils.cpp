@@ -728,6 +728,28 @@ bool ConvertWindowCreateParamsFromAniValue(ani_env* env, ani_object aniObject,
     return true;
 }
 
+bool ConvertWindowShowParamsFromAniValue(ani_env* env, ani_object aniObject, WindowShowParams& windowShowParams)
+{
+    CHECK_NULL_VALUE_RETURN_FALSE(env, "[ANI] env is null.");
+    CHECK_NULL_VALUE_RETURN_FALSE(aniObject, "[ANI] aniObject is null.");
+
+    ani_boolean isUndefined = ANI_TRUE;
+    ani_status ret = env->Reference_IsUndefined(static_cast<ani_ref>(aniObject), &isUndefined);
+    CHECK_RET_RETURN_FALSE(ret, "[ANI] Failed to check undefined for windowShowParams.");
+    if (isUndefined) {
+        TLOGE(WmsLogTag::WMS_ANIMATION, "[ANI] windowShowParams is undefined.");
+        return false;
+    }
+
+    windowShowParams.windowFocused =
+        GetOptionalBoolProp(env, aniObject, "windowFocused").value_or(true);
+    windowShowParams.raiseTop =
+        GetOptionalBoolProp(env, aniObject, "raiseTop").value_or(true);
+    TLOGD(WmsLogTag::WMS_ANIMATION, "[ANI] windowFocused: %{public}d, raiseTop: %{public}d",
+        windowShowParams.windowFocused, windowShowParams.raiseTop);
+    return true;
+}
+
 bool ConvertSplitRatioPreferenceFromAniValue(
     ani_env* env, ani_object aniObject, SplitRatioPreference& splitRatioPreference)
 {

@@ -669,12 +669,12 @@ private:
         const std::shared_ptr<MMI::PointerEvent>& pointerEvent, SizeChangeReason reason);
 
     /**
-     * @brief Handle the final targetRect update when move ends.
+     * @brief Updates the final target rectangle when window moving ends.
      *
-     * If a resampled event is available, its offset is used to avoid a visible
-     * jump at the end of moving. Otherwise, the raw pointer event is used.
+     * Uses either the raw pointer position or the last resampled position
+     * to balance final position accuracy and visual smoothness.
      *
-     * @param pointerEvent The current pointer event.
+     * @param pointerEvent The pointer event that ends the move.
      * @return TargetRectUpdateMode Always returns UPDATED_IMMEDIATELY.
      */
     TargetRectUpdateMode UpdateTargetRectOnMoveEnd(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);

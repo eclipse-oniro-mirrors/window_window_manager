@@ -21,6 +21,8 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
+#include "dm_common.h"
+#include "display_manager.h"
 #include "wm_common.h"
 #include "shell_command.h"
 #include "zidl/scene_session_manager_lite_interface.h"
@@ -39,11 +41,20 @@ const std::string HELP_MSG =
     "SubCommands:\n"
     "  restore-window            restore a main window to foreground\n"
     "  list-windows              query window information\n"
+    "  screenshot                capture a screenshot of the display\n"
+    "  move-window               move a window to the specified position\n"
+    "  resize-window             resize a window to the specified size\n"
     "\nExamples:\n"
     "  # Restore a main window to foreground\n"
     "  ohos-window restore-window --windowId 100\n\n"
     "  # List all visible windows\n"
-    "  ohos-window list-windows --filter visible\n\n";
+    "  ohos-window list-windows --filter visible\n\n"
+    "  # Capture a full screen screenshot\n"
+    "  ohos-window screenshot\n\n"
+    "  # Move a main window to (100, 200)\n"
+    "  ohos-window move-window --windowId 100 --posX 100 --posY 200\n\n"
+    "  # Resize a main window to 800x600\n"
+    "  ohos-window resize-window --windowId 100 --width 800 --height 600\n\n";
 
 const std::string VERSION_MSG = "1.0.0\n";
 
@@ -52,7 +63,7 @@ const std::string HELP_MSG_RESTORE_WINDOW =
     "Usage:\n"
     "  ohos-window restore-window [options]\n\n"
     "Parameters:\n"
-    "  --help                                             Display this help message\n"
+    "  --help                                      show help message\n"
     "  --windowId <windowId>                       windowId of the session to be restored to foreground\n"
     "Examples:\n"
     "  # Restore a main window to foreground\n"
@@ -61,12 +72,44 @@ const std::string HELP_MSG_RESTORE_WINDOW =
 const std::string STRING_RESTORE_WINDOW_OK = "restore main window to foreground successfully.";
 const std::string STRING_RESTORE_WINDOW_NG = "error: failed to restore main window to foreground.";
 
+const std::string HELP_MSG_MOVE_WINDOW =
+    "ohos-window move-window - Move a main window to the specified position\n\n"
+    "Usage:\n"
+    "  ohos-window move-window [options]\n\n"
+    "Parameters:\n"
+    "  --help                                  display this help message\n"
+    "  --windowId <windowId>                   windowId of the main window to move\n"
+    "  --posX <posX>                           target X coordinate\n"
+    "  --posY <posY>                           target Y coordinate\n"
+    "\nExamples:\n"
+    "  # Move a main window to (100, 200)\n"
+    "  ohos-window move-window --windowId 100 --posX 100 --posY 200\n";
+
+const std::string STRING_MOVE_WINDOW_OK = "move main window successfully.";
+const std::string STRING_MOVE_WINDOW_NG = "error: failed to move main window.";
+
+const std::string HELP_MSG_RESIZE_WINDOW =
+    "ohos-window resize-window - Resize a main window to the specified size\n\n"
+    "Usage:\n"
+    "  ohos-window resize-window [options]\n\n"
+    "Parameters:\n"
+    "  --help                                  display this help message\n"
+    "  --windowId <windowId>                   windowId of the main window to resize\n"
+    "  --width <width>                         target width in pixel unit\n"
+    "  --height <height>                       target height in pixel unit\n"
+    "\nExamples:\n"
+    "  # Resize a main window to 800x600\n"
+    "  ohos-window resize-window --windowId 100 --width 800 --height 600\n";
+
+const std::string STRING_RESIZE_WINDOW_OK = "resize main window successfully.";
+const std::string STRING_RESIZE_WINDOW_NG = "error: failed to resize main window.";
+
 const std::string HELP_MSG_LIST_WINDOWS =
     "ohos-window list-windows - Query window information\n\n"
     "Usage:\n"
     "  ohos-window list-windows [options]\n\n"
     "Parameters:\n"
-    "  --help                                           display this help message\n"
+    "  --help                                           show help message\n"
     "  --windowId <windowId>                            windowId of the only session to query\n"
     "  --displayId <displayId>                          displayId of the display to query\n"
     "  --filter <visible|excludeSystem|foreground>      window filter to query, can specify multiple filters\n"
@@ -74,6 +117,36 @@ const std::string HELP_MSG_LIST_WINDOWS =
     "\nExamples:\n"
     "  # List all visible windows\n"
     "  ohos-window list-windows --filter visible\n";
+
+const std::string HELP_MSG_SCREENSHOT =
+    "ohos-window screenshot - Capture a screenshot of the display or window\n\n"
+    "Usage:\n"
+    "  ohos-window screenshot [options]\n\n"
+    "Parameters:\n"
+    "  --help                                 show help message\n"
+    "  --displayId <displayId>                displayId of the display to capture (default: default display)\n"
+    "  --outputPath <directory>"
+    "   output file directory (default: /data/storage/el2/base/temp; custom path must be writable)\n"
+    "  --rect <x,y,w,h>                       capture the specified rectangle region of the screen\n"
+    "  --excludeWindowIds <id1,id2,...>"
+    "   full-screen capture excluding the specified window ids (windowId semantic, cannot combine with --rect)\n"
+    "  --windowId <windowId>"
+    "   windowId of the window to snapshot, cannot use with --displayId, --rect and --excludeWindowIds options\n"
+    "  --format <jpeg|png>                    format of image, default: jpeg\n"
+    "\nBehavior notes:\n"
+    "  - Default (no options): uses legacy GetScreenshot, supported on all device types.\n"
+    "  - --rect: captures full screen then crops locally (GetScreenshotwithConfig), supported on all device types.\n"
+    "  - --excludeWindowIds: "
+    "   uses GetScreenCapture, whose service-side implementation exists only on some device types (e.g. phone).\n"
+    "\nExamples:\n"
+    "  # Snapshot the window with format jpeg, and save to custom path\n"
+    "  ohos-window screenshot --windowId 100 --format jpeg --outputPath /app/data/\n"
+    "  # Full screen screenshot\n"
+    "  ohos-window screenshot\n"
+    "  # Screenshot the specified rectangle region (x=100, y=200, width=300, height=400)\n"
+    "  ohos-window screenshot --rect 100,200,300,400\n"
+    "  # Full screen screenshot excluding windows 100 and 200 (windowId semantic)\n"
+    "  ohos-window screenshot --excludeWindowIds 100,200\n";
 
 }  // namespace
 
@@ -97,6 +170,13 @@ private:
     int32_t RunAsRestoreWindow();
     int32_t DoRestoreWindow(int32_t persistentId);
 
+    int32_t RunAsMoveWindow();
+    int32_t DoMoveWindow(int32_t windowId, int32_t posX, int32_t posY);
+    bool ParseMoveWindowOptions(int32_t& windowId, int32_t& posX, int32_t& posY);
+    int32_t RunAsResizeWindow();
+    int32_t DoResizeWindow(int32_t windowId, int32_t width, int32_t height);
+    bool ParseResizeWindowOptions(int32_t& windowId, int32_t& width, int32_t& height);
+
     int32_t RunAsListWindowInfo();
     bool ParseListWindowInfoOption(WindowInfoOption& infoOption);
     bool ParseWindowIdOption(const std::string& idStr, int32_t& windowId);
@@ -106,6 +186,22 @@ private:
     void BuildListWindowInfoResultJson(const std::vector<sptr<WindowInfo>>& infos,
         const WindowInfoTypeOption& typeOption);
     void FillWindowMetaInfoJson(const WindowMetaInfo& metaInfo, nlohmann::json& windowJson);
+
+    int32_t RunAsScreenshot();
+    bool ParseScreenshotOption(DisplayId& displayId, std::string& outputPath,
+        bool& isRectSet, Media::Rect& imageRect, std::vector<NodeId>& excludeWindowIds,
+        int32_t& windowId, std::string& imgFormat);
+    bool ParseImageFormatOption(const std::string& valStr, std::string& imgFormat);
+    bool ParseOutputPathOption(const std::string& valStr, std::string& outputDir);
+    bool ParseRectOption(const std::string& rectStr, Media::Rect& imageRect);
+    bool ParseExcludeIdsOption(const std::string& idsStr, std::vector<NodeId>& excludeIds);
+    bool CheckScreenshotOptionConflict(bool isRectSet, const std::vector<NodeId>& excludeWindowIds,
+        int32_t windowId, DisplayId& displayId);
+    std::string GenerateScreenshotPath(const std::string& outputDir, const std::string& imgFormat);
+    std::shared_ptr<Media::PixelMap> GetDisplaySnapshot(DisplayId displayId, bool isRectSet,
+        const Media::Rect& imageRect, const std::vector<NodeId>& excludeWindowIds);
+    std::shared_ptr<Media::PixelMap> GetWindowSnapshot(int32_t windowId);
+    bool SavePixelMapToFile(const std::string& filePath, Media::PixelMap& pixelMap, const std::string& imgFormat);
 
     std::map<int32_t, WmToolErrorInfo> errorInfoMap_;
 };

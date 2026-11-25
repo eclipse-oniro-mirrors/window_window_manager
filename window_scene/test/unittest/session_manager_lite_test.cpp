@@ -23,6 +23,8 @@
 #include "iremote_session_manager_mocker.h"
 #include "parameters.h"
 #include "scene_board_judgement.h"
+#include "scene_session_manager.h"
+#include "scene_session_manager_lite.h"
 #include "session_manager.h"
 #include "session_manager_lite.h"
 #include "session_manager_service_recover_interface.h"
@@ -302,6 +304,40 @@ HWTEST_F(SessionManagerLiteTest, OnWMSConnectionChanged2, TestSize.Level1)
     auto listener = sptr<SessionManagerServiceLiteRecoverListener>::MakeSptr(userId_);
     ASSERT_NE(nullptr, listener);
     listener->OnWMSConnectionChanged(100, 100, true, 12345, INVALID_USER_ID, INVALID_PID, nullptr);
+}
+
+/**
+ * @tc.name: SessionManagerServiceLiteRecoverListener
+ * @tc.desc: OnWMSConnectionChanged remote object branch handling
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, SMSLiteRecoverListenerOnWMSConnectionChangedBranches, TestSize.Level1)
+{
+    auto listener = sptr<SessionManagerServiceLiteRecoverListener>::MakeSptr(INVALID_USER_ID);
+    ASSERT_NE(nullptr, listener);
+    sptr<SessionManagerLite> smGlobal = &SessionManagerLite::GetInstance(INVALID_USER_ID);
+    ASSERT_NE(nullptr, smGlobal);
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
+    smGlobal->currentServer_ = { 100, 0, 12345 };
+    smGlobal->isWMSConnected_ = true;
+
+    // branch 1: sessionManagerService 为 nullptr，不构造 proxy，用户切换后 proxy 为空
+    listener->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, nullptr);
+    EXPECT_EQ(nullptr, smGlobal->sessionManagerServiceProxy_);
+
+    // branch 2: 非 proxy 对象（IsProxyObject()=false），不构造 proxy
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
+    auto nonProxyRemote = sptr<RemoteObjectMocker>::MakeSptr();
+    EXPECT_CALL(*nonProxyRemote, IsProxyObject()).WillRepeatedly(Return(false));
+    listener->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, nonProxyRemote);
+    EXPECT_EQ(nullptr, smGlobal->sessionManagerServiceProxy_);
+
+    // branch 3: proxy 对象（IsProxyObject()=true），构造 SessionManagerServiceProxy 传给下游
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
+    auto proxyRemote = sptr<IRemoteObjectMocker>::MakeSptr();
+    listener->OnWMSConnectionChanged(200, 0, true, 23456, 100, 12345, proxyRemote);
+    EXPECT_NE(nullptr, smGlobal->sessionManagerServiceProxy_);
+    smGlobal->sessionManagerServiceProxy_ = nullptr;
 }
 
 /**
@@ -777,6 +813,62 @@ HWTEST_F(SessionManagerLiteTest, InitScreenSessionManagerLiteProxy, TestSize.Lev
     mockInstance.screenSessionManagerLiteProxy_ = proxy;
     ret = mockInstance.InitScreenSessionManagerLiteProxy();
     EXPECT_EQ(WMError::WM_OK, ret);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS01
+ * @tc.desc: test NotifyStackRecoverFromAMS with valid persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS01, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS02
+ * @tc.desc: test NotifyStackRecoverFromAMS with isStackRecover false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS02, TestSize.Level1)
+{
+    int32_t persistentId = 200;
+    bool isStackRecover = false;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS03
+ * @tc.desc: test NotifyStackRecoverFromAMS with invalid persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS03, TestSize.Level1)
+{
+    int32_t persistentId = -1;
+    bool isStackRecover = true;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS04
+ * @tc.desc: test NotifyStackRecoverFromAMS with zero persistentId
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionManagerLiteTest, NotifyStackRecoverFromAMS04, TestSize.Level1)
+{
+    int32_t persistentId = 0;
+    bool isStackRecover = false;
+    auto ret = SceneSessionManagerLite::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    auto expectRet = SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(ret, expectRet);
 }
 } // namespace
 } // namespace OHOS::Rosen

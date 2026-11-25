@@ -41,6 +41,8 @@ public:
     MOCK_METHOD0(DrawingCompleted, WSError());
     MOCK_METHOD0(RemoveStartingWindow, WSError());
     MOCK_METHOD1(RemoveStartingWindow,  WSError(std::string& errMsg));
+    MOCK_METHOD2(ChangeSessionVisibilityWithStatusBar,
+        WSError(const sptr<AAFwk::SessionInfo> abilitySessionInfo, bool visible));
     MOCK_METHOD4(OnRemoteRequest, int(uint32_t code, MessageParcel& data,
         MessageParcel& reply, MessageOption& option));
 };
@@ -321,6 +323,116 @@ HWTEST_F(SessionStubLifecycleTest, HandleDisconnect02, TestSize.Level1)
     uint32_t code = static_cast<uint32_t>(SessionInterfaceCode::TRANS_ID_DISCONNECT);
 
     auto res = session->OnRemoteRequest(code, data, reply, option);
+    ASSERT_EQ(ERR_INVALID_DATA, res);
+}
+
+/**
+ * @tc.name: HandleChangeSessionVisibilityWithStatusBar01
+ * @tc.desc: test HandleChangeSessionVisibilityWithStatusBar without showParams
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLifecycleTest, HandleChangeSessionVisibilityWithStatusBar01, TestSize.Level1)
+{
+    sptr<SessionStubLifecycleMocker> session = sptr<SessionStubLifecycleMocker>::MakeSptr();
+    sptr<AAFwk::SessionInfo> capturedInfo = nullptr;
+    EXPECT_CALL(*session, ChangeSessionVisibilityWithStatusBar(_, true))
+        .WillOnce(Invoke([&capturedInfo](const sptr<AAFwk::SessionInfo> info, bool visible) {
+            capturedInfo = info;
+            return WSError::WS_OK;
+        }));
+
+    MessageParcel data;
+    MessageParcel reply;
+    AAFwk::Want want;
+    EXPECT_EQ(data.WriteParcelable(&want), true);
+    EXPECT_EQ(data.WriteInt32(1), true); // requestCode
+    EXPECT_EQ(data.WriteInt32(2), true); // persistentId
+    EXPECT_EQ(data.WriteInt32(0), true); // state
+    EXPECT_EQ(data.WriteInt64(10), true); // uiAbilityId
+    EXPECT_EQ(data.WriteUint32(9), true); // callingTokenId
+    EXPECT_EQ(data.WriteInt32(4), true); // requestId
+    EXPECT_EQ(data.WriteInt32(0), true); // specifiedReason
+    EXPECT_EQ(data.WriteBool(false), true); // reuse
+    EXPECT_EQ(data.WriteParcelable(nullptr), true); // processOptions
+    EXPECT_EQ(data.WriteBool(false), true); // hasCallerToken
+    EXPECT_EQ(data.WriteBool(false), true); // hasStartSetting
+    EXPECT_EQ(data.WriteBool(true), true); // visible
+    EXPECT_EQ(data.WriteBool(false), true); // hasShowParams
+    auto res = session->HandleChangeSessionVisibilityWithStatusBar(data, reply);
+    ASSERT_EQ(ERR_NONE, res);
+    ASSERT_NE(capturedInfo, nullptr);
+    EXPECT_EQ(capturedInfo->showParams, nullptr);
+}
+
+/**
+ * @tc.name: HandleChangeSessionVisibilityWithStatusBar02
+ * @tc.desc: test HandleChangeSessionVisibilityWithStatusBar with showParams
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLifecycleTest, HandleChangeSessionVisibilityWithStatusBar02, TestSize.Level1)
+{
+    sptr<SessionStubLifecycleMocker> session = sptr<SessionStubLifecycleMocker>::MakeSptr();
+    sptr<AAFwk::SessionInfo> capturedInfo = nullptr;
+    EXPECT_CALL(*session, ChangeSessionVisibilityWithStatusBar(_, true))
+        .WillOnce(Invoke([&capturedInfo](const sptr<AAFwk::SessionInfo> info, bool visible) {
+            capturedInfo = info;
+            return WSError::WS_OK;
+        }));
+
+    MessageParcel data;
+    MessageParcel reply;
+    AAFwk::Want want;
+    EXPECT_EQ(data.WriteParcelable(&want), true);
+    EXPECT_EQ(data.WriteInt32(1), true); // requestCode
+    EXPECT_EQ(data.WriteInt32(2), true); // persistentId
+    EXPECT_EQ(data.WriteInt32(0), true); // state
+    EXPECT_EQ(data.WriteInt64(10), true); // uiAbilityId
+    EXPECT_EQ(data.WriteUint32(9), true); // callingTokenId
+    EXPECT_EQ(data.WriteInt32(4), true); // requestId
+    EXPECT_EQ(data.WriteInt32(0), true); // specifiedReason
+    EXPECT_EQ(data.WriteBool(false), true); // reuse
+    EXPECT_EQ(data.WriteParcelable(nullptr), true); // processOptions
+    EXPECT_EQ(data.WriteBool(false), true); // hasCallerToken
+    EXPECT_EQ(data.WriteBool(false), true); // hasStartSetting
+    EXPECT_EQ(data.WriteBool(true), true); // visible
+    EXPECT_EQ(data.WriteBool(true), true); // hasShowParams
+    WindowShowParams showParams;
+    showParams.windowFocused = false;
+    showParams.raiseTop = false;
+    EXPECT_EQ(data.WriteParcelable(&showParams), true);
+    auto res = session->HandleChangeSessionVisibilityWithStatusBar(data, reply);
+    ASSERT_EQ(ERR_NONE, res);
+    ASSERT_NE(capturedInfo, nullptr);
+    ASSERT_NE(capturedInfo->showParams, nullptr);
+    EXPECT_EQ(capturedInfo->showParams->windowFocused, false);
+    EXPECT_EQ(capturedInfo->showParams->raiseTop, false);
+}
+
+/**
+ * @tc.name: HandleChangeSessionVisibilityWithStatusBar03
+ * @tc.desc: test HandleChangeSessionVisibilityWithStatusBar with invalid showParams
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubLifecycleTest, HandleChangeSessionVisibilityWithStatusBar03, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    AAFwk::Want want;
+    EXPECT_EQ(data.WriteParcelable(&want), true);
+    EXPECT_EQ(data.WriteInt32(1), true); // requestCode
+    EXPECT_EQ(data.WriteInt32(2), true); // persistentId
+    EXPECT_EQ(data.WriteInt32(0), true); // state
+    EXPECT_EQ(data.WriteInt64(10), true); // uiAbilityId
+    EXPECT_EQ(data.WriteUint32(9), true); // callingTokenId
+    EXPECT_EQ(data.WriteInt32(4), true); // requestId
+    EXPECT_EQ(data.WriteInt32(0), true); // specifiedReason
+    EXPECT_EQ(data.WriteBool(false), true); // reuse
+    EXPECT_EQ(data.WriteParcelable(nullptr), true); // processOptions
+    EXPECT_EQ(data.WriteBool(false), true); // hasCallerToken
+    EXPECT_EQ(data.WriteBool(false), true); // hasStartSetting
+    EXPECT_EQ(data.WriteBool(true), true); // visible
+    EXPECT_EQ(data.WriteBool(true), true); // hasShowParams, without valid showParams
+    auto res = session_->HandleChangeSessionVisibilityWithStatusBar(data, reply);
     ASSERT_EQ(ERR_INVALID_DATA, res);
 }
 } // namespace

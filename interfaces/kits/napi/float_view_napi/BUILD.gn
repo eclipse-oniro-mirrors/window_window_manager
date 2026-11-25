@@ -42,6 +42,16 @@ ohos_shared_library("floatview_kit") {
     ":float_view_config",
   ]
 
+  cflags_cc = [
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-fno-asynchronous-unwind-tables",
+    "-fvisibility-inlines-hidden",
+    "-fno-unwind-tables",
+    "-fno-exceptions",
+    "-Os",
+  ]
+
   deps = [
     "../../../../utils:libwmutil",
     "../../../../utils:libwmutil_base",

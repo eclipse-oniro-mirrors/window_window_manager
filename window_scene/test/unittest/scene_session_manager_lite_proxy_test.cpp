@@ -760,6 +760,44 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RecoverWindowPropertyChangeFlag, Test
 }
 
 /**
+ * @tc.name: GetSessionSnapshotById01
+ * @tc.desc: get session snapshot by window id
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, GetSessionSnapshotById01, TestSize.Level1)
+{
+    int32_t winId = 1;
+    SessionSnapshot snapshot;
+    std::string extraInfo;
+    auto tempProxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    auto ret = tempProxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    auto proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
+    EXPECT_EQ(ret, WMError::WM_ERROR_IPC_FAILED);
+
+    remoteMocker->SetRequestResult(ERR_NONE);
+    ret = proxy->GetSessionSnapshotById(winId, snapshot, extraInfo);
+    EXPECT_NE(ret, WMError::WM_ERROR_INVALID_CALLING);
+}
+
+/**
  * @tc.name: RecoverProcessWatermark01
  * @tc.desc: recover watermark image for process
  * @tc.type: FUNC
@@ -1374,6 +1412,146 @@ HWTEST_F(sceneSessionManagerLiteProxyTest, RestoreSessionToForeground, TestSize.
     MockMessageParcel::SetReadInt32ErrorFlag(false);
     EXPECT_EQ(result.errCode, WSError::WS_ERROR_IPC_FAILED);
     MockMessageParcel::ClearAllErrorFlag();
+}
+/**
+ * @tc.name: NotifyStackRecoverFromAMS_Proxy_NullRemote
+ * @tc.desc: test NotifyStackRecoverFromAMS proxy with null remote
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_NullRemote, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(nullptr);
+    ASSERT_NE(proxy, nullptr);
+    auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(result, WSError::WS_ERROR_IPC_FAILED);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS_Proxy_WriteInterfaceTokenFailed
+ * @tc.desc: test NotifyStackRecoverFromAMS proxy when WriteInterfaceToken fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_WriteInterfaceTokenFailed, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(token);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(result, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS_Proxy_WriteInt32Failed
+ * @tc.desc: test NotifyStackRecoverFromAMS proxy when WriteInt32 fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_WriteInt32Failed, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(token);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInt32ErrorFlag(true);
+    auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(result, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteInt32ErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS_Proxy_WriteBoolFailed
+ * @tc.desc: test NotifyStackRecoverFromAMS proxy when WriteBool fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_WriteBoolFailed, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    sptr<IRemoteObject> token = sptr<IRemoteObjectMocker>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(token);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(result, WSError::WS_ERROR_IPC_FAILED);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+    MockMessageParcel::ClearAllErrorFlag();
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS_Proxy_SendRequestFailed
+ * @tc.desc: test NotifyStackRecoverFromAMS proxy when SendRequest fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_SendRequestFailed, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(result, WSError::WS_ERROR_IPC_FAILED);
+    remoteMocker->SetRequestResult(ERR_NONE);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS_Proxy_Success
+ * @tc.desc: test NotifyStackRecoverFromAMS proxy success case
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_Success, TestSize.Level1)
+{
+    int32_t persistentId = 100;
+    bool isStackRecover = true;
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    auto result = proxy->NotifyStackRecoverFromAMS(persistentId, isStackRecover);
+    EXPECT_EQ(result, WSError::WS_OK);
+}
+
+/**
+ * @tc.name: NotifyStackRecoverFromAMS_Proxy_Parameters
+ * @tc.desc: test NotifyStackRecoverFromAMS proxy with different parameter combinations
+ * @tc.type: FUNC
+ */
+HWTEST_F(sceneSessionManagerLiteProxyTest, NotifyStackRecoverFromAMS_Proxy_Parameters, TestSize.Level1)
+{
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    sptr<SceneSessionManagerLiteProxy> proxy = sptr<SceneSessionManagerLiteProxy>::MakeSptr(remoteMocker);
+    ASSERT_NE(proxy, nullptr);
+
+    MockMessageParcel::ClearAllErrorFlag();
+
+    auto result1 = proxy->NotifyStackRecoverFromAMS(0, false);
+    EXPECT_EQ(result1, WSError::WS_OK);
+
+    auto result2 = proxy->NotifyStackRecoverFromAMS(0, true);
+    EXPECT_EQ(result2, WSError::WS_OK);
+
+    auto result3 = proxy->NotifyStackRecoverFromAMS(-2, false);
+    EXPECT_EQ(result3, WSError::WS_OK);
+
+    auto result4 = proxy->NotifyStackRecoverFromAMS(999999, true);
+    EXPECT_EQ(result4, WSError::WS_OK);
 }
 }
 }

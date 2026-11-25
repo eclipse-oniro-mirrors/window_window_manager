@@ -448,7 +448,7 @@ public:
     WSError UpdateSessionTouchOutsideListener(int32_t& persistentId, bool haveListener) override;
     WSError GetSessionSnapshot(const std::string& deviceId, int32_t persistentId,
         SessionSnapshot& snapshot, bool isLowResolution) override;
-    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot) override;
+    WMError GetSessionSnapshotById(int32_t persistentId, SessionSnapshot& snapshot, std::string& extraInfo) override;
     WSError SetVmaCacheStatus(bool flag);
     WSError GetUIContentRemoteObj(int32_t persistentId, sptr<IRemoteObject>& uiContentRemoteObj) override;
     WMError GetRootUIContentRemoteObj(DisplayId displayId, sptr<IRemoteObject>& uiContentRemoteObj) override;
@@ -659,7 +659,7 @@ public:
      * Free Multi Window
      */
     WSError SwitchFreeMultiWindow(bool enable);
-    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId);
+    WSError SwitchFreeMultiWindow(bool enable, int32_t windowId, bool isForce = true);
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError SetForegroundWindowNum(uint32_t windowNum) override;
     void RegisterSetForegroundWindowNumCallback(SetForegroundWindowNumFunc&& func);
@@ -706,7 +706,7 @@ public:
     void SetHasRootSceneRequestedVsyncFunc(HasRootSceneRequestedVsyncFunc&& func);
     void SetRequestVsyncByRootSceneWhenModeChangeFunc(RequestVsyncByRootSceneWhenModeChangeFunc&& func);
     WMError UpdateWindowModeByIdForUITest(int32_t windowId, int32_t updateMode) override;
-    void UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow);
+    void UpdateAppHookWindowInfoWhenSwitchFreeMultiWindow(bool isOpenFreeMultiWindow, bool isForce = true);
     void UpdateRsCmdBlockingCount(bool enable);
     int32_t GetOrResetRsCmdBlockingCount();
     void RegisterGetRsCmdBlockingCountFunc(const sptr<SceneSession>& sceneSession);
@@ -877,6 +877,7 @@ public:
         std::vector<AppWindowShowingInfo>& windowInfos) override;
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig);
     void RegisterUpdateRogWindowConfigCallback(UpdateRogWindowConfigCallbackFunc&& func);
+    WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover);
     WMError HandleAdaptiveResolutionConfig(const sptr<SceneSession>& sceneSession, int32_t callingUid,
         const GameAdaptiveResolutionConfig& config);
     WMError CheckAdaptiveResolutionEnable(const sptr<SceneSession>& sceneSession, int32_t callingUid,
@@ -913,6 +914,8 @@ public:
         const GameAdaptiveResolutionConfig& config);
     sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
         sptr<WindowSessionProperty> property = nullptr);
+    sptr<SceneSession> RequestSceneSession(const SessionInfo& sessionInfo,
+        sptr<WindowSessionProperty> property, bool& isNewSession);
     void UpdateSceneSessionWant(const SessionInfo& sessionInfo);
     WSError RequestSceneSessionActivation(const sptr<SceneSession>& sceneSession, bool isNewActive,
         bool isShowAbility = false, int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID);
@@ -934,6 +937,8 @@ public:
     WSError PendingSessionToForeground(const sptr<IRemoteObject>& token,
         int32_t windowMode = DEFAULT_INVALID_WINDOW_MODE) override;
     WSErrorResult RestoreSessionToForeground(int32_t persistentId);
+    WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override;
+    WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height) override;
     WSError PendingSessionToBackground(const sptr<IRemoteObject>& token, const BackgroundParams& params);
     WSError PendingSessionToBackgroundForDelegator(const sptr<IRemoteObject>& token,
         bool shouldBackToCaller = true, int32_t reason = 0) override;
@@ -1077,6 +1082,11 @@ public:
     void SetSelectMode(SelectMode selectMode);
     SelectMode GetSelectMode() const;
 
+    /**
+     * Reset Want info
+     */
+    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
+
 protected:
     SceneSessionManager();
     virtual ~SceneSessionManager();
@@ -1215,6 +1225,11 @@ private:
     void ConfigDialogWindowSizeLimits(const WindowSceneConfig::ConfigItem& dialogWindowSizeConifg);
     void ConfigSnapshotScale();
     void ConfigFreeMultiWindow();
+    void ConfigAppDpiScale();
+    void SetMinDpiScale(float scale) { minDpiScale_ = scale; }
+    void SetMaxDpiScale(float scale) { maxDpiScale_ = scale; }
+    float GetMinDpiScale() const { return minDpiScale_; }
+    float GetMaxDpiScale() const { return maxDpiScale_; }
     void LoadFreeMultiWindowConfig(bool enable);
     void DoUpdateSceneSessionWant(const SessionInfo& sessionInfo);
     void AddOptionWindowMetaInfo(sptr<WindowInfo> &windowInfo, const sptr<SceneSession> &session);
@@ -1281,7 +1296,6 @@ private:
     void GetAllClearableSessions(std::vector<sptr<SceneSession>>& sessionVector);
     sptr<AAFwk::SessionInfo> SetAbilitySessionInfo(const sptr<SceneSession>& sceneSession,
         int32_t requestId = DEFAULT_REQUEST_FROM_SCB_ID, bool useRequestTaskInfo = false);
-    void ResetWantInfo(const sptr<SceneSession>& sceneSession);
     void ResetSceneSessionInfoWant(const sptr<AAFwk::SessionInfo>& sceneSessionInfo);
     int32_t StartUIAbilityBySCBTimeoutCheck(const sptr<SceneSession>& sceneSession,
         const sptr<AAFwk::SessionInfo>& abilitySessionInfo,
@@ -1481,6 +1495,7 @@ private:
     void UpdateWindowDrawingData(uint64_t surfaceId, int32_t pid, int32_t uid);
     bool GetSpecifiedDrawingData(uint64_t surfaceId, int32_t& pid, int32_t& uid);
     void RemoveSpecifiedDrawingData(uint64_t surfaceId);
+    void ClearSessionCachedRecords(const sptr<SceneSession>& session);
     WMError ReleaseScreenLockForApp(const std::string& bundleName);
     WMError RelockScreenLockForApp(const std::string& bundleName);
     void GetAllSessionsToReleaseScreenLock(
@@ -1685,6 +1700,12 @@ private:
 
     SystemSessionConfig systemConfig_;
     float snapshotScale_ = 0.5;
+    /*
+     * app dpi scale clamp range, parsed from window_manager_config.xml appDpiScaleConfig
+     */
+    static constexpr float DPI_SCALE_STEP = 0.05f;
+    float minDpiScale_ {1.0f};
+    float maxDpiScale_ {1.0f};
     int32_t brightnessSessionId_ = INVALID_SESSION_ID;
     float displayBrightness_ = UNDEFINED_BRIGHTNESS;
     bool isScreenLocked_ { false };
@@ -1874,7 +1895,7 @@ private:
     sptr<SceneSession> GetKeyboardSession(DisplayId displayId, bool isSystemKeyboard);
     void HandleKeyboardAvoidChange(const sptr<SceneSession>& sceneSession, DisplayId displayId,
         SystemKeyboardAvoidChangeReason reason);
-    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive);
+    void UpdateKeyboardAvoidAreaActive(bool systemKeyboardAvoidAreaActive, DisplayId displayId);
 
     /*
      * Specific Window
@@ -1892,6 +1913,8 @@ private:
     bool CheckModalSubWindowPermission(const sptr<WindowSessionProperty>& property);
     WSError CheckSubWindowCallingProcess(const sptr<WindowSessionProperty>& property,
         const sptr<SceneSession>& parentSession);
+    WSError CheckCrossWindowControlCalling();
+    WSError CheckWindowControlTarget(int32_t windowId, sptr<SceneSession>& sceneSession);
 
     /*
      * Window Snapshot

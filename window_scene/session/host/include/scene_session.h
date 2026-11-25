@@ -190,6 +190,8 @@ using NotifyDpiForceScaleChangeFunc = std::function<void(float dpiForceScale, bo
     float windowStartDensity)>;
 using CheckAndGetRogScaleFunc = std::function<bool(const std::string bundleName,
     float& scale)>;
+using NotifyStackRecoveryFlagChangeFunc = std::function<void(bool stackRecoveryFlag)>;
+
 
 struct UIExtensionTokenInfo {
     bool canShowOnLockScreen { false };
@@ -521,6 +523,8 @@ public:
     virtual int32_t GetSubWindowZLevel() const { return 0; }
     void SetMainWindowTopmostChangeCallback(NotifyMainWindowTopmostChangeFunc&& func);
     WSError RaiseAppMainWindowToTop() override;
+    bool IsRaiseTopOnShow() const;
+    void SetRaiseTopOnShow(bool raiseTopOnShow);
 
     /*
      * Compatible Mode
@@ -658,6 +662,8 @@ public:
     WMError UpdateAnimationSpeed(float speed);
 
     bool IsAnco() const override;
+    void SetStackRecoveryFlagChangeListener(const NotifyStackRecoveryFlagChangeFunc& func);
+    void NotifyStackRecoveryFlagChange(bool stackRecoveryFlag);
     void SetBlank(bool isAddBlank) override;
     bool GetBlank() const override;
     void SetBufferAvailableCallbackEnable(bool enable);
@@ -1180,7 +1186,7 @@ public:
     /*
      * dpi force scale for PC Window
      */
-    void UpdateDpiForceScale();
+    void UpdateDpiForceScale(float minDpiScale, float maxDpiScale, float dpiScaleStep);
     void SetDpiForceScaleChangeNotifyFunc(const NotifyDpiForceScaleChangeFunc& func);
     // Notify client (app process) of dpiForceScale change for coordinate conversion.
     void NotifyDpiForceScaleToClient();
@@ -1286,6 +1292,7 @@ protected:
     NotifySubModalTypeChangeFunc onSubModalTypeChange_;
     NotifyMainModalTypeChangeFunc onMainModalTypeChange_;
     NotifySetSupportedWindowModesFunc onSetSupportedWindowModesFunc_;
+    NotifyStackRecoveryFlagChangeFunc stackRecoveryFlagChangeFunc_;
     NotifyUpdateFlagFunc onUpdateFlagFunc_;
     NotifyUseImplicitAnimationChangeFunc useImplicitAnimationChangeFunc_;
 
@@ -1736,6 +1743,13 @@ private:
     // WMSPipeline-related: only accessed on SSM thread
     PostProcessFocusState postProcessFocusState_;
     bool postProcessProperty_ { false };
+
+    /*
+     * ShowAbility
+     */
+    // whether the window is raised to the top when shown again, same lifecycle as focusedOnShow_:
+    // set to false by showAbility with raiseTop=false, restored when the app window shows again
+    bool raiseTopOnShow_ = true;
 
     /*
      * Window Recover
