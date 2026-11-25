@@ -560,6 +560,29 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetScreenColorTransform, TestSize.Level1
 }
 
 /**
+ * @tc.name: RSIOPluginRenderParamUpdate
+ * @tc.desc: RSIOPluginRenderParamUpdate
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, RSIOPluginRenderParamUpdate, TestSize.Level1)
+{
+    DisplayId displayId = 0;
+    std::vector<uint8_t> params = { 0x01, 0x02, 0x03 };
+
+    DMError res = DMError::DM_ERROR_NOT_SYSTEM_APP;
+    std::function<void()> func = [&]()
+    {
+        res = screenSessionManagerProxy->RSIOPluginRenderParamUpdate(displayId, params);
+    };
+    func();
+    if (SceneBoardJudgement::IsSceneBoardEnabled()) {
+        ASSERT_NE(res, DMError::DM_ERROR_IPC_FAILED);
+    } else {
+        ASSERT_EQ(res, DMError::DM_ERROR_IPC_FAILED);
+    }
+}
+
+/**
  * @tc.name: GetPixelFormat
  * @tc.desc: GetPixelFormat
  * @tc.type: FUNC
@@ -3013,6 +3036,81 @@ HWTEST_F(ScreenSessionManagerProxyTest, SetOrientation02, TestSize.Level1)
     proxy->SetOrientation(screenId, orientation, false);
     EXPECT_FALSE(logMsg.find("SendRequest failed") != std::string::npos);
     LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSkipColorSpaceConversion
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, SetSkipColorSpaceConversion, TestSize.Level1)
+{
+    logMsg.clear();
+    LOG_SetCallback(MyLogCallback);
+    bool isSkipColorSpaceConversion = true;
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    screenSessionManagerProxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_TRUE(logMsg.find("WriteInterfaceToken failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    screenSessionManagerProxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_TRUE(logMsg.find("Write displayId failed") != std::string::npos);
+
+    MockMessageParcel::ClearAllErrorFlag();
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    screenSessionManagerProxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_TRUE(logMsg.find("Write isSkipColorSpaceConversion failed") != std::string::npos);
+    LOG_SetCallback(nullptr);
+}
+
+/**
+ * @tc.name: SetSkipColorSpaceConversion01
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerProxyTest, SetSkipColorSpaceConversion01, TestSize.Level1)
+{
+    MockMessageParcel::ClearAllErrorFlag();
+    bool isSkipColorSpaceConversion = true;
+
+    // remote == nullptr
+    auto proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(nullptr);
+    auto ret = proxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_EQ(DMError::DM_ERROR_NULLPTR, ret);
+
+    // WriteInterfaceToken failed
+    sptr<MockIRemoteObject> remoteMocker = sptr<MockIRemoteObject>::MakeSptr();
+    proxy = sptr<ScreenSessionManagerProxy>::MakeSptr(remoteMocker);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(true);
+    ret = proxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_EQ(DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED, ret);
+    MockMessageParcel::SetWriteInterfaceTokenErrorFlag(false);
+
+    // WriteUint64 failed
+    MockMessageParcel::SetWriteUint64ErrorFlag(true);
+    ret = proxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_EQ(DMError::DM_ERROR_IPC_FAILED, ret);
+    MockMessageParcel::SetWriteUint64ErrorFlag(false);
+
+    // WriteBool failed
+    MockMessageParcel::SetWriteBoolErrorFlag(true);
+    ret = proxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_EQ(DMError::DM_ERROR_IPC_FAILED, ret);
+    MockMessageParcel::SetWriteBoolErrorFlag(false);
+
+    // SendRequest failed
+    ASSERT_NE(proxy, nullptr);
+    remoteMocker->SetRequestResult(ERR_INVALID_DATA);
+    ret = proxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_EQ(DMError::DM_ERROR_IPC_FAILED, ret);
+    remoteMocker->SetRequestResult(ERR_NONE);
+
+    // Pass all
+    ret = proxy->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_EQ(DMError::DM_ERROR_IPC_FAILED, ret);
 }
 
 /**

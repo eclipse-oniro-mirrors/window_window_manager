@@ -150,6 +150,8 @@ public:
     virtual DisplayId GetPrimaryDisplayId();
     virtual DMError GetSupportsInput(DisplayId displayId, bool& supportsInput);
     virtual DMError SetSupportsInput(DisplayId displayId, bool supportsInput);
+    virtual DMError RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params);
+    virtual DMError SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion);
     virtual DMError GetRoundedCorner(std::vector<RoundedCorner>& roundedCorner, DisplayId displayId,
         int32_t width, int32_t height);
     virtual DMError GetBundleName(DisplayId displayId, std::string& bundleName);

@@ -1220,6 +1220,54 @@ HWTEST_F(DisplayManagerAdapterTest, SetSupportsInput02, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RSIOPluginRenderParamUpdate
+ * @tc.desc: test RSIOPluginRenderParamUpdate
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, RSIOPluginRenderParamUpdate, TestSize.Level1)
+{
+    std::vector<uint8_t> params = { 0x01, 0x02, 0x03 };
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<DisplayManagerAdapter>().RSIOPluginRenderParamUpdate(0, params);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
+ * @tc.name: SetSkipColorSpaceConversion
+ * @tc.desc: test success
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetSkipColorSpaceConversion, TestSize.Level1)
+{
+    bool isSkipColorSpaceConversion = true;
+    DMError err = SingletonContainer::Get<DisplayManagerAdapter>().SetSkipColorSpaceConversion(0,
+        isSkipColorSpaceConversion);
+    EXPECT_EQ(err, DMError::DM_OK);
+}
+
+/**
+ * @tc.name: SetSkipColorSpaceConversion02
+ * @tc.desc: test screenSessionManagerServiceProxy_ is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerAdapterTest, SetSkipColorSpaceConversion02, TestSize.Level1)
+{
+    bool isSkipColorSpaceConversion = true;
+    auto screenSessionManagerServiceProxy =
+        SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_;
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ = nullptr;
+    DMError err = SingletonContainer::Get<DisplayManagerAdapter>().SetSkipColorSpaceConversion(0,
+        isSkipColorSpaceConversion);
+    EXPECT_EQ(err, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+    SingletonContainer::Get<DisplayManagerAdapter>().screenSessionManagerServiceProxy_ =
+        screenSessionManagerServiceProxy;
+}
+
+/**
  * @tc.name: GetBundleName
  * @tc.desc: test success
  * @tc.type: FUNC

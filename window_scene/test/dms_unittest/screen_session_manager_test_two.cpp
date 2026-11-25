@@ -3858,6 +3858,41 @@ HWTEST_F(ScreenSessionManagerTest, SetSupportsInput, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RSIOPluginRenderParamUpdate
+ * @tc.desc: RSIOPluginRenderParamUpdate with invalid display or params
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RSIOPluginRenderParamUpdate, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "RSIOPluginRenderParamUpdate start";
+    std::vector<uint8_t> params = { 0x01, 0x02, 0x03 };
+    auto ret = ssm_->RSIOPluginRenderParamUpdate(DISPLAY_ID_INVALID, params);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+
+    ret = ssm_->RSIOPluginRenderParamUpdate(0, std::vector<uint8_t>());
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+
+    DisplayId illegalDisplay = 10000;
+    ret = ssm_->RSIOPluginRenderParamUpdate(illegalDisplay, params);
+    EXPECT_EQ(ret, DMError::DM_ERROR_INVALID_PARAM);
+    GTEST_LOG_(INFO) << "RSIOPluginRenderParamUpdate end";
+}
+
+/**
+ * @tc.name: SetSkipColorSpaceConversion
+ * @tc.desc: normal function
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, SetSkipColorSpaceConversion, TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SetSkipColorSpaceConversion start";
+    bool isSkipColorSpaceConversion = true;
+    auto ret = ssm_->SetSkipColorSpaceConversion(0, isSkipColorSpaceConversion);
+    EXPECT_EQ(ret, DMError::DM_ERROR_ILLEGAL_PARAM);
+    GTEST_LOG_(INFO) << "SetSkipColorSpaceConversion end";
+}
+
+/**
  * @tc.name: GetBundleName
  * @tc.desc: normal function
  * @tc.type: FUNC

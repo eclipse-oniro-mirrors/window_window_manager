@@ -1088,6 +1088,24 @@ public:
     DMError SetSupportsInput(DisplayId displayId, bool supportsInput);
 
     /**
+     * @brief Update render params of rs io plugin, which will be transferred to render service.
+     *
+     * @param displayId DisplayId.
+     * @param params Render param byte stream.
+     * @return DM_OK means the update operation succeeds.
+     */
+    DMError RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params);
+    
+    /**
+     * @brief Set skip color space conversion of display, only support scene board.
+     *
+     * @param displayId DisplayId.
+     * @param isSkipColorSpaceConversion True means skip color space conversion.
+     * @return DM_OK means the set operation succeeds, others means set failed.
+     */
+    DMError SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion);
+
+    /**
      * @brief Get bundleName of display
      *
      * @param displayId

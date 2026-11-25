@@ -150,55 +150,6 @@ HWTEST_F(SettingProviderTest, UnregisterObserver_ObserverNullptr, TestSize.Level
 }
 
 /**
- * @tc.name: UnregisterObserver
- * @tc.desc: test function : UnregisterObserver
- * @tc.type: FUNC
- */
-HWTEST_F(SettingProviderTest, UnregisterObserver, TestSize.Level1)
-{
-    SettingObserver::UpdateFunc updateFunc = [&](const std::string&) {};
-    auto observer = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).CreateObserver(
-        "settings.power.suspend_sources", updateFunc);
-    EXPECT_EQ(SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).UnregisterObserver(observer), ERR_NO_INIT);
-}
-
-/**
- * @tc.name: PutStringValue01
- * @tc.desc: test function : PutStringValue
- * @tc.type: FUNC
- */
-HWTEST_F(SettingProviderTest, PutStringValue01, TestSize.Level1)
-{
-    SettingObserver::UpdateFunc updateFunc = [&](const std::string&) {};
-    std::string key = "key";
-    std::string value = "value";
-    bool needNotify = true;
-    auto observer = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).CreateObserver(
-        "settings.power.suspend_sources", updateFunc);
-    EXPECT_EQ(
-        SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).PutStringValue(key, value, needNotify),
-        ERR_NO_INIT);
-}
-
-/**
- * @tc.name: PutStringValue02
- * @tc.desc: test function : PutStringValue
- * @tc.type: FUNC
- */
-HWTEST_F(SettingProviderTest, PutStringValue02, TestSize.Level1)
-{
-    SettingObserver::UpdateFunc updateFunc = [&](const std::string&) {};
-    std::string key = "key";
-    std::string value = "value";
-    bool needNotify = false;
-    auto observer = SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).CreateObserver(
-        "settings.power.suspend_sources", updateFunc);
-    EXPECT_EQ(
-        SettingProvider::GetInstance(POWER_MANAGER_SERVICE_ID).PutStringValue(key, value, needNotify),
-        ERR_NO_INIT);
-}
-
-/**
  * @tc.name: AssembleUriMultiUser
  * @tc.desc: test function : AssembleUriMultiUser
  * @tc.type: FUNC

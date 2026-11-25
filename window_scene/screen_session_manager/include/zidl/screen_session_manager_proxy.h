@@ -288,6 +288,8 @@ public:
     DMError GetRoundedCorner(DisplayId displayId, int& radius) override;
     sptr<IRemoteObject> GetRenderSession(ScreenId screenId) override;
     void SetHoverBlockList(const std::vector<std::string>& hoverBlockList) override;
+    DMError RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params) override;
+    DMError SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion) override;
 private:
     static inline BrokerDelegator<ScreenSessionManagerProxy> delegator_;
 };

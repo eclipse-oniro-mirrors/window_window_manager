@@ -152,6 +152,8 @@ public:
     DMError GetBrightnessInfo(DisplayId dispalyId, ScreenBrightnessInfo& brightnessInfo);
     DMError GetSupportsInput(DisplayId displayId, bool& supportsInput);
     DMError SetSupportsInput(DisplayId displayId, bool supportsInput);
+    DMError RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params);
+    DMError SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion);
     DMError GetBundleName(DisplayId displayId, std::string& bundleName);
     DMError ConvertRelativeCoordinateToGlobal(const RelativePosition& relativePosition, Position& position);
     DMError ConvertGlobalCoordinateToRelative(const Position& globalPosition, RelativePosition& relativePosition);
@@ -3086,6 +3088,27 @@ DMError DisplayManager::SetSupportsInput(DisplayId displayId, bool supportsInput
 DMError DisplayManager::Impl::SetSupportsInput(DisplayId displayId, bool supportsInput)
 {
     return SingletonContainer::Get<DisplayManagerAdapter>().SetSupportsInput(displayId, supportsInput);
+}
+
+DMError DisplayManager::RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params)
+{
+    return pImpl_->RSIOPluginRenderParamUpdate(displayId, params);
+}
+
+DMError DisplayManager::Impl::RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params)
+{
+    return SingletonContainer::Get<DisplayManagerAdapter>().RSIOPluginRenderParamUpdate(displayId, params);
+}
+
+DMError DisplayManager::SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion)
+{
+    return pImpl_->SetSkipColorSpaceConversion(displayId, isSkipColorSpaceConversion);
+}
+
+DMError DisplayManager::Impl::SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion)
+{
+    return SingletonContainer::Get<DisplayManagerAdapter>().SetSkipColorSpaceConversion(displayId,
+        isSkipColorSpaceConversion);
 }
 
 DMError DisplayManager::GetBundleName(DisplayId displayId, std::string& bundleName)

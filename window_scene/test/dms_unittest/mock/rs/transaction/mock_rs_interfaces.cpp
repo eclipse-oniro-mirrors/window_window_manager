@@ -178,6 +178,11 @@ int32_t RSInterfaces::SetScreenGamutMap(ScreenId id, ScreenGamutMap mode)
     return 0;
 }
 
+int32_t RSInterfaces::SetPostProcessingShader(ScreenId id, const std::vector<uint8_t>& params)
+{
+    return 0;
+}
+
 int32_t RSInterfaces::SetScreenCorrection(ScreenId id, ScreenRotation screenRotation)
 {
     return RsMockImpl::GetInstance().SetScreenCorrection(id, screenRotation);
@@ -236,6 +241,7 @@ int32_t RSInterfaces::SetScreenSkipFrameInterval(ScreenId id, uint32_t skipFrame
 {
     return 0;
 }
+void RSInterfaces::SetSkipColorSpaceConversion(ScreenId id, bool isSkipColorSpaceConversion) {}
 int32_t RSInterfaces::SetVirtualScreenRefreshRate(ScreenId id, uint32_t maxRefreshRate, uint32_t& actualRefreshRate)
 {
     return 0;

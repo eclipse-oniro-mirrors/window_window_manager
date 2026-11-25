@@ -5733,4 +5733,78 @@ void ScreenSessionManagerProxy::SetHoverBlockList(const std::vector<std::string>
         return;
     }
 }
+
+DMError ScreenSessionManagerProxy::RSIOPluginRenderParamUpdate(DisplayId displayId,
+    const std::vector<uint8_t>& params)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGW(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGW(WmsLogTag::DMS, "Write displayId failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteUInt8Vector(params)) {
+        TLOGW(WmsLogTag::DMS, "Write params failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_RSIO_PLUGIN_RENDER_PARAM_UPDATE),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::DMS, "Read ret failed!");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(ret);
+}
+
+DMError ScreenSessionManagerProxy::SetSkipColorSpaceConversion(DisplayId displayId,
+    bool isSkipColorSpaceConversion)
+{
+    sptr<IRemoteObject> remote = Remote();
+    if (remote == nullptr) {
+        TLOGW(WmsLogTag::DMS, "remote is nullptr");
+        return DMError::DM_ERROR_NULLPTR;
+    }
+
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        TLOGW(WmsLogTag::DMS, "WriteInterfaceToken failed");
+        return DMError::DM_ERROR_WRITE_INTERFACE_TOKEN_FAILED;
+    }
+    if (!data.WriteUint64(static_cast<uint64_t>(displayId))) {
+        TLOGW(WmsLogTag::DMS, "Write displayId failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (!data.WriteBool(isSkipColorSpaceConversion)) {
+        TLOGW(WmsLogTag::DMS, "Write isSkipColorSpaceConversion failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    if (remote->SendRequest(static_cast<uint32_t>(DisplayManagerMessage::TRANS_ID_SET_SKIP_COLOR_SPACE_CONVERSION),
+        data, reply, option) != ERR_NONE) {
+        TLOGW(WmsLogTag::DMS, "SendRequest failed");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    int32_t ret = 0;
+    if (!reply.ReadInt32(ret)) {
+        TLOGE(WmsLogTag::DMS, "Read ret failed!");
+        return DMError::DM_ERROR_IPC_FAILED;
+    }
+    return static_cast<DMError>(ret);
+}
 } // namespace OHOS::Rosen

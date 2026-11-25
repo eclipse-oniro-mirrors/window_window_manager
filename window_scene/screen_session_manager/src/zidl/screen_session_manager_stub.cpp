@@ -1834,6 +1834,28 @@ int32_t ScreenSessionManagerStub::OnRemoteRequestInner(uint32_t code, MessagePar
             SetHoverBlockList(hoverBlockList);
             break;
         }
+        case DisplayManagerMessage::TRANS_ID_RSIO_PLUGIN_RENDER_PARAM_UPDATE: {
+            DisplayId displayId = static_cast<DisplayId>(data.ReadUint64());
+            std::vector<uint8_t> params;
+            if (!data.ReadUInt8Vector(&params)) {
+                TLOGE(WmsLogTag::DMS, "Read params failed");
+                return ERR_INVALID_DATA;
+            }
+            DMError ret = RSIOPluginRenderParamUpdate(displayId, params);
+            if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+                TLOGE(WmsLogTag::DMS, "Write ret failed!");
+            }
+            break;
+        }
+        case DisplayManagerMessage::TRANS_ID_SET_SKIP_COLOR_SPACE_CONVERSION: {
+            DisplayId displayId = static_cast<DisplayId>(data.ReadUint64());
+            bool isSkipColorSpaceConversion = data.ReadBool();
+            DMError ret = SetSkipColorSpaceConversion(displayId, isSkipColorSpaceConversion);
+            if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
+                TLOGE(WmsLogTag::DMS, "write ret failed!");
+            }
+            break;
+        }
         default:
             TLOGW(WmsLogTag::DMS, "unknown transaction code");
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
