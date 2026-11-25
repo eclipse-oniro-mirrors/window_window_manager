@@ -907,10 +907,10 @@ private:
     bool GetPowerStatus(ScreenPowerState state, PowerStateChangeReason reason, ScreenPowerStatus& status);
     void SetRelativePositionForDisconnect(MultiScreenPositionOptions defaultScreenOptions);
     int Dump(int fd, const std::vector<std::u16string>& args) override;
+    bool FindHookInfoByDisplay(int32_t uid, DisplayId displayId, DMHookInfo& hookInfo);
     sptr<DisplayInfo> HookDisplayInfoByUid(sptr<DisplayInfo> displayInfo, const sptr<ScreenSession>& screenSession,
         int32_t uid = INVALID_UID);
-    void ApplyHookInfoToDisplayInfo(sptr<DisplayInfo>& displayInfo, const sptr<ScreenSession>& screenSession,
-        const DMHookInfo& info);
+    void ApplyAvailableAreaHook(const sptr<DisplayInfo>& displayInfo, const DMHookInfo& info, int32_t uid);
     bool IsAdaptiveResolutionActive(int32_t uid, DMAdaptiveResolutionConfig& config);
     void ApplyAdaptiveResolutionHook(const sptr<DisplayInfo>& displayInfo, int32_t uid);
     bool IsValidDisplayOrientation(uint32_t displayOrientation);
