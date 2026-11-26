@@ -1015,6 +1015,7 @@ public:
     void RegisterIsSessionBoundedSystemTrayFunc(const sptr<SceneSession>& sceneSession);
     void RegisterMinimizeAllCallback(MinimizeAllFunc&& func);
     void UpdateShowOnDockByPersistentIds(const std::vector<int32_t>& persistentIds);
+    WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam);
 
     /*
      * Window Pattern

@@ -2923,6 +2923,7 @@ napi_value CreateJsSessionEventParam(napi_env env, const SessionEventParam& para
     napi_set_named_property(env, objValue, "windowGlobalPosX", CreateJsValue(env, param.windowGlobalPosX_));
     napi_set_named_property(env, objValue, "windowGlobalPosY", CreateJsValue(env, param.windowGlobalPosY_));
     napi_set_named_property(env, objValue, "titleButtonEventType", CreateJsValue(env, param.titleButtonEventType_));
+    napi_set_named_property(env, objValue, "isExcludeFromDockInner", CreateJsValue(env, param.isExcludeFromDockInner));
     // snapshotAnimationConfig
     napi_value animConfigObj = nullptr;
     napi_create_object(env, &animConfigObj);

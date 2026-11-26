@@ -730,6 +730,7 @@ enum class SessionEvent : uint32_t {
     EVENT_NOTIFY_WINDOW_STAGE_CREATE_FINISHED,
     EVENT_CLEAR_GAME_PRELAUNCH_FLAG,
     EVENT_CREATE_WINDOW_WHEN_DRAGGING = 300,
+    EVENT_MODIFY_EXCLUDE_FROM_DOCK,
     EVENT_END
 };
 
@@ -1510,6 +1511,7 @@ struct SessionEventParam {
     int32_t windowGlobalPosY_ = 0;
     uint32_t titleButtonEventType_ = 0;
     SnapshotAnimationConfig snapshotAnimationConfig_;
+    bool isExcludeFromDockInner = false;
 
     // --- Start moving options ---
     bool needFocused = true;
@@ -1875,6 +1877,11 @@ struct RogWindowConfig {
             << " xhdpiAppList size: " << xhdpiAppList.size();
         return oss.str();
     }
+};
+
+struct SessionsExcludeParam {
+    int32_t persistentId = INVALID_SESSION_ID;
+    bool isExcludeFromDockInner = false;
 };
 } // namespace OHOS::Rosen
 #endif // OHOS_ROSEN_WINDOW_SCENE_WS_COMMON_H

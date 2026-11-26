@@ -141,6 +141,7 @@ public:
         TRANS_ID_RESTORE_SESSION_TO_FOREGROUND,
         TRANS_ID_SET_GAME_ADAPTIVE_RESOLUTION_FOR_WINDOW,
         TRANS_ID_NOTIFY_STACK_RECOVER,
+        TRANS_ID_UPDATE_SESSIONS_EXCLUDE_PARAM,
         TRANS_ID_MOVE_TARGET_WINDOW,
         TRANS_ID_RESIZE_WINDOW,
     };
@@ -533,6 +534,11 @@ public:
      * @return Successful call returns WMError: WM-OK, otherwise it indicates failure
      */
     virtual WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) = 0;
+
+    virtual WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
+    {
+        return WMError::WM_OK;
+    }
 
     virtual WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
     {

@@ -127,6 +127,7 @@ private:
     int HandleGetAppWindowShowingInfosByBundleName(MessageParcel& data, MessageParcel& reply);
     int HandleUpdateRogWindowConfig(MessageParcel& data, MessageParcel& reply);
     int HandleNotifyStackRecoverFromAMS(MessageParcel& data, MessageParcel& reply);
+    int HandleUpdateSessionsExcludeParam(MessageParcel& data, MessageParcel& reply);
     int ProcessRemoteRequest(uint32_t code, MessageParcel& data, MessageParcel& reply, MessageOption& option);
     int HandleMoveTargetWindow(MessageParcel& data, MessageParcel& reply);
     int HandleResizeWindow(MessageParcel& data, MessageParcel& reply);

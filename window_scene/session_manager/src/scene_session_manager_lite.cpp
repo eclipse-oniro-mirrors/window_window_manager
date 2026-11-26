@@ -589,6 +589,13 @@ WSError SceneSessionManagerLite::NotifyStackRecoverFromAMS(int32_t persistentId,
     return SceneSessionManager::GetInstance().NotifyStackRecoverFromAMS(persistentId, isStackRecover);
 }
 
+WMError SceneSessionManagerLite::UpdateSessionsExcludeParam(
+    const std::vector<SessionsExcludeParam>& sessionsExcludeParam)
+{
+    TLOGD(WmsLogTag::WMS_MAIN, "in");
+    return SceneSessionManager::GetInstance().UpdateSessionsExcludeParam(sessionsExcludeParam);
+}
+
 WSErrorResult SceneSessionManagerLite::MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY)
 {
     TLOGD(WmsLogTag::WMS_LAYOUT, "in");

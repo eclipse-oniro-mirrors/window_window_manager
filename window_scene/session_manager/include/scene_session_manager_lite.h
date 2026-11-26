@@ -145,6 +145,7 @@ public:
     
     WMError UpdateRogWindowConfig(const RogWindowConfig& windowConfig) override;
     WSError NotifyStackRecoverFromAMS(int32_t persistentId, bool isStackRecover) override;
+    WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam) override;
     WSErrorResult MoveTargetWindow(int32_t windowId, int32_t posX, int32_t posY) override;
     WSErrorResult ResizeWindow(int32_t windowId, int32_t width, int32_t height) override;
 };

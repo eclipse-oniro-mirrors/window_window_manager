@@ -363,6 +363,10 @@ public:
     {
         return WMError::WM_OK;
     }
+    WMError UpdateSessionsExcludeParam(const std::vector<SessionsExcludeParam>& sessionsExcludeParam) override
+    {
+        return WMError::WM_OK;
+    }
     WSError SendPointerEventForHover(const std::shared_ptr<MMI::PointerEvent>& pointerEvent) override
     {
         return WSError::WS_OK;
@@ -2304,6 +2308,113 @@ HWTEST_F(SceneSessionManagerLiteStubTest, OnRemoteRequest_NotifyStackRecoverFrom
     data.WriteInterfaceToken(u"InvalidToken");
     auto res = sceneSessionManagerLiteStub_->SceneSessionManagerLiteStub::OnRemoteRequest(code, data, reply, option);
     EXPECT_EQ(ERR_TRANSACTION_FAILED, res);
+}
+
+/**
+ * @tc.name: HandleUpdateSessionsExcludeParam_Success
+ * @tc.desc: Test HandleUpdateSessionsExcludeParam with valid params
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionsExcludeParam_Success, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param;
+    param.persistentId = 100;
+    param.isExcludeFromDockInner = true;
+    sessionsExcludeParam.push_back(param);
+    data.WriteInt32(static_cast<int32_t>(sessionsExcludeParam.size()));
+    for (const auto& item : sessionsExcludeParam) {
+        data.WriteInt32(item.persistentId);
+        data.WriteBool(item.isExcludeFromDockInner);
+    }
+    int res = sceneSessionManagerLiteStub_->HandleUpdateSessionsExcludeParam(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t ret = 0;
+    EXPECT_TRUE(reply.ReadInt32(ret));
+    EXPECT_EQ(static_cast<WMError>(ret), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: HandleUpdateSessionsExcludeParam_MultiSessions
+ * @tc.desc: Test HandleUpdateSessionsExcludeParam with multiple sessions
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionsExcludeParam_MultiSessions, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    std::vector<SessionsExcludeParam> sessionsExcludeParam;
+    SessionsExcludeParam param1;
+    param1.persistentId = 100;
+    param1.isExcludeFromDockInner = true;
+    SessionsExcludeParam param2;
+    param2.persistentId = 200;
+    param2.isExcludeFromDockInner = false;
+    sessionsExcludeParam.push_back(param1);
+    sessionsExcludeParam.push_back(param2);
+    data.WriteInt32(static_cast<int32_t>(sessionsExcludeParam.size()));
+    for (const auto& item : sessionsExcludeParam) {
+        data.WriteInt32(item.persistentId);
+        data.WriteBool(item.isExcludeFromDockInner);
+    }
+    int res = sceneSessionManagerLiteStub_->HandleUpdateSessionsExcludeParam(data, reply);
+    EXPECT_EQ(res, ERR_NONE);
+    int32_t ret = 0;
+    EXPECT_TRUE(reply.ReadInt32(ret));
+    EXPECT_EQ(static_cast<WMError>(ret), WMError::WM_OK);
+}
+
+/**
+ * @tc.name: HandleUpdateSessionsExcludeParam_ReadSizeFailed
+ * @tc.desc: Test HandleUpdateSessionsExcludeParam when read size failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionsExcludeParam_ReadSizeFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleUpdateSessionsExcludeParam(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateSessionsExcludeParam_NegativeSize
+ * @tc.desc: Test HandleUpdateSessionsExcludeParam when size is negative
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionsExcludeParam_NegativeSize, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(-1);
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleUpdateSessionsExcludeParam(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateSessionsExcludeParam_SizeExceedLimit
+ * @tc.desc: Test HandleUpdateSessionsExcludeParam when size exceeds MAX_VECTOR_SIZE
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionsExcludeParam_SizeExceedLimit, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(101);
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleUpdateSessionsExcludeParam(data, reply), ERR_INVALID_DATA);
+}
+
+/**
+ * @tc.name: HandleUpdateSessionsExcludeParam_ReadParamFailed
+ * @tc.desc: Test HandleUpdateSessionsExcludeParam when read param field failed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionManagerLiteStubTest, HandleUpdateSessionsExcludeParam_ReadParamFailed, TestSize.Level1)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    data.WriteInt32(1);
+    EXPECT_EQ(sceneSessionManagerLiteStub_->HandleUpdateSessionsExcludeParam(data, reply), ERR_INVALID_DATA);
 }
 
 /**
