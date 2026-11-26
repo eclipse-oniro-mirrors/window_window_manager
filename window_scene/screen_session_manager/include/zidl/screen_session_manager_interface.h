@@ -480,6 +480,14 @@ public:
     virtual bool SuspendEnd(DisplayId displayId) { return false; }
     virtual bool SetScreenPowerForSpecifiedId(DisplayId, ScreenPowerState, PowerStateChangeReason) { return false; }
     virtual bool SetDisplayState(DisplayId displayId, DisplayState state) { return false; }
+    virtual DMError RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+    virtual DMError SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion)
+    {
+        return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+    }
 };
 } // namespace Rosen
 } // namespace OHOS

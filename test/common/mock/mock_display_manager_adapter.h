@@ -55,6 +55,7 @@ public:
     MOCK_METHOD1(GetAllDisplayIds, std::vector<DisplayId>(int32_t userId));
     MOCK_METHOD0(GetFoldStatus, FoldStatus());
     MOCK_METHOD0(IsFoldable, bool());
+    MOCK_METHOD2(RSIOPluginRenderParamUpdate, DMError(DisplayId displayId, const std::vector<uint8_t>& params));
 };
 
 class MockScreenManagerAdapter : public ScreenManagerAdapter {

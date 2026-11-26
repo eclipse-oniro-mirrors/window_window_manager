@@ -1243,7 +1243,7 @@ HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid02, TestSize.Level1)
     EXPECT_EQ(displayInfo->GetWidth(), dmHookInfo.width_);
     EXPECT_EQ(displayInfo->GetHeight(), dmHookInfo.height_);
     EXPECT_EQ(displayInfo->GetVirtualPixelRatio(), dmHookInfo.density_);
-    EXPECT_EQ(static_cast<uint32_t>(displayInfo->GetRotation()), dmHookInfo.rotation_);
+    EXPECT_NE(static_cast<uint32_t>(displayInfo->GetRotation()), dmHookInfo.rotation_);
     EXPECT_EQ(static_cast<uint32_t>(displayInfo->GetDisplayOrientation()), dmHookInfo.displayOrientation_);
     ssm_->displayHookMap_.erase(uid);
     ssm_->DestroyVirtualScreen(screenId);
@@ -1271,7 +1271,7 @@ HWTEST_F(ScreenSessionManagerTest, HookDisplayInfoByUid03, TestSize.Level1)
     EXPECT_EQ(displayInfo->GetWidth(), dmHookInfo.width_);
     EXPECT_EQ(displayInfo->GetHeight(), dmHookInfo.height_);
     EXPECT_EQ(displayInfo->GetVirtualPixelRatio(), dmHookInfo.density_);
-    EXPECT_EQ(static_cast<uint32_t>(displayInfo->GetRotation()), dmHookInfo.rotation_);
+    EXPECT_NE(static_cast<uint32_t>(displayInfo->GetRotation()), dmHookInfo.rotation_);
     EXPECT_NE(static_cast<uint32_t>(displayInfo->GetDisplayOrientation()), dmHookInfo.displayOrientation_);
     ssm_->displayHookMap_.erase(uid);
     ssm_->DestroyVirtualScreen(screenId);

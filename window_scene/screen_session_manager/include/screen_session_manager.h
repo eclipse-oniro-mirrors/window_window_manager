@@ -637,6 +637,8 @@ public:
     DMError GetBrightnessInfo(DisplayId displayId, ScreenBrightnessInfo& brightnessInfo) override;
     DMError GetSupportsInput(DisplayId displayId, bool& supportsInput) override;
     DMError SetSupportsInput(DisplayId displayId, bool supportsInput) override;
+    DMError RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params) override;
+    DMError SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion) override;
     DMError GetBundleName(DisplayId displayId, std::string& bundleName) override;
     DMError SetVirtualScreenAutoRotation(ScreenId screenId, bool enable) override;
     DMError SetVirtualScreenCursorMode(ScreenId screenId, RSVirtualScreenCursorMode mode) override;

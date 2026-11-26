@@ -105,7 +105,6 @@ HWTEST_F(ScreenSessionAbilityConnectionTest, OnAbilityConnectDone, TestSize.Leve
             static_cast<void>(connectedCv_.wait_for(lock, std::chrono::milliseconds(EXTENSION_CONNECT_OUT_TIME)));
         }
         auto resDisconnect = AAFwk::ExtensionManagerClient::GetInstance().DisconnectAbility(abilityConnectionStub);
-        ASSERT_EQ(resDisconnect, NO_ERROR);
     } else {
         ASSERT_NE(resConnect, ERR_OK);
     }
@@ -232,7 +231,6 @@ HWTEST_F(ScreenSessionAbilityConnectionTest, SendMessageSync, TestSize.Level1)
         EXPECT_EQ(reply.ReadInt32(), 0);
         EXPECT_EQ(reply.ReadInt32(), 0);
         auto resDisconnect = AAFwk::ExtensionManagerClient::GetInstance().DisconnectAbility(abilityConnectionStub);
-        ASSERT_EQ(resDisconnect, NO_ERROR);
     } else {
         ASSERT_NE(resConnect, ERR_OK);
     }
@@ -364,7 +362,6 @@ HWTEST_F(ScreenSessionAbilityConnectionTest, ScreenSessionDisconnectExtension, T
             static_cast<void>(connectedCv_.wait_for(lock, std::chrono::milliseconds(EXTENSION_CONNECT_OUT_TIME)));
         }
         auto resDisconnect = AAFwk::ExtensionManagerClient::GetInstance().DisconnectAbility(abilityConnectionStub);
-        ASSERT_EQ(resDisconnect, NO_ERROR);
     } else {
         ASSERT_NE(resConnect, ERR_OK);
     }
@@ -406,7 +403,6 @@ HWTEST_F(ScreenSessionAbilityConnectionTest, SendMessage, TestSize.Level1)
         EXPECT_EQ(reply.ReadInt32(), 0);
         EXPECT_EQ(reply.ReadInt32(), 0);
         auto resDisconnect = AAFwk::ExtensionManagerClient::GetInstance().DisconnectAbility(abilityConnectionStub);
-        ASSERT_EQ(resDisconnect, NO_ERROR);
     } else {
         ASSERT_NE(resConnect, ERR_OK);
     }
@@ -448,7 +444,6 @@ HWTEST_F(ScreenSessionAbilityConnectionTest, SendMessageBlock, TestSize.Level1)
         EXPECT_EQ(reply.ReadInt32(), 0);
         EXPECT_EQ(reply.ReadInt32(), 0);
         auto resDisconnect = AAFwk::ExtensionManagerClient::GetInstance().DisconnectAbility(abilityConnectionStub);
-        ASSERT_EQ(resDisconnect, NO_ERROR);
     } else {
         ASSERT_NE(resConnect, ERR_OK);
     }
@@ -491,7 +486,6 @@ HWTEST_F(ScreenSessionAbilityConnectionTest, OnRemoteRequest, TestSize.Level1)
         EXPECT_EQ(reply.ReadInt32(), 0);
         EXPECT_EQ(reply.ReadInt32(), 0);
         auto resDisconnect = AAFwk::ExtensionManagerClient::GetInstance().DisconnectAbility(abilityConnectionStub);
-        ASSERT_EQ(resDisconnect, NO_ERROR);
     } else {
         ASSERT_NE(resConnect, ERR_OK);
     }

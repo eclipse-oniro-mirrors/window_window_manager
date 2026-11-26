@@ -142,6 +142,7 @@ public:
     int32_t GetScreenColorGamut(ScreenId id, ScreenColorGamut& mode);
     int32_t SetScreenColorGamut(ScreenId id, int32_t modeIdx);
     int32_t SetScreenGamutMap(ScreenId id, ScreenGamutMap mode);
+    int32_t SetPostProcessingShader(ScreenId id, const std::vector<uint8_t>& params);
     int32_t SetScreenCorrection(ScreenId id, ScreenRotation screenRotation);
     int32_t GetScreenGamutMap(ScreenId id, ScreenGamutMap& mode);
     int32_t GetPixelFormat(ScreenId id, GraphicPixelFormat& pixelFormat);
@@ -184,6 +185,7 @@ public:
     int32_t SetAsMainScreen(ScreenId id, bool isMainScreen);
     int32_t UnRegisterExposedEventCallback(const RSExposedEventType type);
     int32_t SetVirtualScreenHDRMode(ScreenId id, HDRMode mode);
+    void SetSkipColorSpaceConversion(ScreenId id, bool isSkipColorSpaceConversion);
 };
 }  // namespace Rosen
 }  // namespace OHOS

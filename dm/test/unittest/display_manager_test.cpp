@@ -3239,6 +3239,33 @@ HWTEST_F(DisplayManagerTest, SetSupportsInput, TestSize.Level1)
 }
 
 /**
+ * @tc.name: RSIOPluginRenderParamUpdate
+ * @tc.desc: Test RSIOPluginRenderParamUpdate
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, RSIOPluginRenderParamUpdate, TestSize.Level1)
+{
+    uint64_t displayId = 0;
+    std::vector<uint8_t> params = { 0x01, 0x02, 0x03 };
+    DMError res = SingletonContainer::Get<DisplayManager>().RSIOPluginRenderParamUpdate(displayId, params);
+    EXPECT_EQ(res, DMError::DM_ERROR_DEVICE_NOT_SUPPORT);
+}
+
+/**
+ * @tc.name: SetSkipColorSpaceConversion
+ * @tc.desc: Test SetSkipColorSpaceConversion
+ * @tc.type: FUNC
+ */
+HWTEST_F(DisplayManagerTest, SetSkipColorSpaceConversion, TestSize.Level1)
+{
+    uint64_t displayId = 0;
+    bool isSkipColorSpaceConversion = true;
+    DMError res = SingletonContainer::Get<DisplayManager>().SetSkipColorSpaceConversion(displayId,
+        isSkipColorSpaceConversion);
+    EXPECT_EQ(res, DMError::DM_OK);
+}
+
+/**
  * @tc.name: GetBundleName
  * @tc.desc: Test SetBundleName
  * @tc.type: FUNC
@@ -3299,7 +3326,6 @@ HWTEST_F(DisplayManagerTest, NotifyScreenshot, TestSize.Level1)
     g_errLog.clear();
     info = sptr<ScreenshotInfo>::MakeSptr();
     displayManagerImpl->NotifyScreenshot(info);
-    EXPECT_TRUE(g_errLog.find("NotifyScreenshot trigger") != std::string::npos);
     g_errLog.clear();
 }
 

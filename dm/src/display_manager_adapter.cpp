@@ -1935,6 +1935,25 @@ DMError DisplayManagerAdapter::SetSupportsInput(DisplayId displayId, bool suppor
     return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
 }
 
+DMError DisplayManagerAdapter::RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->RSIOPluginRenderParamUpdate(displayId, params);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
+DMError DisplayManagerAdapter::SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion)
+{
+    INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);
+    if (screenSessionManagerServiceProxy_) {
+        return screenSessionManagerServiceProxy_->SetSkipColorSpaceConversion(displayId,
+            isSkipColorSpaceConversion);
+    }
+    return DMError::DM_ERROR_DEVICE_NOT_SUPPORT;
+}
+
 DMError DisplayManagerAdapter::GetBundleName(DisplayId displayId, std::string& bundleName)
 {
     INIT_PROXY_CHECK_RETURN(DMError::DM_ERROR_INIT_DMS_PROXY_LOCKED);

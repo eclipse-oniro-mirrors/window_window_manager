@@ -133,6 +133,7 @@ const std::string SETTING_LOCKED_KEY = "settings.general.accelerometer_rotation_
 const ScreenId SCREEN_ID_DEFAULT = 0;
 const ScreenId RS_ID_DEFAULT = 0;
 const ScreenId SCREEN_ID_FULL = 0;
+constexpr size_t MAX_RENDER_PARAM_SIZE = 65536; // 64KB, below IPC parcel limit
 const ScreenId SCREEN_ID_MAIN = 5;
 const ScreenId SCREEN_ID_PC = 4;
 const ScreenId SCREEN_ID_PC_MAIN = 9;
@@ -6267,6 +6268,61 @@ DMError ScreenSessionManager::SetSupportsInput(DisplayId displayId, bool support
         return DMError::DM_ERROR_ILLEGAL_PARAM;
     }
     screenSession->SetSupportsInput(supportsInput);
+    return DMError::DM_OK;
+}
+
+DMError ScreenSessionManager::RSIOPluginRenderParamUpdate(DisplayId displayId, const std::vector<uint8_t>& params)
+{
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+        TLOGNFE(WmsLogTag::DMS, "permission denied!");
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
+    TLOGNFI(WmsLogTag::DMS, "displayId: %{public}" PRIu64 ", params size %{public}zu",
+        displayId, params.size());
+    if (displayId == DISPLAY_ID_INVALID) {
+        TLOGNFE(WmsLogTag::DMS, "displayId invalid");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    if (params.empty() || params.size() > MAX_RENDER_PARAM_SIZE) {
+        TLOGNFE(WmsLogTag::DMS, "params invalid, size %{public}zu", params.size());
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+ 
+    ScreenId rsId = SCREEN_ID_INVALID;
+    if (!ConvertScreenIdToRsScreenId(displayId, rsId)) {
+        TLOGNFE(WmsLogTag::DMS, "Get rs ScreenId failed");
+        return DMError::DM_ERROR_INVALID_PARAM;
+    }
+    int32_t ret = rsInterface_.SetPostProcessingShader(rsId, params);
+    if (ret != 0) {
+        TLOGE(WmsLogTag::DMS, "Set post processing shader failed! rsId %{public}" PRIu64 ", ret %{public}d",
+            rsId, ret);
+        return DMError::DM_ERROR_RENDER_SERVICE_FAILED;
+    }
+    return DMError::DM_OK;
+}
+
+DMError ScreenSessionManager::SetSkipColorSpaceConversion(DisplayId displayId, bool isSkipColorSpaceConversion)
+{
+    TLOGNFI(WmsLogTag::DMS, "displayId: %{public}" PRIu64", isSkipColorSpaceConversion: %{public}d",
+        displayId, isSkipColorSpaceConversion);
+    if (!SessionPermission::IsSystemCalling() && !SessionPermission::IsStartByHdcd()) {
+        TLOGNFE(WmsLogTag::DMS, "permission denied!");
+        return DMError::DM_ERROR_NOT_SYSTEM_APP;
+    }
+    // convert displayId to screenId
+    sptr<ScreenSession> screenSession = GetScreenSession(displayId);
+    if (screenSession == nullptr) {
+        TLOGNFE(WmsLogTag::DMS, "GetScreenSession failed");
+        return DMError::DM_ERROR_ILLEGAL_PARAM;
+    }
+    ScreenId screenId = screenSession->GetScreenId();
+    ScreenId rsScreenId = SCREEN_ID_INVALID;
+    if (!screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
+        TLOGNFE(WmsLogTag::DMS, "convert to rsScreenId failed, screenId: %{public}" PRIu64, screenId);
+        return DMError::DM_ERROR_ILLEGAL_PARAM;
+    }
+    rsInterface_.SetSkipColorSpaceConversion(rsScreenId, isSkipColorSpaceConversion);
     return DMError::DM_OK;
 }
 
