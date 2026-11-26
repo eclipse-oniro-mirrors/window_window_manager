@@ -17,6 +17,7 @@
 #include "iremote_object_mocker.h"
 #include "parameters.h"
 #include "scene_board_judgement.h"
+#include "window_impl.h"
 #include "window_manager.cpp"
 #include "window_manager.h"
 #include "window_manager_hilog.h"
@@ -99,10 +100,11 @@ public:
     static int32_t lastResizedWidth_;
     static int32_t lastResizedHeight_;
     WMError resizeMainWindowToRet_ = WMError::WM_OK;
+    WMError setWindowPositionRet_ = WMError::WM_OK;
 
     WMError SetWindowPosition(const WindowPositionInfo& windowPositionInfo) override
     {
-        return WMError::WM_OK;
+        return setWindowPositionRet_;
     }
 
     WMError SetStartWindowBackgroundColor(
@@ -3435,23 +3437,53 @@ HWTEST_F(WindowManagerTest, ResizeWindow, TestSize.Level1)
  */
 HWTEST_F(WindowManagerTest, SetWindowPosition, TestSize.Level1)
 {
-    // 1. Set up the test environment
+    constexpr int32_t testWindowId = 1;
+    constexpr int32_t unregisteredWindowId = 9999;
+
+    // Register a fake main window so the client pre-check (Window::GetWindowWithId) passes.
+    // WindowSessionImpl::windowSessionMap_ feeds the lookup in sceneboard mode, while
+    // WindowImpl::windowMap_ does so in the split-architecture mode.
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("SetWindowPositionTest");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(window, nullptr);
+    window->property_->SetPersistentId(testWindowId);
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(window->GetWindowName(),
+        std::pair<int32_t, sptr<WindowSessionImpl>>(window->GetPersistentId(), window)));
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        WindowImpl::windowMap_.insert(std::make_pair(window->GetWindowName(),
+            std::pair<uint32_t, sptr<Window>>(static_cast<uint32_t>(testWindowId), window)));
+    }
+
+    // 1. Happy path: TOP sentinel, the mock adapter returns OK through the full client path.
     WindowPositionParams position;
-    position.windowId = 1;
-    position.insertAfter = 0;
+    position.windowId = testWindowId;
+    position.insertAfter = static_cast<int32_t>(WindowPosition::TOP);
     WindowPositionInfo windowPositionInfo;
     windowPositionInfo.windowPositions.push_back(position);
+    EXPECT_EQ(WMError::WM_OK, mockInstance_->SetWindowPosition(windowPositionInfo));
 
-    WMError ret;
-    windowAdapter_->isProxyValid_ = true; // skip InitSSMProxy, proxy remains null
-    windowAdapter_->windowManagerServiceProxy_ = nullptr;
-    // 2. Call the function to be tested
-    ret = instance_->SetWindowPosition(windowPositionInfo);
-    // 3. Verify the result
-    EXPECT_NE(WMError::WM_OK, ret);
+    // 2. The adapter error is propagated unchanged.
+    mockAdapter_->setWindowPositionRet_ = WMError::WM_ERROR_INVALID_PERMISSION;
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_PERMISSION, mockInstance_->SetWindowPosition(windowPositionInfo));
+    mockAdapter_->setWindowPositionRet_ = WMError::WM_OK;
 
-    ret = mockInstance_->SetWindowPosition(windowPositionInfo);
-    EXPECT_EQ(WMError::WM_OK, ret);
+    // 3. Client pre-check: windowId <= 0 is rejected before the adapter is reached.
+    position.windowId = 0;
+    windowPositionInfo.windowPositions.clear();
+    windowPositionInfo.windowPositions.push_back(position);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, instance_->SetWindowPosition(windowPositionInfo));
+
+    // 4. Client pre-check: a window not created by the current process is rejected.
+    position.windowId = unregisteredWindowId;
+    windowPositionInfo.windowPositions.clear();
+    windowPositionInfo.windowPositions.push_back(position);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, instance_->SetWindowPosition(windowPositionInfo));
+
+    WindowSessionImpl::windowSessionMap_.erase(window->GetWindowName());
+    if (!SceneBoardJudgement::IsSceneBoardEnabled()) {
+        WindowImpl::windowMap_.erase(window->GetWindowName());
+    }
 }
 
 /**
