@@ -19,7 +19,6 @@
 #include <want.h>
 #include "common_event_subscribe_info.h"
 #include "event_runner.h"
-#include "skills.h"
 #include "window_manager_hilog.h"
 #include "window_manager_service.h"
 
