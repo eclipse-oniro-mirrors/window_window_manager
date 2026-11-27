@@ -7832,8 +7832,10 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
                 where, sceneSession->GetPersistentId());
             return;
         }
+        const bool isStackRecover = sceneSession->GetSessionState() == SessionState::STATE_DISCONNECT &&
+            sceneSession->GetTryUseSnapshot();
         if ((sceneSession->GetSessionState() == SessionState::STATE_BACKGROUND ||
-            sceneSession->GetTryUseSnapshot()) && sceneSession->HasPersistentSnapshot()) {
+            isStackRecover) && sceneSession->HasPersistentSnapshot()) {
             TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s id: %{public}d change to preloadSnapshot",
                 where, sceneSession->GetPersistentId());
             sceneSession->PreloadSnapshot();
