@@ -7392,9 +7392,11 @@ WSError WindowSceneSessionImpl::UpdateTitleInTargetPos(bool isShow, int32_t heig
         TLOGE(WmsLogTag::WMS_DECOR, "uiContent is null");
         return WSError::WS_ERROR_INVALID_PARAM;
     }
+    const std::string deviceType = OHOS::system::GetParameter("const.product.devicetype", "");
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
-    if (isPcMode && windowSystemConfig_.isDockAutoHide_ && (isDecorHiddenByApp_ || isMaximizeInvoked_ ||
-        property_->IsAdaptToImmersive()) && !IsAnco() && GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
+    if (deviceType != "2in1" && isPcMode && windowSystemConfig_.isDockAutoHide_ &&
+        (isDecorHiddenByApp_ || isMaximizeInvoked_ || property_->IsAdaptToImmersive()) &&
+        !IsAnco() && GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN) {
         TLOGI(WmsLogTag::WMS_DECOR, "dock auto hide skip updateTitleInTargetPos");
         return WSError::WS_OK;
     }

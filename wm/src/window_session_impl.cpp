@@ -3665,6 +3665,10 @@ bool WindowSessionImpl::UpdateDecorEnable(bool needNotify, WindowMode mode)
 
 bool WindowSessionImpl::updateDecorWhenDockAutoHide(bool decorVisible)
 {
+    const std::string deviceType = OHOS::system::GetParameter("const.product.devicetype", "");
+    if (deviceType == "2in1") {
+        return decorVisible;
+    }
     const bool isPcMode = system::GetBoolParameter("persist.sceneboard.ispcmode", false);
     if (isPcMode && windowSystemConfig_.isDockAutoHide_ && !isDecorHiddenByApp_ && !isMaximizeInvoked_ && !IsAnco() &&
         GetWindowMode() == WindowMode::WINDOW_MODE_FULLSCREEN && !property_->IsAdaptToImmersive()) {
