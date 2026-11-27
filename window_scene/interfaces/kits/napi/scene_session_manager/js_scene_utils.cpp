@@ -2326,7 +2326,7 @@ napi_value CreateJsSessionInfo(napi_env env, const SessionInfo& sessionInfo,
     if (sessionInfo.positionZ != nullptr) {
         napi_set_named_property(env, objValue, "positionZ",
             CreateJsValue(env, *(sessionInfo.positionZ)));
-    }    
+    }
     return objValue;
 }
 
