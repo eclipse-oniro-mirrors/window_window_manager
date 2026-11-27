@@ -7832,7 +7832,8 @@ void SceneSessionManager::PreLoadStartingWindow(sptr<SceneSession> sceneSession)
                 where, sceneSession->GetPersistentId());
             return;
         }
-        if (sceneSession->GetSessionState() == SessionState::STATE_BACKGROUND && sceneSession->HasPersistentSnapshot()) {
+        if ((sceneSession->GetSessionState() == SessionState::STATE_BACKGROUND ||
+            sceneSession->GetTryUseSnapshot()) && sceneSession->HasPersistentSnapshot()) {
             TLOGND(WmsLogTag::WMS_PATTERN, "%{public}s id: %{public}d change to preloadSnapshot",
                 where, sceneSession->GetPersistentId());
             sceneSession->PreloadSnapshot();
