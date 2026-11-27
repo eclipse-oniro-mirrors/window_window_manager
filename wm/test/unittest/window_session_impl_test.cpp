@@ -3455,6 +3455,284 @@ HWTEST_F(WindowSessionImplTest, IsSubWindowMaximizeSupported05, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ListenerMigration01
+ * @tc.desc: Test rect change listener migration to new host on parent changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ListenerMigration01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ListenerMigration01_NewHost");
+    sptr<WindowSessionImpl> newHost = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, newHost);
+    newHost->property_->SetPersistentId(6001);
+
+    int32_t persistentId = 2001;
+    AAFwk::Want want;
+    want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, true);
+    want.SetParam(Extension::OLD_PARENT_WINDOW_ID, 0); // invalid old parent, skip cleanup
+
+    ASSERT_TRUE(newHost->rectChangeUIExtListenerIds_.empty());
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED);
+    auto ret = newHost->HandleNotifyHostOnParentChanged(code, persistentId, want);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(1u, newHost->rectChangeUIExtListenerIds_.count(persistentId));
+}
+
+/**
+ * @tc.name: ListenerMigration02
+ * @tc.desc: Test multiple listener types (rect + keyboard + globalDisplay) migration simultaneously
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ListenerMigration02, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ListenerMigration02_NewHost");
+    sptr<WindowSessionImpl> newHost = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, newHost);
+    newHost->property_->SetPersistentId(6001);
+
+    int32_t persistentId = 2002;
+    AAFwk::Want want;
+    want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, true);
+    want.SetParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, true);
+    want.SetParam(Extension::HAS_KEYBOARD_DID_HIDE_LISTENER, true);
+    want.SetParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER, true);
+    want.SetParam(Extension::OLD_PARENT_WINDOW_ID, 0); // invalid old parent, skip cleanup
+
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED);
+    auto ret = newHost->HandleNotifyHostOnParentChanged(code, persistentId, want);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    EXPECT_EQ(1u, newHost->rectChangeUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(1u, newHost->keyboardDidShowUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(1u, newHost->keyboardDidHideUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(1u, newHost->rectChangeInGlobalDisplayUIExtListenerIds_.count(persistentId));
+}
+
+/**
+ * @tc.name: ListenerMigration03
+ * @tc.desc: Test old host listener cleanup when migrating to new host
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ListenerMigration03, TestSize.Level1)
+{
+    // Create old host and pre-register listeners
+    sptr<WindowOption> oldOption = sptr<WindowOption>::MakeSptr();
+    oldOption->SetWindowName("ListenerMigration03_OldHost");
+    sptr<WindowSessionImpl> oldHost = sptr<WindowSessionImpl>::MakeSptr(oldOption);
+    ASSERT_NE(nullptr, oldHost);
+    int32_t oldParentId = 3003;
+    oldHost->property_->SetPersistentId(oldParentId);
+
+    int32_t persistentId = 3001;
+    oldHost->rectChangeUIExtListenerIds_.emplace(persistentId);
+    oldHost->keyboardDidShowUIExtListenerIds_.emplace(persistentId);
+    oldHost->rectChangeInGlobalDisplayUIExtListenerIds_.emplace(persistentId);
+
+    // Register old host in windowSessionMap_ so GetWindowWithId can find it
+    WindowSessionImpl::windowSessionMap_.clear();
+    WindowSessionImpl::windowSessionMap_.insert(std::make_pair(oldHost->GetWindowName(),
+        std::pair<uint64_t, sptr<WindowSessionImpl>>(oldHost->GetWindowId(), oldHost)));
+
+    // Create new host
+    sptr<WindowOption> newOption = sptr<WindowOption>::MakeSptr();
+    newOption->SetWindowName("ListenerMigration03_NewHost");
+    sptr<WindowSessionImpl> newHost = sptr<WindowSessionImpl>::MakeSptr(newOption);
+    ASSERT_NE(nullptr, newHost);
+    newHost->property_->SetPersistentId(6001);
+
+    AAFwk::Want want;
+    want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, true);
+    want.SetParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, true);
+    want.SetParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER, true);
+    want.SetParam(Extension::OLD_PARENT_WINDOW_ID, oldParentId);
+
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED);
+    auto ret = newHost->HandleNotifyHostOnParentChanged(code, persistentId, want);
+    EXPECT_EQ(WMError::WM_OK, ret);
+
+    // Verify new host registered listeners
+    EXPECT_EQ(1u, newHost->rectChangeUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(1u, newHost->keyboardDidShowUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(1u, newHost->rectChangeInGlobalDisplayUIExtListenerIds_.count(persistentId));
+    // Verify old host listeners cleaned up
+    EXPECT_EQ(0u, oldHost->rectChangeUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(0u, oldHost->keyboardDidShowUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(0u, oldHost->rectChangeInGlobalDisplayUIExtListenerIds_.count(persistentId));
+
+    WindowSessionImpl::windowSessionMap_.clear();
+}
+
+/**
+ * @tc.name: ListenerMigration04
+ * @tc.desc: Test no crash when old host is already destroyed (GetWindowWithId returns nullptr)
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ListenerMigration04, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ListenerMigration04_NewHost");
+    sptr<WindowSessionImpl> newHost = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, newHost);
+    newHost->property_->SetPersistentId(6001);
+
+    int32_t persistentId = 4001;
+    int32_t nonExistentOldParentId = 49999;
+
+    // Ensure old host cannot be found
+    WindowSessionImpl::windowSessionMap_.clear();
+
+    AAFwk::Want want;
+    want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, true);
+    want.SetParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, true);
+    want.SetParam(Extension::OLD_PARENT_WINDOW_ID, nonExistentOldParentId);
+
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED);
+    auto ret = newHost->HandleNotifyHostOnParentChanged(code, persistentId, want);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    // New host should still have registered listeners despite old host not found
+    EXPECT_EQ(1u, newHost->rectChangeUIExtListenerIds_.count(persistentId));
+    EXPECT_EQ(1u, newHost->keyboardDidShowUIExtListenerIds_.count(persistentId));
+}
+
+/**
+ * @tc.name: ListenerMigration05
+ * @tc.desc: Test migration completes normally when provider has no registered listeners
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ListenerMigration05, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ListenerMigration05_NewHost");
+    sptr<WindowSessionImpl> newHost = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, newHost);
+    newHost->property_->SetPersistentId(6001);
+
+    int32_t persistentId = 5001;
+    AAFwk::Want want;
+    // Provider has no registered listeners
+    want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, false);
+    want.SetParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, false);
+    want.SetParam(Extension::HAS_KEYBOARD_DID_HIDE_LISTENER, false);
+    want.SetParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER, false);
+    want.SetParam(Extension::OLD_PARENT_WINDOW_ID, 0);
+
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED);
+    auto ret = newHost->HandleNotifyHostOnParentChanged(code, persistentId, want);
+    EXPECT_EQ(WMError::WM_OK, ret);
+    // No listeners should be registered on new host
+    EXPECT_TRUE(newHost->rectChangeUIExtListenerIds_.empty());
+    EXPECT_TRUE(newHost->keyboardDidShowUIExtListenerIds_.empty());
+    EXPECT_TRUE(newHost->keyboardDidHideUIExtListenerIds_.empty());
+    EXPECT_TRUE(newHost->rectChangeInGlobalDisplayUIExtListenerIds_.empty());
+}
+
+/**
+ * @tc.name: ListenerMigration06
+ * @tc.desc: Test early return when oldParentWindowId equals current windowId
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, ListenerMigration06, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("ListenerMigration06_NewHost");
+    sptr<WindowSessionImpl> newHost = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, newHost);
+    newHost->property_->SetPersistentId(6001);
+    int32_t persistentId = 6002;
+    uint32_t code = static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED);
+
+    // Case 1: oldParentWindowId == current windowId (should return early)
+    {
+        AAFwk::Want want;
+        want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, true);
+        want.SetParam(Extension::OLD_PARENT_WINDOW_ID, 6001);
+        auto ret = newHost->HandleNotifyHostOnParentChanged(code, persistentId, want);
+        EXPECT_EQ(WMError::WM_OK, ret);
+        // No listeners should be registered due to early return
+        EXPECT_TRUE(newHost->rectChangeUIExtListenerIds_.empty());
+    }
+
+    // Case 2: oldParentWindowId == 0 (invalid, skip cleanup but register listeners)
+    {
+        AAFwk::Want want;
+        want.SetParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, true);
+        want.SetParam(Extension::OLD_PARENT_WINDOW_ID, 0);
+        auto ret = newHost->HandleNotifyHostOnParentChanged(code, persistentId, want);
+        EXPECT_EQ(WMError::WM_OK, ret);
+        // Listener registered on new host, cleanup skipped
+        EXPECT_EQ(1u, newHost->rectChangeUIExtListenerIds_.count(persistentId));
+    }
+}
+
+/**
+ * @tc.name: GetExtensionWindowWithId01
+ * @tc.desc: Test finding an extension window by windowId from the extension session set
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, GetExtensionWindowWithId01, TestSize.Level1)
+{
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    option->SetWindowName("GetExtensionWindowWithId01");
+    sptr<WindowSessionImpl> window = sptr<WindowSessionImpl>::MakeSptr(option);
+    ASSERT_NE(nullptr, window);
+    int32_t persistentId = 7001;
+    window->property_->SetPersistentId(persistentId);
+
+    WindowSessionImpl::GetWindowExtensionSessionSet().clear();
+    WindowSessionImpl::GetWindowExtensionSessionSet().insert(window);
+
+    auto found = WindowSessionImpl::GetExtensionWindowWithId(window->GetWindowId());
+    ASSERT_NE(nullptr, found);
+    EXPECT_EQ(found->GetWindowId(), window->GetWindowId());
+
+    WindowSessionImpl::GetWindowExtensionSessionSet().clear();
+}
+
+/**
+ * @tc.name: GetExtensionWindowWithId02
+ * @tc.desc: Test returns nullptr when windowId is not in the extension session set
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, GetExtensionWindowWithId02, TestSize.Level1)
+{
+    WindowSessionImpl::GetWindowExtensionSessionSet().clear();
+    auto found = WindowSessionImpl::GetExtensionWindowWithId(79999);
+    EXPECT_EQ(nullptr, found);
+}
+
+/**
+ * @tc.name: GetExtensionWindowWithId03
+ * @tc.desc: Test finding the correct target window among multiple extension windows
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowSessionImplTest, GetExtensionWindowWithId03, TestSize.Level1)
+{
+    sptr<WindowOption> option1 = sptr<WindowOption>::MakeSptr();
+    option1->SetWindowName("GetExtensionWindowWithId03_A");
+    sptr<WindowSessionImpl> windowA = sptr<WindowSessionImpl>::MakeSptr(option1);
+    ASSERT_NE(nullptr, windowA);
+    windowA->property_->SetPersistentId(7003);
+
+    sptr<WindowOption> option2 = sptr<WindowOption>::MakeSptr();
+    option2->SetWindowName("GetExtensionWindowWithId03_B");
+    sptr<WindowSessionImpl> windowB = sptr<WindowSessionImpl>::MakeSptr(option2);
+    ASSERT_NE(nullptr, windowB);
+    windowB->property_->SetPersistentId(7004);
+
+    WindowSessionImpl::GetWindowExtensionSessionSet().clear();
+    WindowSessionImpl::GetWindowExtensionSessionSet().insert(windowA);
+    WindowSessionImpl::GetWindowExtensionSessionSet().insert(windowB);
+
+    auto found = WindowSessionImpl::GetExtensionWindowWithId(windowB->GetWindowId());
+    ASSERT_NE(nullptr, found);
+    EXPECT_EQ(found->GetWindowId(), windowB->GetWindowId());
+    EXPECT_NE(found->GetWindowId(), windowA->GetWindowId());
+
+    WindowSessionImpl::GetWindowExtensionSessionSet().clear();
+}
+
+/**
  * @tc.name: UpdateTitleButtonVisibility01
  * @tc.desc: UpdateTitleButtonVisibility - subWindow with onlySupportFullScreen,
  *           cover HideWindowTitleButton(true, true, false, false) branch

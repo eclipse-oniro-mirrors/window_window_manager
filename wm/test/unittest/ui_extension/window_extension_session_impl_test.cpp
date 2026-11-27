@@ -57,6 +57,21 @@ namespace {
 namespace OHOS {
 namespace Rosen {
 using WindowAdapterMocker = SingletonMocker<WindowAdapter, MockWindowAdapter>;
+
+class NotifyCaptureDataHandler : public Extension::MockDataHandler {
+public:
+    uint32_t lastCode_ = 0;
+    AAFwk::Want lastData_;
+    bool called_ = false;
+    DataHandlerErr SendDataAsync(SubSystemId subSystemId, uint32_t customId, const AAFwk::Want& toSend) override
+    {
+        called_ = true;
+        lastCode_ = customId;
+        lastData_ = toSend;
+        return DataHandlerErr::OK;
+    }
+};
+
 class WindowExtensionSessionImplTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -4486,6 +4501,326 @@ HWTEST_F(WindowExtensionSessionImplTest, RegisterAbilityDataConsumer02, TestSize
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window_->RegisterAbilityDataConsumer(callback));
     EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window_->UnregisterAbilityDataConsumer());
 }
+
+/**
+ * @tc.name: NotifyHostOnParentChanged01
+ * @tc.desc: Test NotifyHostOnParentChanged does not crash when dataHandler is nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, NotifyHostOnParentChanged01, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    window_->dataHandler_ = nullptr;
+    window_->callerPersistentId_ = 100;
+    window_->NotifyHostOnParentChanged(8001);
 }
+
+/**
+ * @tc.name: NotifyHostOnParentChanged02
+ * @tc.desc: Test NotifyHostOnParentChanged returns early when oldParentId equals callerPersistentId_
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, NotifyHostOnParentChanged02, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    auto captureHandler = std::make_shared<NotifyCaptureDataHandler>();
+    ASSERT_NE(nullptr, captureHandler);
+    window_->dataHandler_ = captureHandler;
+
+    int32_t testCallerId = 9001;
+    window_->callerPersistentId_ = testCallerId;
+    
+    window_->NotifyHostOnParentChanged(testCallerId);
+
+    EXPECT_FALSE(captureHandler->called_);
+}
+
+/**
+ * @tc.name: NotifyHostOnParentChanged03
+ * @tc.desc: Test NotifyHostOnParentChanged packs correct Want params when no listeners registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, NotifyHostOnParentChanged03, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    auto captureHandler = std::make_shared<NotifyCaptureDataHandler>();
+    ASSERT_NE(nullptr, captureHandler);
+    window_->dataHandler_ = captureHandler;
+
+    ASSERT_TRUE(window_->hostWindowRectChangeListener_.empty());
+    ASSERT_TRUE(window_->keyboardDidShowListenerList_.empty());
+    ASSERT_TRUE(window_->keyboardDidHideListenerList_.empty());
+    ASSERT_TRUE(window_->hostRectChangeInGlobalDisplayListenerList_.empty());
+    ASSERT_TRUE(window_->rectChangeUIExtListenerIds_.empty());
+    ASSERT_TRUE(window_->keyboardDidShowUIExtListeners_.empty());
+    ASSERT_TRUE(window_->keyboardDidHideUIExtListeners_.empty());
+    ASSERT_TRUE(window_->rectChangeInGlobalDisplayUIExtListenerIds_.empty());
+
+    window_->callerPersistentId_ = 9003;
+    int32_t oldCallerId = 8003;
+    window_->NotifyHostOnParentChanged(oldCallerId);
+
+    EXPECT_TRUE(captureHandler->called_);
+    EXPECT_EQ(captureHandler->lastCode_,
+        static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED));
+    EXPECT_EQ(captureHandler->lastData_.GetIntParam(Extension::OLD_PARENT_WINDOW_ID, -1), oldCallerId);
+    EXPECT_FALSE(captureHandler->lastData_.GetBoolParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, true));
+    EXPECT_FALSE(captureHandler->lastData_.GetBoolParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, true));
+    EXPECT_FALSE(captureHandler->lastData_.GetBoolParam(Extension::HAS_KEYBOARD_DID_HIDE_LISTENER, true));
+    EXPECT_FALSE(
+        captureHandler->lastData_.GetBoolParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER, true));
+}
+
+/**
+ * @tc.name: NotifyHostOnParentChanged04
+ * @tc.desc: Test NotifyHostOnParentChanged packs correct Want params when listeners are registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, NotifyHostOnParentChanged04, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    auto captureHandler = std::make_shared<NotifyCaptureDataHandler>();
+    ASSERT_NE(nullptr, captureHandler);
+    window_->dataHandler_ = captureHandler;
+
+    window_->hostWindowRectChangeListener_.push_back(sptr<IWindowRectChangeListener>::MakeSptr());
+    window_->keyboardDidShowListenerList_.push_back(sptr<IKeyboardDidShowListener>::MakeSptr());
+    window_->keyboardDidHideListenerList_.push_back(sptr<IKeyboardDidHideListener>::MakeSptr());
+    window_->hostRectChangeInGlobalDisplayListenerList_.push_back(
+        sptr<IRectChangeInGlobalDisplayListener>::MakeSptr());
+
+    window_->callerPersistentId_ = 9004;
+    int32_t oldCallerId = 8004;
+    window_->NotifyHostOnParentChanged(oldCallerId);
+
+    EXPECT_TRUE(captureHandler->called_);
+    EXPECT_EQ(captureHandler->lastCode_,
+        static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED));
+    EXPECT_EQ(captureHandler->lastData_.GetIntParam(Extension::OLD_PARENT_WINDOW_ID, -1), oldCallerId);
+    EXPECT_TRUE(captureHandler->lastData_.GetBoolParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, false));
+    EXPECT_TRUE(captureHandler->lastData_.GetBoolParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, false));
+    EXPECT_TRUE(captureHandler->lastData_.GetBoolParam(Extension::HAS_KEYBOARD_DID_HIDE_LISTENER, false));
+    EXPECT_TRUE(
+        captureHandler->lastData_.GetBoolParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER, false));
+}
+
+/**
+ * @tc.name: NotifyHostOnParentChanged05
+ * @tc.desc: Test NotifyHostOnParentChanged packs correct Want params when UIExt listener ids are registered
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, NotifyHostOnParentChanged05, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    auto captureHandler = std::make_shared<NotifyCaptureDataHandler>();
+    ASSERT_NE(nullptr, captureHandler);
+    window_->dataHandler_ = captureHandler;
+
+    window_->rectChangeUIExtListenerIds_.emplace(111);
+    window_->keyboardDidShowUIExtListeners_[1] = sptr<IKeyboardDidShowListener>::MakeSptr();
+    window_->keyboardDidHideUIExtListeners_[1] = sptr<IKeyboardDidHideListener>::MakeSptr();
+    window_->rectChangeInGlobalDisplayUIExtListenerIds_.emplace(222);
+
+    window_->callerPersistentId_ = 9005;
+    int32_t oldCallerId = 8005;
+    window_->NotifyHostOnParentChanged(oldCallerId);
+
+    EXPECT_TRUE(captureHandler->called_);
+    EXPECT_EQ(captureHandler->lastCode_,
+        static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED));
+    EXPECT_EQ(captureHandler->lastData_.GetIntParam(Extension::OLD_PARENT_WINDOW_ID, -1), oldCallerId);
+    EXPECT_TRUE(captureHandler->lastData_.GetBoolParam(Extension::HAS_HOST_WINDOW_RECT_CHANGE_LISTENER, false));
+    EXPECT_TRUE(captureHandler->lastData_.GetBoolParam(Extension::HAS_KEYBOARD_DID_SHOW_LISTENER, false));
+    EXPECT_TRUE(captureHandler->lastData_.GetBoolParam(Extension::HAS_KEYBOARD_DID_HIDE_LISTENER, false));
+    EXPECT_TRUE(
+        captureHandler->lastData_.GetBoolParam(Extension::HAS_RECT_CHANGE_IN_GLOBAL_DISPLAY_LISTENER, false));
+}
+
+/**
+ * @tc.name: UpdateExtensionParent01
+ * @tc.desc: Test UpdateExtensionParent with invalid session
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionParent01, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    WindowAdapterMocker mocker;
+    EXPECT_CALL(mocker.Mock(), UpdateExtensionParent(_, _, _)).Times(0);
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window_->UpdateExtensionParent(option));
+}
+
+/**
+ * @tc.name: UpdateExtensionParent02
+ * @tc.desc: Test UpdateExtensionParent with null ability token
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionParent02, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    SessionInfo sessionInfo;
+    window_->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window_->hostSession_);
+    window_->property_->SetPersistentId(1);
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    WindowAdapterMocker mocker;
+    EXPECT_CALL(mocker.Mock(), UpdateExtensionParent(_, _, _)).Times(0);
+    EXPECT_EQ(WMError::WM_ERROR_NULLPTR, window_->UpdateExtensionParent(option));
+}
+
+/**
+ * @tc.name: UpdateExtensionParent03
+ * @tc.desc: Test UpdateExtensionParent returns early when parent id is not changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionParent03, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    SessionInfo sessionInfo;
+    window_->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window_->hostSession_);
+    window_->property_->SetPersistentId(1);
+    window_->property_->SetParentId(100);
+    window_->abilityToken_ = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, window_->abilityToken_);
+    auto captureHandler = std::make_shared<NotifyCaptureDataHandler>();
+    ASSERT_NE(nullptr, captureHandler);
+    window_->dataHandler_ = captureHandler;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    option->SetParentId(100); // same as current parent id
+
+    WindowAdapterMocker mocker;
+    EXPECT_CALL(mocker.Mock(), UpdateExtensionParent(_, _, _)).Times(0);
+    EXPECT_EQ(WMError::WM_OK, window_->UpdateExtensionParent(option));
+    EXPECT_EQ(100, window_->property_->GetParentId());
+    EXPECT_FALSE(captureHandler->called_);
+}
+
+/**
+ * @tc.name: UpdateExtensionParent04
+ * @tc.desc: Test UpdateExtensionParent keeps local state unchanged when adapter call fails
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionParent04, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    SessionInfo sessionInfo;
+    window_->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window_->hostSession_);
+    window_->property_->SetPersistentId(1);
+    window_->property_->SetParentId(100);
+    window_->abilityToken_ = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, window_->abilityToken_);
+    window_->callerPersistentId_ = 555;
+    auto captureHandler = std::make_shared<NotifyCaptureDataHandler>();
+    ASSERT_NE(nullptr, captureHandler);
+    window_->dataHandler_ = captureHandler;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    option->SetParentId(200);
+    option->SetCallerPersistentId(900);
+
+    WindowAdapterMocker mocker;
+    EXPECT_CALL(mocker.Mock(), UpdateExtensionParent(_, _, _))
+        .WillOnce(Return(WMError::WM_ERROR_INVALID_WINDOW));
+    EXPECT_EQ(WMError::WM_ERROR_INVALID_WINDOW, window_->UpdateExtensionParent(option));
+
+    // IPC failed, local state should not be updated
+    EXPECT_EQ(100, window_->property_->GetParentId());
+    EXPECT_EQ(555, window_->callerPersistentId_.load());
+    EXPECT_NE(option.GetRefPtr(), window_->windowOption_.GetRefPtr());
+    EXPECT_FALSE(captureHandler->called_);
+}
+
+/**
+ * @tc.name: UpdateExtensionParent05
+ * @tc.desc: Test UpdateExtensionParent success path with correct params and local state update
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionParent05, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    window_->subWindowSessionMap_.clear();
+    SessionInfo sessionInfo;
+    window_->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window_->hostSession_);
+    window_->property_->SetPersistentId(1);
+    window_->property_->SetParentId(100);
+    window_->property_->SetConstrainedModal(true);
+    window_->abilityToken_ = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, window_->abilityToken_);
+    window_->startModalExtensionTimeStamp_ = 12345;
+    window_->extensionWindowFlags_ = ExtensionWindowFlags(6);
+    window_->callerPersistentId_ = 800;
+    auto captureHandler = std::make_shared<NotifyCaptureDataHandler>();
+    ASSERT_NE(nullptr, captureHandler);
+    window_->dataHandler_ = captureHandler;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    option->SetParentId(200);
+    option->SetCallerPersistentId(900);
+
+    WindowAdapterMocker mocker;
+    sptr<IRemoteObject> capturedToken;
+    UpdateExtensionParentParams capturedParams;
+    EXPECT_CALL(mocker.Mock(), UpdateExtensionParent(_, _, _))
+        .WillOnce(DoAll(SaveArg<0>(&capturedToken), SaveArg<1>(&capturedParams),
+            SetArgReferee<2>(3u), Return(WMError::WM_OK)));
+    EXPECT_EQ(WMError::WM_OK, window_->UpdateExtensionParent(option));
+
+    // Verify params sent to adapter
+    EXPECT_EQ(window_->abilityToken_.GetRefPtr(), capturedToken.GetRefPtr());
+    EXPECT_EQ(200, capturedParams.newHostWindowId);
+    EXPECT_EQ(12345, capturedParams.startModalExtensionTimeStamp);
+    EXPECT_TRUE(capturedParams.isConstrainedModal);
+    EXPECT_EQ(6u, capturedParams.extensionWindowFlags);
+    EXPECT_TRUE(capturedParams.subWindowIds.empty());
+    // Verify local state is updated after success
+    EXPECT_EQ(200, window_->property_->GetParentId());
+    EXPECT_EQ(option.GetRefPtr(), window_->windowOption_.GetRefPtr());
+    EXPECT_EQ(900, window_->callerPersistentId_.load());
+    // Verify host is notified with the old caller id
+    EXPECT_TRUE(captureHandler->called_);
+    EXPECT_EQ(captureHandler->lastCode_,
+        static_cast<uint32_t>(Extension::Businesscode::NOTIFY_HOST_ON_PARENT_CHANGED));
+    EXPECT_EQ(800, captureHandler->lastData_.GetIntParam(Extension::OLD_PARENT_WINDOW_ID, -1));
+}
+
+/**
+ * @tc.name: UpdateExtensionParent06
+ * @tc.desc: Test UpdateExtensionParent success path with null data handler
+ * @tc.type: FUNC
+ */
+HWTEST_F(WindowExtensionSessionImplTest, UpdateExtensionParent06, TestSize.Level1)
+{
+    ASSERT_NE(window_, nullptr);
+    SessionInfo sessionInfo;
+    window_->hostSession_ = new(std::nothrow) SessionMocker(sessionInfo);
+    ASSERT_NE(nullptr, window_->hostSession_);
+    window_->property_->SetPersistentId(1);
+    window_->property_->SetParentId(100);
+    window_->abilityToken_ = sptr<IRemoteObjectMocker>::MakeSptr();
+    ASSERT_NE(nullptr, window_->abilityToken_);
+    window_->dataHandler_ = nullptr;
+
+    sptr<WindowOption> option = sptr<WindowOption>::MakeSptr();
+    ASSERT_NE(nullptr, option);
+    option->SetParentId(200);
+    option->SetCallerPersistentId(900);
+
+    WindowAdapterMocker mocker;
+    EXPECT_CALL(mocker.Mock(), UpdateExtensionParent(_, _, _)).WillOnce(Return(WMError::WM_OK));
+    EXPECT_EQ(WMError::WM_OK, window_->UpdateExtensionParent(option));
+    EXPECT_EQ(200, window_->property_->GetParentId());
+    EXPECT_EQ(900, window_->callerPersistentId_.load());
+}
+} // namespace
 } // namespace Rosen
 } // namespace OHOS

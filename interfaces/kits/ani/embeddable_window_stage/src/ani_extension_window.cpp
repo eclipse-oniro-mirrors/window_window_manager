@@ -196,6 +196,17 @@ ani_object AniExtensionWindow::CreateAniExtensionWindow(ani_env* env, sptr<Rosen
     return obj;
 }
 
+WMError AniExtensionWindow::UpdateExtensionParent(const sptr<WindowOption>& option)
+{
+    if (option == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "option is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "newHostWindowId:%{public}d", option->GetParentId());
+    hostWindowId_ = option->GetParentId();
+    return WMError::WM_OK;
+}
+
 WMError AniExtensionWindow::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea)
 {
     if (!IsExtensionWindowValid()) {

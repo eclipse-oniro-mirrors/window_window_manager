@@ -4548,6 +4548,17 @@ public:
     }
 
     /**
+     * @brief Update the parent (host) window ID of the extension window.
+     *
+     * @param option The option withnew host window info.
+     * @return WMError
+     */
+    virtual WMError UpdateExtensionParent(const sptr<WindowOption>& option)
+    {
+        return WMError::WM_ERROR_DEVICE_NOT_SUPPORT;
+    }
+
+    /**
      * @brief Set the application modality of main window.
      *
      * @param isModal bool.

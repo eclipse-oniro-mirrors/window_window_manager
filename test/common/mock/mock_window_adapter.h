@@ -76,6 +76,8 @@ public:
     MOCK_METHOD2(UpdateOutline, WMError(const sptr<IRemoteObject>& remoteObject, const OutlineParams& outlineParams));
     MOCK_METHOD2(GetWindowStateSnapshot, WMError(int32_t persistentId, std::string& winStateSnapshotJsonStr));
     MOCK_METHOD2(IsHookExtensionWindow, WMError(const std::string& bundleName, bool& isHook));
+    MOCK_METHOD3(UpdateExtensionParent, WMError(const sptr<IRemoteObject>& token,
+        const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel));
 };
 }
 } // namespace OHOS

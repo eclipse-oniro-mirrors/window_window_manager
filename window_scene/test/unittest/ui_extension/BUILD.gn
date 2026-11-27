@@ -74,13 +74,20 @@ ohos_unittest("extension_data_handler_test") {
 ohos_unittest("ws_extension_session_manager_test") {
   module_out_path = module_out_path
 
-  sources = [ "extension_session_manager_test.cpp" ]
+  include_dirs = [ "${window_base_path}/window_scene/test/mock" ]
+
+  sources = [
+    "extension_session_manager_test.cpp",
+    "../../mock/mock_ability_manager_client.cpp",
+  ]
 
   deps = [ ws_unittest_common ]
 
   external_deps = [
+    "ability_runtime:ability_manager",
     "bundle_framework:appexecfwk_base",
     "c_utils:utils",
+    "googletest:gmock",
     "graphic_2d:librender_service_client",
     "hilog:libhilog",
     "image_framework:image_native",

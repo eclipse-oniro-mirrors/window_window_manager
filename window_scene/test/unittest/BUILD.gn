@@ -1032,7 +1032,10 @@ ohos_unittest("ws_scene_session_manager_proxy_test") {
     "scene_session_manager_proxy_test.cpp",
   ]
 
-  defines = [ "ENABLE_MOCK_READ_INT32" ]
+  defines = [
+    "ENABLE_MOCK_READ_INT32",
+    "ENABLE_MOCK_WRITE_REMOTE_OBJECT",
+  ]
 
   deps = [ ":ws_unittest_common" ]
 

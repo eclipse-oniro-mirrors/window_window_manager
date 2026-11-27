@@ -162,6 +162,8 @@ public:
     WSError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false) override;
     WSError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
         bool useHookedSize = false) override;
+    WSError UpdateExtensionParent(const sptr<IRemoteObject>& token,
+        const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel) override;
     WSError GetFreeMultiWindowEnableState(bool& enable) override;
     WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus) override;
     WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect) override;

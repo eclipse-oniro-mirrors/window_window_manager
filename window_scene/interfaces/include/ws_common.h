@@ -1525,6 +1525,14 @@ struct BackgroundParams {
     AAFwk::WantParams wantParams {};
 };
 
+struct UpdateExtensionParentParams {
+    int32_t newHostWindowId = 0;
+    int64_t startModalExtensionTimeStamp = 0;
+    bool isConstrainedModal = false;
+    uint32_t extensionWindowFlags;
+    std::vector<int32_t> subWindowIds;
+};
+
 struct TransferSessionInfo {
     int32_t persistentId = -1;
     int32_t toScreenId = -1;

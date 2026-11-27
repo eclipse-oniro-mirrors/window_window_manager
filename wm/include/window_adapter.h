@@ -23,6 +23,7 @@
 #include "window.h"
 #include "window_property.h"
 #include "wm_single_instance.h"
+#include "ws_common.h"
 #include "zidl/window_interface.h"
 #include "zidl/window_manager_interface.h"
 
@@ -168,6 +169,8 @@ public:
     virtual WMError GetHostWindowRect(int32_t hostWindowId, Rect& rect, bool useHookedSize = false);
     virtual WMError GetHostGlobalScaledRect(int32_t hostWindowId, Rect& globalScaledRect,
         bool useHookedSize = false);
+    virtual WMError UpdateExtensionParent(const sptr<IRemoteObject>& token,
+        const UpdateExtensionParentParams& params, uint32_t& newSubWindowLevel);
     virtual WMError GetFreeMultiWindowEnableState(bool& enable);
     virtual WMError GetCallingWindowWindowStatus(uint32_t callingWindowId, WindowStatus& windowStatus);
     virtual WMError GetCallingWindowRect(uint32_t callingWindowId, Rect& rect);

@@ -127,6 +127,7 @@
             OHOS::Rosen::SceneSession::SetDefaultDisplayIdIfNeed*;
             OHOS::Rosen::SceneSession::UpdateWindowModeForUITest*;
             OHOS::Rosen::SceneSession::GetEnableGestureBackHadSet*;
+            OHOS::Rosen::SceneSession::GetExtensionTokenInfo*;
             OHOS::Rosen::SceneSession::HookSceneSessionActivation*;
             OHOS::Rosen::SceneSession::PostProcessNotifyAvoidArea*;
             OHOS::Rosen::SceneSession::RegisterForceSplitListener*;
@@ -363,6 +364,7 @@
             OHOS::Rosen::SceneSession::GetOriPosYBeforeRaisedByKeyboard*;
             OHOS::Rosen::SceneSession::GetAllUIExtensionTokenInfo*;
             OHOS::Rosen::SceneSession::GetUIExtPersistentIdBySurfaceNodeId*;
+            OHOS::Rosen::SceneSession::GetUIExtSurfaceNodeId*;
             OHOS::Rosen::SceneSession::SetPreCalcWindowPropertyCallback*;
             OHOS::Rosen::ScenePersistence::HasSnapshot*;
             OHOS::Rosen::ScenePersistence::HasSnapshot*;

@@ -629,6 +629,17 @@ napi_value JsExtensionWindow::GetWindowStatus(napi_env env, napi_callback_info i
     return (me != nullptr) ? me->OnGetWindowStatus(env, info) : nullptr;
 }
 
+WMError JsExtensionWindow::UpdateExtensionParent(const sptr<WindowOption>& option)
+{
+    if (option == nullptr) {
+        TLOGE(WmsLogTag::WMS_UIEXT, "option is nullptr");
+        return WMError::WM_ERROR_NULLPTR;
+    }
+    TLOGI(WmsLogTag::WMS_UIEXT, "newHostWindowId:%{public}d", option->GetParentId());
+    hostWindowId_ = option->GetParentId();
+    return WMError::WM_OK;
+}
+
 napi_value JsExtensionWindow::GetWindowStateSnapshot(napi_env env, napi_callback_info info)
 {
     JsExtensionWindow* me = CheckParamsAndGetThis<JsExtensionWindow>(env, info);

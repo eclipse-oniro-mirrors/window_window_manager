@@ -421,6 +421,7 @@
             OHOS::Rosen::WindowOption::GetParentId*;
             OHOS::Rosen::WindowOption::GetParentWindowType*;
             OHOS::Rosen::WindowOption::GetRealParentId*;
+            OHOS::Rosen::WindowOption::GetCallerPersistentId*;
             OHOS::Rosen::WindowOption::GetRequestedOrientation*;
             OHOS::Rosen::WindowOption::GetStartModalExtensionTimeStamp*;
             OHOS::Rosen::WindowOption::GetSubWindowDecorEnable*;
@@ -471,6 +472,7 @@
             OHOS::Rosen::WindowOption::SetParentId*;
             OHOS::Rosen::WindowOption::SetParentWindowType*;
             OHOS::Rosen::WindowOption::SetRealParentId*;
+            OHOS::Rosen::WindowOption::SetCallerPersistentId*;
             OHOS::Rosen::WindowOption::SetRequestedOrientation*;
             OHOS::Rosen::WindowOption::SetStartModalExtensionTimeStamp*;
             OHOS::Rosen::WindowOption::SetSubWindowDecorEnable*;

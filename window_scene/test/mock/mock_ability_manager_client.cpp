@@ -15,15 +15,21 @@
 
 #include "mock_ability_manager_client.h"
 
+#include <session_info.h>
+
 namespace OHOS {
 namespace AAFwk {
 static std::shared_ptr<UIExtensionHostInfo> g_uiExtensionRootHostInfo;
 static std::shared_ptr<UIExtensionSessionInfo> g_uiExtensionSessionInfo;
+static ErrCode g_startUIExtensionAbilityResult = ERR_OK;
+static sptr<SessionInfo> g_lastStartUIExtensionAbilityInfo;
 
 void MockAbilityManagerClient::ClearAll()
 {
     g_uiExtensionRootHostInfo = nullptr;
     g_uiExtensionSessionInfo = nullptr;
+    g_startUIExtensionAbilityResult = ERR_OK;
+    g_lastStartUIExtensionAbilityInfo = nullptr;
 }
 
 void MockAbilityManagerClient::SetUIExtensionRootHostInfo(const UIExtensionHostInfo& hostInfo)
@@ -39,6 +45,16 @@ void MockAbilityManagerClient::SetUIExtensionSessionInfo(const UIExtensionSessio
     g_uiExtensionSessionInfo->persistentId = sessionInfo.persistentId;
     g_uiExtensionSessionInfo->hostWindowId = sessionInfo.hostWindowId;
     g_uiExtensionSessionInfo->extensionAbilityType = sessionInfo.extensionAbilityType;
+}
+
+void MockAbilityManagerClient::SetStartUIExtensionAbilityResult(ErrCode result)
+{
+    g_startUIExtensionAbilityResult = result;
+}
+
+sptr<SessionInfo> MockAbilityManagerClient::GetLastStartUIExtensionAbilityInfo()
+{
+    return g_lastStartUIExtensionAbilityInfo;
 }
 
 ErrCode AbilityManagerClient::GetUIExtensionRootHostInfo(const sptr<IRemoteObject> token,
@@ -60,6 +76,13 @@ ErrCode AbilityManagerClient::GetUIExtensionSessionInfo(const sptr<IRemoteObject
         sessionInfo.extensionAbilityType = g_uiExtensionSessionInfo->extensionAbilityType;
     }
     return 0;
+}
+
+ErrCode AbilityManagerClient::StartUIExtensionAbility(sptr<SessionInfo> extensionSessionInfo,
+    int32_t userId)
+{
+    g_lastStartUIExtensionAbilityInfo = extensionSessionInfo;
+    return g_startUIExtensionAbilityResult;
 }
 }
 }
