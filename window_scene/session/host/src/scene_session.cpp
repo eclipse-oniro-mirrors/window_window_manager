@@ -9228,6 +9228,10 @@ WMError SceneSession::AddSessionBlackList(const std::unordered_set<std::string>&
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s specific callback or add callback is null", where);
             return WMError::WM_ERROR_NULLPTR;
         }
+        {
+            std::lock_guard<std::mutex> lock(session->privacyWindowTagsMutex);
+            session->privacyWindowTags.insert(privacyWindowTags.begin(), privacyWindowTags.end());
+        }
         session->isSessionBlackList_ = true;
         return session->specificCallback_->onAddSessionBlackList_(session->GetPersistentId(), privacyWindowTags);
     }, __func__);
@@ -9244,6 +9248,12 @@ WMError SceneSession::RemoveSessionBlackList(const std::unordered_set<std::strin
         if (!session->specificCallback_ || !session->specificCallback_->onRemoveSessionBlackList_) {
             TLOGNE(WmsLogTag::WMS_ATTRIBUTE, "%{public}s specific callback or remove callback is null", where);
             return WMError::WM_ERROR_NULLPTR;
+        }
+        {
+            std::lock_guard<std::mutex> lock(session->privacyWindowTagsMutex);
+            for (const auto& item: privacyWindowTags) {
+                session->privacyWindowTags.erase(item);
+            }
         }
         session->isSessionBlackList_ = false;
         return session->specificCallback_->onRemoveSessionBlackList_(session->GetPersistentId(), privacyWindowTags);
