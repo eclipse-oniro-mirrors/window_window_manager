@@ -1010,6 +1010,29 @@ ErrCode MockSessionManagerService::GetSceneSessionManagerByClient(int32_t userId
     return ERR_OK;
 }
 
+ErrCode MockSessionManagerService::VerifyParamsForStartAbilityToBottom(
+    const sptr<WindowCreateParams>& windowCreateParams)
+{
+    if (windowCreateParams == nullptr) {
+        return ERR_OK;
+    }
+    if (windowCreateParams->positionZ == nullptr) {
+        return ERR_OK;
+    }
+    if (*windowCreateParams->positionZ != static_cast <int32_t>(WindowPosition::BOTTOM)) {
+        TLOGD(WmsLogTag::WMS_HIERARCHY, "not a start-to-bottom request, positionZ: %{public}d",
+            *(windowCreateParams->positionZ));
+        return ERR_OK;
+    }
+    if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_CONTROL_DEVICE)) {
+        TLOGW(WmsLogTag::WMS_HIERARCHY, "start-to-bottom permission denied, positionZ: %{public}d",
+            *(windowCreateParams->positionZ));
+        return ERR_PERMISSION_DENIED;
+    }
+    TLOGD(WmsLogTag::WMS_HIERARCHY, "start-to-bottom permission verified");
+    return ERR_OK;
+}
+
 sptr<ISceneSessionManagerLite> MockSessionManagerService::GetSceneSessionManagerLiteBySA(int32_t userId)
 {
     sptr<ISceneSessionManagerLite> result;

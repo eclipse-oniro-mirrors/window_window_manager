@@ -25,6 +25,8 @@
 #include "session/host/include/system_session.h"
 #include "session/host/include/main_session.h"
 #include "wm_common.h"
+#include "wm_animation_common.h"
+#include "mock/mock_accesstoken_kit.h"
 #include "mock/mock_session_stage.h"
 #include "mock_vsync_station.h"
 #include "input_event.h"
@@ -2071,6 +2073,314 @@ HWTEST_F(SceneSessionTest2, ShouldNotifyTouchOutside, TestSize.Level1)
 
     session->sessionInfo_.bundleName_ = "com.example.myapp";
     EXPECT_TRUE(session->ShouldNotifyTouchOutside());
+}
+
+
+/**
+ * @tc.name: RaiseAppMainWindowToTopWithStartToBottom
+ * @tc.desc: RaiseAppMainWindowToTop consumes the one-shot positionZ BOTTOM marker
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopWithStartToBottom, TestSize.Level1)
+{
+    // Given: a session started-to-bottom with positionZ BOTTOM
+    SessionInfo info;
+    info.abilityName_ = "RaiseAppMainWindowToTopWithStartToBottom";
+    info.bundleName_ = "RaiseAppMainWindowToTopWithStartToBottom";
+    info.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+ 
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession->sessionInfo_.positionZ, nullptr);
+    sceneSession->focusedOnShow_ = false;
+ 
+    // When: the first raise request arrives after start
+    WSError result = sceneSession->RaiseAppMainWindowToTop();
+ 
+    // Then: raiseTop is restored and the BOTTOM marker is consumed once
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+    EXPECT_EQ(sceneSession->sessionInfo_.positionZ, nullptr);
+}
+ 
+/**
+ * @tc.name: RaiseAppMainWindowToTopWithPositionZTop
+ * @tc.desc: RaiseAppMainWindowToTop keeps positionZ TOP untouched
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopWithPositionZTop, TestSize.Level1)
+{
+    // Given: a session with positionZ TOP, which is not the start-to-bottom marker
+    SessionInfo info;
+    info.abilityName_ = "RaiseAppMainWindowToTopWithPositionZTop";
+    info.bundleName_ = "RaiseAppMainWindowToTopWithPositionZTop";
+    info.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::TOP));
+ 
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession->sessionInfo_.positionZ, nullptr);
+    EXPECT_EQ(*(sceneSession->sessionInfo_.positionZ), static_cast<int32_t>(WindowPosition::TOP));
+    sceneSession->focusedOnShow_ = false;
+ 
+    // When: the raise request arrives
+    WSError result = sceneSession->RaiseAppMainWindowToTop();
+ 
+    // Then: the raise behaves normally and TOP is not consumed
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+    ASSERT_NE(sceneSession->sessionInfo_.positionZ, nullptr);
+    EXPECT_EQ(*(sceneSession->sessionInfo_.positionZ), static_cast<int32_t>(WindowPosition::TOP));
+}
+ 
+/**
+ * @tc.name: RaiseAppMainWindowToTopWithStartToBottomTwice
+ * @tc.desc: RaiseAppMainWindowToTop only suppresses the raise once for start-to-bottom
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopWithStartToBottomTwice, TestSize.Level1)
+{
+    // Given: a session started-to-bottom with positionZ BOTTOM
+    SessionInfo info;
+    info.abilityName_ = "RaiseAppMainWindowToTopWithStartToBottomTwice";
+    info.bundleName_ = "RaiseAppMainWindowToTopWithStartToBottomTwice";
+    info.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+ 
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->focusedOnShow_ = false;
+ 
+    // When: the raise request arrives twice
+    WSError result = sceneSession->RaiseAppMainWindowToTop();
+    EXPECT_EQ(WSError::WS_OK, result);
+    result = sceneSession->RaiseAppMainWindowToTop();
+ 
+    // Then: the BOTTOM marker was consumed on the first request and later raises behave normally
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->sessionInfo_.positionZ, nullptr);
+    EXPECT_EQ(sceneSession->IsRaiseTopOnShow(), true);
+}
+ 
+/**
+ * @tc.name: RaiseAppMainWindowToTopBottomSuppressesClick
+ * @tc.desc: RaiseAppMainWindowToTop suppresses the click notify only when start-to-bottom
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, RaiseAppMainWindowToTopBottomSuppressesClick, TestSize.Level1)
+{
+    // Given: a normal session and a start-to-bottom session, both focused on show with click listeners
+    SessionInfo normalInfo;
+    normalInfo.abilityName_ = "RaiseAppMainWindowToTopBottomSuppressesClickNormal";
+    normalInfo.bundleName_ = "RaiseAppMainWindowToTopBottomSuppressesClickNormal";
+    sptr<SceneSession> normalSession = sptr<SceneSession>::MakeSptr(normalInfo, nullptr);
+    ASSERT_NE(normalSession, nullptr);
+    int32_t normalClickCount = 0;
+    normalSession->SetClickListener([&normalClickCount](bool requestFocus, bool isClick) {
+        ++normalClickCount;
+    });
+ 
+    SessionInfo bottomInfo;
+    bottomInfo.abilityName_ = "RaiseAppMainWindowToTopBottomSuppressesClickBottom";
+    bottomInfo.bundleName_ = "RaiseAppMainWindowToTopBottomSuppressesClickBottom";
+    bottomInfo.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+    sptr<SceneSession> bottomSession = sptr<SceneSession>::MakeSptr(bottomInfo, nullptr);
+    ASSERT_NE(bottomSession, nullptr);
+    int32_t bottomClickCount = 0;
+    bottomSession->SetClickListener([&bottomClickCount](bool requestFocus, bool isClick) {
+        ++bottomClickCount;
+    });
+ 
+    // When: both sessions request a raise
+    WSError normalResult = normalSession->RaiseAppMainWindowToTop();
+    WSError bottomResult = bottomSession->RaiseAppMainWindowToTop();
+ 
+    // Then: the normal session notifies the click while the start-to-bottom session suppresses it
+    EXPECT_EQ(WSError::WS_OK, normalResult);
+    EXPECT_EQ(WSError::WS_OK, bottomResult);
+    EXPECT_EQ(1, normalClickCount);
+    EXPECT_EQ(0, bottomClickCount);
+}
+ 
+/**
+ * @tc.name: ForegroundTaskClearsPositionZOnFirstShow
+ * @tc.desc: ForegroundTask clears positionZ on the first foreground when the session is not shown yet
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, ForegroundTaskClearsPositionZOnFirstShow, TestSize.Level1)
+{
+    // Given: a fresh session holding the start-to-bottom marker
+    SessionInfo info;
+    info.abilityName_ = "ForegroundTaskClearsPositionZOnFirstShow";
+    info.bundleName_ = "ForegroundTaskClearsPositionZOnFirstShow";
+    info.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession->sessionInfo_.positionZ, nullptr);
+ 
+    // When: the session foregrounds for the first time (isAlreadyShown = false)
+    WSError result = sceneSession->ForegroundTask(nullptr, false);
+ 
+    // Then: the start-to-bottom marker is cleared on the first show and
+    // the foreground completes on the on-device test environment
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(sceneSession->sessionInfo_.positionZ, nullptr);
+}
+ 
+/**
+ * @tc.name: ForegroundTaskKeepsPositionZWhenAlreadyShown
+ * @tc.desc: ForegroundTask keeps positionZ when the already-shown session is not in a foreground pre-state
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, ForegroundTaskKeepsPositionZWhenAlreadyShown, TestSize.Level1)
+{
+    // Given: a fresh session holding the start-to-bottom marker, but foregrounded
+    // with isAlreadyShown = true while its state is not a foreground pre-state
+    SessionInfo info;
+    info.abilityName_ = "ForegroundTaskKeepsPositionZWhenAlreadyShown";
+    info.bundleName_ = "ForegroundTaskKeepsPositionZWhenAlreadyShown";
+    info.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    ASSERT_NE(sceneSession->sessionInfo_.positionZ, nullptr);
+ 
+    // When: the foreground task is skipped by the pre-state check
+    WSError result = sceneSession->ForegroundTask(nullptr, true);
+ 
+    // Then: the task returns early and the start-to-bottom marker survives
+    EXPECT_EQ(WSError::WS_OK, result);
+    ASSERT_NE(sceneSession->sessionInfo_.positionZ, nullptr);
+    EXPECT_EQ(*(sceneSession->sessionInfo_.positionZ), static_cast<int32_t>(WindowPosition::BOTTOM));
+}
+ 
+/**
+ * @tc.name: PendingSessionActivationCopiesPositionZOnPc
+ * @tc.desc: PendingSessionActivation copies windowCreateParams positionZ to sessionInfo on PC
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, PendingSessionActivationCopiesPositionZOnPc, TestSize.Level1)
+{
+    // Given: a PC session and an activation request carrying positionZ BOTTOM
+    SessionInfo info;
+    info.abilityName_ = "PendingSessionActivationCopiesPositionZOnPc";
+    info.bundleName_ = "PendingSessionActivationCopiesPositionZOnPc";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(true);
+ 
+    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    abilitySessionInfo->want.SetElementName("", "PendingSessionActivationCopiesPositionZOnPc",
+        "", "PendingSessionActivationCopiesPositionZOnPc");
+    abilitySessionInfo->windowCreateParams = std::make_shared<WindowCreateParams>();
+    abilitySessionInfo->windowCreateParams->positionZ =
+        std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+    abilitySessionInfo->windowCreateParams->minimizeOnStart = true;
+ 
+    SessionInfo capturedInfo;
+    sceneSession->pendingSessionActivationFunc_ =
+        [&capturedInfo](SessionInfo& sessionInfo, const DisplayInterceptPendingQuery& interceptQuery) {
+            capturedInfo = sessionInfo;
+        };
+ 
+    // When: activation is pending with permission granted
+    MockAccesstokenKit::MockAccessTokenKitRet(0);
+    WSError result = sceneSession->PendingSessionActivation(abilitySessionInfo);
+    MockAccesstokenKit::ChangeMockStateToInit();
+ 
+    // Then: positionZ is copied into sessionInfo while the original create param is preserved on PC
+    EXPECT_EQ(WSError::WS_OK, result);
+    EXPECT_EQ(capturedInfo.abilityName_, "PendingSessionActivationCopiesPositionZOnPc");
+    ASSERT_NE(capturedInfo.positionZ, nullptr);
+    EXPECT_EQ(*(capturedInfo.positionZ), static_cast<int32_t>(WindowPosition::BOTTOM));
+    ASSERT_NE(capturedInfo.windowCreateParams, nullptr);
+    ASSERT_NE(capturedInfo.windowCreateParams->positionZ, nullptr);
+    EXPECT_EQ(*(capturedInfo.windowCreateParams->positionZ), static_cast<int32_t>(WindowPosition::BOTTOM));
+    EXPECT_EQ(capturedInfo.windowCreateParams->minimizeOnStart, true);
+}
+ 
+/**
+ * @tc.name: PendingSessionActivationClearsPositionZOnPhone
+ * @tc.desc: PendingSessionActivation clears positionZ and PC-only params on non-PC devices
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, PendingSessionActivationClearsPositionZOnPhone, TestSize.Level1)
+{
+    // Given: a phone session and an activation request carrying positionZ BOTTOM
+    SessionInfo info;
+    info.abilityName_ = "PendingSessionActivationClearsPositionZOnPhone";
+    info.bundleName_ = "PendingSessionActivationClearsPositionZOnPhone";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PHONE_WINDOW;
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(true);
+ 
+    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    abilitySessionInfo->want.SetElementName("", "PendingSessionActivationClearsPositionZOnPhone",
+        "", "PendingSessionActivationClearsPositionZOnPhone");
+    abilitySessionInfo->windowCreateParams = std::make_shared<WindowCreateParams>();
+    abilitySessionInfo->windowCreateParams->positionZ =
+        std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+    abilitySessionInfo->windowCreateParams->minimizeOnStart = true;
+    abilitySessionInfo->windowCreateParams->excludeFromDock = std::make_shared<bool>(true);
+    abilitySessionInfo->windowCreateParams->excludeFromRecent = std::make_shared<bool>(true);
+ 
+    SessionInfo capturedInfo;
+    sceneSession->pendingSessionActivationFunc_ =
+        [&capturedInfo](SessionInfo& sessionInfo, const DisplayInterceptPendingQuery& interceptQuery) {
+            capturedInfo = sessionInfo;
+        };
+ 
+    // When: activation is pending with permission granted
+    MockAccesstokenKit::MockAccessTokenKitRet(0);
+    WSError result = sceneSession->PendingSessionActivation(abilitySessionInfo);
+    MockAccesstokenKit::ChangeMockStateToInit();
+ 
+    // Then: PC-only create params are all cleared on the phone device type
+    EXPECT_EQ(WSError::WS_OK, result);
+    ASSERT_NE(capturedInfo.windowCreateParams, nullptr);
+    EXPECT_EQ(capturedInfo.windowCreateParams->positionZ, nullptr);
+    EXPECT_EQ(capturedInfo.windowCreateParams->excludeFromDock, nullptr);
+    EXPECT_EQ(capturedInfo.windowCreateParams->excludeFromRecent, nullptr);
+    EXPECT_EQ(capturedInfo.windowCreateParams->minimizeOnStart, false);
+    EXPECT_EQ(capturedInfo.positionZ, nullptr);
+}
+ 
+/**
+ * @tc.name: PendingSessionActivationKeepsNullPositionZOnPc
+ * @tc.desc: PendingSessionActivation keeps sessionInfo positionZ null when create param has none
+ * @tc.type: FUNC
+ */
+HWTEST_F(SceneSessionTest2, PendingSessionActivationKeepsNullPositionZOnPc, TestSize.Level1)
+{
+    // Given: a PC session activated without positionZ in the create params
+    SessionInfo info;
+    info.abilityName_ = "PendingSessionActivationKeepsNullPositionZOnPc";
+    info.bundleName_ = "PendingSessionActivationKeepsNullPositionZOnPc";
+    sptr<SceneSession> sceneSession = sptr<SceneSession>::MakeSptr(info, nullptr);
+    ASSERT_NE(sceneSession, nullptr);
+    sceneSession->systemConfig_.windowUIType_ = WindowUIType::PC_WINDOW;
+    sceneSession->GetSessionProperty()->SetIsPcAppInPad(true);
+ 
+    sptr<AAFwk::SessionInfo> abilitySessionInfo = sptr<AAFwk::SessionInfo>::MakeSptr();
+    abilitySessionInfo->want.SetElementName("", "PendingSessionActivationKeepsNullPositionZOnPc",
+        "", "PendingSessionActivationKeepsNullPositionZOnPc");
+    abilitySessionInfo->windowCreateParams = std::make_shared<WindowCreateParams>();
+ 
+    SessionInfo capturedInfo;
+    sceneSession->pendingSessionActivationFunc_ =
+        [&capturedInfo](SessionInfo& sessionInfo, const DisplayInterceptPendingQuery& interceptQuery) {
+            capturedInfo = sessionInfo;
+        };
+ 
+    // When: activation is pending with permission granted
+    MockAccesstokenKit::MockAccessTokenKitRet(0);
+    WSError result = sceneSession->PendingSessionActivation(abilitySessionInfo);
+    MockAccesstokenKit::ChangeMockStateToInit();
+ 
+    // Then: sessionInfo positionZ stays null as there is nothing to copy
+    EXPECT_EQ(WSError::WS_OK, result);
+    ASSERT_NE(capturedInfo.windowCreateParams, nullptr);
+    EXPECT_EQ(capturedInfo.windowCreateParams->positionZ, nullptr);
+    EXPECT_EQ(capturedInfo.positionZ, nullptr);
 }
 } // namespace
 } // namespace Rosen

@@ -1698,6 +1698,110 @@ HWTEST(MockSessionManagerServiceTest, NotifyWMSConnectedFromUserId03, TestSize.L
 
     LOG_SetCallback(nullptr);
 }
+
+/**
+ * @tc.name: VerifyParamsForStartAbilityToBottom001
+ * @tc.desc: VerifyParamsForStartAbilityToBottom with null params returns ERR_OK
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, VerifyParamsForStartAbilityToBottom001, TestSize.Level1)
+{
+    // Given: no window create params delivered
+    sptr<WindowCreateParams> windowCreateParams = nullptr;
+    MockMockSessionManagerService mockMockSms;
+ 
+    // When: verify the start-to-bottom params
+    ErrCode ret = mockMockSms.VerifyParamsForStartAbilityToBottom(windowCreateParams);
+ 
+    // Then: nothing to verify, the call succeeds
+    EXPECT_EQ(ERR_OK, ret);
+}
+ 
+/**
+ * @tc.name: VerifyParamsForStartAbilityToBottom002
+ * @tc.desc: VerifyParamsForStartAbilityToBottom without positionZ returns ERR_OK
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, VerifyParamsForStartAbilityToBottom002, TestSize.Level1)
+{
+    // Given: window create params without positionZ set
+    sptr<WindowCreateParams> windowCreateParams = sptr<WindowCreateParams>::MakeSptr();
+    ASSERT_NE(windowCreateParams, nullptr);
+    ASSERT_EQ(windowCreateParams->positionZ, nullptr);
+    MockMockSessionManagerService mockMockSms;
+ 
+    // When: verify the start-to-bottom params
+    ErrCode ret = mockMockSms.VerifyParamsForStartAbilityToBottom(windowCreateParams);
+ 
+    // Then: no start-to-bottom request, the call succeeds
+    EXPECT_EQ(ERR_OK, ret);
+}
+ 
+/**
+ * @tc.name: VerifyParamsForStartAbilityToBottom003
+ * @tc.desc: VerifyParamsForStartAbilityToBottom skips permission verify when positionZ is not BOTTOM
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, VerifyParamsForStartAbilityToBottom003, TestSize.Level1)
+{
+    // Given: positionZ TOP plus a denied permission state, which must be ignored
+    sptr<WindowCreateParams> windowCreateParams = sptr<WindowCreateParams>::MakeSptr();
+    ASSERT_NE(windowCreateParams, nullptr);
+    windowCreateParams->positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::TOP));
+    MockAccesstokenKit::MockAccessTokenKitRet(-1); // permission denied state
+    MockMockSessionManagerService mockMockSms;
+ 
+    // When: verify the start-to-bottom params
+    ErrCode ret = mockMockSms.VerifyParamsForStartAbilityToBottom(windowCreateParams);
+ 
+    // Then: permission verify is skipped and the call still succeeds
+    EXPECT_EQ(ERR_OK, ret);
+    MockAccesstokenKit::ChangeMockStateToInit(); // restore mock state in case
+}
+ 
+/**
+ * @tc.name: VerifyParamsForStartAbilityToBottom004
+ * @tc.desc: VerifyParamsForStartAbilityToBottom denies BOTTOM without CONTROL_DEVICE permission
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, VerifyParamsForStartAbilityToBottom004, TestSize.Level1)
+{
+    // Given: positionZ BOTTOM without ohos.permission.CONTROL_DEVICE granted
+    sptr<WindowCreateParams> windowCreateParams = sptr<WindowCreateParams>::MakeSptr();
+    ASSERT_NE(windowCreateParams, nullptr);
+    windowCreateParams->positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+    MockAccesstokenKit::MockAccessTokenKitRet(-1); // permission denied
+    MockMockSessionManagerService mockMockSms;
+ 
+    // When: verify the start-to-bottom params
+    ErrCode ret = mockMockSms.VerifyParamsForStartAbilityToBottom(windowCreateParams);
+ 
+    // Then: the permission check fails and the request is denied
+    EXPECT_EQ(ERR_PERMISSION_DENIED, ret);
+    MockAccesstokenKit::ChangeMockStateToInit(); // restore mock state in case
+}
+ 
+/**
+ * @tc.name: VerifyParamsForStartAbilityToBottom005
+ * @tc.desc: VerifyParamsForStartAbilityToBottom allows BOTTOM with CONTROL_DEVICE permission granted
+ * @tc.type: FUNC
+ */
+HWTEST(MockSessionManagerServiceTest, VerifyParamsForStartAbilityToBottom005, TestSize.Level1)
+{
+    // Given: positionZ BOTTOM with ohos.permission.CONTROL_DEVICE granted
+    sptr<WindowCreateParams> windowCreateParams = sptr<WindowCreateParams>::MakeSptr();
+    ASSERT_NE(windowCreateParams, nullptr);
+    windowCreateParams->positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+    MockAccesstokenKit::MockAccessTokenKitRet(0); // PERMISSION_GRANTED
+    MockMockSessionManagerService mockMockSms;
+ 
+    // When: verify the start-to-bottom params
+    ErrCode ret = mockMockSms.VerifyParamsForStartAbilityToBottom(windowCreateParams);
+ 
+    // Then: the permission check passes and the start-to-bottom request is allowed
+    EXPECT_EQ(ERR_OK, ret);
+    MockAccesstokenKit::ChangeMockStateToInit(); // restore mock state in case
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

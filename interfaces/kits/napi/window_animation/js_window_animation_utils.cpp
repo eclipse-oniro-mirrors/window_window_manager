@@ -238,6 +238,34 @@ std::shared_ptr<bool> GetOptionalSharedBoolProp(napi_env env, napi_value jsObjec
     return nullptr;
 }
 
+std::shared_ptr<int32_t> GetOptionalSharedInt32Prop(napi_env env, napi_value jsObject, const char* propName)
+{
+    RETURN_IF_NULL(env, nullptr);
+    RETURN_IF_NULL(jsObject, nullptr);
+    RETURN_IF_NULL(propName, nullptr);
+ 
+    bool hasProperty = false;
+    napi_has_named_property(env, jsObject, propName, &hasProperty);
+    if (!hasProperty) {
+        return nullptr;
+    }
+ 
+    napi_value jsValue = nullptr;
+    napi_get_named_property(env, jsObject, propName, &jsValue);
+    napi_valuetype type = napi_undefined;
+    napi_typeof(env, jsValue, &type);
+    if (type != napi_number) {
+        TLOGE(WmsLogTag::DEFAULT, "%{public}s is not a number", propName);
+        return nullptr;
+    }
+ 
+    int32_t tempVal = 0;
+    if (napi_get_value_int32(env, jsValue, &tempVal) == napi_ok) {
+        return std::make_shared<int32_t>(tempVal);
+    }
+    return nullptr;
+}
+
 bool IsSystemCalling()
 {
     uint64_t accessTokenID = IPCSkeleton::GetCallingFullTokenID();
@@ -441,6 +469,16 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
 
     windowCreateParams.excludeFromRecent =
         GetOptionalSharedBoolProp(env, jsObject, "excludeFromRecent");
+
+    windowCreateParams.positionZ =
+        GetOptionalSharedInt32Prop(env, jsObject, "positionZ");
+    if (windowCreateParams.positionZ != nullptr &&
+        *windowCreateParams.positionZ != static_cast<int32_t>(WindowPosition::TOP) &&
+        *windowCreateParams.positionZ != static_cast<int32_t>(WindowPosition::BOTTOM)) {
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "invalid positionZ: %{public}d, reset to TOP",
+            *windowCreateParams.positionZ);
+        windowCreateParams.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::TOP));
+    }
     return true;
 }
 

@@ -1110,6 +1110,53 @@ HWTEST_F(SessionStubTest, WindowCreateParams, TestSize.Level1)
 }
 
 /**
+ * @tc.name: WindowCreateParamsPositionZ
+ * @tc.desc: sessionStub WindowCreateParams with positionZ round trip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, WindowCreateParamsPositionZ, TestSize.Level1)
+{
+    // Given: WindowCreateParams with positionZ BOTTOM
+    MessageParcel data;
+    auto windowCreateParams = std::make_shared<WindowCreateParams>();
+    ASSERT_NE(windowCreateParams, nullptr);
+    windowCreateParams->positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::BOTTOM));
+ 
+    // When: marshal and unmarshal through the parcel
+    ASSERT_TRUE(data.WriteParcelable(windowCreateParams.get()));
+    auto windowCreateParamsRead = std::make_shared<WindowCreateParams>();
+    windowCreateParamsRead.reset(data.ReadParcelable<WindowCreateParams>());
+ 
+    // Then: positionZ survives the round trip
+    ASSERT_NE(windowCreateParamsRead, nullptr);
+    ASSERT_NE(windowCreateParamsRead->positionZ, nullptr);
+    EXPECT_EQ(*(windowCreateParamsRead->positionZ), static_cast<int32_t>(WindowPosition::BOTTOM));
+}
+ 
+/**
+ * @tc.name: WindowCreateParamsPositionZAbsent
+ * @tc.desc: sessionStub WindowCreateParams without positionZ round trip
+ * @tc.type: FUNC
+ */
+HWTEST_F(SessionStubTest, WindowCreateParamsPositionZAbsent, TestSize.Level1)
+{
+    // Given: WindowCreateParams without positionZ set
+    MessageParcel data;
+    auto windowCreateParams = std::make_shared<WindowCreateParams>();
+    ASSERT_NE(windowCreateParams, nullptr);
+    ASSERT_EQ(windowCreateParams->positionZ, nullptr);
+ 
+    // When: marshal and unmarshal through the parcel
+    ASSERT_TRUE(data.WriteParcelable(windowCreateParams.get()));
+    auto windowCreateParamsRead = std::make_shared<WindowCreateParams>();
+    windowCreateParamsRead.reset(data.ReadParcelable<WindowCreateParams>());
+ 
+    // Then: positionZ stays absent after the round trip
+    ASSERT_NE(windowCreateParamsRead, nullptr);
+    EXPECT_EQ(windowCreateParamsRead->positionZ, nullptr);
+}
+
+/**
  * @tc.name: HandleGetGlobalScaledRect
  * @tc.desc: sessionStub HandleGetGlobalScaledRect
  * @tc.type: FUNC

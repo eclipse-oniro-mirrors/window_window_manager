@@ -248,6 +248,7 @@ struct WindowCreateParams : public Parcelable {
     std::shared_ptr<bool> needAnimation = nullptr;
     std::shared_ptr<bool> excludeFromDock = nullptr;
     std::shared_ptr<bool> excludeFromRecent = nullptr;
+    std::shared_ptr<int32_t> positionZ = nullptr;
 
     /**
      * @brief Whether application-defined window size limits are allowed to exceed system limits.
@@ -297,6 +298,14 @@ struct WindowCreateParams : public Parcelable {
         if (hasExcludeFromRecent && !parcel.WriteBool(*excludeFromRecent)) {
             return false;
         }
+
+        bool hasPositionZ = (positionZ != nullptr);
+        if (!parcel.WriteBool(hasPositionZ)) {
+            return false;
+        }
+        if (hasPositionZ && !parcel.WriteInt32(*positionZ)) {
+            return false;
+        }
         return true;
     }
     // LCOV_EXCL_STOP
@@ -339,6 +348,17 @@ struct WindowCreateParams : public Parcelable {
         }
         if (!readOptionalBool(windowCreateParams->excludeFromRecent)) {
             return nullptr;
+        }
+        bool hasPositionZ = false;
+        if (!parcel.ReadBool(hasPositionZ)) {
+            return nullptr;
+        }
+        if (hasPositionZ) {
+            int32_t positionZValue = 0;
+            if (!parcel.ReadInt32(positionZValue)) {
+                return nullptr;
+            }
+            windowCreateParams->positionZ = std::make_shared<int32_t>(positionZValue);
         }
         return windowCreateParams.release();
     }

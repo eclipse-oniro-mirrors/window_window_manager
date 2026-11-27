@@ -466,6 +466,8 @@ public:
     void SetSessionInfoAffinity(std::string affinity);
     void GetCloseAbilityWantAndClean(AAFwk::Want& outWant);
     void SetSessionInfo(const SessionInfo& info);
+    void SetSessionInfoPositionZ(const std::shared_ptr<int32_t>& positionZ);
+    bool ConsumeStartToBottomPositionZ();
     void SetSessionInfoWindowInputType(uint32_t windowInputType);
     void SetSessionInfoExpandInputFlag(uint32_t expandInputFlag);
     uint32_t GetSessionInfoExpandInputFlag() const;

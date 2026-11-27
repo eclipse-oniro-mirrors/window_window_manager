@@ -23,6 +23,7 @@
 #include "mock_session_manager_interface_stub.h"
 #include "scene_session_manager_interface.h"
 #include "scene_session_manager_lite_interface.h"
+#include "wm_animation_common.h"
 #include "wm_single_instance.h"
 #include "zidl/session_manager_service_recover_interface.h"
 
@@ -54,6 +55,7 @@ public:
     void NotifyWMSConnected(int32_t userId, DisplayId screenId, bool isColdStart);
     ErrCode GetSceneSessionManagerLiteByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManagerLite) override;
     ErrCode GetSceneSessionManagerByClient(int32_t userId, sptr<IRemoteObject>& sceneSessionManager) override;
+    ErrCode VerifyParamsForStartAbilityToBottom(const sptr<WindowCreateParams>& windowCreateParams);
     sptr<ISceneSessionManagerLite> GetSceneSessionManagerLiteBySA(int32_t userId);
     sptr<ISceneSessionManager> GetSceneSessionManagerBySA(int32_t userId);
     ErrCode GetActiveUserIds(std::vector<int32_t>& activeUserIds) override;
