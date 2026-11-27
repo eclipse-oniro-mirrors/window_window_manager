@@ -495,6 +495,8 @@ public:
 private:
     bool IsVertical(Rotation rotation) const;
     Orientation CalcDisplayOrientationToOrientation(DisplayOrientation displayOrientation) const;
+    void GetPhysicalSize(uint32_t& width, uint32_t& height) const;
+    void GetLogicalSize(uint32_t& logicalWidth, uint32_t& logicalHeight) const;
     std::vector<IScreenChangeListener*> GetScreenChangeListenerList() const;
     void UpdateScbScreenPropertyForSuperFold(const ScreenProperty& screenProperty);
 
