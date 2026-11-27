@@ -1020,16 +1020,16 @@ ErrCode MockSessionManagerService::VerifyParamsForStartAbilityToBottom(
         return ERR_OK;
     }
     if (*windowCreateParams->positionZ != static_cast <int32_t>(WindowPosition::BOTTOM)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "verify positionZ permission failed, positionZ: %{public}d",
+        TLOGD(WmsLogTag::WMS_HIERARCHY, "not a start-to-bottom request, positionZ: %{public}d",
             *(windowCreateParams->positionZ));
         return ERR_OK;
     }
     if (!SessionPermission::VerifyCallingPermission(PermissionConstants::PERMISSION_CONTROL_DEVICE)) {
-        TLOGI(WmsLogTag::WMS_LIFE, "verify positionZ permission failed, positionZ: %{public}d",
+        TLOGW(WmsLogTag::WMS_HIERARCHY, "start-to-bottom permission denied, positionZ: %{public}d",
             *(windowCreateParams->positionZ));
         return ERR_PERMISSION_DENIED;
     }
-    TLOGI(WmsLogTag::WMS_LIFE, "verify positionZ permission ok");
+    TLOGD(WmsLogTag::WMS_HIERARCHY, "start-to-bottom permission verified");
     return ERR_OK;
 }
 

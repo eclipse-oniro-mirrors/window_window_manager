@@ -451,6 +451,23 @@ void Session::SetSessionInfo(const SessionInfo& info)
     sessionInfo_.reuseSessionInGamePreLaunch_ = info.reuseSessionInGamePreLaunch_;
 }
 
+void Session::SetSessionInfoPositionZ(const std::shared_ptr<int32_t>& positionZ)
+{
+    std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
+    sessionInfo_.positionZ = positionZ;
+}
+ 
+bool Session::ConsumeStartToBottomPositionZ()
+{
+    std::lock_guard<std::recursive_mutex> lock(sessionInfoMutex_);
+    if (sessionInfo_.positionZ == nullptr ||
+        *sessionInfo_.positionZ != static_cast<int32_t>(WindowPosition::BOTTOM)) {
+        return false;
+    }
+    sessionInfo_.positionZ = nullptr;
+    return true;
+}
+
 void Session::SetSessionInfoWindowInputType(uint32_t windowInputType)
 {
     TLOGI(WmsLogTag::WMS_EVENT, "id:%{public}d, type:%{public}u", GetPersistentId(), windowInputType);

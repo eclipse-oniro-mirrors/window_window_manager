@@ -558,7 +558,7 @@ WSError SceneSession::ForegroundTask(const sptr<WindowSessionProperty>& property
         // Restore the one-shot raiseTop state from showAbility on the normal show path.
         session->SetRaiseTopOnShow(true);
         if (!isAlreadyShown) {
-            session->sessionInfo_.positionZ = nullptr;
+            session->SetSessionInfoPositionZ(nullptr);
         }        
         auto sessionProperty = session->GetSessionProperty();
         if (property && sessionProperty) {
@@ -3237,11 +3237,9 @@ WSError SceneSession::RaiseAppMainWindowToTop()
         bool raiseOnShow = session->IsRaiseTopOnShow();
         // positionZ BOTTOM is a one-shot reorder: keep the scene at bottom on the first
         // raise request after start, then clear it so later raises behave normally.
-        bool isStartToBottom = session->sessionInfo_.positionZ != nullptr &&
-            *session->sessionInfo_.positionZ == static_cast<int32_t>(WindowPosition::BOTTOM);
+        bool isStartToBottom = session->ConsumeStartToBottomPositionZ();
         if (isStartToBottom) {
-            session->sessionInfo_.positionZ = nullptr;
-            TLOGI(WmsLogTag::WMS_LIFE, "%{public}s start to bottom, skip raise, id: %{public}d",
+            TLOGI(WmsLogTag::WMS_HIERARCHY, "%{public}s start to bottom, skip raise, id: %{public}d",
                 where, session->GetPersistentId());
         }
         session->SetRaiseTopOnShow(true);
@@ -6968,9 +6966,7 @@ static void AdjustWindowCreateParamsForDeviceType(SessionInfo& info, const sptr<
         } else {
             *(info.positionZ) = *(info.windowCreateParams->positionZ);
         }
-        TLOGI(WmsLogTag::WMS_LIFE, "start with positionZ: %{public}d", *(info.positionZ));
-    } else {
-        TLOGD(WmsLogTag::WMS_LIFE, "positionZ not specified, sceneInfo.positionZ stays nullptr");
+        TLOGI(WmsLogTag::WMS_HIERARCHY, "start with positionZ: %{public}d", *(info.positionZ));
     }
 }
 

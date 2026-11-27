@@ -475,7 +475,7 @@ bool ConvertWindowCreateParamsFromJsValue(napi_env env, napi_value jsObject,
     if (windowCreateParams.positionZ != nullptr &&
         *windowCreateParams.positionZ != static_cast<int32_t>(WindowPosition::TOP) &&
         *windowCreateParams.positionZ != static_cast<int32_t>(WindowPosition::BOTTOM)) {
-        TLOGE(WmsLogTag::WMS_ANIMATION, "invalid positionZ: %{public}d, reset to TOP",
+        TLOGE(WmsLogTag::WMS_HIERARCHY, "invalid positionZ: %{public}d, reset to TOP",
             *windowCreateParams.positionZ);
         windowCreateParams.positionZ = std::make_shared<int32_t>(static_cast<int32_t>(WindowPosition::TOP));
     }

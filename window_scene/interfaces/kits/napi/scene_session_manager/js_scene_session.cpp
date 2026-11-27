@@ -5457,7 +5457,7 @@ sptr<SceneSession> JsSceneSession::GenSceneSession(SessionInfo& info, bool needA
     }
     AddRequestTaskInfo(sceneSession, info.requestId, needAddRequestInfo);
     if (sceneSession != nullptr) {
-        sceneSession->EditSessionInfo().positionZ = info.positionZ;
+        sceneSession->SetSessionInfoPositionZ(info.positionZ);
     }
     return sceneSession;
 }
