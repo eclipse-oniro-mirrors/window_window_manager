@@ -400,12 +400,18 @@ public:
     void SetScreenPowerForFold(ScreenPowerStatus status);
     void SetScreenPowerForFold(ScreenId screenId, ScreenPowerStatus status);
     void TriggerDisplayModeUpdate(FoldDisplayMode targetDisplayMode);
+    void PostScreenPowerEventSync(std::vector<ScreenId>& screenIds, ScreenPowerStatus status,
+        PowerStateChangeReason reason, bool isApAod = false);
     void CallRsSetScreenPowerStatusSync(ScreenId screenId, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
-    void CallRsSetScreenPowerStatusSyncWithFallback(ScreenId screenId, ScreenPowerStatus status,
+    void CallRsSetScreenPowerStatusSyncWithFallback(std::vector<ScreenId>& screenIds, ScreenPowerStatus status,
         PowerStateChangeReason reason = PowerStateChangeReason::STATE_CHANGE_REASON_UNKNOWN, bool isApAod = false);
+    bool ConvertToRsScreenIdWithFallback(ScreenId screenId, ScreenId& rsScreenId);
     void CallRsSetScreenPowerStatusForConcurrent(ScreenId screenId, ScreenPowerStatus status);
     void CallRsSetScreenPowerStatusSyncForFold(ScreenPowerStatus status, bool isApAod = false);
+    void ApplyScreenPowerStatusRs(ScreenId screenId, ScreenPowerStatus status,
+        PowerStateChangeReason reason, bool isApAod = false);
+    void PostProcessScreenPowerStatus(ScreenId screenId, ScreenPowerStatus status);
     void TryToRecoverFoldDisplayMode(ScreenPowerStatus status);
     bool GetScreenLcdStatus(ScreenId screenId, PanelPowerStatus& status);
     bool WaitAodOpNotify();

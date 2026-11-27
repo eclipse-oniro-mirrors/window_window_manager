@@ -7372,25 +7372,48 @@ bool ScreenSessionManager::isNeedSkipPowerOn(ScreenId screenId)
     return false;
 }
 
-void ScreenSessionManager::CallRsSetScreenPowerStatusSyncWithFallback(ScreenId screenId,
-    ScreenPowerStatus status, PowerStateChangeReason reason, bool isApAod)
+void ScreenSessionManager::CallRsSetScreenPowerStatusSyncWithFallback(std::vector<ScreenId>& screenIds,
+ScreenPowerStatus status, PowerStateChangeReason reason, bool isApAod)
 {
-    if (!HasInternalScreen()) {
-        ScreenId rsScreenId = SCREEN_ID_INVALID;
-        if (!screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
-            auto screenSession = GetScreenSession(screenId);
-            if (screenSession == nullptr) {
-                TLOGNFE(WmsLogTag::DMS, "No corresponding rsId, skip screen: %{public}" PRIu64, screenId);
-                return;
-            }
-            rsScreenId = screenSession->GetRSScreenId();
-            TLOGNFW(WmsLogTag::DMS, "convert to rsScreenId failed, fallback to rsId: %{public}" PRIu64,
-                rsScreenId);
+    std::vector<ScreenId> rsScreenIds;
+    rsScreenIds.reserve(screenIds.size());
+    for (auto screenId : screenIds) {
+        TLOGNFI(WmsLogTag::DMS, "[UL_POWER] %{public}s, screen id is %{public}d",
+        status == ScreenPowerStatus::POWER_STATUS_ON ? "Power on" : "Power off", (int)screenId);
+        if (status == ScreenPowerStatus::POWER_STATUS_ON && isNeedSkipPowerOn(screenId)) {
+            continue;
         }
-        CallRsSetScreenPowerStatusSync(rsScreenId, status, reason, isApAod);
-    } else {
-        CallRsSetScreenPowerStatusSync(screenId, status, reason, isApAod);
+        if (HasInternalScreen()) {
+            rsScreenIds.push_back(screenId);
+            continue;
+        }
+        ScreenId rsScreenId = SCREEN_ID_INVALID;
+        if (!ConvertToRsScreenIdWithFallback(screenId, rsScreenId)) {
+            continue;
+        }
+        rsScreenIds.push_back(rsScreenId);
     }
+    TLOGNFI(WmsLogTag::DMS, "[UL_POWER][PERF] collect rsScreenIds done, inputNum:%{public}zu, "
+    "validNum:%{public}zu, status:%{public}u", screenIds.size(), rsScreenIds.size(),
+    static_cast<uint32_t>(status));
+    if (!rsScreenIds.empty()) {
+        PostScreenPowerEventSync(rsScreenIds, status, reason, isApAod);
+    }
+}
+
+bool ScreenSessionManager::ConvertToRsScreenIdWithFallback(ScreenId screenId, ScreenId& rsScreenId)
+{
+    rsScreenId = SCREEN_ID_INVALID;
+    if (!screenIdManager_.ConvertToRsScreenId(screenId, rsScreenId)) {
+        auto screenSession = GetScreenSession(screenId);
+        if (screenSession == nullptr) {
+            TLOGNFE(WmsLogTag::DMS, "No corresponding rsId, skip screen: %{public}" PRIu64, screenId);
+            return false;
+        }
+        rsScreenId = screenSession->GetRSScreenId();
+        TLOGNFW(WmsLogTag::DMS, "convert to rsScreenId failed, fallback to rsId: %{public}" PRIu64, rsScreenId);
+    }
+    return true;
 }
 
 void ScreenSessionManager::SetRsSetScreenPowerStatusSync(std::vector<ScreenId>& screenIds,
@@ -7407,21 +7430,12 @@ void ScreenSessionManager::SetRsSetScreenPowerStatusSync(std::vector<ScreenId>& 
 #endif
     if (g_isPcDevice && status == ScreenPowerStatus::POWER_STATUS_ON) {
         std::sort(screenIds.begin(), screenIds.end(), SortByScreenId);
-        for (auto screenId : screenIds) {
-            TLOGNFI(WmsLogTag::DMS, "[UL_POWER] Power on, screen id is %{public}d", (int)screenId);
-            if(isNeedSkipPowerOn(screenId)) {
-                continue;
-            }
-            CallRsSetScreenPowerStatusSyncWithFallback(screenId, status, reason, isApAod);
-        }
+        CallRsSetScreenPowerStatusSyncWithFallback(screenIds, status, reason, isApAod);
     } else if (g_isPcDevice && (status == ScreenPowerStatus::POWER_STATUS_OFF ||
         status == ScreenPowerStatus::POWER_STATUS_SUSPEND)) {
-            std::sort(screenIds.begin(), screenIds.end(), SortByScreenId);
-            std::reverse(screenIds.begin(), screenIds.end());
-            for (auto screenId : screenIds) {
-                TLOGNFI(WmsLogTag::DMS, "[UL_POWER] Power off, screen id is %{public}d", (int)screenId);
-                CallRsSetScreenPowerStatusSyncWithFallback(screenId, status, reason, isApAod);
-            }
+        std::sort(screenIds.begin(), screenIds.end(), SortByScreenId);
+        std::reverse(screenIds.begin(), screenIds.end());
+        CallRsSetScreenPowerStatusSyncWithFallback(screenIds, status, reason, isApAod);
     } else {
         for (auto screenId : screenIds) {
             CallRsSetScreenPowerStatusSync(screenId, status, reason, isApAod);
@@ -7521,39 +7535,64 @@ void ScreenSessionManager::TriggerDisplayModeUpdate(FoldDisplayMode targetDispla
     taskScheduler_->PostAsyncTask(updateDisplayModeTask, "updateDisplayModeTask");
 }
 #endif
+
 void ScreenSessionManager::CallRsSetScreenPowerStatusSync(ScreenId screenId, ScreenPowerStatus status,
     PowerStateChangeReason reason, bool isApAod)
 {
-    auto rsSetScreenPowerStatusTask = [=] {
-        bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
-        if (phyMirrorEnable && !g_isPcDevice) {
-            auto screenSession = GetScreenSession(screenId);
-            if (screenSession == nullptr) {
-                return;
+    screenPowerTaskScheduler_->PostVoidSyncTask([this, screenId, status, reason, isApAod] {
+        ApplyScreenPowerStatusRs(screenId, status, reason, isApAod);
+    }, "rsInterface_.SetScreenPowerStatus task");
+    PostProcessScreenPowerStatus(screenId, status);
+}
+
+void ScreenSessionManager::PostScreenPowerEventSync(std::vector<ScreenId>& screenIds,
+    ScreenPowerStatus status, PowerStateChangeReason reason, bool isApAod)
+{
+    screenPowerTaskScheduler_->PostVoidSyncTask(
+        [this, screenIds, status, reason, isApAod] {
+            for (auto screenId : screenIds) {
+                ApplyScreenPowerStatusRs(screenId, status, reason, isApAod);
             }
-            auto sourceMode = screenSession->GetSourceMode();
-            if (status != ScreenPowerStatus::POWER_STATUS_ON &&
-                (powerStateChangeReason_ == PowerStateChangeReason::STATE_CHANGE_REASON_COLLABORATION ||
-                reason == PowerStateChangeReason::STATE_CHANGE_REASON_APPCAST)) {
-                return;
-            }
-            if (sourceMode == ScreenSourceMode::SCREEN_UNIQUE &&
-                status != ScreenPowerStatus::POWER_STATUS_ON &&
-                powerStateChangeReason_ == PowerStateChangeReason::STATE_CHANGE_REASON_HARD_KEY) {
-                return;
-            }
+        },
+        "ScreenPowerEventRs");
+    for (auto screenId : screenIds) {
+        PostProcessScreenPowerStatus(screenId, status);
+    }
+}
+
+void ScreenSessionManager::ApplyScreenPowerStatusRs(ScreenId screenId, ScreenPowerStatus status,
+PowerStateChangeReason reason, bool isApAod)
+{
+    bool phyMirrorEnable = IsDefaultMirrorMode(screenId);
+    if (phyMirrorEnable && !g_isPcDevice) {
+        auto screenSession = GetScreenSession(screenId);
+        if (screenSession == nullptr) {
+            return;
         }
-        auto transState = ConvertPowerStatus2ScreenState(status, isApAod);
-        if (reason == PowerStateChangeReason::STATE_CHANGE_REASON_FOR_ONE_SCREEN_OFF) {
-            TLOGNFI(WmsLogTag::DMS, "[UL_POWER]set transitionstate SCREEN_ON when off one screen");
-            transState = ScreenTransitionState::SCREEN_ON;
+        auto sourceMode = screenSession->GetSourceMode();
+        if (status != ScreenPowerStatus::POWER_STATUS_ON &&
+            (powerStateChangeReason_ == PowerStateChangeReason::STATE_CHANGE_REASON_COLLABORATION ||
+            reason == PowerStateChangeReason::STATE_CHANGE_REASON_APPCAST)) {
+            return;
         }
-        SetRSScreenPowerStatusExt(screenId, status);
-        if (ScreenStateMachine::GetInstance().GetTransitionState() != ScreenTransitionState::SCREEN_INIT) {
-            ScreenStateMachine::GetInstance().ToTransition(transState, false);
+        if (sourceMode == ScreenSourceMode::SCREEN_UNIQUE &&
+            status != ScreenPowerStatus::POWER_STATUS_ON &&
+            powerStateChangeReason_ == PowerStateChangeReason::STATE_CHANGE_REASON_HARD_KEY) {
+            return;
         }
-    };
-    screenPowerTaskScheduler_->PostVoidSyncTask(rsSetScreenPowerStatusTask, "rsInterface_.SetScreenPowerStatus task");
+    }
+    auto transState = ConvertPowerStatus2ScreenState(status, isApAod);
+    if (reason == PowerStateChangeReason::STATE_CHANGE_REASON_FOR_ONE_SCREEN_OFF) {
+        transState = ScreenTransitionState::SCREEN_ON;
+    }
+    SetRSScreenPowerStatusExt(screenId, status);
+    if (ScreenStateMachine::GetInstance().GetTransitionState() != ScreenTransitionState::SCREEN_INIT) {
+        ScreenStateMachine::GetInstance().ToTransition(transState, false);
+    }
+}
+
+void ScreenSessionManager::PostProcessScreenPowerStatus(ScreenId screenId, ScreenPowerStatus status)
+{
     #ifdef WM_MULTI_SCREEN_ENABLE
     if (g_isPcDevice && status == ScreenPowerStatus::POWER_STATUS_ON &&
         IsDefaultMirrorMode(screenId)) {
