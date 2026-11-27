@@ -169,7 +169,7 @@ bool KeyboardSession::GetSkipFlagForCallingSession(const sptr<SceneSession>& cal
     bool isFloatingCalling;
     {
         std::lock_guard<std::mutex> lock(mainSession->privacyWindowTagsMutex);
-        isFloatingCalling = 
+        isFloatingCalling =
             (mainSession->privacyWindowTags.find("SCB_FLOATING_WINDOW") != mainSession->privacyWindowTags.end());
     }
     TLOGW(WmsLogTag::WMS_KEYBOARD,
