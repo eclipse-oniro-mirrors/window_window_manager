@@ -165,7 +165,17 @@ bool KeyboardSession::GetSkipFlagForCallingSession(const sptr<SceneSession>& cal
     if (!mainSession) {
         return false;
     }
-    return mainSession->isSkipSelfWhenShowOnVirtualScreen_.load();
+
+    bool isFloatingCalling;
+    {
+        std::lock_guard<std::mutex> lock(mainSession->privacyWindowTagsMutex);
+        isFloatingCalling =
+            (mainSession->privacyWindowTags.find("SCB_FLOATING_WINDOW") != mainSession->privacyWindowTags.end());
+    }
+    TLOGW(WmsLogTag::WMS_KEYBOARD,
+        "GetSkipFlagForCallingSession: isSkipSelfWhenShowOnVirtualScreen_: %{public}d, isFloatingCalling: %{public}d",
+        mainSession->isSkipSelfWhenShowOnVirtualScreen_.load(), isFloatingCalling);
+    return mainSession->isSkipSelfWhenShowOnVirtualScreen_.load() || isFloatingCalling;
 }
 
 WSError KeyboardSession::Hide()
