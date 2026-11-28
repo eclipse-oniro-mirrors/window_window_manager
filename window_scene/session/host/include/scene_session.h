@@ -504,6 +504,7 @@ public:
     void SetSystemSceneForceUIFirst(bool forceUIFirst);
     void SetUIFirstSwitch(RSUIFirstSwitch uiFirstSwitch);
     void MarkSystemSceneUIFirst(bool isForced, bool isUIFirstEnabled);
+    void ReleaseGpuMemory();
     void SetRequestedOrientation(Orientation orientation, bool needAnimation = true);
     WSError SetDefaultRequestedOrientation(Orientation orientation);
     void SetWindowAnimationFlag(bool needDefaultAnimationFlag);

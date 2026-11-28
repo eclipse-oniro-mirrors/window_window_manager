@@ -32,6 +32,7 @@
 #include <modifier_ng/appearance/rs_behind_window_filter_modifier.h>
 #include <pointer_event.h>
 #include <key_event.h>
+#include <transaction/rs_interfaces.h>
 #include <transaction/rs_sync_transaction_controller.h>
 #include <transaction/rs_transaction.h>
 #include <future>
@@ -6443,6 +6444,18 @@ void SceneSession::MarkSystemSceneUIFirst(bool isForced, bool isUIFirstEnabled)
             surfaceNode->GetName().c_str(), surfaceNode->GetId(), isForced, isUIFirstEnabled);
         surfaceNode->MarkUifirstNode(isForced, isUIFirstEnabled);
     }
+}
+
+void SceneSession::ReleaseGpuMemory()
+{
+    auto surfaceNode = GetLeashWinSurfaceNode();
+    if (surfaceNode == nullptr) {
+        surfaceNode = GetSurfaceNode();
+    }
+    if (surfaceNode == nullptr) {
+        return;
+    }
+    RSInterfaces::GetInstance().ReleaseGpuMemory(surfaceNode->GetId(), GpuMemoryType::MIPMAP_AND_IMAGE_GPU);
 }
 
 WSError SceneSession::UpdateWindowAnimationFlag(bool needDefaultAnimationFlag)

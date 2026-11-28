@@ -87,6 +87,7 @@
             OHOS::Rosen::SceneSession::SetSplitButtonVisible*;
             OHOS::Rosen::SceneSession::DumpSessionElementInfo*;
             OHOS::Rosen::SceneSession::MarkSystemSceneUIFirst*;
+            OHOS::Rosen::SceneSession::ReleaseGpuMemory*;
             OHOS::Rosen::SceneSession::NotifyOutsideDownEvent*;
             OHOS::Rosen::SceneSession::NotifyRotationProperty*;
             OHOS::Rosen::SceneSession::NotifyWindowVisibility*;

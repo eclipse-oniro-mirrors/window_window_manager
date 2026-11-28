@@ -190,6 +190,7 @@ private:
     static napi_value ActivateDragBySystem(napi_env env, napi_callback_info info);
     static napi_value RegisterCallback(napi_env env, napi_callback_info info);
     static napi_value UpdateNativeVisibility(napi_env env, napi_callback_info info);
+    static napi_value ReleaseGpuMemory(napi_env env, napi_callback_info info);
     static napi_value ClearAllModifiers(napi_env env, napi_callback_info info);
     static napi_value UpdatePropertyWhenTriggerMode(napi_env env, napi_callback_info info);
     static napi_value SetShowRecent(napi_env env, napi_callback_info info);
@@ -322,6 +323,7 @@ private:
     napi_value OnActivateDragBySystem(napi_env env, napi_callback_info info);
     napi_value OnRegisterCallback(napi_env env, napi_callback_info info);
     napi_value OnUpdateNativeVisibility(napi_env env, napi_callback_info info);
+    napi_value OnReleaseGpuMemory(napi_env env, napi_callback_info info);
     napi_value OnClearAllModifiers(napi_env env, napi_callback_info info);
     napi_value OnUpdatePropertyWhenTriggerMode(napi_env env, napi_callback_info info);
     napi_value OnSetShowRecent(napi_env env, napi_callback_info info);
