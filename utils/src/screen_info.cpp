@@ -29,7 +29,9 @@ bool ScreenInfo::Marshalling(Parcel &parcel) const
         parcel.WriteUint32(modeId_) && parcel.WriteUint32(static_cast<uint32_t>(modes_.size())) &&
         parcel.WriteBool(isExtend_) && parcel.WriteString(serialNumber_) && parcel.WriteUint64(rsId_) &&
         parcel.WriteUint32(mirrorWidth_) && parcel.WriteUint32(mirrorHeight_) &&
-        parcel.WriteBool(isInUse_);
+        parcel.WriteBool(isInUse_) &&
+        parcel.WriteUint32(logicalWidth_) && parcel.WriteUint32(logicalHeight_) &&
+        parcel.WriteUint32(static_cast<uint32_t>(logicalRotation_));
     if (!res) {
         return false;
     }
@@ -70,6 +72,7 @@ bool ScreenInfo::InnerUnmarshalling(Parcel& parcel)
     uint32_t sourceMode;
     uint32_t screenTypeInfo;
     uint32_t type;
+    uint32_t logicalRotation;
     name_ = parcel.ReadString();
     bool res1 = parcel.ReadUint64(id_) &&
         parcel.ReadUint32(virtualWidth_) && parcel.ReadUint32(virtualHeight_) &&
@@ -79,7 +82,8 @@ bool ScreenInfo::InnerUnmarshalling(Parcel& parcel)
         parcel.ReadUint32(screenTypeInfo) && parcel.ReadUint32(type) &&
         parcel.ReadUint32(modeId_) && parcel.ReadUint32(size) &&
         parcel.ReadBool(isExtend_) && parcel.ReadString(serialNumber_) && parcel.ReadUint64(rsId_) &&
-        parcel.ReadUint32(mirrorWidth_) && parcel.ReadUint32(mirrorHeight_) && parcel.ReadBool(isInUse_);
+        parcel.ReadUint32(mirrorWidth_) && parcel.ReadUint32(mirrorHeight_) && parcel.ReadBool(isInUse_) &&
+        parcel.ReadUint32(logicalWidth_) && parcel.ReadUint32(logicalHeight_) && parcel.ReadUint32(logicalRotation);
     if (!res1) {
         return false;
     }
@@ -106,6 +110,7 @@ bool ScreenInfo::InnerUnmarshalling(Parcel& parcel)
     sourceMode_ = static_cast<ScreenSourceMode>(sourceMode);
     screenTypeInfo_ = static_cast<ScreenTypeInfo>(screenTypeInfo);
     type_ = static_cast<ScreenType>(type);
+    logicalRotation_ = static_cast<Rotation>(logicalRotation);
     return true;
 }
 } // namespace OHOS::Rosen

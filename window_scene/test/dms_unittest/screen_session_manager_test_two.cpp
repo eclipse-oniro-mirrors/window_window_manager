@@ -3554,6 +3554,117 @@ HWTEST_F(ScreenSessionManagerTest, CalculateTargetResolutionForCastScreen, TestS
 }
 
 /**
+ * @tc.name: CalculateTargetResolutionWithSmartResolution
+ * @tc.desc: with smart resolution (ROG) active the crop must be fitted to the soft resolution
+ *           of the internal screen, while the external mirror target keeps using its real one
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CalculateTargetResolutionWithSmartResolution, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    // Internal screen: physical 3120x2080, smart resolution active at 2340x1560.
+    sptr<ScreenSession> internalSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, internalSession);
+    internalSession->property_.SetScreenRealWidth(3120);
+    internalSession->property_.SetScreenRealHeight(2080);
+    internalSession->property_.SetRogScreenResolution(2340, 1560);
+    internalSession->property_.UpdateScreenRotation(Rotation::ROTATION_0);
+    // External mirror target 16:9; no smart resolution, so it falls back to the real one.
+    sptr<ScreenSession> externalSession = new ScreenSession(52, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, externalSession);
+    externalSession->property_.SetScreenRealWidth(1920);
+    externalSession->property_.SetScreenRealHeight(1080);
+    uint32_t targetWidth = 0;
+    uint32_t targetHeight = 0;
+
+    // Toggle off: pass through the soft base, not the physical 3120x2080.
+    EXPECT_FALSE(ssm_->CalculateTargetResolution(internalSession, externalSession, false, targetWidth, targetHeight));
+    EXPECT_EQ(targetWidth, 2340u);
+    EXPECT_EQ(targetHeight, 1560u);
+
+    // 16:9 is wider than 3:2, so the height is fitted to the soft width: 2340 * 1080 / 1920.
+    EXPECT_TRUE(ssm_->CalculateTargetResolution(internalSession, externalSession, true, targetWidth, targetHeight));
+    EXPECT_EQ(targetWidth, 2340u);
+    EXPECT_EQ(targetHeight, 1316u);
+}
+
+/**
+ * @tc.name: CalculateTargetResolutionSmartResolutionCropProof
+ * @tc.desc: while the effect is active the internal bounds already hold the crop rect; the
+ *           calculation must read the rog base and never compound the crop
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, CalculateTargetResolutionSmartResolutionCropProof, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+
+    sptr<ScreenSession> internalSession = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, internalSession);
+    internalSession->property_.SetScreenRealWidth(3120);
+    internalSession->property_.SetScreenRealHeight(2080);
+    internalSession->property_.SetRogScreenResolution(2340, 1560);
+    internalSession->property_.UpdateScreenRotation(Rotation::ROTATION_0);
+    // Simulate the rsId==0 loop-back state of an active effect: bounds = previous crop rect.
+    internalSession->property_.SetBounds(RRect({ 0, 122, 2340, 1316 }, 0.0f, 0.0f));
+    sptr<ScreenSession> externalSession = new ScreenSession(52, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, externalSession);
+    externalSession->property_.SetScreenRealWidth(1920);
+    externalSession->property_.SetScreenRealHeight(1080);
+    uint32_t targetWidth = 0;
+    uint32_t targetHeight = 0;
+
+    EXPECT_TRUE(ssm_->CalculateTargetResolution(internalSession, externalSession, true, targetWidth, targetHeight));
+    EXPECT_EQ(targetWidth, 2340u);
+    EXPECT_EQ(targetHeight, 1316u);
+}
+
+/**
+ * @tc.name: RecoveryResolutionEffectWithSmartResolution
+ * @tc.desc: recovery must restore the soft resolution base, not clobber it with the physical one
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenSessionManagerTest, RecoveryResolutionEffectWithSmartResolution, TestSize.Level1)
+{
+    ASSERT_NE(ssm_, nullptr);
+    if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
+        GTEST_SKIP();
+    }
+
+    sptr<ScreenSession> screenSession1 = new ScreenSession(51, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession1);
+    screenSession1->SetIsCurrentInUse(true);
+    screenSession1->SetScreenType(ScreenType::REAL);
+    screenSession1->isInternal_ = true;
+    screenSession1->property_.SetScreenRealWidth(3120);
+    screenSession1->property_.SetScreenRealHeight(2080);
+    screenSession1->property_.SetRogScreenResolution(2340, 1560);
+    // Leftover crop from the active effect.
+    screenSession1->property_.SetMirrorWidth(2340);
+    screenSession1->property_.SetMirrorHeight(1316);
+
+    sptr<ScreenSession> screenSession2 = new ScreenSession(52, ScreenProperty(), 0);
+    ASSERT_NE(nullptr, screenSession2);
+    screenSession2->SetIsCurrentInUse(true);
+    screenSession2->SetScreenType(ScreenType::REAL);
+    screenSession2->isInternal_ = false;
+
+    ssm_->screenSessionMap_[51] = screenSession1;
+    ssm_->screenSessionMap_[52] = screenSession2;
+    ssm_->MarkResolutionEffectApplied(52);
+    auto ret = ssm_->RecoveryResolutionEffect();
+    EXPECT_TRUE(ret);
+    EXPECT_FALSE(ssm_->IsResolutionEffectActive());
+    // Restored to the soft base 2340x1560, not the physical 3120x2080.
+    EXPECT_EQ(screenSession1->GetScreenProperty().GetMirrorWidth(), 2340u);
+    EXPECT_EQ(screenSession1->GetScreenProperty().GetMirrorHeight(), 1560u);
+    EXPECT_EQ(screenSession1->GetScreenProperty().GetScreenAreaWidth(), 2340u);
+    ssm_->MarkResolutionEffectIdle();
+    ssm_->screenSessionMap_.erase(51);
+    ssm_->screenSessionMap_.erase(52);
+}
+
+/**
  * @tc.name: SetResolutionEffect
  * @tc.desc: SetResolutionEffect
  * @tc.type: FUNC

@@ -2088,17 +2088,7 @@ void ScreenSession::FillScreenInfo(sptr<ScreenInfo> info) const
     info->SetIsExtend(GetIsExtend());
     uint32_t width = 0;
     uint32_t height = 0;
-    if (isPcUse_) {
-        RRect bounds = property_.GetBounds();
-        width = bounds.rect_.GetWidth();
-        height = bounds.rect_.GetHeight();
-    } else {
-        sptr<SupportedScreenModes> screenSessionModes = GetActiveScreenMode();
-        if (screenSessionModes != nullptr) {
-            height = screenSessionModes->height_;
-            width = screenSessionModes->width_;
-        }
-    }
+    GetPhysicalSize(width, height);
 
     float virtualPixelRatio = property_.GetVirtualPixelRatio();
     // "< 1e-set6" means virtualPixelRatio is 0.
@@ -2116,6 +2106,12 @@ void ScreenSession::FillScreenInfo(sptr<ScreenInfo> info) const
     info->SetType(property_.GetScreenType());
     info->SetScreenTypeInfo(property_.GetScreenTypeInfo());
     info->SetModeId(activeIdx_);
+    uint32_t logicalWidth = 0;
+    uint32_t logicalHeight = 0;
+    GetLogicalSize(logicalWidth, logicalHeight);
+    info->SetLogicalWidth(logicalWidth);
+    info->SetLogicalHeight(logicalHeight);
+    info->SetLogicalRotation(property_.GetScreenRotation());
     info->SetSerialNumber(serialNumber_);
     info->SetMirrorWidth(property_.GetMirrorWidth());
     info->SetMirrorHeight(property_.GetMirrorHeight());
@@ -2124,6 +2120,50 @@ void ScreenSession::FillScreenInfo(sptr<ScreenInfo> info) const
     info->parent_ = groupSmsId_;
     info->isScreenGroup_ = isScreenGroup_;
     info->modes_ = modes_;
+}
+
+void ScreenSession::GetPhysicalSize(uint32_t& width, uint32_t& height) const
+{
+    width = 0;
+    height = 0;
+    if (isPcUse_) {
+        RRect bounds = property_.GetBounds();
+        width = bounds.rect_.GetWidth();
+        height = bounds.rect_.GetHeight();
+    } else {
+        sptr<SupportedScreenModes> screenSessionModes = GetActiveScreenMode();
+        if (screenSessionModes != nullptr) {
+            height = screenSessionModes->height_;
+            width = screenSessionModes->width_;
+        }
+    }
+}
+
+void ScreenSession::GetLogicalSize(uint32_t& logicalWidth, uint32_t& logicalHeight) const
+{
+    // The logical size is the surface a screen renders at, which is not always the bounds: on PC
+    // devices the built-in bounds hold the mirror black-edge crop rect instead of the smart
+    // resolution (ROG), and on other devices an external mirror screen renders at its active mode.
+    auto logicalBounds = property_.GetBounds();
+    logicalWidth = static_cast<uint32_t>(logicalBounds.rect_.GetWidth());
+    logicalHeight = static_cast<uint32_t>(logicalBounds.rect_.GetHeight());
+    if (isPcUse_) {
+        if (property_.GetScreenTypeInfo() == ScreenTypeInfo::BUILT_IN) {
+            uint32_t rogWidth = property_.GetRogWidth();
+            uint32_t rogHeight = property_.GetRogHeight();
+            if (rogWidth > 0 && rogHeight > 0) {
+                logicalWidth = rogWidth;
+                logicalHeight = rogHeight;
+            }
+        }
+    } else if (property_.GetScreenTypeInfo() == ScreenTypeInfo::EXTERNAL &&
+               GetScreenCombination() == ScreenCombination::SCREEN_MIRROR) {
+        sptr<SupportedScreenModes> activeMode = GetActiveScreenMode();
+        if (activeMode != nullptr && activeMode->width_ > 0 && activeMode->height_ > 0) {
+            logicalWidth = activeMode->width_;
+            logicalHeight = activeMode->height_;
+        }
+    }
 }
 
 Orientation ScreenSession::CalcDisplayOrientationToOrientation(DisplayOrientation displayOrientation) const

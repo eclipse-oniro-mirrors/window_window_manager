@@ -469,6 +469,9 @@ void AbstractScreen::FillScreenInfo(sptr<ScreenInfo> info) const
     info->sourceMode_ = sourceMode;
     info->type_ = type_;
     info->modeId_ = activeIdx_;
+    info->logicalWidth_ = width;
+    info->logicalHeight_ = height;
+    info->logicalRotation_ = rotation_;
     info->modes_ = modes_;
 }
 

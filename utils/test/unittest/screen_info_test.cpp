@@ -85,6 +85,49 @@ HWTEST_F(ScreenInfoTest, InnerUnmarshalling, TestSize.Level1)
     bool result = screenInfoSrc.InnerUnmarshalling(parcel);
     ASSERT_FALSE(result);
 }
+
+/**
+ * @tc.name: LogicalResolutionMarshallingRoundTrip
+ * @tc.desc: Test logical resolution fields Marshalling/Unmarshalling round-trip
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenInfoTest, LogicalResolutionMarshallingRoundTrip, TestSize.Level1)
+{
+    ScreenInfo screenInfoSrc;
+    screenInfoSrc.SetLogicalWidth(1920);
+    screenInfoSrc.SetLogicalHeight(1200);
+    screenInfoSrc.SetLogicalRotation(Rotation::ROTATION_90);
+
+    Parcel parcel;
+    ASSERT_TRUE(screenInfoSrc.Marshalling(parcel));
+    ScreenInfo* screenInfoDst = ScreenInfo::Unmarshalling(parcel);
+
+    ASSERT_NE(screenInfoDst, nullptr);
+    EXPECT_EQ(screenInfoDst->GetLogicalWidth(), 1920u);
+    EXPECT_EQ(screenInfoDst->GetLogicalHeight(), 1200u);
+    EXPECT_EQ(screenInfoDst->GetLogicalRotation(), Rotation::ROTATION_90);
+    delete screenInfoDst;
+}
+
+/**
+ * @tc.name: LogicalResolutionDefaultValues
+ * @tc.desc: Test logical resolution fields default values after Marshalling/Unmarshalling
+ * @tc.type: FUNC
+ */
+HWTEST_F(ScreenInfoTest, LogicalResolutionDefaultValues, TestSize.Level1)
+{
+    ScreenInfo screenInfoSrc;
+
+    Parcel parcel;
+    ASSERT_TRUE(screenInfoSrc.Marshalling(parcel));
+    ScreenInfo* screenInfoDst = ScreenInfo::Unmarshalling(parcel);
+
+    ASSERT_NE(screenInfoDst, nullptr);
+    EXPECT_EQ(screenInfoDst->GetLogicalWidth(), 0u);
+    EXPECT_EQ(screenInfoDst->GetLogicalHeight(), 0u);
+    EXPECT_EQ(screenInfoDst->GetLogicalRotation(), Rotation::ROTATION_0);
+    delete screenInfoDst;
+}
 } // namespace
 } // namespace Rosen
 } // namespace OHOS

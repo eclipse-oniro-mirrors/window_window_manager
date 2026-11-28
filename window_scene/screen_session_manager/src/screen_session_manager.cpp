@@ -4826,6 +4826,16 @@ DMError ScreenSessionManager::SetResolution(ScreenId screenId, uint32_t width, u
     WatchParameter(BOOTEVENT_BOOT_COMPLETED.c_str(), BootFinishedUnfreezeCallback, this);
     // add asyc task to judge when to unfreeze screen
     AddScreenUnfreezeTask(screenSession, 0);
+    // The soft resolution just resized the render space the mirror black-edge effect crops
+    // into. Re-fit the crop from the new base instead of leaving a stale rect from the
+    // previous resolution while the effect is still marked active. Only the internal screen
+    // carries the effect; SetResolution on any other screen leaves it alone.
+    if (IsResolutionEffectActive()) {
+        sptr<ScreenSession> internalSession = GetInternalScreenSession();
+        if (internalSession != nullptr && internalSession->GetScreenId() == screenId) {
+            HandleResolutionEffectChange();
+        }
+    }
     return DMError::DM_OK;
 }
 
@@ -4897,6 +4907,26 @@ void ScreenSessionManager::MarkResolutionEffectIdle()
     resolutionEffectOwnerId_.store(SCREEN_ID_INVALID);
 }
 
+// The black-edge math must run in the space the screen actually renders in. With smart
+// resolution (ROG) active on the internal screen that space is the soft resolution while
+// screenReal* stays physical, so rects computed from the real resolution land mis-scaled and
+// mis-centered when written into the bounds-space property. The base must also be crop-proof:
+// the effect machinery rewrites bounds (rsId==0 loop-back), valid/area/mirror dims, but never
+// the rog fields, and every writer of the soft resolution maintains them. Screens without
+// smart resolution keep rog at 0 and fall back to the real resolution, so their behavior is
+// unchanged.
+static void GetEffectBaseResolution(const sptr<ScreenSession>& screenSession, uint32_t& width, uint32_t& height)
+{
+    ScreenProperty property = screenSession->GetScreenProperty();
+    if (property.GetRogWidth() != 0 && property.GetRogHeight() != 0) {
+        width = property.GetRogWidth();
+        height = property.GetRogHeight();
+        return;
+    }
+    width = property.GetScreenRealWidth();
+    height = property.GetScreenRealHeight();
+}
+
 bool ScreenSessionManager::HandleResolutionEffectChange()
 {
     if (!IS_SUPPORT_RESOLUTION_EFFECT_CHANGE) {
@@ -4942,10 +4972,15 @@ bool ScreenSessionManager::CalculateTargetResolution(const sptr<ScreenSession>& 
     const sptr<ScreenSession>& externalSession, const bool& effectFlag,
     uint32_t& targetWidth, uint32_t& targetHeight)
 {
-    uint32_t innerWidth = internalSession->GetScreenProperty().GetScreenRealWidth();
-    uint32_t innerHeight = internalSession->GetScreenProperty().GetScreenRealHeight();
-    uint32_t externalWidth = externalSession->GetScreenProperty().GetScreenRealWidth();
-    uint32_t externalHeight = externalSession->GetScreenProperty().GetScreenRealHeight();
+    // Base both screens on the render-space resolution: soft resolution under smart
+    // resolution (ROG), real resolution otherwise. External mirror targets never run ROG,
+    // so the fallback keeps their behavior identical.
+    uint32_t innerWidth = 0;
+    uint32_t innerHeight = 0;
+    uint32_t externalWidth = 0;
+    uint32_t externalHeight = 0;
+    GetEffectBaseResolution(internalSession, innerWidth, innerHeight);
+    GetEffectBaseResolution(externalSession, externalWidth, externalHeight);
     if (externalSession->GetScreenProperty().GetScreenType() == ScreenType::VIRTUAL) {
         // Virtual screens never rotate (always ROTATION_0), so the rotation comparison used
         // for physical screens is meaningless for them, and the cast engine may report the
@@ -5002,12 +5037,13 @@ bool ScreenSessionManager::SetResolutionEffect(ScreenId screenId, uint32_t width
         TLOGNFE(WmsLogTag::DMS, "only internal session valid");
         return false;
     }
-    uint32_t realWidth = internalSession->GetScreenProperty().GetScreenRealWidth();
-    uint32_t realHeight = internalSession->GetScreenProperty().GetScreenRealHeight();
-    // Calculate the center position
+    uint32_t baseWidth = 0;
+    uint32_t baseHeight = 0;
+    GetEffectBaseResolution(internalSession, baseWidth, baseHeight);
+    // Calculate the center position in the render-space resolution
     DMRect toRect = {
-        std::floor((realWidth - width) / 2),
-        std::floor((realHeight - height) / 2),
+        std::floor((baseWidth - width) / 2),
+        std::floor((baseHeight - height) / 2),
         width,
         height
     };
@@ -5047,9 +5083,13 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
         TLOGNFE(WmsLogTag::DMS, "internalSession null");
         return false;
     }
-    auto internalProperty = internalSession->GetScreenProperty();
-    DMRect realResolutionRect = { 0, 0, internalProperty.GetScreenRealWidth(),
-        internalProperty.GetScreenRealHeight()};
+    // Restore in the same render-space resolution the effect was applied in: the soft
+    // resolution under smart resolution (ROG), the real resolution otherwise. Restoring the
+    // physical rect on a smart-resolution screen would clobber the soft bounds.
+    uint32_t baseWidth = 0;
+    uint32_t baseHeight = 0;
+    GetEffectBaseResolution(internalSession, baseWidth, baseHeight);
+    DMRect realResolutionRect = { 0, 0, baseWidth, baseHeight };
     TLOGNFI(WmsLogTag::DMS, "realResolutionRect %{public}d %{public}d %{public}d %{public}d",
         realResolutionRect.posX_, realResolutionRect.posY_, realResolutionRect.width_, realResolutionRect.height_);
     // Capture the owner and settle the bookkeeping up front; its region is reset from the local
@@ -5075,9 +5115,12 @@ bool ScreenSessionManager::RecoveryResolutionEffect()
         GetMirrorExternalSession(externalSession);
         ReconcileMirrorCursorParams(externalSession);
     } else {
-        auto ownerProperty = externalSession->GetScreenProperty();
-        DMRect ownerRealRect = { 0, 0, ownerProperty.GetScreenRealWidth(),
-            ownerProperty.GetScreenRealHeight()};
+        uint32_t ownerBaseWidth = 0;
+        uint32_t ownerBaseHeight = 0;
+        GetEffectBaseResolution(externalSession, ownerBaseWidth, ownerBaseHeight);
+        DMRect ownerRealRect = { 0, 0, ownerBaseWidth, ownerBaseHeight };
+        TLOGNFI(WmsLogTag::DMS, "ownerRealRect %{public}d %{public}d %{public}d %{public}d",
+            ownerRealRect.posX_, ownerRealRect.posY_, ownerRealRect.width_, ownerRealRect.height_);
         SetExternalScreenResolutionEffect(externalSession, ownerRealRect);
     }
     HandleCastVirtualScreenMirrorRegion();
@@ -5724,6 +5767,11 @@ void ScreenSessionManager::InitScreenProperty(ScreenId screenId, RSScreenModeInf
     if (screenId == SCREEN_ID_DEFAULT && rogSize.isSupportRog) {
         property.SetScreenRealWidth(property.GetPhyBounds().rect_.GetWidth());
         property.SetScreenRealHeight(property.GetPhyBounds().rect_.GetHeight());
+        // Persist the soft resolution on the property: ValidateRogProperty only saves it at
+        // first boot, so without this a DMS restart (session re-created while bounds are
+        // restored from the persist parameters) leaves rog at 0 and the resolution effect
+        // would wrongly fall back to the physical base.
+        property.SetRogScreenResolution(rogSize.width, rogSize.height);
     } else {
         property.SetScreenRealWidth(property.GetBounds().rect_.GetWidth());
         property.SetScreenRealHeight(property.GetBounds().rect_.GetHeight());
@@ -5781,8 +5829,8 @@ void ScreenSessionManager::GetInternalWidth()
         return;
     }
     ScreenProperty screenProperty = screenSession->GetScreenProperty();
-    uint32_t screenWidth = screenProperty.GetScreenRealWidth();
-    uint32_t screenHeight = screenProperty.GetScreenRealHeight();
+    uint32_t screenWidth = screenProperty.GetPhyBounds().rect_.GetWidth();
+    uint32_t screenHeight = screenProperty.GetPhyBounds().rect_.GetHeight();
     g_internalWidth = (screenWidth > screenHeight) ? screenWidth : screenHeight;
     TLOGNFI(WmsLogTag::DMS, "ScreenId: %{public}" PRIu64", g_internalWidth is:%{public}u",
         screenId, static_cast<uint32_t>(g_internalWidth));
