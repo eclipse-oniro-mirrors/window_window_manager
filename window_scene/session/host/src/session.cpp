@@ -5582,15 +5582,17 @@ void Session::SetShowRecent(bool showRecent)
 {
     TLOGI(WmsLogTag::WMS_MAIN, "in recents: %{public}d, id: %{public}d", showRecent, persistentId_);
     bool isAttach = GetAttachState();
-    if (!IsSupportDetectWindow(isAttach) ||
-        !ShouldCreateDetectTaskInRecent(showRecent, showRecent_, isAttach)) {
-        showRecent_ = showRecent;
-        return;
-    }
+    bool wasShowRecent = showRecent_;
     showRecent_ = showRecent;
-    WindowMode windowMode = GetWindowMode();
-    if (!showRecent_ && ShouldCreateDetectTask(isAttach, windowMode)) {
-        CreateWindowStateDetectTask(isAttach, windowMode);
+    if (IsSupportDetectWindow(isAttach) &&
+        ShouldCreateDetectTaskInRecent(showRecent, wasShowRecent, isAttach)) {
+        WindowMode windowMode = GetWindowMode();
+        if (!showRecent_ && ShouldCreateDetectTask(isAttach, windowMode)) {
+            CreateWindowStateDetectTask(isAttach, windowMode);
+        }
+    }
+    if (wasShowRecent && !showRecent_ && isAttach != isClientAttach_) {
+        SetAttachState(isAttach, GetWindowMode());
     }
 }
 
